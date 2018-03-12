@@ -1,0 +1,103 @@
+# Compiled objects and modules
+*.a
+*.o
+*.mod
+*.log
+*.out
+
+# Compiler python objects
+*.pyc
+
+# Python distribution
+dist/
+openmc.egg-info/
+
+# Inputs generated from Python API
+examples/python/**/*.xml
+
+# emacs and vim backups
+*~
+*.swp
+
+# OpenMC statepoints
+*.binary
+
+# Documentation builds
+docs/build
+docs/source/_images/*.pdf
+docs/source/_images/*.aux
+docs/source/pythonapi/generated/
+
+# Source build
+build
+
+# build from src/utils/setup.py
+src/utils/build
+
+# xml-fortran reader
+src/xml-fortran/xmlreader
+
+# Test results error file
+results_error.dat
+inputs_error.dat
+results_test.dat
+
+# Test build files
+tests/build/
+tests/coverage/
+tests/memcheck/
+tests/ctestscript.run
+
+# HDF5 files
+*.h5
+
+# Build files
+src/CMakeCache.txt
+src/CMakeFiles/
+src/bin/
+src/cmake_install.cmake
+src/install_manifest.txt
+
+# Nuclear data
+scripts/nndc
+scripts/nndc_hdf5
+scripts/wmp
+scripts/multipole_lib.tar.gz
+scripts/ENDF-B-VII.1-*.tar.gz
+scripts/JEFF32-ACE-*.tar.gz
+scripts/JEFF32-ACE-*.zip
+scripts/TSLs.tar.gz
+scripts/jeff-3.2
+scripts/jeff-3.2-hdf5
+scripts/*.tar.xz
+
+# Images
+*.ppm
+*.voxel
+
+# PyCharm project configuration files
+.idea
+.idea/*
+
+# IPython notebook checkpoints
+.ipynb_checkpoints
+
+# Jupyter notebooks
+examples/jupyter/*.xml
+examples/jupyter/*.png
+examples/jupyter/*.xls
+examples/jupyter/*.ace
+examples/jupyter/*.endf
+examples/jupyter/mgxs
+examples/jupyter/tracks
+examples/jupyter/fission-rates
+examples/jupyter/plots
+
+# Cython files
+*.c
+*.html
+*.so
+
+.cache/
+.tox/
+.python-version
