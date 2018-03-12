@@ -1,0 +1,123 @@
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      udiff  = 0
+      utrans = 0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      ffx = 0.
+      ffy = 0.
+      ffz = 0.
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      qvol   = 0.0
+      source = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,ieg)
+      include 'SIZE'
+      include 'TSTEP'
+      include 'INPUT'
+      include 'NEKUSE'
+
+      frequency = param(33)
+      amplitude = param(34)
+
+      if (x .lt. -1.1) then
+        ux=1
+        uy=0.
+        uz=0.
+      else
+        call u_meshv(ux,uy,uz,x,y,z,time, frequency, amplitude)
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      ux=0.0
+      uy=0.0
+      uz=0.0
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      include 'SIZE'
+      include 'TOTAL'
+
+      if (param(33) .eq. 0.0) param(33) = 1.0
+      if (param(34) .eq. 0.0) param(34) = 1.0e-2
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+
+       param(59) = 1  ! all elements deformed
+
+      ifxyo = .true.
+c     ifusermv = .false.  ! do not define our own mesh velocity
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+      include 'RESTART'
+
+      parameter (lt=lx1*ly1*lz1*lelv)
+      common /scrns/ vort(lt,3), w1(lt), w2(lt)
+
+      n = nx1*ny1*nz1*nelv
+      call comp_vort3(vort , w1, w2, vx, vy, vz)
+      call copy (T,vort,n)    ! Vorticity --> T
+      ifto = .true.           ! Dump vorticity as T
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine u_meshv(ux,uy,uz,x,y,z,time, frequency, amplitude)
+
+      one          = 1.0
+      pi           = 4.0*atan(one)
+      omega        = frequency*2*pi
+
+      ux = 0.0
+      uy = amplitude * omega * cos(omega*time)
+      uz = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------

@@ -1,0 +1,15 @@
+rm -f *log1* *sch* *.f
+
+makenek ca ; neklmpi ca 4 ;
+grep agy logfile > c.a
+
+makenek cb ; neklmpi cb 4 ; 
+grep agy logfile > c.b
+
+makenek pa ; neklmpi pa 4 ;
+grep agy logfile > p.a
+
+makenek pb ; neklmpi pb 4 ; 
+grep agy logfile > p.b
+
+rm -f *log1* *sch*  *.f  compiler.out

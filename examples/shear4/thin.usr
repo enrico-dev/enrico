@@ -1,0 +1,199 @@
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      udiff =0.
+      utrans=0.
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      qvol   = 0.0
+      source = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+       subroutine userchk
+       include 'SIZE'
+       include 'TOTAL'
+
+       parameter(lt=lx1*ly1*lz1*lelv)
+       real vort(lt,3),work1(lt),work2(lt)
+
+       ntot = nx1*ny1*nz1*nelv
+       umax = glamax(vx,ntot)
+       if (umax.gt.8.) then
+          write(6,*) nid,' umax:',umax,ntot
+          call emerxit
+       endif
+
+       call comp_vort3(vort,work1,work2,vx,vy,vz)
+       vmax = glamax(vort,ntot)
+       if (nid.eq.0) write(6,1) istep, time, vmax
+    1  format(i9,1p2e14.6,' peak vorticity')
+
+       return
+       end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,iel)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      ux=0.0
+      uy=0.0
+      uz=0.0
+      temp=0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TSTEP'
+      include 'NEKUSE'
+
+      integer icalld
+      save    icalld
+      data    icalld  /0/
+
+      real rhol,delta
+      save rhol,delta
+
+      ux=0.0
+      uy=0.0
+      uz=0.0
+      TEMP=0
+c
+c
+c     Shu's double shear layer (p.65, 1997 ICASE Rep.)
+c
+c     Also,
+c
+c         Bell, Collela, & Glaz, JCP [85],  p257 (1989)
+c         Brown and Minion,      JCP [122], p165 (1995)
+c         Tadmor                 1997, Italy
+c
+c
+      delta = 0.05
+c     rhol   =  30.         ! thick shear layer case
+      rhol   = 100.         ! thin shear layer case
+
+      if (icalld.eq.0) then
+         icalld = 1
+         if (nid.eq.0) write(6,*) 'Shear layer delta:',delta
+         if (nid.eq.0) write(6,*) 'Shear layer rho:  ',rhol
+      endif
+
+      if (y.le.0.5) then
+         ux =  tanh(rhol*(y-0.25))
+      else
+         ux =  tanh(rhol*(0.75-y))
+      endif
+      uy =  delta*sin(2.*pi*x)
+
+      if (ifield.gt.1) then          ! set up passive scalar
+         rhol  = 50.*ifield
+         if (y.le.0.5) then
+            tmp  =  tanh(rhol*(y-0.25))
+         else
+            tmp  =  tanh(rhol*(0.75-y))
+         endif
+
+         if (x.le.0.5) then
+            tmp  =  tmp  + tanh(rhol*(x-0.25))
+         else
+            tmp  =  tmp  + tanh(rhol*(0.75-x))
+         endif
+         temp = tmp*sin(2.*pi*ifield*x)
+         ps1  = tmp
+         ps2  = tmp
+         ps3  = tmp
+         ps4  = tmp
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+
+
+!
+!     Checking for fast tensor product pressure solver:
+!
+!     As of 3/1/2010, the fast tensor product solver is broken for P > 1,
+!     apparently a element to processor map issue.  pff
+!
+!     The fast tensor product solver is set by setting 
+!
+!     p116=nelx   (in .rea file)       lelx=nelx  (in SIZEu)
+!     p117=nely                        lely=nely
+!     p118=nelz                        lelz=nelz
+!
+!     where nelx=nely=16 and nelz=1 for the present case.
+!
+!     In addition, ZPER in the /nek repo must be modified from
+!
+! >        parameter (lelg_sm=2)
+! >        parameter (ltfdm2 =2)
+! >  c     parameter (lelg_sm=lelg)
+! >  c     parameter (ltfdm2=2*lx2*ly2*lz2*lelt)
+!
+! to:
+!
+! >  c     parameter (lelg_sm=2)
+! >  c     parameter (ltfdm2 =2)
+! >        parameter (lelg_sm=lelg)
+! >        parameter (ltfdm2=2*lx2*ly2*lz2*lelt)
+!
+ 
+c     if (param(116).gt.0.and.np.gt.1.and.nid.eq.0) write(6,*)
+c    $'Set p115-118=0 and rerun, or rerun with only one processor.'
+c
+c     if (param(116).gt.0.and.np.gt.1) call exitti
+c    $('Fast tens. prod. solver (p116>0) currently broken for P>1$,np)
+c
+      if (param(116).gt.0.and.np.gt.1.and.nid.eq.0) then
+        write(6,*)
+     $  'TURNING OFF FAST TENSOR PRODUCT SOLVER FOR PARALLEL CASE.'
+        param(115) = 0
+        param(116) = 0
+        param(117) = 0
+        param(118) = 0
+      endif
+
+      if (lx1.lt.12.and.nid.eq.0) then
+          write(6,*)
+          write(6,*) 'NOTE: FOR THE THIN CASE, recommend lx1=16'
+          write(6,*)
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      return
+      end
+c-----------------------------------------------------------------------

@@ -1,0 +1,40 @@
+#
+# nek parameter file
+#
+[GENERAL] 
+#startFrom = restart.fld 
+stopAt = endTime
+endTime = 200 
+
+dt = 0
+timeStepper = bdf2
+extrapolation = OIFS
+variableDt = yes
+targetCFL = 3.5
+
+writeControl = runTime
+writeInterval = 100.0
+
+userParam01 = 100    # start time collecting statistics
+userParam02 = 20     # writeInterval 1D statistics 
+userParam03 = 1      # drive flow with pressure gradient instead of body force
+
+#dealiasing = no
+
+filtering = hpfrt # set to none in case of Smagorinski 
+filterWeight = 10
+filterCutoffRatio = 0.9 
+
+[PROBLEMTYPE]
+variableProperties = no # set to yes in case of Smagorinski
+equation = incompNS
+
+[PRESSURE]
+preconditioner = semg_amg
+residualTol = 1e-04
+residualProj = yes
+
+[VELOCITY]
+residualTol = 1e-07
+density = 1
+viscosity = -10000

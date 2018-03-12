@@ -1,0 +1,267 @@
+c-----------------------------------------------------------------------
+c
+c     This usr file calculates the urms,vrms and wrms using the files
+c     output by turbInflow.usr.
+c
+c
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      integer e,f,eg
+
+      udiff =0.
+      utrans=0.
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+c     Note: this is an acceleration term, NOT a force!
+c     Thus, ffx will subsequently be multiplied by rho(x,t).
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+      qvol   = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+      character*127 fname1,fname2
+
+      fname1 = 'avg.list'  !name of file which has list of all avg files
+      fname2 = 'rms.list'  !name of file which has list of all rms files
+      nelx = 10            !number of elements in x direction
+      nely = 8             !number of elements in y direction
+      nelz = 8             !number of elements in z direction
+      call getrms(fname1,fname2,nelx,nely,nelz)
+      if (nio.eq.0) write(*,*) 'quit after calculating rms with nel2d'
+      call exitt0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine getrms(fname1,fname2,nelx,nely,nelz)
+      include 'SIZE'
+      include 'TOTAL'
+      real uk(lx1*ly1*lz1*lelt),
+     $     vk(lx1*ly1*lz1*lelt),
+     $     wk(lx1*ly1*lz1*lelt),
+     $     tk(lx1*ly1*lz1*lelt)
+      integer gs_avg_hndl
+      save    gs_avg_hndl
+      data    gs_avg_hndl / 0 /
+      integer lt,nelx,nely,nelz
+      character*127 fname1,fname2
+      real rcmask(lx1*ly1*lz1*lelt),xloc
+      real dum(lx1*ly1*lz1*lelt)
+
+      lt = lx1*ly1*lz1*nelt
+      ifld  = 1
+ccc   Generate the mask for nodes in recirculation zone
+ccc   xplane=5 here since reicrculation was from x=0 to x=5
+ccc   in case pipe.usr
+      xloc = 5.
+      call genrecirmask(xloc,rcmask)
+
+ccc   avg all the avgturbInflow0.f0* files
+      call auto_averager(fname1)
+
+ccc   copy uk=vx**2, vk=vy**2, wk=vz**2
+      call col3(uk,vx,vx,lt)
+      call col3(vk,vy,vy,lt)
+      call col3(wk,vz,vz,lt)
+
+ccc   avg all the rmsturbInflow0.f0* files
+      call auto_averager(fname2)
+
+ccc   u'^2,v'^2,w'^2 = rms - avg**2
+      call sub2(vx,uk,lt)
+      call sub2(vy,vk,lt)
+      call sub2(vz,wk,lt)
+
+ccc   Average in thex direction
+      call my_x_avg(uk,vx,gs_avg_hndl,nelx,nely,nelz,ifld,rcmask)
+      call my_x_avg(vk,vy,gs_avg_hndl,nelx,nely,nelz,ifld,rcmask)
+      call my_x_avg(wk,vz,gs_avg_hndl,nelx,nely,nelz,ifld,rcmask)
+
+ccc   TKE = 0.5*(u'^2+v'^2+w'^2)
+      call add4(tk,uk,vk,wk,lt)
+      call cmult(tk,0.5,lt)
+
+ccc   sqrt uk,vk,wk to get urms, vrms and wrms
+      call vsqrt(uk,lt)
+      call vsqrt(vk,lt)
+      call vsqrt(wk,lt)
+
+ccc   output urms,vrms and wrms along with the TKE 
+ccc   TKE is in temperature field
+      ifto = .true.
+      call outpost(uk,vk,wk,pr,tk,'avx')
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      ux=0.0
+      uy=0.0
+      uz=0.0
+      temp=0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer idum
+      save    idum
+      data    idum  / 999 /
+
+      ux=0.01*(ran1(idum)-.5)
+      uy=0.01*(ran1(idum)-.5)
+      uz=0.05*(ran1(idum)-.5)
+
+c      if (x.le.-1.0) then
+         ux=(7./6.)*(1.0-z**6)
+         argy = 6*y
+         argx = 2*x
+         arg2 = sin(argx)
+         if (abs(z).lt.0.1) ux = ux + 0.3*sin(argy+arg2)
+c      endif
+
+
+
+      Under = 0.95
+
+      ux = Under * ux   ! Scale initial condition to match
+      uy = Under * uy   ! estimated bulk velocity.  Also,
+      uz = Under * uz   ! under-estimate mean velocity to avoid
+                                ! initial overshoot.
+      temp=0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      include 'SIZE'
+      include 'TOTAL'
+      integer e,eg,f
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      include 'SIZE'
+      include 'TOTAL'
+c
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine my_x_avg(ua,u,gs_avg_hndl,nelx,nely,nelz,ifld,msk)
+      include 'SIZE'
+      include 'TOTAL'
+      real u(1),ua(1),msk(1)
+      integer gs_avg_hndl,e,ex,ey,ez,eg
+
+      if (gs_avg_hndl.eq.0) then
+          call set_gs_xavg_hndl(gs_avg_hndl,nelx,nely,nelz,ifld)
+      endif
+
+      nel = nelfld(ifld)
+      n   = nx1*ny1*nz1*nel
+
+      call copy(ua,bm1,n)        ! Set the averaging weights
+      call col2(ua,msk,n)        ! zero out values in recirculation zone
+      call fgslib_gs_op(gs_avg_hndl,ua,1,1,0) ! Sum weights over columns
+
+      do i=1,n                          ! ua = (w_j*u_j)/( sum_i w_i)
+         ua(i) = bm1(i,1,1,1)*u(i)*msk(i)/ua(i)
+      enddo
+
+      call fgslib_gs_op(gs_avg_hndl,ua,1,1,0) ! Sum weighted values
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine set_gs_xavg_hndl(gs_avg_hndl,nelx,nely,nelz,ifld)
+c     Set the x-average handle
+      include 'SIZE'
+      include 'TOTAL'
+      integer gs_avg_hndl,e,ex,ey,ez,eg
+      common /nekmpi/ mid,mp,nekcomm,nekgroup,nekreal
+      common /c_is1/ glo_num(lx1,ly1,lz1,lelv)
+      integer*8 glo_num,ey_g, ez_g
+
+      nel = nelfld(ifld)
+      do e=1,nel
+         eg = lglel(e)
+         call get_exyz(ex,ey,ez,eg,nelx,nely,nelz)
+
+         ey_g = ey              ! Ensure int*8 promotion
+         ez_g = ez
+         do k=1,nz1             ! Enumerate points in the x-y plane
+            do j=1,ny1
+               do i=1,nx1
+                  glo_num(i,j,k,e) = j+ny1*(k-1) + ny1*nz1*(ey_g-1 +
+     $                  nely*(ez_g-1))
+               enddo
+            enddo
+         enddo
+
+      enddo
+
+      n = nel*nx1*ny1*nz1
+
+      call fgslib_gs_setup(gs_avg_hndl,glo_num,n,nekcomm,mp)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine genrecirmask(xloc,rcmask)
+      include 'SIZE'
+      include 'TOTAL'
+      real xloc,rcmask(lx1*ly1*lz1*lelt)
+ 
+      call rone(rcmask,lx1*ly1*lz1*nelv)
+      do i=1,lx1*ly1*lz1*nelv
+       if (xm1(i,1,1,1).lt.xloc) rcmask(i) = 0.
+      enddo
+   
+      return
+      end
+c-----------------------------------------------------------------------

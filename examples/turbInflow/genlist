@@ -1,0 +1,2 @@
+ls avgturbInflow0* > avg.list
+ls rmsturbInflow0* > rms.list

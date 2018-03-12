@@ -1,0 +1,639 @@
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      udiff =0.
+      utrans=0.
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+
+c     Note: this is an acceleration term, NOT a force!
+c     Thus, ffx will subsequently be multiplied by rho(x,t).
+
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      qvol   = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (i,j,k,f,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      common /cvelbc/ uin(lx1,ly1,lz1,lelv)
+     $              , vin(lx1,ly1,lz1,lelv)
+     $              , win(lx1,ly1,lz1,lelv)
+
+      integer e,f,eg
+      e = gllel(eg)
+
+      ux=uin(i,j,k,e)
+      uy=vin(i,j,k,e)
+      uz=win(i,j,k,e)
+
+      temp=0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+
+      integer idum
+      save    idum
+      data    idum  / 999 /
+
+      ux=0.01*(ran1(idum)-.5)
+      uy=0.01*(ran1(idum)-.5)
+      uz=0.05*(ran1(idum)-.5)
+
+c      if (x.le.-1.0) then
+         ux=(7./6.)*(1.0-z**6)
+         argy = 6*y
+         argx = 2*x
+         arg2 = sin(argx)
+         if (abs(z).lt.0.1) ux = ux + 0.3*sin(argy+arg2)
+c      endif
+
+
+
+      Under = 0.95
+
+      ux = Under * ux   ! Scale initial condition to match
+      uy = Under * uy   ! estimated bulk velocity.  Also,
+      uz = Under * uz   ! under-estimate mean velocity to avoid
+                                ! initial overshoot.
+      temp=0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      include 'SIZE'
+      include 'TOTAL'
+c
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+      parameter (lt=lx1*ly1*lz1*lelt)
+      common /myoutflow / d(lt),w1(lt) 
+      real dx,dy,dz,ubar
+
+      integer icalld
+      save    icalld
+      data    icalld /0/
+
+      integer e
+
+      n=nx1*ny1*nz1*nelv
+
+c     Compute perturbation energy
+      ub = glsc2(vx,bm1,n)/volvm1
+      e2 = glsc3(vy,bm1,vy,n)+glsc3(vz,bm1,vz,n)
+      e2 = e2/volvm1
+      um = glamax(vx,n)
+
+      ifxyo = .true.                        ! Turn on xyz output
+      if (istep.gt.iostep) ifxyo = .false.  ! Turn off after first dump
+
+      if(nio.eq.0) write(6,1) istep,time,e2,ub,um
+    1              format(i6,1p4e13.5,' e2')
+
+c******** Recycling using Traditional Way  *******************
+
+c      nslab =  5 ! 75% to 65% of inlet section
+
+
+c      call set_inflow(nslab)   ! set up inflow BCs
+
+
+c*************************************************************
+
+c******** Recycling using Findpts ****************************
+
+      dx=5.
+      dy=0.
+      dz=0.
+      ubar = 1.0
+      call set_inflow_fpt(dx,dy,dz,ubar)
+
+c*************************************************************
+
+      uin = 0.                          !  for outflows
+      ratio = 2.0  
+      call turb_outflow(d,w1,ratio,uin)
+
+      nio = -999       ! TOGGLE I/O VERBOSITY
+      if (istep.le.100.or.mod(istep,10).eq.0) nio=nid ! Verbose on.
+
+c     To compute running averages E(X),E(X^2),E(X*Y)
+c     and outputs to avg*.fld*, rms*.fld*, and rm2*.fld* for all
+c     fields.      
+      call avg_all 
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine rescale_inflow  ! rescale inflow
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer icalld,e,eg,f
+      save    icalld
+      data    icalld /0/
+
+      common /cvelbc/ uin(lx1,ly1,lz1,lelv)
+     $              , vin(lx1,ly1,lz1,lelv)
+     $              , win(lx1,ly1,lz1,lelv)
+
+      real vv(2),ww(2)
+
+      call rzero(vv,2)
+      call rzero(ww,2)
+
+      ibranch = 1 ! Only one inlet
+
+      nface = 2*ndim
+      nbc   = 0
+      do e=1,nelv
+      do f=4,4       ! All on face 4
+        if (cbc(f,e,1).eq.'v  ') then
+            nbc = nbc+1
+            do i=1,nx1*ny1
+               vv(ibranch) = vv(ibranch) + area(i,1,f,e)*uin(1,i,1,e) ! +U vel
+               ww(ibranch) = ww(ibranch) + area(i,1,f,e)
+            enddo
+          endif
+      enddo
+      enddo
+
+
+      vv(1) = glsum(vv(1),1)   ! Flux
+      ww(1) = glsum(ww(1),1)   ! Area
+      vv(1) = vv(1)/ww(1)      ! Ubar
+      nbc   = iglsum(nbc,1) 
+
+      if (vv(1).le.0) return
+
+      s1 = 1.0                 ! Target Ubar
+
+      arw   = ww(1)     ! Area
+      ww(1) = s1/vv(1)  ! Scale factor
+
+      if (nid.eq.0.and.(istep.le.100.or.mod(istep,100).eq.0))
+     $  write(6,1) istep,nbc,time,ww(1),vv(1),arw
+    1   format(2i8,1p4e14.6,' rescale')
+
+
+c     RESCALE INFLOW ACCORDING TO S1 S2
+
+      do e=1,nelv
+      do f=4,4
+        if (cbc(f,e,1).eq.'v  ') then
+          do i=1,nx1*ny1
+             uin(1,i,1,e) =  ww(ibranch)*uin(1,i,1,e)
+             vin(1,i,1,e) =  ww(ibranch)*vin(1,i,1,e)
+             win(1,i,1,e) =  ww(ibranch)*win(1,i,1,e)
+          enddo
+        endif
+      enddo
+      enddo
+
+      ifield = 1       ! Project into H1, just to be sure....
+      call dsavg(uin)
+      call dsavg(vin)
+      call dsavg(win)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine set_inflow(nslab)   ! set up inflow BCs
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer icalld,e,eg,f
+      save    icalld
+      data    icalld /0/
+
+      common /cvelbc/ uin(lx1,ly1,lz1,lelv)
+     $              , vin(lx1,ly1,lz1,lelv)
+     $              , win(lx1,ly1,lz1,lelv)
+
+      common /scruz/  ptr(lx1,ly1,lz1,lelv)
+      integer*8 ptr
+
+      common  /gs_infl/ gs_bc_hndl
+      integer           gs_bc_hndl
+
+      common /nekmpi/ mid,mp,nekcomm,nekgroup,nekreal
+
+      n = nx1*ny1*nz1*nelv
+
+      if (icalld.eq.0) then
+         icalld = 1
+         nxyz = nx1*ny1*nz1
+
+         do e=1,nelv
+            eg = lglel(e)
+            eo = nxyz*(eg-1)    ! offset
+            do i=1,nxyz
+               ptr(i,1,1,e) = i+eo
+            enddo
+
+            do k=2,nz1-1        ! get rid of interior pointers
+            do j=2,ny1-1
+            do i=2,nx1-1
+               ptr(i,j,k,e) = 0
+            enddo
+            enddo
+            enddo
+
+            ioff = nxyz*(nslab-1)+(nx1-1)   ! # elem/slab x # slabs
+
+            do f=4,4  ! connect inflow to elems above ! ALL ON FACE 5
+               if (cbc(f,e,1).eq.'v  ') then
+                  do j=1,ny1*nz1
+                     ptr(1,j,1,e) = ptr(1,j,1,e) + ioff
+                  enddo
+               endif
+            enddo
+
+         enddo
+
+       call fgslib_gs_setup(gs_bc_hndl,ptr,n,nekcomm,np) ! connect v + downstream
+
+      endif
+
+      call col3 (uin,vx,v1mask,n)
+      call col3 (vin,vy,v2mask,n)
+      call col3 (win,vz,v3mask,n)
+
+      call fgslib_gs_op(gs_bc_hndl,uin,1,1,0)  ! 1 ==> +  ! uin(inflow) = vx(slab_k)
+      call fgslib_gs_op(gs_bc_hndl,vin,1,1,0)  ! 1 ==> +
+      call fgslib_gs_op(gs_bc_hndl,win,1,1,0)  ! 1 ==> +
+
+      call rescale_inflow  ! rescale inflow so Wbar = 1
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine find_outflow(ksurf,nsurf,lsurf)
+
+c
+c     find outflow points to measure flow rate ratios in different
+c     branches of bifurcation
+c
+c
+      include 'SIZE'
+      include 'TOTAL'
+      common /scruz/ one(lx1,ly1,lz1)
+      integer ksurf(3,1)
+
+      integer e,f
+
+      nbrnch = 2
+
+      nxyz = nx1*ny1*nz1
+      call rone(one,nxyz)
+
+      nface = 2*ndim
+
+      channel_width = 1.6 ! Slightly bigger than actual width (?? 2.0)
+
+      nsurf=0
+      do e=1,nelv
+      do f=1,nface
+         if (cbc(f,e,1).eq.'O  ') then
+
+            nsurf = nsurf+1
+
+            are   = facdot(one,area(1,1,f,e),f)
+            cgy   = facdot(ym1(1,1,1,e),area(1,1,f,e),f)
+            cgy   = cgy/are
+            j=2
+            if (cgy.lt.channel_width) j=1
+            ksurf(1,nsurf) = f ! face is first
+            ksurf(2,nsurf) = e ! element is 2nd
+            ksurf(3,nsurf) = j ! branch is 3rd
+         endif
+      enddo
+      enddo
+
+      msurf = iglmax(nsurf,1)
+      if (msurf.gt.lsurf) call exitti('Increase lsurf.$',msurf)
+
+      return
+      end
+c-----------------------------------------------------------------------
+c  subroutines that follow are for fintpts based method
+c-----------------------------------------------------------------------
+      subroutine field_copy_si(fieldout,fieldin,idlist,nptsi)
+      include 'SIZE'
+      include 'TOTAL'
+
+      real    fieldin(1),fieldout(1)
+      integer idlist(1)
+
+      do i=1,nptsi
+        idx = idlist(i)
+        fieldout(idx) = fieldin(i)
+      enddo
+
+      return
+      end
+C--------------------------------------------------------------------------
+      subroutine field_eval_si(fieldout,fieldstride,fieldin)
+      include 'SIZE'
+      include 'TOTAL'
+
+      real fieldout(1),fieldin(1)
+
+      integer fieldstride,nptsi
+
+      parameter (lt=lelv*lx1*lz1)
+
+      integer elid_si(lt),proc_si(lt),ptid(lt),rcode_si(lt)
+      common /ptlist_int/ elid_si,proc_si,ptid,rcode_si,nptsi
+
+      real    rst_si(lt*ldim)
+      common /ptlist_real/ rst_si
+
+      integer inth_si
+      common / fpt_h_si/ inth_si
+
+c     Used for fgslib_findpts_eval of various fields
+      call fgslib_findpts_eval(inth_si,fieldout,fieldstride,
+     &                     rcode_si,1,
+     &                     proc_si,1,
+     &                     elid_si,1,
+     &                     rst_si,ndim,nptsi,
+     &                     fieldin)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine rescale_inflow_fpt(ubar_in)  ! rescale inflow
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer icalld,e,eg,f
+      save    icalld
+      data    icalld /0/
+      common /cvelbc/ uin(lx1,ly1,lz1,lelv)
+     $              , vin(lx1,ly1,lz1,lelv)
+     $              , win(lx1,ly1,lz1,lelv)
+
+      call get_flux_and_area(ubar,abar)
+      ubar  = ubar/abar        ! Ubar
+      scale = ubar_in/ubar     ! Scale factor
+
+      if (nid.eq.0.and.(istep.le.100.or.mod(istep,100).eq.0))
+     $  write(6,1) istep,time,scale,ubar,abar
+    1   format(1i8,1p4e14.6,' rescale')
+
+c     Rescale the flow to match ubar_in
+      do e=1,nelv
+      do f=1,2*ldim
+        if (cbc(f,e,1).eq.'v  ') then
+           call facind (kx1,kx2,ky1,ky2,kz1,kz2,nx1,ny1,nz1,f)
+           do iz=kz1,kz2
+           do iy=ky1,ky2
+           do ix=kx1,kx2
+              uin(ix,iy,iz,e) =  scale*uin(ix,iy,iz,e)
+              vin(ix,iy,iz,e) =  scale*vin(ix,iy,iz,e)
+              win(ix,iy,iz,e) =  scale*win(ix,iy,iz,e)
+           enddo
+           enddo
+           enddo
+        endif
+      enddo
+      enddo
+
+      ifield = 1       ! Project into H1, just to be sure....
+      call dsavg(uin)
+      call dsavg(vin)
+      if (ldim.eq.3) call dsavg(win)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine get_flux_and_area(vvflux,vvarea)
+      include 'SIZE'
+      include 'TOTAL'
+      common /cvelbc/ uin(lx1,ly1,lz1,lelv)
+     $              , vin(lx1,ly1,lz1,lelv)
+     $              , win(lx1,ly1,lz1,lelv)
+      real vvflux,vvarea
+      real work(lx1*ly1*lz1)
+      integer e,f
+
+      nxz   = nx1*nz1
+      nface = 2*ndim
+
+      vvflux = 0.
+      vvarea = 0.
+
+      do e=1,nelv
+      do f=1,nface
+         if (cbc(f,e,1).eq.'v  ') then
+            call surface_flux(dq,uin,vin,win,e,f,work)
+            vvflux = vvflux + dq
+            vvarea = vvarea + vlsum(area(1,1,f,e),nxz)
+         endif
+      enddo
+      enddo
+      vvflux = glsum(vvflux,1)
+      vvarea = glsum(vvarea,1)
+      vvflux = -vvflux !flux in is negative
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine set_inflow_fpt_setup(dxx,dyy,dzz)   ! set up inflow BCs
+      include 'SIZE'
+      include 'TOTAL'
+c
+c setup recirculation boundary condition based on user supplied dx,dy,dz
+c dx,dy,dz is the vector from the inflow where the user wants the velocity
+c data to be interpolated from
+c
+      integer icalld,e,eg,i,f,nptsi
+      save    icalld
+      data    icalld /0/
+      real dxx,dyy,dzz
+
+      parameter (lt=lx1*lz1*lelv)
+      real rst_si(lt*ldim),xyz_si(lt*ldim)
+      real dist_si(lt),vals_si(lt)
+
+      integer elid_si(lt), proc_si(lt),ptid(lt)
+      integer rcode_si(lt)
+      common /ptlist_real/ rst_si
+      common /ptlist_int/ elid_si,proc_si,ptid,rcode_si,nptsi
+      integer inth_si
+      common / fpt_h_si/ inth_si
+      common /cvelbc/ uin(lx1,ly1,lz1,lelv)
+     $              , vin(lx1,ly1,lz1,lelv)
+     $              , win(lx1,ly1,lz1,lelv)
+      common /nekmpi/ nidd,npp,nekcomm,nekgroup,nekreal
+
+      n = nx1*ny1*nz1*nelv
+ccc
+c     Gather info for findpts
+ccc
+      nptsi = 0
+      nxyz = nx1*ny1*nz1
+
+      do e=1,nelv
+      do f=1,2*ndim  !Identify the xyz of the points that are to be found
+       if (cbc(f,e,1).eq.'v  ') then
+           call facind (kx1,kx2,ky1,ky2,kz1,kz2,nx1,ny1,nz1,f)
+           do iz=kz1,kz2
+           do iy=ky1,ky2
+           do ix=kx1,kx2
+            nptsi = nptsi+1
+            xyz_si(ldim*(nptsi-1)+1) = xm1(ix,iy,iz,e) + dxx
+            xyz_si(ldim*(nptsi-1)+2) = ym1(ix,iy,iz,e) + dyy
+      if (ldim.eq.3) xyz_si(ldim*(nptsi-1)+ldim) = zm1(ix,iy,iz,e) + dzz
+            ptid(nptsi) = (e-1)*nxyz+(iz-1)*lx1*ly1+(iy-1)*lx1+ix
+           enddo
+           enddo
+           enddo
+       endif
+      enddo
+      enddo
+      mptsi=iglmax(nptsi,1)
+      if (mptsi.gt.lt)
+     $  call exitti('ERROR: increase lt in inflow_fpt routines.$',mptsi)
+
+c     Setup findpts
+
+      tol     = 1e-10
+      npt_max = 256
+      nxf     = 2*nx1 ! fine mesh for bb-test
+      nyf     = 2*ny1
+      nzf     = 2*nz1
+      bb_t    = 0.1 ! relative size to expand bounding boxes by
+      bb_t    = 0.1 ! relative size to expand bounding boxes by
+      call fgslib_findpts_setup(inth_si,nekcomm,npp,ndim,
+     &                   xm1,ym1,zm1,nx1,ny1,nz1,
+     &                   nelt,nxf,nyf,nzf,bb_t,n,n,
+     &                   npt_max,tol)
+
+
+c     Call findpts to determine el,proc,rst of the xyzs determined above
+
+      call fgslib_findpts(inth_si,rcode_si,1,
+     &             proc_si,1,
+     &             elid_si,1,
+     &             rst_si,ndim,
+     &             dist_si,1,
+     &             xyz_si(1),ldim,
+     &             xyz_si(2),ldim,
+     &             xyz_si(3),ldim,nptsi)
+
+      return
+      end
+C-----------------------------------------------------------------------
+      subroutine set_inflow_fpt(dxx,dyy,dzz,ubar)   ! set up inflow BCs
+      include 'SIZE'
+      include 'TOTAL'
+
+c setup recirculation boundary condition based on user supplied dx,dy,dz
+c dx,dy,dz is the vector from the inflow where the user wants the
+c velocity data to be interpolated from
+
+      integer icalld
+      save    icalld
+      data    icalld /0/
+      real dxx,dyy,dzz
+
+      parameter (lt=lx1*lz1*lelv)
+      real rst_si(lt*ldim),xyz_si(lt*ldim)
+      real dist_si(lt),vals_si(lt)
+      common /ptlist_real/ rst_si
+
+      integer elid_si(lt), proc_si(lt),ptid(lt),rcode_si(lt)
+      common /ptlist_int/ elid_si,proc_si,ptid,rcode_si,nptsi
+      integer inth_si
+      common / fpt_h_si/ inth_si
+      common /cvelbc/ uin(lx1,ly1,lz1,lelv)
+     $              , vin(lx1,ly1,lz1,lelv)
+     $              , win(lx1,ly1,lz1,lelv)
+
+
+c     Gather info for findpts and set up inflow BC
+      if (icalld.eq.0) call set_inflow_fpt_setup(dxx,dyy,dzz)
+      icalld=1
+
+
+c     Eval fields and copy to uvwin array
+      call field_eval_si(vals_si,1,vx)
+      call field_copy_si(uin,vals_si,ptid,nptsi)
+
+      call field_eval_si(vals_si,1,vy)
+      call field_copy_si(vin,vals_si,ptid,nptsi)
+
+      if (ldim.eq.3) then
+        call field_eval_si(vals_si,1,vz)
+        call field_copy_si(win,vals_si,ptid,nptsi)
+      endif
+
+c     Rescale the flow so that ubar,vbar or wbar is ubar
+      call rescale_inflow_fpt(ubar)
+
+      return
+      end
+C-----------------------------------------------------------------------

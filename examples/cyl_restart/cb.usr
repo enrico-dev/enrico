@@ -1,0 +1,184 @@
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+
+      logical if_drag_out,if_torq_out
+
+      call my_full_restart
+
+      scale = 1.
+      if_drag_out = .true.
+      if_torq_out = .false.
+      call torque_calc(scale,x0,if_drag_out,if_torq_out)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine my_full_restart
+      include 'SIZE'
+      include 'TOTAL'
+
+c*********************************************************************
+c***  Warning: Number and names of the restart files should be updated 
+c***  depending on param(27)
+c*********************************************************************
+      character*80 s80(3)
+
+      call blank(s80,3*80)
+      s80(1) ='rs6ca0.f00001'
+      s80(2) ='rs6ca0.f00002'
+      s80(3) ='rs6ca0.f00003'
+
+      call full_restart(s80,3)  ! Will overload 4-6 onto steps 0-2
+
+
+      iosave = iostep           ! Trigger save based on iostep
+      call full_restart_save(iosave)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      udiff =0.
+      utrans=0.
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+
+c     Note: this is an acceleration term, NOT a force!
+c     Thus, ffx will subsequently be multiplied by rho(x,t).
+
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      qvol   = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      ux=1.0
+      uy=0.0
+      uz=0.0
+      temp=0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      ux=1.0
+      uy=0.0
+      uz=0.0
+      temp=0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      include 'SIZE'
+      include 'TOTAL'
+c
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+
+c     param(66) = 4.   ! These give the std nek binary i/o and are 
+c     param(67) = 4.   ! good default values
+
+      call set_obj     ! define objects for surface integrals
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      include 'SIZE'
+      include 'TOTAL'
+c
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine set_obj  ! define objects for surface integrals
+c
+      include 'SIZE'
+      include 'TOTAL'
+c
+      integer e,f
+c
+c     Define new objects
+
+      nobj = 1
+      iobj = 0
+      do ii=nhis+1,nhis+nobj
+         iobj = iobj+1
+         hcode(10,ii) = 'I'
+         hcode( 1,ii) = 'F' ! 'F'
+         hcode( 2,ii) = 'F' ! 'F'
+         hcode( 3,ii) = 'F' ! 'F'
+         lochis(1,ii) = iobj
+      enddo
+      nhis = nhis + nobj
+
+      if (maxobj.lt.nobj) write(6,*) 'increase maxobj in SIZE'
+      if (maxobj.lt.nobj) call exitt
+
+      do e=1,nelv
+      do f=1,2*ndim
+         if (cbc(f,e,1).eq.'W  ') then
+            iobj = 0
+c           if (f.eq.1) iobj=1  ! lower wall
+c           if (f.eq.3) iobj=2  ! upper wall
+            iobj=1              ! cylinder wall
+            if (iobj.gt.0) then
+               nmember(iobj) = nmember(iobj) + 1
+               mem = nmember(iobj)
+               ieg = lglel(e)
+               object(iobj,mem,1) = ieg
+               object(iobj,mem,2) = f
+c              write(6,1) iobj,mem,f,ieg,e,nid,' OBJ'
+    1          format(6i9,a4)
+            endif
+c
+         endif
+      enddo
+      enddo
+c     write(6,*) 'number',(nmember(k),k=1,4)
+c
+      return
+      end
+c-----------------------------------------------------------------------

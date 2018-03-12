@@ -1,0 +1,161 @@
+c-----------------------------------------------------------------------
+C
+C  USER SPECIFIED ROUTINES:
+C
+C     - boundary conditions
+C     - initial conditions
+C     - variable properties
+C     - local acceleration for fluid (a)
+C     - forcing function for passive scalar (q)
+C     - general purpose routine for checking errors etc.
+C
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      udiff =0.
+      utrans=0.
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+
+c     Note: this is an acceleration term, NOT a force!
+c     Thus, ffx will subsequently be multiplied by rho(x,t).
+
+
+      ffx = 0.0
+      ffy = temp ! Hot goes up, cold goes down
+      ffz = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      qvol   = 0.0
+      source = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+
+      common /mychk/ vxo(lx1*ly1*lz1*lelt),vyo(lx1*ly1*lz1*lelt)
+
+      n = nx1*ny1*nz1*nelv
+      vmax = glmax(vy,n)
+      tmax = glmax(t ,n)
+
+      dmax = 0
+      if (istep.gt.1) then
+         do i=1,n
+            diff = (vxo(i)-vx(i,1,1,1))**2 + (vxo(i)-vx(i,1,1,1))**2
+            dmax = max(dmax,diff)
+         enddo
+         dmax = glmax(dmax,1)
+         if (dmax.gt.0) dmax = sqrt(dmax)/dt
+      endif
+      call copy(vxo,vx,n)
+      call copy(vyo,vy,n)
+
+      if (nid.eq.0.and.mod(istep,10).eq.0) 
+     $     write(6,1) istep,time,dmax,vmax,tmax
+    1 format(i9,1p4e13.5,' tmax')
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      common /cmygeom/ rad_mid
+
+      ux=0.0
+      uy=0.0
+      uz=0.0
+      temp=0.0
+
+      rad = sqrt(x*x+y*y)
+      if (rad.lt.rad_mid) temp = 1.
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      ux=0.0
+      uy=0.0
+      uz=0.0
+      temp=0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      include 'SIZE'
+      include 'TOTAL'
+c
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      include 'SIZE'
+      include 'TOTAL'
+c
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+      common /cmygeom/ rad_mid
+
+      diam_outer = 1.
+      rad_outer  = diam_outer / 2.
+
+      rad_inner  = rad_outer / 3.
+      rad_mid    = .5*(rad_inner + rad_outer) ! For BC discrimination
+
+      x0 = -rad_outer
+      x1 =  rad_outer
+
+      call rescale_x(xm1,x0,x1)  ! Outer diam = 1
+      call rescale_x(ym1,x0,x1)
+
+      Grashof = 120000.  ! Grashof number
+      Prandtl = 0.8      ! Prandtl number
+
+      Re = sqrt(Grashof)
+
+      param(2) = 1./Re               ! Viscosity
+      param(8) = 1./(Re*Prandtl)     ! Conductivity
+
+      return
+      end
+c-----------------------------------------------------------------------

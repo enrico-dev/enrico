@@ -1,0 +1,232 @@
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      udiff  = 0
+      utrans = 0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      ffx = 0.
+      ffy = 0.
+      ffz = 0.
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      qvol   = 0.0
+      source = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,f,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,eg,f
+
+      common /c_mybc/ umeshx(lx1,ly1,lz1,lelt)
+     $              , umeshy(lx1,ly1,lz1,lelt)
+     $              , umeshz(lx1,ly1,lz1,lelt)
+
+
+      if (x .lt. -1.1) then
+        ux=1
+        uy=0.
+        uz=0.
+      else
+         e  = gllel(eg)
+         ux = umeshx(ix,iy,iz,e)
+         uy = umeshy(ix,iy,iz,e)
+         uz = umeshz(ix,iy,iz,e)
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      ux=0.0
+      uy=0.0
+      uz=0.0
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      include 'SIZE'
+      include 'TOTAL'
+
+      if (param(33) .eq. 0.0) param(33) = 1.0     !  frequency = param(33)
+      if (param(34) .eq. 0.0) param(34) = 0.3     !  amplitude = param(34)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+
+       param(59) = 1  ! all elements deformed
+
+      ifxyo = .true.
+      ifusermv = .true.  ! define our own mesh velocity
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+      include 'RESTART'
+
+      parameter (lt=lx1*ly1*lz1*lelv)
+      common /scrns/ vort(lt,3), w1(lt), w2(lt)
+
+      n = nx1*ny1*nz1*nelv
+      call comp_vort3(vort , w1, w2, vx, vy, vz)
+      call copy (T,vort,n)    ! Vorticity --> T
+      ifto = .true.           ! Dump vorticity as T
+
+      ifusermv = .true.
+      if (ifusermv) call my_meshv      ! Compute our own mesh velocity
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine my_base_meshv(basev,h1,h2,rhs,msk,tmp)
+      include 'SIZE'
+      include 'TOTAL'
+      real basev(lx1,ly1,lz1,lelt),tmp(lx1,ly1,lz1,lelt)
+      real h1(1),h2(1),rhs(1),msk(1)
+      real m1
+      integer e,f
+
+      n = nx1*ny1*nz1*nelv
+
+      call rone (h1 ,n)  ! H*u = -div (h1 grad u) + h2 u = 0
+      call rzero(h2 ,n)  ! h2  = 0
+      call rone (msk,n)  ! Mask, for Dirichlet boundary values
+      call rzero(tmp,n)  ! RHS for Laplace solver
+
+c
+c     Modify h1 to make blending function constant near the cylinder.
+c     The idea here is to push the majority of the mesh deformation to the 
+c     far field, away from where the fine, boundary-layer-resolving elements
+c     are close to the cylinder.
+c
+      delta = 2.0
+      do i=1,n
+         x=xm1(i,1,1,1)
+         y=ym1(i,1,1,1)
+         rr = x*x + y*y
+         arg = -rr/(delta**2)
+         h1(i) = h1(i) + 9.0*exp(arg)
+      enddo
+
+      m1 = -1.
+      z0 =  0.
+
+      nface = 2*ndim
+      do e=1,nelv
+      do f=1,nface
+
+c        Set Dirichlet for mesh velocity on all non-interior boundaries
+         if (cbc(f,e,1).ne.'E  ') call facev(msk,e,f,z0,nx1,ny1,nz1)
+
+c        Set inhomogeneous Dirichlet data on cylinder
+         if (cbc(f,e,1).eq.'mv ') then
+           call fcaver(xavg,xm1,e,f)
+           if (xavg.gt.-1.2) call facev(tmp,e,f,m1,nx1,ny1,nz1)
+         endif
+      enddo
+      enddo
+      call axhelm (rhs,tmp,h1,h2,1,1)
+
+      tol    = 1.e-4
+      imsh   = 1
+      ifield = 1
+      call hmholtz('mshv',basev,rhs,h1,h2,msk,vmult,imsh,tol,200,1)
+      call sub2(basev,tmp,n)
+
+c     BELOW JUST FOR DIAGNOSTICS
+c     call outpost(basev,basev,basev,basev,basev,'   ')
+c     call exitti('quit in my_base_meshv$',nelt)
+      
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine my_meshv
+      include 'SIZE'
+      include 'TOTAL'
+      parameter (lt=lx1*ly1*lz1*lelv)
+      common /scrns/  h1(lt),h2(lt),rhs(lt),msk(lt),tmp(lt)
+      real msk
+
+      common /cmeshv/ basev(lt)   ! Save base interpolation function
+
+      common /c_mybc/ umeshx(lx1,ly1,lz1,lelt)
+     $              , umeshy(lx1,ly1,lz1,lelt)
+     $              , umeshz(lx1,ly1,lz1,lelt)
+
+
+c     Set up base interpolation function.
+c
+c     This is the expensive part where we find a smooth
+c     interpolant between the moving boundary and fixed boundaries.
+c
+c     Note that it is called only once.
+c
+c     Note also that you have other types of motions you might (or
+c     might not) need an addition interpolating basis function.
+c
+      if (istep.eq.0) call my_base_meshv(basev,h1,h2,rhs,msk,tmp)
+
+
+      frequency = param(33)
+      amplitude = param(34)
+      omega     = frequency*2*pi
+
+      ucx = 0.0                        ! Cylinder velocity components
+      ucy = amplitude*omega*cos(omega*time)
+      ucz = 0.0
+
+      n = nx1*ny1*nz1*nelv
+
+      do i=1,n                          ! Translational velocity
+         wx(i,1,1,1) = basev(i)*ucx     ! component.
+         wy(i,1,1,1) = basev(i)*ucy
+         wz(i,1,1,1) = basev(i)*ucz
+
+         umeshx(i,1,1,1) = wx(i,1,1,1)
+         umeshy(i,1,1,1) = wy(i,1,1,1)
+         umeshz(i,1,1,1) = wz(i,1,1,1)
+
+      enddo
+
+      return
+      end
+c-----------------------------------------------------------------------

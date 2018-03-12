@@ -1,0 +1,27 @@
+[GENERAL]
+stopat = numSteps #endTime
+numsteps = 1000
+
+userparam01 = 1
+
+dt = -1.0e-02
+timestepper = bdf2
+writecontrol = timeStep #runTime
+writeinterval = 90000
+dealiasing = yes
+
+[PROBLEMTYPE]
+equation = incompLinAdjNS # incompLinNS
+numberOfPerturbations = 1
+solveBaseflow = no
+variableProperties = no
+
+[PRESSURE]
+residualtol = 1e-08
+residualproj = no
+
+[VELOCITY]
+residualtol = 1e-08
+residualproj = no
+density = 1
+viscosity = -2000.0
