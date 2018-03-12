@@ -1,0 +1,747 @@
+#!/bin/bash
+#Create variable to store source path
+cd ../nek
+HERE_S=`pwd`
+cd ../../test/tools
+HERE_T=`pwd`
+cd $HERE_S
+
+##############################################################
+function tester()
+{
+dir=$1
+nek=$2
+rea=$3
+err=$4
+
+PERFORMED_TESTS=${PERFORMED_TESTS}' '$rea
+cd $dir
+cp ../../trunk/tools/scripts/$nek .
+cp ../../trunk/nek/makenek.bb .
+../../tests/tools/genmap << EOF
+$rea
+.05
+EOF
+
+./makenek.bb    clean $HERE_S
+mkdir ./obj
+sleep 1
+./makenek.bb    $rea $HERE_S
+./$nek $rea 1
+grep "$err" $rea.log.1 | tail -$5 > $rea.err.1
+./$nek $rea 4
+grep "$err" $rea.log.4 | tail -$5 > $rea.err.4
+
+grep nek5000 compiler.out | tail -1 >> $rea.err.1
+
+# clean directory
+clean_dir $nek $rea $rea
+}
+##############################################################
+function clean_dir()
+{
+# clean directory
+args=("$@")
+argsnr=$#
+
+nek="${args[0]}"
+rea1="${args[1]}"
+rea2=""
+for i in `seq 2 $[argsnr-1]`
+do
+    rea2=${rea2}" ""${args[i]}"
+done
+
+./makenek.bb    clean     $HERE_S
+rm $rea1.f
+rm makenek.bb
+rm makefile
+rm compiler.out
+rm $nek
+for k in ${rea2}
+do
+    rm $k.sch*
+done
+rm logfile
+}
+##############################################################
+#Begin testing...
+##############################################################
+#Test all examples...
+cd ../../examples
+echo "####################################################################"
+echo "### turbChannel; turbChannel"
+echo "####################################################################"
+tester turbChannel nek10steps turbChannel err2 1 
+
+echo "####################################################################"
+echo "### 3dbox; b3d"
+echo "####################################################################"
+cd ..
+cd 3dbox
+cp ../../trunk/tools/scripts/mvn .
+../../tests/tools/genbox << EOF
+b3d.box
+EOF
+./mvn box b3d
+cd ../
+tester 3dbox nek10steps b3d gridpt 1
+
+
+echo "####################################################################"
+echo "### axi; axi"
+echo "####################################################################"
+PERFORMED_TESTS=${PERFORMED_TESTS}' axi'
+cd ..
+cd ./axi
+cp ../../trunk/tools/scripts/neklmpi .
+cp ../../trunk/tools/scripts/mvn .
+cp ../../trunk/nek/makenek.bb .
+../../tests/tools/genbox < gb.in
+../../tests/tools/genmap < gm.in
+./mvn box axi
+./makenek.bb    clean     $HERE_S
+mkdir ./obj
+sleep 1
+./makenek.bb    axi           $HERE_S
+./neklmpi axi 1
+./neklmpi axi 4
+grep nek5000 compiler.out | tail -1 > axi.err.1
+# clean directory
+clean_dir neklmpi axi axi
+rm mvn
+
+echo "####################################################################"
+echo "### benard; ray_9, ray_dd, ray_dn, ray_nn"
+echo "####################################################################"
+PERFORMED_TESTS=${PERFORMED_TESTS}' ray_9 ray_dd ray_dn ray_nn'
+cd ..
+cd ./benard
+cp ../../trunk/tools/scripts/neklmpi .
+cp ../../trunk/tools/scripts/nek1000steps .
+cp ../../trunk/nek/makenek.bb .
+../../tests/tools/genmap << EOF
+ray_9
+.05
+EOF
+
+./makenek.bb clean     $HERE_S
+mkdir ./obj
+sleep 1
+./makenek.bb ray_9            $HERE_S
+./nek1000steps ray_9 1
+grep nek5000 compiler.out | tail -1 > ray_9.err.1
+# clean directory
+./makenek.bb clean     $HERE_S
+rm ray_9.f
+rm makefile
+rm compiler.out
+rm nek1000steps
+rm ray_9.sch
+rm logfile
+
+../../tests/tools/genmap << EOF
+ray_dd
+.05
+EOF
+
+../../tests/tools/genmap << EOF
+ray_dn
+.05
+EOF
+
+../../tests/tools/genmap << EOF
+ray_nn
+.05
+EOF
+
+if  grep -q "lx2=lx1-2" SIZE   
+    then
+      mkdir ./obj
+      sleep 1
+      ./makenek.bb ray_cr           $HERE_S
+      ./neklmpi ray_dd 1
+      ./neklmpi ray_dn 1
+      ./neklmpi ray_nn 1
+      grep rayleigh *.log.1 > benard.err
+      grep nek5000 compiler.out | tail -1 >> benard.err
+      # clean directory
+      clean_dir neklmpi ray_cr ray_dd ray_dn ray_nn
+else
+      cd ./benard_split/
+      cp ../ray_dd.map .
+      cp ../ray_dn.map .
+      cp ../ray_nn.map .
+      ../makenek.bb clean     $HERE_S
+      mkdir ./obj
+      sleep 1
+      ../makenek.bb ray_cr            $HERE_S
+      ../neklmpi ray_dd 1
+      ../neklmpi ray_dn 1
+      ../neklmpi ray_nn 1
+      grep rayleigh *.log.1 > benard.err
+      grep nek5000 compiler.out | tail -1 >> benard.err
+      mv benard.err ../
+      mv *.log.*    ../
+      # clean directory
+      ../makenek.bb clean     $HERE_S
+      rm ray_cr.f
+      rm ../makenek.bb
+      rm makefile
+      rm compiler.out
+      rm ../neklmpi
+      rm ray_dd.sch ray_dn.sch ray_nn.sch
+      rm logfile
+      cd ../
+fi
+
+echo "####################################################################"
+echo "### blasius; blasius"
+echo "####################################################################"
+cd ..
+tester blasius nek10steps blasius delta 1 
+
+echo "####################################################################"
+echo "### cone; cone016, cone064, cone256"
+echo "####################################################################"
+PERFORMED_TESTS=${PERFORMED_TESTS}' cone016'
+cd ..
+cd cone/cone016
+if  grep -q "lx2=lx1)" SIZE
+then
+    cp ../../../trunk/tools/scripts/neklmpi .
+    cp ../../../trunk/tools/scripts/mvn .
+    cp ../../../trunk/nek/makenek.bb .
+    ../../../tests/tools/genbox << EOF
+cone016.box
+EOF
+    ../../../tests/tools/genmap << EOF
+box
+.05
+EOF
+    ./mvn box cone016
+
+    ./makenek.bb  clean  $HERE_S
+    mkdir ./obj
+    sleep 1
+    ./makenek.bb  cone   $HERE_S
+    ./neklmpi cone016 1
+    grep Tmax cone016.log.1  > cone016.err.1
+    ./neklmpi cone016 4
+    grep Tmax cone016.log.4  > cone016.err.4
+    grep nek5000 compiler.out | tail -1 >> cone016.err.1
+    mv cone016.log.* cone016.err.* ../
+# clean directory
+    clean_dir neklmpi cone cone016
+    rm mvn
+fi
+
+PERFORMED_TESTS=${PERFORMED_TESTS}' cone064'
+cd ../cone064
+if  grep -q "lx2=lx1)" SIZE 
+then
+    cp ../../../trunk/tools/scripts/neklmpi .
+    cp ../../../trunk/tools/scripts/mvn .
+    cp ../../../trunk/nek/makenek.bb .
+    ../../../tests/tools/genbox << EOF
+cone064.box
+EOF
+    ../../../tests/tools/genmap << EOF
+box
+.05
+EOF
+    ./mvn box cone064
+
+    ./makenek.bb  clean  $HERE_S
+    mkdir ./obj
+    sleep 1
+    ./makenek.bb  cone   $HERE_S
+    ./neklmpi cone064 1
+    grep Tmax cone064.log.1  > cone064.err.1
+    ./neklmpi cone064 4
+    grep Tmax cone064.log.4  > cone064.err.4
+    grep nek5000 compiler.out | tail -1 >> cone064.err.1
+    mv cone064.log.* cone064.err.* ../
+# clean directory
+    clean_dir neklmpi cone cone064
+    rm mvn
+fi
+
+PERFORMED_TESTS=${PERFORMED_TESTS}' cone0256'
+cd ../cone256
+if  grep -q "lx2=lx1)" SIZE 
+then
+    cp ../../../trunk/tools/scripts/neklmpi .
+    cp ../../../trunk/tools/scripts/mvn .
+    cp ../../../trunk/nek/makenek.bb .
+    ../../../tests/tools/genbox << EOF
+cone256.box
+EOF
+    ../../../tests/tools/genmap << EOF
+box
+.05
+EOF
+    ./mvn box cone256
+
+    ./makenek.bb  clean  $HERE_S
+    mkdir ./obj
+    sleep 1
+    ./makenek.bb  cone   $HERE_S
+    ./neklmpi cone256 1
+    grep Tmax cone256.log.1  > cone256.err.1
+    ./neklmpi cone256 4
+    grep Tmax cone256.log.4  > cone256.err.4
+    grep nek5000 compiler.out | tail -1 >> cone256.err.1
+    mv cone256.log.* cone256.err.* ../
+# clean directory
+    clean_dir neklmpi cone cone256
+    rm mvn
+fi
+cd ../
+
+echo "####################################################################"
+echo "### conj_ht; conj_ht"
+echo "####################################################################"
+cd ..
+tester conj_ht neklmpi conj_ht tmax 1 
+
+
+echo "####################################################################"
+echo "### cyl_restart; ca, cb, pa, pb"
+echo "####################################################################"
+cd ..
+tester cyl_restart neklmpi ca dragy 1
+cd .. 
+tester cyl_restart neklmpi cb dragy 1
+cd .. 
+tester cyl_restart neklmpi pa dragy 1
+cd .. 
+tester cyl_restart neklmpi pb dragy 1
+
+echo "####################################################################"
+echo "### eddy; eddy_uv, amg_eddy"
+echo "####################################################################"
+cd ..
+tester eddy neklmpi eddy_uv err 2 
+
+if [ "${IF_MATLAB}" == "on" ]
+then
+    PERFORMED_TESTS=${PERFORMED_TESTS}' amg_eddy'
+    cp ../../trunk/tools/scripts/neklmpi .
+    cp ../../trunk/nek/makenek.bb .
+    cp ../../trunk/tools/scripts/cpn .
+    ./cpn eddy_uv amg_eddy
+    sed -i "s:#IFAMG=:IFAMG=:" makenek.bb
+    sed -i "s:#IFAMG_DUMP=:IFAMG_DUMP=:" makenek.bb
+    ./makenek.bb clean     $HERE_S
+    mkdir ./obj
+    sleep 1
+    ./makenek.bb amg_eddy   $HERE_S
+    ./neklmpi amg_eddy 1
+
+    cd ../../trunk/tools/amg_matlab
+    cp ../../../examples/eddy/amgdmp*.dat .
+    echo .5   >  input
+    echo .9   >>input
+    echo .5   >>input
+    echo 1e-4 >>input
+    echo exit >>input
+    ${MATLAB} -nodisplay -r go < input
+    mv *.dat ../../../examples/eddy/
+    rm input
+    cd ../../../examples/eddy
+
+    sed -i "s:IFAMG_DUMP=:#IFAMG_DUMP=:" makenek.bb
+    ./makenek.bb clean     $HERE_S
+    mkdir ./obj
+    sleep 1
+    ./makenek.bb amg_eddy   $HERE_S
+    ./neklmpi amg_eddy 1
+    grep err amg_eddy.log.1 | tail -2 > amg_eddy.err.1
+    ./neklmpi amg_eddy 4
+    grep err amg_eddy.log.4 | tail -2 > amg_eddy.err.4
+    grep nek5000 compiler.out | tail -1 >> amg_eddy.err.1
+# clean directory
+    clean_dir neklmpi amg_eddy amg_eddy
+fi
+echo "####################################################################"
+echo "### eddy; eddy hpts test"
+echo "####################################################################"
+
+./cpn eddy_uv hpts_ed
+
+sed -i "s:lhis=[0-9][0-9]*:lhis=7:" SIZE
+grep -qi hpts hpts_ed.usr
+if [ $? -eq 0 ]
+then
+  sed -i "s:! call hpts:  call hpts:" ./hpts_ed.usr
+else
+  sed -i "205 a\
+\       call hpts" ./hpts_ed.usr
+fi
+
+if [ ! -f "./hpts.in" ]
+then
+echo 10 > hpts.in
+echo "   0.0000000000000000E+000   5.500000000000000 " >>hpts.in
+echo "   0.0000000000000000E+000   6.280000000000000 " >>hpts.in
+echo "     0.780000000000000       0.0000000000000000E+000 " >>hpts.in
+echo "     1.570000000000000       0.0000000000000000E+000 " >>hpts.in
+echo "     2.360000000000000       0.0000000000000000E+000 " >>hpts.in
+echo "     3.140000000000000       0.0000000000000000E+000 " >>hpts.in
+echo "     3.930000000000000       0.0000000000000000E+000 " >>hpts.in
+echo "     4.710000000000000       0.0000000000000000E+000 " >>hpts.in
+echo "     5.500000000000000       0.0000000000000000E+000 " >>hpts.in
+echo "     6.280000000000000       0.0000000000000000E+000 " >>hpts.in
+fi
+
+if [ -f "./hpts.out" ]
+then
+rm -rf hpts.out
+fi
+
+cd ../
+tester eddy neklmpi hpts_ed err 2
+tail -10 hpts.out > hpts_ed.err.0
+
+sed -i "s:call hpts:! call hpts:" ./hpts_ed.usr
+
+
+echo "####################################################################"
+echo "### eddy_neknek; eddy_neknek"
+echo "####################################################################"
+PERFORMED_TESTS=${PERFORMED_TESTS}' eddy_neknek'
+cd ..
+cd eddy_neknek
+cp ../../trunk/tools/scripts/neknek .
+cp ../../trunk/nek/makenek.bb .
+../../tests/tools/genmap << EOF
+inside
+.05
+EOF
+../../tests/tools/genmap << EOF
+outside
+.05
+EOF
+sed -e "s:^#PPLIST=\"?\":PPLIST=\"NEKNEK\":" makenek.bb>t.t
+mv t.t makenek.bb
+chmod +x makenek.bb
+./makenek.bb clean     $HERE_S
+mkdir ./obj
+sleep 1
+./makenek.bb eddy_uv   $HERE_S
+./neknek inside outside 1 1
+cp inside.log eddy_neknek.log.2
+grep global inside.log | tail -2 > eddy_neknek.err.2
+./neknek inside outside 2 2
+cp inside.log eddy_neknek.log.4
+grep global inside.log | tail -2 > eddy_neknek.err.4
+# clean directory
+clean_dir neknek eddy_uv inside outside
+
+echo "####################################################################"
+echo "### eddy_psi_omega; psi_eddy"
+echo "####################################################################"
+cd ..
+tester eddy_psi_omega nek10steps psi_omega err 1
+
+echo "####################################################################"
+echo "### expansion; expansion"
+echo "####################################################################"
+cd ..
+tester expansion nek10steps expansion ubar 1
+
+echo "####################################################################"
+echo "### hemi; hemi"
+echo "####################################################################"
+cd ..
+tester hemi nek10steps hemi wmax 1
+
+echo "####################################################################"
+echo "### ext_cyl; ext_cyl"
+echo "####################################################################"
+cd ..
+tester ext_cyl nek1000steps ext_cyl drag 2
+
+echo "####################################################################"
+echo "### fs_2; st1, st2, std_wv"
+echo "####################################################################"
+cd ..
+tester fs_2 nek200steps st1    amp 1 
+cd ..
+tester fs_2 nek200steps st2    amp 1 
+cd .. 
+tester fs_2 nek200steps std_wv amp 1 
+
+
+echo "####################################################################"
+echo "### fs_hydro; fs_hydro"
+echo "####################################################################"
+cd ..
+tester fs_hydro nek1000steps fs_hydro AMP 1 
+
+echo "####################################################################"
+echo "### kovasznay; kov"
+echo "####################################################################"
+cd ..
+tester kovasznay neklmpi kov err 1 
+
+echo "####################################################################"
+echo "### kov_st_state; kov_st_stokes"
+echo "####################################################################"
+cd ..
+tester kov_st_state neklmpi kov_st_stokes err 1 
+
+echo "####################################################################"
+echo "### lowMach_test; lowMach_test"
+echo "####################################################################"
+cd ..
+tester lowMach_test nek200steps lowMach_test ERROR 3 
+
+echo "####################################################################"
+echo "### mhd; gpf, gpf_m, gpf_b"
+echo "####################################################################"
+PERFORMED_TESTS=${PERFORMED_TESTS}' gpf gpf_m gpf_b'
+cd ..
+cd mhd
+cp ../../trunk/tools/scripts/neklmpi .
+cp ../../trunk/tools/scripts/mvn .
+cp ../../trunk/nek/makenek.bb .
+../../tests/tools/genbox << EOF
+gpf.box
+EOF
+../../tests/tools/genmap << EOF
+box
+.05
+EOF
+./mvn box gpf
+cp gpf.map gpf_m.map
+./makenek.bb clean      $HERE_S
+mkdir ./obj
+sleep 1
+./makenek.bb   gpf       $HERE_S
+./neklmpi gpf 1
+grep "rtavg_gr_Em" gpf.log.1 | tail -1 > gpf.err.1
+./neklmpi gpf 4
+grep "rtavg_gr_Em" gpf.log.4 | tail -1 > gpf.err.4
+grep nek5000 compiler.out | tail -1 >> gpf.err.1
+
+./neklmpi gpf_m 1
+grep "rtavg_gr_Em" gpf_m.log.1 | tail -1 > gpf_m.err.1
+./neklmpi gpf_m 4
+grep "rtavg_gr_Em" gpf_m.log.4 | tail -1 > gpf_m.err.4
+grep nek5000 compiler.out | tail -1 >> gpf_m.err.1
+
+./neklmpi gpf_b 1
+grep "rtavg_gr_Em" gpf_b.log.1 | tail -1 > gpf_b.err.1
+./neklmpi gpf_b 4
+grep "rtavg_gr_Em" gpf_b.log.4 | tail -1 > gpf_b.err.4
+# clean directory
+clean_dir neklmpi gpf gpf gpf_m gpf_b
+rm mvn
+
+if [ "${IF_MOAB}" == "on" ]
+then
+    echo "####################################################################"
+    echo "### moab tests turned off while develepment in progress"
+    echo "####################################################################"
+#    echo "####################################################################"
+#    echo "### moab; pipe"
+#    echo "####################################################################"
+#    PERFORMED_TESTS=${PERFORMED_TESTS}' pipe'
+# MOAB; this requres additional library
+#    cd ..
+#    cd moab
+#    cp ../../trunk/tools/scripts/nek10steps .
+#    ./makenek.bb    clean     $HERE_S
+#    mkdir ./obj
+#    sleep 1
+#    ./makenek.bb    pipe        $HERE_S
+#    ./nek10steps pipe 1
+#    ./nek10steps pipe 4
+#    grep nek5000 compiler.out | tail -1 > pipe.err.1
+# clean directory
+#    clean_dir nek10steps pipe pipe
+#
+#    echo "####################################################################"
+#    echo "### moab_conjht; moab_conjht"
+#    echo "####################################################################"
+#    PERFORMED_TESTS=${PERFORMED_TESTS}' moab_conjht'
+#    cd ..
+#    cd moab_conjht
+#    cp ../../trunk/tools/scripts/neklmpi .
+#    ./makenek.bb    clean     $HERE_S
+#    mkdir ./obj
+#    sleep 1
+#    ./makenek.bb  moab_conjht $HERE_S
+#    ./neklmpi moab_conjht 1
+#    ./neklmpi moab_conjht 2
+#    grep tmax moab_conjht.log.1 | tail -1 > moab_conjht.err.1
+#    grep tmax moab_conjht.log.2 | tail -1 > moab_conjht.err.2
+#    grep nek5000 compiler.out | tail -1 >> moab_conjht.err.1
+## clean directory
+#    clean_dir neklmpi moab_conjht moab_conjht
+fi
+
+echo "####################################################################"
+echo "### os7000; u3_t020_n13"
+echo "####################################################################"
+cd ..
+tester os7000 nek1000steps u3_t020_n13 egn 1 
+
+echo "####################################################################"
+echo "### peris; peris"
+echo "####################################################################"
+PERFORMED_TESTS=${PERFORMED_TESTS}' peris'
+cd ..
+cd peris 
+cp ../../trunk/tools/scripts/nek10steps .
+cp ../../trunk/nek/makenek.bb .
+../../tests/tools/genmap << EOF
+peris
+.05
+EOF
+./makenek.bb    clean     $HERE_S
+mkdir ./obj
+sleep 1
+./makenek.bb    peris         $HERE_S
+./nek10steps peris 1
+./nek10steps peris 4
+grep nek5000 compiler.out | tail -1 > peris.err.1
+# clean directory
+clean_dir nek10steps peris peris
+
+echo "####################################################################"
+echo "### pipe; helix, stenosis"
+echo "####################################################################"
+cd ..
+tester pipe nek10steps helix err2 1 
+
+PERFORMED_TESTS=${PERFORMED_TESTS}' stenosis'
+cp ../../trunk/tools/scripts/nek10steps .
+cp ../../trunk/nek/makenek.bb .
+../../tests/tools/n2to3  < n2to3.in
+../../tests/tools/genmap < g.in
+./makenek.bb    clean     $HERE_S
+mkdir ./obj
+sleep 1
+./makenek.bb    stenosis      $HERE_S
+./nek10steps stenosis 1
+./nek10steps stenosis 4
+grep nek5000 compiler.out | tail -1 > stenosis.err.1
+# clean directory
+clean_dir nek10steps stenosis stenosis
+ 
+echo "####################################################################"
+echo "### rayleigh; ray1, ray2"
+echo "####################################################################"
+PERFORMED_TESTS=${PERFORMED_TESTS}' ray1 ray2'
+cd ..
+cd ./rayleigh
+cp ../../trunk/tools/scripts/nek200steps .
+cp ../../trunk/tools/scripts/mvn .
+cp ../../trunk/nek/makenek.bb .
+../../tests/tools/genbox << EOF
+ray2.box
+EOF
+
+../../tests/tools/genmap << EOF
+ray1
+.05
+EOF
+
+../../tests/tools/genmap << EOF
+box
+.05
+EOF
+./mvn box ray2
+
+./makenek.bb    clean     $HERE_S
+mkdir ./obj
+sleep 1
+./makenek.bb    ray0          $HERE_S
+./nek200steps ray1 1
+grep "umax" ray1.log.1 | tail -1 > ray1.err.1
+./nek200steps ray1 4
+grep "umax" ray1.log.4 | tail -1 > ray1.err.4
+grep nek5000 compiler.out | tail -1 >> ray1.err.1
+
+./nek200steps ray2 1
+grep "umax" ray2.log.1 | tail -1 > ray2.err.1
+./nek200steps ray2 4
+grep "umax" ray2.log.4 | tail -1 > ray2.err.4
+# clean directory
+clean_dir nek200steps ray0 ray1 ray2
+rm mvn
+
+echo "####################################################################"
+echo "### solid; solid"
+echo "####################################################################"
+cd ..
+tester solid neklmpi solid error 1
+
+echo "####################################################################"
+echo "### strat; strat"
+echo "####################################################################"
+cd ..
+tester strat nek200steps re10f1000p0001 error 1
+cd ..
+tester strat nek200steps re10f1000p1000 error 1
+
+echo "####################################################################"
+echo "### shear4; shear4, thin"
+echo "####################################################################"
+cd ..
+tester shear4 nek10steps shear4 vorticity 1
+cd ..
+tester shear4 nek10steps thin vorticity 1 
+
+echo "####################################################################"
+echo "### taylor; taylor"
+echo "####################################################################"
+cd ..
+tester taylor neklmpi taylor tq 1
+grep err taylor.log.1 |tail -1 >>taylor.err.1
+grep err taylor.log.4 |tail -1 >>taylor.err.4
+
+echo "####################################################################"
+echo "### var_vis; var_vis"
+echo "####################################################################"
+PERFORMED_TESTS=${PERFORMED_TESTS}' var_vis'
+cd ..
+cd ./var_vis
+cp ../../trunk/tools/scripts/neklmpi .
+cp ../../trunk/nek/makenek.bb .
+../../tests/tools/genmap << EOF
+st2
+.05
+EOF
+./makenek.bb    clean         $HERE_S
+mkdir ./obj
+sleep 1
+./makenek.bb    st2           $HERE_S
+./neklmpi st2 1
+./neklmpi st2 4
+mv st2.log.1 var_vis.log.1
+mv st2.log.4 var_vis.log.4
+grep nek5000 compiler.out | tail -1 > var_vis.err.1
+# clean directory
+clean_dir neklmpi st2 st2
+
+echo "####################################################################"
+echo "### vortex; r1854a"
+echo "####################################################################"
+cd ..
+tester vortex nek10steps r1854a VMIN 1 
+
+echo "####################################################################"
+echo "### vortex2; v2d"
+echo "####################################################################"
+cd ..
+tester vortex2 neklmpi v2d umin 1
+grep torq v2d.log.1 | tail -3 >>v2d.err.1
+grep torq v2d.log.4 | tail -3 >>v2d.err.4
+##############################################################
+# Go back to nek5_svn/trunk/nek
+cd ../../trunk/nek
+##############################################################

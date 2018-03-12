@@ -1,0 +1,325 @@
+c-----------------------------------------------------------------------
+c
+c     Taylor-Couette Example:
+c
+c     uth = Ar + B/r
+c
+c               2         2
+c     A = (w1 r1   - w0 r0  ) / D
+c
+c                     2  2
+c     B = (w0 - w1) r0 r1     / D
+c
+c            2    2
+c     D := w1 - w0
+c
+c
+c     Torque on cylinder:  T = 4 pi mu B,  where mu = param(1).
+c
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      udiff =0.
+      utrans=0.
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+
+c     Note: this is an acceleration term, NOT a force!
+c     Thus, ffx will subsequently be multiplied by rho(x,t).
+
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      qvol   = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+      parameter (ll=lx1*ly1*lz1*lelv)
+      common /myexact/ ue(ll),ve(ll),ud(ll),vd(ll)
+
+      common /ctorq/ dragx(0:maxobj),dragpx(0:maxobj),dragvx(0:maxobj)
+     $             , dragy(0:maxobj),dragpy(0:maxobj),dragvy(0:maxobj)
+     $             , dragz(0:maxobj),dragpz(0:maxobj),dragvz(0:maxobj)
+c
+     $             , torqx(0:maxobj),torqpx(0:maxobj),torqvx(0:maxobj)
+     $             , torqy(0:maxobj),torqpy(0:maxobj),torqvy(0:maxobj)
+     $             , torqz(0:maxobj),torqpz(0:maxobj),torqvz(0:maxobj)
+c
+     $             , dpdx_mean,dpdy_mean,dpdz_mean
+     $             , dgtq(3,4)
+
+      real x0(3)
+
+      common /taylor/  r0,r1,w0,w1,a,b  ! Parameters
+
+      integer e
+
+
+c     Compute the wall shear
+      call rzero(x0,3)               ! torque w.r.t. x0
+      call torque_calc(1.0,x0,.false.,.false.)
+
+      visc   = param(2)
+      texact = 4*pi*visc*b
+      diff   = texact - torqz(1)
+
+      if (nid.eq.0) write(6,1) istep,time,texact,diff,(torqz(k),k=0,2)
+    1 format(i9,1p6e13.5,' tq')
+
+
+      call exact(ue,ve,ud,vd)
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (i,j,k,iface,eg)
+c     NOTE ::: This subroutine MAY NOT be called by every process
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      common /myexact/ ue(lx1,ly1,lz1,lelv)
+     $               , ve(lx1,ly1,lz1,lelv)
+     $               , ud(lx1,ly1,lz1,lelv)
+     $               , vd(lx1,ly1,lz1,lelv)
+
+      common /taylor/  r0,r1,w0,w1,a,b  ! Parameters
+
+      integer e,eg
+
+      e  = gllel(eg)
+      ux = ue(i,j,k,e)
+      uy = ve(i,j,k,e)
+      uz = 0.
+
+      temp=0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (i,j,k,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      common /myexact/ ue(lx1,ly1,lz1,lelv)
+     $               , ve(lx1,ly1,lz1,lelv)
+     $               , ud(lx1,ly1,lz1,lelv)
+     $               , vd(lx1,ly1,lz1,lelv)
+
+      integer e,eg
+
+      common /taylor/  r0,r1,w0,w1,a,b  ! Parameters
+
+
+      e  = gllel(eg)
+      ux = ue(i,j,k,e)
+      uy = ve(i,j,k,e)
+      uz = 0
+      temp=0
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      include 'SIZE'
+      include 'TOTAL'
+
+      ifheat = .false.
+
+c     call platform_timer(0) ! not too verbose
+c     call platform_timer(1) ! mxm, ping-pong, and all_reduce timer
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      include 'SIZE'
+      include 'TOTAL'
+c
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer e,f
+
+      common /taylor/  r0,r1,w0,w1,a,b  ! Parameters
+
+      common /myexact/ ue(lx1,ly1,lz1,lelv)
+     $               , ve(lx1,ly1,lz1,lelv)
+     $               , ud(lx1,ly1,lz1,lelv)
+     $               , vd(lx1,ly1,lz1,lelv)
+
+c     Formulas here are eqn. 3-22 and 3-28 in White.
+
+      r0 = 1.0  ! These choices arbitrary, just for a test
+      r1 = 2.000
+      w0 = 0.1
+      w1 = 0.7
+
+      dr2 = r1*r1-r0*r0
+      a   = (w1*r1*r1-w0*r0*r0)/dr2
+      b   = (w0-w1)*(r0*r0*r1*r1)/dr2
+
+      param(59) = 1.   ! All elements deformed
+
+c     Rescale geometry onto a box that is on [0:2pi] x [0,1]
+
+      zero = 0.
+      one  = 1.
+      pi2  = 8*atan(one)
+
+      call rescale_x(xm1,zero,pi2)
+      call rescale_x(ym1,zero,one)
+
+      r0 = 1.0
+      r1 = 1.7
+
+      n = nx1*ny1*nz1*nelv   ! Turn box into annulus
+      do i=1,n
+         th = xm1(i,1,1,1)
+         r  = r0 + (r1-r0)*(1.-ym1(i,1,1,1))
+         xm1(i,1,1,1) = r*cos(th)
+         ym1(i,1,1,1) = r*sin(th)
+      enddo
+
+      nfaces = 2*ndim
+      do e=1,nelv
+      do f=1,nfaces
+         if (cbc(f,e,1).eq.'W  ') cbc(f,e,1)='v  '
+      enddo
+      enddo
+
+      call set_obj             ! Define objects for surface integrals
+
+      call exact(ue,ve,ud,vd)  ! Fill initial conditions
+
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine set_obj  ! define objects for surface integrals
+c
+      include 'SIZE'
+      include 'TOTAL'
+c
+      integer e,f
+c
+c     Define new objects
+c
+      nobj = 2			! for Periodic
+      iobj = 0
+      do ii=nhis+1,nhis+nobj
+         iobj = iobj+1
+         hcode(10,ii) = 'I'
+         hcode( 1,ii) = 'F' ! 'F'
+         hcode( 2,ii) = 'F' ! 'F'
+         hcode( 3,ii) = 'F' ! 'F'
+         lochis(1,ii) = iobj
+      enddo
+      nhis = nhis + nobj
+c
+      if (maxobj.lt.nobj) write(6,*) 'increase maxobj in SIZEu. rm *.o'
+      if (maxobj.lt.nobj) call exitt
+c
+      nxyz = nx1*ny1*nz1
+      do e=1,nelv
+      do f=1,2*ndim
+         if (cbc(f,e,1).eq.'v  ') then
+            iobj = 0
+            if (f.eq.1) iobj=1  ! lower wall
+            if (f.eq.3) iobj=2  ! upper wall
+            if (iobj.gt.0) then
+               nmember(iobj) = nmember(iobj) + 1
+               mem = nmember(iobj)
+               ieg = lglel(e)
+               object(iobj,mem,1) = ieg
+               object(iobj,mem,2) = f
+c              write(6,1) iobj,mem,f,ieg,e,nid,' OBJ'
+    1          format(6i9,a4)
+            endif
+c
+         endif
+      enddo
+      enddo
+c     write(6,*) 'number',(nmember(k),k=1,4)
+c
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine exact(ue,ve,ud,vd)
+      include 'SIZE'
+      include 'TOTAL'
+      real ue(1),ve(1)
+      real ud(1),vd(1)
+
+
+      common /taylor/  r0,r1,w0,w1,a,b  ! Parameters
+
+      n = nx1*ny1*nz1*nelv
+      do i=1,n
+
+         x = xm1(i,1,1,1)
+         y = ym1(i,1,1,1)
+
+         r = x*x+y*y
+         r = sqrt(r)
+         th = atan2(y,x)
+
+         uth = a*r + b/r
+
+         ue(i) = -uth*sin(th)
+         ve(i) =  uth*cos(th)
+         ud(i) = ue(i)-vx(i,1,1,1)
+         vd(i) = ve(i)-vy(i,1,1,1)
+      enddo
+
+      udm = glamax(ud,n)
+      vdm = glamax(vd,n)
+      ud2 = glsc3(ud,bm1,ud,n)/volvm1
+      vd2 = glsc3(vd,bm1,vd,n)/volvm1
+      u22 = sqrt(ud2+vd2)
+      if (nid.eq.0) write(6,1) istep,time,udm,vdm,u22
+    1 format(i8,1p4e14.6,' err')
+      
+
+      return
+      end
+c-----------------------------------------------------------------------

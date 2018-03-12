@@ -1,0 +1,146 @@
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      udiff =0.
+      utrans=0.
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      qvol   = 0.0
+      source = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+       subroutine userchk
+       include 'SIZE'
+       include 'TOTAL'
+   
+       parameter(lt=lx1*ly1*lz1*lelv)
+       real vort(lt,3),work1(lt),work2(lt)
+
+
+       ntot = nx1*ny1*nz1*nelv
+       umax = glamax(vx,ntot)
+       if (umax.gt.8.) then
+          write(6,*) nid,' umax:',umax,ntot
+          call emerxit
+       endif
+       call comp_vort3(vort,work1,work2,vx,vy,vz)
+       vmax = glamax(vort,ntot)
+       if (nid.eq.0) write(6,1) istep, time, vmax       
+    1  format(i9,1p2e14.6,' peak vorticity') 
+
+       return
+       end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,iel)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      ux=0.0
+      uy=0.0
+      uz=0.0
+      temp=0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TSTEP'
+      include 'NEKUSE'
+
+      integer icalld
+      save    icalld
+      data    icalld  /0/
+
+      real rhol,delta
+      save rhol,delta
+
+      ux=0.0
+      uy=0.0
+      uz=0.0
+      TEMP=0
+c
+c
+c     Shu's double shear layer (p.65, 1997 ICASE Rep.)
+c
+c     Also,
+c
+c         Bell, Collela, & Glaz, JCP [85],  p257 (1989)
+c         Brown and Minion,      JCP [122], p165 (1995)
+c         Tadmor                 1997, Italy
+c
+c
+      delta = 0.05
+      rhol   =  30.         ! thick shear layer case
+c     rhol   = 100.         ! thin shear layer case
+
+      if (icalld.eq.0) then
+         icalld = 1
+         if (nid.eq.0) write(6,*) 'Shear layer delta:',delta
+         if (nid.eq.0) write(6,*) 'Shear layer rho:  ',rhol
+      endif
+
+      if (y.le.0.5) then
+         ux =  tanh(rhol*(y-0.25))
+      else
+         ux =  tanh(rhol*(0.75-y))
+      endif
+      uy =  delta*sin(2.*pi*x)
+
+      if (ifield.gt.1) then          ! set up passive scalar
+         rhol  = 50.*ifield
+         if (y.le.0.5) then
+            tmp  =  tanh(rhol*(y-0.25))
+         else
+            tmp  =  tanh(rhol*(0.75-y))
+         endif
+
+         if (x.le.0.5) then
+            tmp  =  tmp  + tanh(rhol*(x-0.25))
+         else
+            tmp  =  tmp  + tanh(rhol*(0.75-x))
+         endif
+         if (ifield.eq.2) temp = tmp*sin(2.*pi*x)  ! temperature
+         if (ifield.eq.3) temp = tmp*sin(3.*pi*x)  ! ps1
+         if (ifield.eq.4) temp = tmp*sin(4.*pi*x)  ! ps2
+         if (ifield.eq.5) temp = tmp*sin(5.*pi*x)  ! ps3
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      return
+      end
+c-----------------------------------------------------------------------

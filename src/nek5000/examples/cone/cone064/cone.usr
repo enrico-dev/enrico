@@ -1,0 +1,150 @@
+c-----------------------------------------------------------------------
+c
+c  User specified routines:
+c
+c     .  This is for the convecting cone problem.  
+c        See Fischer, Kruse, Loth, 2002; or Deville, Fischer, Mund 2002.
+c
+c
+c     - boundary conditions
+c     - initial conditions
+c     - variable properties
+c     - forcing function for fluid (f)
+c     - forcing function for passive scalar (q)
+c     - general purpose routine for checking errors etc.
+c
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,iel)
+      include 'SIZE'
+c     include 'TSTEP'
+      include 'TOTAL'
+      include 'NEKUSE'
+c
+      udiff =0.
+      utrans=0.
+      return
+      end
+c
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TSTEP'
+c     include 'TOTAL'
+      include 'NEKUSE'
+c
+      FFX = 0.0
+      FFY = 0.0
+      FFZ = 0.0
+      return
+      end
+c
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+c
+      QVOL   = 0.0
+      SOURCE = 0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+
+      n = nx1*ny1*nz1*nelv
+      umin = glmin(t,n)
+      umax = glmax(t,n)
+      nn = lx1-1
+      if (nid.eq.0) write(6,1) nn,nelt,istep,time,umin,umax,' tmax'
+    1 format(3i6,1p3e12.4,a5)
+
+       if (nid.eq.0.and.istep.eq.2000) 
+     $   write(6,1) nn,nelt,istep,time,umin,umax,' Tmax'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,iel)
+      include 'SIZE'
+      include 'TSTEP'
+c     include 'TOTAL'
+      include 'NEKUSE'
+      ux=0.0
+      uy=0.0
+      uz=0.0
+      temp=0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,iel)
+      include 'SIZE'
+      include 'TSTEP'
+c     include 'TOTAL'
+      include 'NEKUSE'
+c
+c     Convection of cone on [0,1] x [0,1]  box
+c
+c
+      xx = x-0.5
+      yy = y-0.5
+c
+c     Convecting field
+c
+      ux = -yy
+      uy =  xx
+      uz=0.0
+c
+c
+c     Cone
+c
+      temp = 0.
+      xc = 0.5
+      yc = 0.25
+      xt = x - xc
+      yt = y - yc
+      r2 = xt*xt + yt*yt
+      rt = 0.
+      if (r2.gt.0) rt = sqrt(r2)
+      if (rt.lt.0.1) temp = 10.*(0.1 - rt)
+c
+      return
+      end
+c
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      include 'SIZE'
+      include 'TOTAL'
+
+      one = 1.
+      pi  = 4.*atan(one)
+      dt  = pi/1000.
+      param(12) = -dt   ! lock dt to be pi/1000 to 15 digits
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+
+
+      xmin = 0
+      xmax = 1
+      call rescale_x(xm1,xmin,xmax)  ! Put geometry on [0:1] x [0:1]
+      call rescale_x(ym1,xmin,xmax)
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      return
+      end
+c-----------------------------------------------------------------------
+c
+c automatically added by makenek
+      subroutine usrsetvert(glo_num,nel,nx,ny,nz) ! to modify glo_num
+      integer*8 glo_num(1)
+      return
+      end

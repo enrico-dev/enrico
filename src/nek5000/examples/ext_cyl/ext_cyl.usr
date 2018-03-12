@@ -1,0 +1,227 @@
+c-----------------------------------------------------------------------
+C
+C  USER SPECIFIED ROUTINES:
+C
+C     - boundary conditions
+C     - initial conditions
+C     - variable properties
+C     - local acceleration for fluid (a)
+C     - forcing function for passive scalar (q)
+C     - general purpose routine for checking errors etc.
+C
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      udiff =0.
+      utrans=0.
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+
+c     Note: this is an acceleration term, NOT a force!
+c     Thus, ffx will subsequently be multiplied by rho(x,t).
+
+
+      ffx = 0.0
+      ffy = 0.0
+      ffz = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userq  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+c     e = gllel(eg)
+
+      qvol   = 0.0
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+
+      real x0(3)
+      save x0
+      data x0 /3*0/
+
+      if (istep.eq.0) call set_obj  ! define objects for surface integrals
+
+      call estimate_strouhal
+
+      scale = 2.  ! Cd = F/(.5 rho U^2 ) = 2*F
+      if (mod(istep,10).eq.0) call torque_calc(scale,x0,.true.,.false.)
+      
+!     write out probes
+      if (mod(ISTEP,10).eq.0) call hpts()
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,ieg)
+c     NOTE ::: This subroutine MAY NOT be called by every process
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      ux=1.0
+      uy=0.0
+      uz=0.0
+      temp=0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      ux=1.0
+      uy=0.0
+      uz=0.0
+      temp=0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      include 'SIZE'
+      include 'TOTAL'
+
+c     call platform_timer(0) ! not too verbose
+c     call platform_timer(1) ! mxm, ping-pong, and all_reduce timer
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+
+c     param(66) = 4.   ! These give the std nek binary i/o and are 
+c     param(67) = 4.   ! good default values
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      include 'SIZE'
+      include 'TOTAL'
+c
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine estimate_strouhal
+
+      include 'SIZE'
+      include 'TOTAL'
+
+      real tlast,vlast,tcurr,vcurr,t0,t1
+      save tlast,vlast,tcurr,vcurr,t0,t1
+      data tlast,vlast,tcurr,vcurr,t0,t1 / 6*0 /
+
+      integer e,eg,eg0,e0
+
+      eg0 = 622          ! Identify element/processor in wake
+      mid = gllnid(eg0)
+      e0  = gllel (eg0)
+
+      st  = 0
+
+      if (nid.eq.mid) then
+
+         tlast = tcurr
+         vlast = vcurr
+
+         tcurr = time
+         vcurr = vy (1,ny1,1,e0)
+
+         xcurr = xm1(1,ny1,1,e0)
+         ycurr = ym1(1,ny1,1,e0)
+
+         write(6,2) istep,time,vcurr,xcurr,ycurr
+    2    format(i9,1p4e13.5,' vcurr')
+
+         if (vlast.gt.0.and.vcurr.le.0) then ! zero crossing w/ negative slope
+            t0  = t1
+            t1  = tlast + (tcurr-tlast)*(vlast-0)/(vlast-vcurr)
+            per = t1-t0
+            if (per.gt.0) st = 1./per
+         endif
+      endif
+
+      st = glmax(st,1)
+
+      n  = nx1*ny1*nz1*nelv
+      ux = glamax(vx,n)
+      uy = glamax(vy,n)
+
+      if (nid.eq.0.and.st.gt.0) write(6,1) istep,time,st,ux,uy
+    1 format(i5,1p4e12.4,' Strouhal')
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine set_obj  ! define objects for surface integrals
+c
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer e,f,eg
+
+      nobj = 1
+      iobj = 0
+      do ii=nhis+1,nhis+nobj
+         iobj = iobj+1
+         hcode(10,ii) = 'I'
+         hcode( 1,ii) = 'F'
+         hcode( 2,ii) = 'F'
+         hcode( 3,ii) = 'F'
+         lochis(1,ii) = iobj
+      enddo
+      nhis = nhis + nobj
+
+      if (maxobj.lt.nobj) call exitti('increase maxobj in SIZE$',nobj)
+
+      nxyz  = nx1*ny1*nz1
+      nface = 2*ndim
+
+      do e=1,nelv
+      do f=1,nface
+         if (cbc(f,e,1).eq.'W  ') then
+            iobj  = 1
+            if (iobj.gt.0) then
+               nmember(iobj) = nmember(iobj) + 1
+               mem = nmember(iobj)
+               eg  = lglel(e)
+               object(iobj,mem,1) = eg
+               object(iobj,mem,2) = f
+c              write(6,1) iobj,mem,f,eg,e,nid,' OBJ'
+c   1          format(6i9,a4)
+
+            endif
+         endif
+      enddo
+      enddo
+
+c     write(6,*) 'number',(nmember(k),k=1,4)
+c
+      return
+      end
+c-----------------------------------------------------------------------

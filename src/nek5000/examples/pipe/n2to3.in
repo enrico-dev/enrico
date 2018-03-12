@@ -1,0 +1,11 @@
+w2dcyl020a
+stenosis
+0                      ascii output
+20                     input number of levels: (1, 2, 3,... etc.?):
+0                      input z min:
+10                     input z max:
+1                      input gain (0=custom,1=uniform,other=geometric spacing):
+n                      This is for CEM: yes or no:
+v                      Enter Z (5) boundary condition (P,v,O):
+O                      Enter Z (6) boundary condition (v,O):
+y                      Formatted .rea file? (y or Y):

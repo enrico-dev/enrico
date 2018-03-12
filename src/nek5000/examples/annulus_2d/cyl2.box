@@ -1,0 +1,22 @@
+hc2.rea
+2                      spatial dimension
+2                      number of fields:   velocity + temperature
+#========================================================================
+#
+#  Comments:
+#
+#  This is an example where genbox is used to generate a 2D annulus.
+#  We have 4 elements in the r direction and 12 in theta.
+#
+#  Boundary conditions are "Wall" ("W") for velocity and fortran
+#  function "t" for temperature, which is set in userbc() in the .usr file.
+#
+#========================================================================
+#
+Circle
+0.  0.                      xctr,yctr
+ 4   -12                    nelr,nel_theta,nelz for annular mesh
+0.50  0.65 1.0 1.35 1.5     r0 ... rn
+ 0.0    360.   1.0          @0 @1 ratio 
+W  ,W  ,   ,   ,            Velocity BCs  (here, only at r0 and rn)
+t  ,t  ,   ,   ,            Thermal BCs

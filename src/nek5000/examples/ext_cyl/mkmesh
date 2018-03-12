@@ -1,0 +1,27 @@
+genbox << EOF
+fpcyl.box
+EOF
+#
+pretex << EOF
+new
+   1 READ PREVIOUS PARAMETERS 
+box
+   1 BUILD FROM FILE          
+box
+  10 IMPORT MESH              
+import
+y Would you like to displace existing elements in box?
+   1 END    ELEMENTS          
+   1 ACCEPT MATL,QVOL         
+   1 SET BCs                  
+  11 SET ENTIRE LEVEL         
+   1 PERIODIC-AUTO            
+n Is this a lattice for hex-close-packed spheres?:
+1 END  LEVEL               
+1 ACCEPT B.C.'s            
+1 EXIT                     
+EOF
+genmap << EOF
+new
+.1
+EOF
