@@ -13,8 +13,7 @@
 # Read .usr file
 # =============================================================================
 
-# TODO: Define a full path relative to cmake build dir
-file(READ "${CASENAME}.usr" usr_str)
+file(READ ${INFILE_DIR}/${CASENAME}.usr usr_str)
 string(TOLOWER "${usr_str}" usr_str_lower)
 
 # =============================================================================
@@ -166,5 +165,4 @@ endif()
 # Write .f file
 # =============================================================================
 
-# TODO: Define a full path relative to cmake build dir
-file(WRITE "${CASENAME}.f" "${usr_str}")
+file(WRITE ${OUTFILE_DIR}/${CASENAME}.f ${usr_str})
