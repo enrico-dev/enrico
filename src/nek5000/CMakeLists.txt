@@ -18,9 +18,9 @@ option(NEKNEK      "Add underscore to exit() (default: OFF)"        OFF)
 option(NEKNEK      "USE overlapping mesh solver (default: OFF)"     OFF)
 option(CMTNEK      "Use DG compressible-flow solver (default: OFF)" OFF)
 
-if(NOT CASENAME)
-  message(FATAL_ERROR "Must provide a case name via '-DCASENAME=<casename>'")
-endif()
+# if(NOT CASENAME)
+#   message(FATAL_ERROR "Must provide a case name via '-DCASENAME=<casename>'")
+# endif()
 
 # =============================================================================
 # Build Nek5000 library and executable
