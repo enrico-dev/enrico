@@ -1,4 +1,68 @@
-# Nek5000
+# Nek5000 (cmake README)
+
+## Overview
+
+This branch of Nek5000 allows CMake to build the following components:
+* Nek5000 library and driver
+* gslib
+* genmap
+* genbox
+
+The following components are **not** yet supported through CMake, but can be built through the existing build system:
+* CVODE
+* All Nek5000 tools other than genmap and genbox.  
+
+Using CMake required the addition of CMakeList.txt files in the project subdirectories.  No changes to the existing 
+source code were required.  The CMake build system exists alongside the existing build systems.  
+
+## Usage
+
+### Building Nek5000
+
+The typical Nek5000 workflow involves configuring and building Nek5000 in a directory for a specific problem, which 
+contains the SIZE, .usr, and mesh files needed for the problem.  This is still the general workflow with CMake.  For
+example, to build eddy_uv:
+``` Console
+$ export CC=mpicc
+$ export FC=mpif90
+$ cd examples/eddy_uv
+$ cmake -DCASENAME=eddy_uv ../../
+$ make
+```
+The above commands illustrate new requirements of the CMake build system:
+*. CMake uses the *environment variables* `CC` and `FC` to detect the compilers.  In this example, they are set using 
+   the `export` commands.  
+*. The casename is specified by the *CMake variable* `CASENAME`.  These are passed to CMake using the 
+   `-D<variable>=<value>` syntax.
+   
+The resulting executables and libraries are:
+* `core/nek5000`
+* `core/libnek.a`
+* `3rd_party/gslib/gslib-1.0.1/libgs.a`
+
+The executable `core/nek5000` can be run as normal.  For example:
+``` Console
+$ mpirun -np 4 core/nek5000
+```
+Note that the `SESSION.NAME` file is created during the configure phase and need not be created at runtime.  
+
+
+### Building tools
+
+After configuring (i.e., calling `cmake -DCASENAME=eddy_uv ../../`), you may also compile genmap or genmap by invoking 
+make:
+``` Console
+$ make genmap
+$ make genbox
+```
+This produces `tools/genmap` and `tools/genbox`.  The usage of the tools are the same.  
+
+### Building gslib standalone
+
+gslib may also be build standalone, using the CMakeLists.txt in `3rd_party/gslib/gslib-1.0.1`.
+
+
+# Nek5000 (master README)
 
 | **`Short Tests`** | **`Examples`** |
 |-----------------|---------------------|

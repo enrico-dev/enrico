@@ -39,3 +39,7 @@ c
 
       ! INTERNALS
       include 'SIZE.inc'
+
+c automatically added by makenek
+      integer ldimt_proj
+      parameter(ldimt_proj = 1) ! max auxiliary fields residual projection 
