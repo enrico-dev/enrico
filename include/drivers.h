@@ -2,67 +2,76 @@
 #define STREAM_DRIVERS_H
 
 #include "mpi.h"
-#include "omc_interface.h
+#include "openmc.h"
 
-class SubDriver
-{
+class SubDriver {
 public:
   MPI_Comm comm;
 
+  SubDriver() {};
   SubDriver(MPI_Comm comm) : comm(comm) {};
   virtual ~SubDriver() {};
 
+  // ROR: 2018-03-22: Different from constructor/destructor?
+  void initDriver();
+  void freeDriver();
+
   // Different from constructor?
-  virtual void init();
   virtual void initStep();
-  virtual void solve();
-  virtual void closeStep();
-  // Different from destructor?
-  virtual void clean();
-};
-
-class NekDriver : public SubDriver
-{
-  MPI_Comm comm;
-
-  NekDriver(MPI_Comm comm) : comm(comm) {};
-  ~NekDriver() {};
-
-  // Different from constructor?
-  void init() {};
-  void initStep() {};
-  void solve() {};
-  void closeStep() {};
-  // Different from destructor?
-  void clean() {};
-
-  // Changes interface of SubDriver.  Maybe we don't need ABC?
-  int getElemNumber();
-  // Return type?
-  double getElemCentroid(int elemId);
+  virtual void solveStep();
+  virtual void finalizeStep();
 };
 
 
-class OmcDriver : public SubDriver
-{
+class OpenmcDriver : public SubDriver {
 public:
   MPI_Comm comm;
 
-  OmcDriver(MPI_Comm comm) : comm(comm) {};
-  ~OmcDriver() {};
+  OpenmcDriver(MPI_Comm comm);
+  ~OpenmcDriver() {};
 
-  // Different from constructor?
-  void init() {};
-  void initStep() {};
-  void solve() {};
-  void closeStep() {};
-  // Different from destructor?
-  void clean() {};
+  // ROR: 2018-03-22: Different from constructor/destructor?
+  void initDriver();
+  void freeDriver();
 
-  // Changes interface of SubDriver.  Maybe subdriver doesn't need to be ABC?
-  double coord
+  void initStep();
+  void solveStep();
+  void finalizeStep();
+
+  // Prefer this?
+  //   int getCellCentroid(int32_t cellId, double centroid[3]);
+  int getCellCentroid(int32_t cellId, double *centroid);
+};
 
 
+class NekDriver : public SubDriver {
+public:
+  MPI_Comm comm;
+
+  NekDriver(MPI_Comm comm);
+  ~NekDriver() {};
+
+  // ROR: 2018-03-22: Different from constructor/destructor?
+  void initDriver();
+  void freeDriver();
+
+  void initStep();
+  void solveStep();
+  void finalizeStep();
+
+  int getElemNumber();
+  int getElemCentroid(int globalElem);
+};
+
+
+class CoupledDriver {
+public:
+  MPI_Comm globalComm;
+  OpenmcDriver openmc;
+  NekDriver nek;
+
+  CoupledDriver(MPI_Comm globalComm, MPI_Comm openmcComm, MPI_Comm nekComm);
+  ~CoupledDriver() {};
 };
 
 #endif //STREAM_DRIVERS_H

@@ -3,7 +3,7 @@
 
 int main(int argc, char* argv[])
 {
-  OmcDriver *o = new OmcDriver(MPI_COMM_WORLD);
+  OpenmcDriver *o = new OpenmcDriver(MPI_COMM_WORLD);
   return 0;
 }
 
