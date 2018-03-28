@@ -4,56 +4,61 @@
 #include "mpi.h"
 #include "openmc.h"
 
-class SubDriver {
+// ============================================================================
+// Base Classes
+// ============================================================================
+
+class ThDriver {
 public:
   MPI_Comm comm;
 
-  SubDriver() {};
-  SubDriver(MPI_Comm comm) : comm(comm) {};
-  virtual ~SubDriver() {};
+  ThDriver() {};
+  ThDriver(MPI_Comm comm) : comm(comm) {};
+  virtual ~ThDriver() {};
 
-  // ROR: 2018-03-22: Different from constructor/destructor?
-  void initDriver();
-  void freeDriver();
+  virtual void initStep();
+  virtual void solveStep();
+  virtual void finalizeStep();
 
-  // Different from constructor?
+};
+
+class NeutronDriver {
+public:
+  MPI_Comm comm;
+
+  NeutronDriver() {};
+  NeutronDriver(MPI_Comm comm) : comm(comm) {};
+  virtual ~NeutronDriver() {};
+
   virtual void initStep();
   virtual void solveStep();
   virtual void finalizeStep();
 };
 
+// ============================================================================
+// Implementations
+// ============================================================================
 
-class OpenmcDriver : public SubDriver {
+class OpenmcDriver : public NeutronDriver {
 public:
   MPI_Comm comm;
 
   OpenmcDriver(MPI_Comm comm);
   ~OpenmcDriver() {};
 
-  // ROR: 2018-03-22: Different from constructor/destructor?
-  void initDriver();
-  void freeDriver();
-
   void initStep();
   void solveStep();
   void finalizeStep();
 
-  // Prefer this?
-  //   int getCellCentroid(int32_t cellId, double centroid[3]);
   int getCellCentroid(int32_t cellId, double *centroid);
 };
 
-
-class NekDriver : public SubDriver {
+class NekDriver : public ThDriver {
 public:
   MPI_Comm comm;
 
   NekDriver(MPI_Comm comm);
   ~NekDriver() {};
-
-  // ROR: 2018-03-22: Different from constructor/destructor?
-  void initDriver();
-  void freeDriver();
 
   void initStep();
   void solveStep();
@@ -63,14 +68,15 @@ public:
   int getElemCentroid(int globalElem);
 };
 
-
 class CoupledDriver {
 public:
   MPI_Comm globalComm;
-  OpenmcDriver openmc;
-  NekDriver nek;
 
-  CoupledDriver(MPI_Comm globalComm, MPI_Comm openmcComm, MPI_Comm nekComm);
+  NeutronDriver neutronDriver;
+  ThDriver thDriver;
+
+  CoupledDriver(){};
+  CoupledDriver(MPI_Comm globalComm, MPI_Comm neutronComm, MPI_Comm thComm);
   ~CoupledDriver() {};
 };
 
