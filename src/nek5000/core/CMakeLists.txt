@@ -158,6 +158,7 @@ set(CORE_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/navier7.f
     ${CMAKE_CURRENT_LIST_DIR}/navier8.f
     ${CMAKE_CURRENT_LIST_DIR}/nek_comm.c
+    ${CMAKE_CURRENT_LIST_DIR}/nek_interface.f
     ${CMAKE_CURRENT_LIST_DIR}/papi.f
     ${CMAKE_CURRENT_LIST_DIR}/perturb.f
     ${CMAKE_CURRENT_LIST_DIR}/plan4.f

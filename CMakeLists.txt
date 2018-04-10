@@ -1,11 +1,13 @@
 cmake_minimum_required(VERSION 3.1)
 project(stream Fortran C CXX)
 
+#set(ENV{HDF5_ROOT} /Users/rahaman/install/hdf5-1.10.2-gnu-6.3.0/)
+
 # ROR: 2018-03-22: The header is placed in-source.
-# Other alternative is to place in build directory.
+# TODO: Other alternative is to place in build directory.
 include(FortranCInterface)
 FortranCInterface_VERIFY()
-FortranCInterface_HEADER(${CMAKE_CURRENT_LIST_DIR}/include/nek_interface.h
+FortranCInterface_HEADER(${CMAKE_CURRENT_LIST_DIR}/include/nek_mangling.h
     MACRO_NAMESPACE C2F_
     SYMBOL_NAMESPACE C2F_
     SYMBOLS
@@ -20,10 +22,10 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/openmc)
 
 add_executable(stream
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/main.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface.f)
+    ${CMAKE_CURRENT_LIST_DIR}/src/main.cpp)
 target_include_directories(stream PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/include
     ${CMAKE_CURRENT_LIST_DIR}/src/openmc/include
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek5000/core
     ${CMAKE_BINARY_DIR})
-target_link_libraries(stream nek)
+target_link_libraries(stream nek libopenmc gs)

@@ -96,7 +96,10 @@ C=======================================================================
 
       real*8 fmode(lx1,ly1,lz1,lelt), cache(lx1,ly1,lz1,lelt)
       real*8 sint, sint1, sarea, sarea1
-      real*8 pi
+
+c     ROR: 2018-04-09: pi is already declared in TSTEP, which is
+c     included in TOTAL
+c     real*8 pi
 
       pi=4.0*atan(1.0)
       ntot=nx1*ny1*nz1*nelt
@@ -369,7 +372,11 @@ C
       COMMON  /CPRINT/ IFPRINT
       LOGICAL          IFPRINT
       LOGICAL          IFCONV
-C
+
+C     ROR: 2018-04-09: Compiler error without declaration of napprox here
+C     TODO: Verify difference with v17.  Seems like it was omitted from a common block
+      integer napprox(2)
+
       COMMON /SCRNS/ TA(LX1,LY1,LZ1,LELT)
      $              ,TB(LX1,LY1,LZ1,LELT)
       COMMON /SCRVH/ H1(LX1,LY1,LZ1,LELT)
@@ -482,33 +489,36 @@ C     (4) A passive scalar can be defined on either the
 C         temperatur or the velocity mesh.
 C     (5) A passive scalar has its own multiplicity (B.C.).
 C
-      include 'SIZE'
-      include 'INPUT'
-      include 'TSTEP'
-      include 'TURBO'
-      include 'DEALIAS'
 
-      real*8 ts, dnekclock
+C     TODO: Update turbulence model for Nek5000 v17
 
-      ts = dnekclock()
-
-      if (nio.eq.0 .and. igeom.eq.2)
-     &    write(*,'(13x,a)') 'Solving for Hmholtz scalars'
-
-      do ifield = 2,nfield
-         if (idpss(ifield-1).eq.0) then      ! helmholtz
-            intype        = -1
-            if (.not.iftmsh(ifield)) imesh = 1
-            if (     iftmsh(ifield)) imesh = 2
-            call unorm
-            call settolt
-            call cdscal_mod(igeom)
-         endif
-      enddo
-
-      if (nio.eq.0 .and. igeom.eq.2)
-     &   write(*,'(4x,i7,a,1p2e12.4)')
-     &   istep,'  Scalars done',time,dnekclock()-ts
+C     include 'SIZE'
+C     include 'INPUT'
+C     include 'TSTEP'
+C     include 'TURBO'
+C     include 'DEALIAS'
+C
+C     real*8 ts, dnekclock
+C
+C     ts = dnekclock()
+C
+C     if (nio.eq.0 .and. igeom.eq.2)
+C    &    write(*,'(13x,a)') 'Solving for Hmholtz scalars'
+C
+C     do ifield = 2,nfield
+C        if (idpss(ifield-1).eq.0) then      ! helmholtz
+C           intype        = -1
+C           if (.not.iftmsh(ifield)) imesh = 1
+C           if (     iftmsh(ifield)) imesh = 2
+C           call unorm
+C           call settolt
+C           call cdscal_mod(igeom)
+C        endif
+C    enddo
+C
+C    if (nio.eq.0 .and. igeom.eq.2)
+C   &   write(*,'(4x,i7,a,1p2e12.4)')
+C   &   istep,'  Scalars done',time,dnekclock()-ts
 
       return
       end
@@ -527,11 +537,11 @@ c-----------------------------------------------------------------------
       call setsolv
       call comment
 
-      if (ifcmt) then
+#ifdef CMTNEK
          if (nio.eq.0.and.istep.le.1) write(6,*) 'CMT branch active'
          call cmt_nek_advance
          return
-      endif
+#endif
 
       if (ifsplit) then   ! PN/PN formulation
 
