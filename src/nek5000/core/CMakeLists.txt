@@ -243,13 +243,14 @@ endif()
 # and nek5000.
 
 # Library
-add_library(nek
+add_library(libnek5000
     ${USR_SOURCE} ${CORE_SOURCES} ${BLAS_SOURCES} ${MXM_SOURCES}
     ${NEKNEK_SOURCES} ${COMM_MPI_SOURCES} ${CMT_SOURCES} ${VISIT_SOURCES})
+set_target_properties(libnek5000 PROPERTIES OUTPUT_NAME nek5000)
 
 # Driver
 add_executable(nek5000 ${CMAKE_CURRENT_LIST_DIR}/drive.f)
-target_link_libraries(nek5000 PUBLIC nek)
+target_link_libraries(nek5000 PUBLIC libnek5000)
 
 # =============================================================================
 # Link to 3rd-party libraries
@@ -315,7 +316,7 @@ endif()
 
 # TODO: Did visit libraries, but need to do visit headers
 if(VISIT)
-  target_include_directories(nek PUBLIC
+  target_include_directories(libnek5000 PUBLIC
       ${VISIT_INSTALL}/libsim/V2/include/
       ${CMAKE_CURRENT_LIST_DIR}/3rd_party/)
   target_include_directories(nek5000 PUBLIC
