@@ -28,9 +28,6 @@ option(CMTNEK      "Use DG compressible-flow solver (default: OFF)" OFF)
 # Detect name-mangling scheme
 include(FortranCInterface)
 FortranCInterface_VERIFY()
-if(FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")
-  add_definitions(-DUNDERSCORE)
-endif()
 
 # Set fixed-format source
 # set(CMAKE_Fortran_FORMAT "FIXED")
@@ -52,59 +49,75 @@ endif()
 # Preprocessor Symbols
 # =============================================================================
 
+# Nek5000
 if(PROFILING)
-  add_definitions(-DTIMER)
+  add_definitions(-DTIMER)            # Nek5000
 endif()
-
-if(MPI)
-  add_definitions(-DMPI)
+if(MPI OR NOT DEFINED MPI)
+  set(MPI TRUE)
+  add_definitions(-DMPI)              # Nek5000 and gslib
 endif()
-
 if(NOT MPI OR NOMPIIO)
-  add_definitions(-DNOMPIIO)
+  add_definitions(-DNOMPIIO)          # Nek5000
+else()
+  add_definitions(-DUSEMPIIO)         # gslib
 endif()
-
+if(FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")
+  add_definitions(-DUNDERSCORE)       # Nek5000 and gslib
+endif()
 if(BGQ)
-  add_definitions(-DBGQ)
+  add_definitions(-DBGQ)              # Nek5000
 endif()
-
 if(XSMM)
-  add_definitions(-DXSMM)
+  add_definitions(-DXSMM)             # Nek5000
 endif()
-
 if(CVODE)
-  add_definitions(-DCVODE)
+  add_definitions(-DCVODE)            # Nek5000
 endif()
-
 if(VENDOR_BLAS)
-  add_definitions(-DVENDOR_BLAS)
+  add_definitions(-DVENDOR_BLAS)      # Nek5000
+  add_definitions(-DUSE_CBLAS)        # gslib
+else()
+  add_definitions(-DUSE_NAIVE_BLAS)   # gslib
 endif()
-
 if(NEKNEK)
-  add_definitions(-DNEKNEK)
+  add_definitions(-DNEKNEK)           # Nek5000
 endif()
-
 if(CMTNEK)
-  add_definitions(-DCMTNEK)
+  add_definitions(-DCMTNEK)           # Nek5000
 endif()
+if(USREXIT)
+  add_definitions(-DUSE_USR_EXIT)     # gslib
+endif()
+if(NOT DEFINED PREFIX)
+  set(PREFIX gslib_)
+endif()
+add_definitions(-DPREFIX=${PREFIX})   # gslib
+if(NOT DEFINED FPREFIX)
+  set(FPREFIX fgslib_)
+endif()
+add_definitions(-DFPREFIX=${FPREFIX}) # gslib
+add_definitions(-DGLOBAL_LONG_LONG)   # gslib
 
 # =============================================================================
 # Header files
 # =============================================================================
 
+# Nek5000
 include_directories(${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_LIST_DIR}
     ${CMAKE_CURRENT_LIST_DIR}/core)
-
 # TODO: Make mpif.h a proper dependency
 if(MPI)
   file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/mpif.h)
 else()
   configure_file( ${CMAKE_CURRENT_LIST_DIR}/core/mpi_dummy.h ${CMAKE_CURRENT_BINARY_DIR}/mpif.h )
 endif()
-
 if(CMT)
   include_directories(${CMAKE_CURRENT_LIST_DIR}/core/cmt/)
 endif()
+
+# gslib
+include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src)
 
 # =============================================================================
 # SESSION File
@@ -255,11 +268,34 @@ else()
   unset(VISIT_SOURCES)
 endif()
 
+set(GS_SOURCES
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/comm.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/crystal.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/fail.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/gs.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/gs_local.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/sarray_sort.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/sarray_transfer.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/sort.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/tensor.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/sparse_cholesky.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/xxt.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/amg.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/fcrs.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/fcrystal.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/findpts.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/findpts_el_2.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/findpts_el_3.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/findpts_local.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/lob_bnd.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/obbox.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/poly.c
+    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/rand_elt_test.c)
+
 # Library
 add_library(libnek5000
     ${USR_SOURCE} ${CORE_SOURCES} ${BLAS_SOURCES} ${MXM_SOURCES}
-    ${NEKNEK_SOURCES} ${COMM_MPI_SOURCES} ${CMT_SOURCES} ${VISIT_SOURCES})
-set_target_properties(libnek5000 PROPERTIES OUTPUT_NAME nek5000)
+    ${NEKNEK_SOURCES} ${COMM_MPI_SOURCES} ${CMT_SOURCES} ${VISIT_SOURCES} ${GS_SOURCES})
 
 # Driver
 add_executable(nek5000 ${CMAKE_CURRENT_LIST_DIR}/core/drive.f)
@@ -268,16 +304,6 @@ target_link_libraries(nek5000 PUBLIC libnek5000)
 # =============================================================================
 # Link to 3rd-party libraries
 # =============================================================================
-
-# gslib
-# TODO: Check for gslib presence first.  Something like:
-# find_library(GSLIB gs PATHS ${CMAKE_CURRENT_LIST_DIR}/core/3rd_party/gslib/lib/)
-# target_link_libraries(nek5000 PUBLIC ${GSLIB})
-if(NOT DEFINED USREXIT)
-  set(USREXIT TRUE)
-endif()
-add_subdirectory(3rd_party/gslib/gslib-1.0.1/)
-target_link_libraries(nek5000 PUBLIC gs)
 
 # MPI
 # ROR: 2018-03-14: This does not work as intended. It finds the first libraries
