@@ -4,6 +4,9 @@
 #include "mpi.h"
 #include "openmc.h"
 
+#include <unordered_map>
+#include <vector>
+
 // ============================================================================
 // Base Classes
 // ============================================================================
@@ -51,6 +54,10 @@ public:
   void finalizeStep();
 
   int getCellCentroid(int32_t cellId, double *centroid);
+private:
+  // Map that gives a list of Nek element global indices for a given OpenMC
+  // material index
+  std::unordered_map<int32_t,std::vector<int>> mats_to_nek_elems;
 };
 
 class NekDriver : public ThDriver {
