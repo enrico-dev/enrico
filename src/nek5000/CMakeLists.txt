@@ -296,6 +296,7 @@ set(GS_SOURCES
 add_library(libnek5000
     ${USR_SOURCE} ${CORE_SOURCES} ${BLAS_SOURCES} ${MXM_SOURCES}
     ${NEKNEK_SOURCES} ${COMM_MPI_SOURCES} ${CMT_SOURCES} ${VISIT_SOURCES} ${GS_SOURCES})
+set_target_properties(libnek5000 PROPERTIES OUTPUT_NAME nek5000)
 
 # Driver
 add_executable(nek5000 ${CMAKE_CURRENT_LIST_DIR}/core/drive.f)
