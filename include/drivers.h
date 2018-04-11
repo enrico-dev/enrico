@@ -16,9 +16,9 @@ public:
   ThDriver(MPI_Comm comm) : comm(comm) {};
   virtual ~ThDriver() {};
 
-  virtual void initStep();
-  virtual void solveStep();
-  virtual void finalizeStep();
+  virtual void initStep() {};
+  virtual void solveStep() {};
+  virtual void finalizeStep() {};
 
 };
 
@@ -30,9 +30,9 @@ public:
   NeutronDriver(MPI_Comm comm) : comm(comm) {};
   virtual ~NeutronDriver() {};
 
-  virtual void initStep();
-  virtual void solveStep();
-  virtual void finalizeStep();
+  virtual void initStep() {};
+  virtual void solveStep() {};
+  virtual void finalizeStep() {};
 };
 
 // ============================================================================
@@ -44,7 +44,7 @@ public:
   MPI_Comm comm;
 
   OpenmcDriver(MPI_Comm comm);
-  ~OpenmcDriver() {};
+  ~OpenmcDriver();
 
   void initStep();
   void solveStep();
@@ -58,7 +58,7 @@ public:
   MPI_Comm comm;
 
   NekDriver(MPI_Comm comm);
-  ~NekDriver() {};
+  ~NekDriver();
 
   void initStep();
   void solveStep();
