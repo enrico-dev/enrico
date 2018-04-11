@@ -1,13 +1,10 @@
 cmake_minimum_required(VERSION 3.1)
 project(stream Fortran C CXX)
 
-#set(ENV{HDF5_ROOT} /Users/rahaman/install/hdf5-1.10.2-gnu-6.3.0/)
-
-# ROR: 2018-03-22: The header is placed in-source.
-# TODO: Other alternative is to place in build directory.
+# Produces a C header file (name_mangling.h) to declare Nek5000's Fortran routines
 include(FortranCInterface)
 FortranCInterface_VERIFY()
-FortranCInterface_HEADER(${CMAKE_CURRENT_LIST_DIR}/include/nek_mangling.h
+FortranCInterface_HEADER(${CMAKE_BINARY_DIR}/nek_mangling.h
     MACRO_NAMESPACE C2F_
     SYMBOL_NAMESPACE C2F_
     SYMBOLS
@@ -17,9 +14,11 @@ FortranCInterface_HEADER(${CMAKE_CURRENT_LIST_DIR}/include/nek_mangling.h
     nek_finalize_step
     nek_end)
 
+# For building libnek5000 and libopenmc
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nek5000)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/openmc)
 
+# Target for STREAM Executable
 add_executable(stream
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/main.cpp)
@@ -27,5 +26,6 @@ target_include_directories(stream PUBLIC
     ${CMAKE_CURRENT_LIST_DIR}/include
     ${CMAKE_CURRENT_LIST_DIR}/src/openmc/include
     ${CMAKE_CURRENT_LIST_DIR}/src/nek5000/core
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek5000/3rd_party/gslib/gslib-1.0.1/src
     ${CMAKE_BINARY_DIR})
-target_link_libraries(stream nek libopenmc gs)
+target_link_libraries(stream libnek5000 libopenmc)
