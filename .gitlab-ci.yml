@@ -1,0 +1,30 @@
+configure:
+  variables:
+    GIT_STRATEGY: clone
+    CC: mpicc
+    CXX: mpicxx
+    FC: mpif90
+  script:
+    - cd src/nek5000/examples/eddy_uv
+    - cmake -DCASENAME=eddy_uv ../../../..
+
+build_libopenmc:
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - cd src/nek5000/examples/eddy_uv
+    - make -j -l4 libopenmc
+
+build_libnek5000:
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - cd src/nek5000/examples/eddy_uv
+    - make -j -l4 libnek5000
+
+build_stream:
+  variables:
+    GIT_STRATEGY: none
+  script:
+    - cd src/nek5000/examples/eddy_uv
+    - make -j -l4 stream
