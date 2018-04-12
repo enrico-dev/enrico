@@ -1,5 +1,10 @@
-configure:
-  stage: configure_stage
+stages:
+  - config
+  - build:modules
+  - build:drivers
+
+config:all:
+  stage: config
   variables:
     CC: mpicc
     CXX: mpicxx
@@ -11,27 +16,27 @@ configure:
     paths:
       - src/nek5000/examples/eddy_uv
 
-build_libopenmc:
-  stage: build_stage
+build:libopenmc:
+  stage: build:modules
   dependencies:
-    - configure
+    - config:all
   script:
     - cd src/nek5000/examples/eddy_uv
     - make -j -l4 libopenmc
 
-build_libnek5000:
-  stage: build_stage
+build:libnek5000:
+  stage: build:modules
   dependencies:
-    - configure
+    - config:all
   script:
     - cd src/nek5000/examples/eddy_uv
     - make -j -l4 libnek5000
 
-build_stream:
-  stage: build_stage
+build:stream:
+  stage: build:drivers
   dependencies:
-    - build_libopenmc
-    - build_libnek5000
+    - build:libopenmc
+    - build:libnek5000
   script:
     - cd src/nek5000/examples/eddy_uv
     - make -j -l4 stream
