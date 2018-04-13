@@ -19,7 +19,8 @@ option(NEKNEK      "USE overlapping mesh solver (default: OFF)"     OFF)
 option(CMTNEK      "Use DG compressible-flow solver (default: OFF)" OFF)
 
 if(NOT CASENAME)
-  message(FATAL_ERROR "Must provide a case name via '-DCASENAME=<casename>'")
+  set(CASENAME zero)
+  message(WARNING "A Nek5000 case was *NOT* provided with '-DCASENAME=<casename>'.  Nek5000 will be configured with a generic input deck.'")
 endif()
 
 # =============================================================================
@@ -131,7 +132,11 @@ file(WRITE ${CMAKE_BINARY_DIR}/SESSION.NAME "${CASENAME}\n${CMAKE_BINARY_DIR}\n"
 # =============================================================================
 
 # Create <casename>.f from <casename>.usr
-set(USR_SOURCE ${CMAKE_CURRENT_BINARY_DIR}/${CASENAME}.f)
+if (CASENAME STREQUAL "zero")
+  set(USR_SOURCE ${CMAKE_CURRENT_LIST_DIR}/zero.f)
+else()
+  set(USR_SOURCE ${CMAKE_CURRENT_BINARY_DIR}/${CASENAME}.f)
+endif()
 ADD_CUSTOM_COMMAND(
     OUTPUT ${USR_SOURCE}
     COMMAND ${CMAKE_COMMAND}

@@ -14,6 +14,14 @@ FortranCInterface_HEADER(${CMAKE_BINARY_DIR}/nek_mangling.h
     nek_finalize_step
     nek_end)
 
+# Headers for all targets
+include_directories(stream PUBLIC
+    ${CMAKE_CURRENT_LIST_DIR}/include
+    ${CMAKE_CURRENT_LIST_DIR}/src/openmc/include
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek5000/core
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek5000/3rd_party/gslib/gslib-1.0.1/src
+    ${CMAKE_BINARY_DIR})
+
 # For building libnek5000 and libopenmc
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nek5000)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/openmc)
@@ -22,10 +30,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/openmc)
 add_executable(stream
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/main.cpp)
-target_include_directories(stream PUBLIC
-    ${CMAKE_CURRENT_LIST_DIR}/include
-    ${CMAKE_CURRENT_LIST_DIR}/src/openmc/include
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek5000/core
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek5000/3rd_party/gslib/gslib-1.0.1/src
-    ${CMAKE_BINARY_DIR})
 target_link_libraries(stream libnek5000 libopenmc)
+
+# For building tests
+add_subdirectory(tests)
