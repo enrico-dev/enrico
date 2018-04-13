@@ -22,8 +22,20 @@ include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/src/nek5000/3rd_party/gslib/gslib-1.0.1/src
     ${CMAKE_BINARY_DIR})
 
-# For building libnek5000 and libopenmc
+# For building Nek5000. If there is no input deck, put dummies there.
+option(CASENAME    "Name of problem case (.usr and .rea files)")
+if(NOT CASENAME)
+  message(WARNING "A Nek5000 case was *NOT* provided with '-DCASENAME=<casename>'.  Nek5000 will be configured with a generic input deck.'")
+  set(CASENAME zero)
+  file(COPY ${CMAKE_CURRENT_LIST_DIR}/config/zero.usr DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+  find_file(FOUND_SIZE ${CMAKE_CURRENT_BINARY_DIR}/SIZE)
+  if(NOT FOUND_SIZE)
+    file(COPY ${CMAKE_CURRENT_LIST_DIR}/config/SIZE DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
+  endif()
+endif()
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nek5000)
+
+# For building OpenMC
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/openmc)
 
 # Target for STREAM library
