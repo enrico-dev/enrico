@@ -8,4 +8,5 @@ int main(int argc, char* argv[])
   driver.initStep();
   driver.solveStep();
   driver.finalizeStep();
+  MPI_Finalize();
 }
