@@ -1,46 +1,12 @@
-stages:
-  - config
-  - build:modules
-  - build:drivers
-
-config:all:
-  stage: config
+test:openmc_api:
+  stage: test
   variables:
     GIT_STRATEGY: clone
     CC: mpicc
     CXX: mpicxx
     FC: mpif90
   script:
-    - cd src/nek5000/examples/eddy_uv
-    - cmake -DCASENAME=eddy_uv ../../../..
-
-build:libopenmc:
-  stage: build:modules
-  dependencies:
-    - config:all
-  variables:
-    GIT_STRATEGY: none
-  script:
-    - cd src/nek5000/examples/eddy_uv
-    - make -j -l4 libopenmc
-
-build:libnek5000:
-  stage: build:modules
-  dependencies:
-    - config:all
-  variables:
-    GIT_STRATEGY: none
-  script:
-    - cd src/nek5000/examples/eddy_uv
-    - make -j -l4 libnek5000
-
-build:stream:
-  stage: build:drivers
-  dependencies:
-    - build:libopenmc
-    - build:libnek5000
-  variables:
-    GIT_STRATEGY: none
-  script:
-    - cd src/nek5000/examples/eddy_uv
-    - make -j -l4 stream
+    - cd tests/openmc_api
+    - cmake -DCASENAME=ethier ../../
+    - make -j -l4 test_openmc_api
+    - mpirun -np 4 ./test_openmc_api
