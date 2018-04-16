@@ -5,7 +5,7 @@ project(Nek5000 Fortran C)
 # Configure options
 # =============================================================================
 
-#option(CASENAME    "Name of problem case (.usr and .rea files)")
+option(CASENAME    "Name of problem case (.usr and .rea files)")
 option(MPI         "Use MPI (default: ON)"                          ON)
 option(PROFILING   "Use internal profiling (default: ON)"           ON)
 option(NOMPIIO     "Deactivate MPI-IO support (default: OFF)"       OFF)
@@ -18,9 +18,10 @@ option(NEKNEK      "Add underscore to exit() (default: OFF)"        OFF)
 option(NEKNEK      "USE overlapping mesh solver (default: OFF)"     OFF)
 option(CMTNEK      "Use DG compressible-flow solver (default: OFF)" OFF)
 
-# if(NOT CASENAME)
-#   message(FATAL_ERROR "Must provide a Nek5000 casename with '-DCASENAME=<casename>'")
-# endif()
+if(NOT CASENAME)
+  set(CASENAME zero)
+  message(WARNING "A Nek5000 case was *NOT* provided with '-DCASENAME=<casename>'.  Nek5000 will be configured with a generic input deck.'")
+endif()
 
 # =============================================================================
 # Compiler Options
@@ -131,7 +132,11 @@ file(WRITE ${CMAKE_BINARY_DIR}/SESSION.NAME "${CASENAME}\n${CMAKE_BINARY_DIR}\n"
 # =============================================================================
 
 # Create <casename>.f from <casename>.usr
-set(USR_SOURCE ${CMAKE_CURRENT_BINARY_DIR}/${CASENAME}.f)
+if (CASENAME STREQUAL "zero")
+  set(USR_SOURCE ${CMAKE_CURRENT_LIST_DIR}/zero.f)
+else()
+  set(USR_SOURCE ${CMAKE_CURRENT_BINARY_DIR}/${CASENAME}.f)
+endif()
 ADD_CUSTOM_COMMAND(
     OUTPUT ${USR_SOURCE}
     COMMAND ${CMAKE_COMMAND}
