@@ -1,10 +1,24 @@
+stages:
+  - download
+  - test
+
+download:cross_sections:
+  stage: download
+  script:
+    - if [[ ! -e $HOME/nndc_hdf5/cross_sections.xml ]]; then
+        wget https://anl.box.com/shared/static/a6sw2cep34wlz6b9i9jwiotaqoayxcxt.xz -O - | tar -C $HOME -xvJ;
+      fi
+
 test:openmc_api:
   stage: test
+  dependencies:
+    - download:cross_sections
   variables:
     GIT_STRATEGY: clone
     CC: mpicc
     CXX: mpicxx
     FC: mpif90
+    OPENMC_CROSS_SECTIONS: $HOME/nndc_hdf5/cross_sections.xml
   script:
     - cd tests/openmc_api
     - cmake -DCASENAME=ethier ../../
