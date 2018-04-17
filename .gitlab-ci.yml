@@ -19,6 +19,7 @@ test:openmc_api:
     CXX: mpicxx
     FC: mpif90
     OPENMC_CROSS_SECTIONS: $CI_PROJECT_DIR/nndc_hdf5/cross_sections.xml
+    OMP_NUM_THREADS: 4
   script:
     - cd tests/openmc_api
     - cmake -DCASENAME=ethier ../../
