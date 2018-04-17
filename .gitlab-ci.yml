@@ -22,5 +22,5 @@ test:openmc_api:
   script:
     - cd tests/openmc_api
     - cmake -DCASENAME=ethier ../../
-    - make -j -l4 test_openmc_api
-    - mpirun -np 4 ./test_openmc_api
+    - make -j -l2 test_openmc_api
+    - mpirun -np 2 ./test_openmc_api
