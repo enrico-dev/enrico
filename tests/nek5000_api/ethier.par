@@ -3,7 +3,7 @@
 #
 [GENERAL] 
 #startFrom = restart.fld 
-numSteps = 1000
+numSteps = 100
 dt = 1e-04
 timeStepper = bdf3 #bdf2
 writeInterval = 0
