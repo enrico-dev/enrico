@@ -69,27 +69,21 @@ NekDriver::NekDriver(MPI_Comm comm) : comm(comm) {
   //     openmc_init(&MPI_Comm_c2f(comm));
   // Hence, the dummy variable.
   MPI_Fint intComm = MPI_Comm_c2f(comm);
-
-  // TODO: Where's nek_init?
-  // C2F_nek_init(static_cast<const int *>(&intComm));
+  C2F_nek_init(static_cast<const int *>(&intComm));
 }
 
 void NekDriver::initStep() {
-  C2F_nek_init_step();
 }
 
 void NekDriver::solveStep() {
-  C2F_nek_step();
+  C2F_nek_solve();
 }
 
 void NekDriver::finalizeStep() {
-  C2F_nek_finalize_step();
 }
 
 NekDriver::~NekDriver() {
-
-  // TODO: Where's nek_init?
-  // C2F_nek_end();
+  C2F_nek_end();
 }
 
 // ============================================================================

@@ -12,7 +12,8 @@ FortranCInterface_HEADER(${CMAKE_BINARY_DIR}/nek_mangling.h
     nek_init_step
     nek_step
     nek_finalize_step
-    nek_end)
+    nek_end
+    nek_solve)
 
 # Headers for all targets
 include_directories(
@@ -38,3 +39,6 @@ target_link_libraries(stream PUBLIC libstream)
 # For building tests
 add_executable(test_openmc_api ${CMAKE_CURRENT_LIST_DIR}/tests/openmc_api/main.cpp)
 target_link_libraries(test_openmc_api PUBLIC libstream)
+
+add_executable(test_nek5000_api ${CMAKE_CURRENT_LIST_DIR}/tests/nek5000_api/main.cpp)
+target_link_libraries(test_nek5000_api PUBLIC libstream)
