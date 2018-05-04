@@ -67,21 +67,15 @@ int main(int argc, char* argv[])
   gethostname(cMyHostName, HOST_NAME_MAX);
   std::string myHostName(cMyHostName);
 
-  if (world.rank == 0)
-    std::cout << "Ranks/hosts in world:" << std::endl;
-  MPI_Barrier(world.comm);
   for (auto i = 0; i < world.size; i++) {
     if (world.rank == i)
-      std::cout << world.rank << "\t" << myHostName << std::endl;
+      std::cout << "world (rank,host)\t" << world.rank << "\t" << myHostName << std::endl;
     MPI_Barrier(world.comm);
   }
 
-  if (world.rank == 0)
-    std::cout << std::endl << "Ranks/hosts in oneProcInAllShmems:" << std::endl;
-  MPI_Barrier(world.comm);
   for (auto i = 0; i < world.size; i++) {
-    if (oneProcInAllShmems.rank != MPI_PROC_NULL and oneProcInAllShmems.rank == i)
-      std::cout << oneProcInAllShmems.rank << "\t" << myHostName << std::endl;
+    if (oneProcInAllShmems.rank != MPI_PROC_NULL and world.rank == i)
+      std::cout << "oneProcInAllShmems (rank,host)\t" << oneProcInAllShmems.rank << "\t" << myHostName << std::endl;
     MPI_Barrier(world.comm);
   }
 
