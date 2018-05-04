@@ -2,6 +2,10 @@
 #include "mpi.h"
 #include <algorithm>
 #include <vector>
+#include "unistd.h"
+#include <climits>
+#include <string>
+#include <iostream>
 
 struct ProcInfo{
   MPI_Comm comm = MPI_COMM_NULL;
@@ -9,8 +13,6 @@ struct ProcInfo{
   int size = 0;
   int rank = MPI_PROC_NULL;
 };
-
-bool isValidRank (int rank) {return rank != MPI_PROC_NULL;}
 
 int main(int argc, char* argv[])
 {
@@ -66,7 +68,7 @@ int main(int argc, char* argv[])
   int myTransRankOut = MPI_PROC_NULL;
   int myTransRankIn = oneProcInMyShmem.group != MPI_GROUP_NULL ? oneProcInMyShmem.rank : MPI_PROC_NULL;
   if (oneProcInMyShmem.group != MPI_GROUP_NULL)
-    MPI_Group_translate_ranks(oneProcInMyShmem.group, 1, &myTransRankIn, world.group, &myTransRankOut));
+    MPI_Group_translate_ranks(oneProcInMyShmem.group, 1, &myTransRankIn, world.group, &myTransRankOut);
 
   // Next, gather all the translated (world) ranks from *all* procs.
   std::vector<int> allTransRanks(world.size, MPI_PROC_NULL);
@@ -86,6 +88,39 @@ int main(int argc, char* argv[])
     MPI_Comm_rank(oneProcInAllShmems.comm, &oneProcInAllShmems.rank);
     MPI_Comm_size(oneProcInAllShmems.comm, &oneProcInAllShmems.size);
   }
+
+  //===========================================================================
+  // Debug by printing node memberships
+  //===========================================================================
+
+  // Can't do:
+  //    std::string myHostName(HOST_NAME_MAX, ' ');
+  //    char *cMyHostName = myHostName.c_str()
+  // since c_str() returns a const pointer and can't be passed to gethostname
+
+  // Get hostname
+  auto cMyHostName = new char[HOST_NAME_MAX];
+  gethostname(cMyHostName, HOST_NAME_MAX);
+  std::string myHostName(cMyHostName);
+
+  // Pring hostnames
+  if (world.rank == 0)
+    std::cout << "Ranks/hosts in world:" << std::endl;
+  MPI_Barrier(world.comm);
+  for (auto i; i < world.size; i++) {
+    if (world.rank == i)
+      std::cout << world.rank << myHostName << std::endl;
+  }
+  MPI_Barrier(world.comm);
+
+  if (world.rank == 0)
+    std::cout << std::endl << "Ranks/hosts in oneProcInAllShmems:" << std::endl;
+  MPI_Barrier(world.comm);
+  for (auto i = 0; i < oneProcInAllShmems.size; i++) {
+    if (oneProcInAllShmems.rank != MPI_PROC_NULL and oneProcInAllShmems.rank == i)
+      std::cout << oneProcInAllShmems.rank << myHostName << std::endl;
+  }
+  MPI_Barrier(world.comm);
 
   MPI_Finalize();
   return 0;
