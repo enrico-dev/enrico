@@ -1,3 +1,14 @@
+//===========================================================================
+// Demonstrates splitting comm world into another comm with a specified
+// number of procs per node.  The latter comm is named nProcsInAllShmems
+//
+// Usage:
+//   mpirun -np <nWorldProcs> ./a.out <nProcsPerNode>
+//
+// Output:
+//   Prints ranks and nodes for the two comms
+//===========================================================================
+
 #include <climits>
 #include <iostream>
 #include <string>
@@ -16,6 +27,14 @@ int main(int argc, char* argv[])
   MPI_Init(&argc, &argv);
 
   //===========================================================================
+  // Get procsPerNode from command line
+  //===========================================================================
+
+  int procsPerNode = 1;
+  if (argc > 1)
+    procsPerNode = std::stoi(argv[1]);
+
+  //===========================================================================
   // ProcInfo world: A dup of MPI_COMM_WORLD
   //===========================================================================
 
@@ -30,6 +49,9 @@ int main(int argc, char* argv[])
   // every shmem region.  All procs in a shmem region will belong to the same
   // comm.
   //
+  // This is an intermediate step on the way to creating nProcsInAllShmems.
+  // The latter is the ultimate objective.  
+  //
   // The shmem region is intended to be a node; the behavior has not been
   // tested for more unusual architectures.
   //===========================================================================
@@ -42,22 +64,21 @@ int main(int argc, char* argv[])
   MPI_Comm_size(allProcsInMyShmem.comm, &allProcsInMyShmem.size);
 
   //===========================================================================
-  // ProcInfo oneProcInAllShmems: In each shmem domain, choose one proc
-  // (arbitrarily, we choose one such that allProcsInMyShmem.rank == 0).
+  // ProcInfo nProcsInAllShmems: In each shmem domain, choose n procs
+  // (arbitrarily, we choose one such that allProcsInMyShmem.rank < nProcsPerNode).
   // Split all these procs (from all shmem) off of world into a new comm.
   //===========================================================================
 
-  ProcInfo oneProcInAllShmems;
-  int myColor = allProcsInMyShmem.rank == 0 ? 0 : 1;
-  MPI_Comm_split(world.comm, myColor, world.rank, &oneProcInAllShmems.comm);
-  if (allProcsInMyShmem.rank != 0) {
-    MPI_Comm_free(&oneProcInAllShmems.comm);
+  ProcInfo nProcsInAllShmems;
+  int myColor = allProcsInMyShmem.rank < procsPerNode ? 0 : 1;
+  MPI_Comm_split(world.comm, myColor, world.rank, &nProcsInAllShmems.comm);
+  if (myColor == 0) {
+    MPI_Comm_group(nProcsInAllShmems.comm, &allProcsInMyShmem.group);
+    MPI_Comm_rank(nProcsInAllShmems.comm, &nProcsInAllShmems.rank);
+    MPI_Comm_size(nProcsInAllShmems.comm, &nProcsInAllShmems.size);
   }
-  else {
-    MPI_Comm_group(oneProcInAllShmems.comm, &allProcsInMyShmem.group);
-    MPI_Comm_rank(oneProcInAllShmems.comm, &oneProcInAllShmems.rank);
-    MPI_Comm_size(oneProcInAllShmems.comm, &oneProcInAllShmems.size);
-  }
+  else
+    MPI_Comm_free(&nProcsInAllShmems.comm);
 
   //===========================================================================
   // Debug: Print which comms/ranks are on which host
@@ -67,15 +88,15 @@ int main(int argc, char* argv[])
   gethostname(cMyHostName, HOST_NAME_MAX);
   std::string myHostName(cMyHostName);
 
-  for (auto i = 0; i < world.size; i++) {
+  for (int i = 0; i < world.size; i++) {
     if (world.rank == i)
       std::cout << "world (rank,host)\t" << world.rank << "\t" << myHostName << std::endl;
     MPI_Barrier(world.comm);
   }
 
-  for (auto i = 0; i < world.size; i++) {
-    if (oneProcInAllShmems.rank != MPI_PROC_NULL and world.rank == i)
-      std::cout << "oneProcInAllShmems (rank,host)\t" << oneProcInAllShmems.rank << "\t" << myHostName << std::endl;
+  for (int i = 0; i < world.size; i++) {
+    if (nProcsInAllShmems.rank != MPI_PROC_NULL and world.rank == i)
+      std::cout << "nProcsInAllShmems (rank,host)\t" << world.rank << "\t" << myHostName << std::endl;
     MPI_Barrier(world.comm);
   }
 
