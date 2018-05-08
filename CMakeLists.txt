@@ -42,3 +42,5 @@ target_link_libraries(test_openmc_api PUBLIC libstream)
 
 add_executable(test_nek5000_api ${CMAKE_CURRENT_LIST_DIR}/tests/nek5000_api/main.cpp)
 target_link_libraries(test_nek5000_api PUBLIC libstream)
+
+add_executable(comm_split_demo ${CMAKE_CURRENT_LIST_DIR}/tests/comm_split_demo/main.cpp)
