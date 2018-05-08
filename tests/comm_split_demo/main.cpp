@@ -12,8 +12,8 @@
 #include <climits>
 #include <iostream>
 #include <string>
+#include <unistd.h>
 #include "mpi.h"
-#include "unistd.h"
 
 struct ProcInfo{
   MPI_Comm comm = MPI_COMM_NULL;
@@ -84,9 +84,8 @@ int main(int argc, char* argv[])
   // Debug: Print which comms/ranks are on which host
   //===========================================================================
 
-  auto cMyHostName = new char[HOST_NAME_MAX];
-  gethostname(cMyHostName, HOST_NAME_MAX);
-  std::string myHostName(cMyHostName);
+  char myHostName[HOST_NAME_MAX];
+  gethostname(myHostName, HOST_NAME_MAX);
 
   for (int i = 0; i < world.size; i++) {
     if (world.rank == i)
