@@ -9,12 +9,12 @@
 // OpenMC Driver
 // ============================================================================
 
-OpenmcDriver::OpenmcDriver(MPI_Comm comm) : comm(comm) {
+OpenmcDriver::OpenmcDriver(MPI_Comm comm) : procInfo(comm) {
   // ROR: 2018-03-22: MPI_Comm_c2f is a macro (in MPICH, at least),
   // so we can't pass something like:
   //     openmc_init(&MPI_Comm_c2f(comm));
   // Hence, the dummy variable.
-  MPI_Fint intComm = MPI_Comm_c2f(comm);
+  MPI_Fint intComm = MPI_Comm_c2f(procInfo.comm);
   openmc_init(static_cast<const int *>(&intComm));
 
   int32_t index_filters[1];
@@ -63,12 +63,12 @@ OpenmcDriver::~OpenmcDriver() {
 // Nek5000 Driver
 // ============================================================================
 
-NekDriver::NekDriver(MPI_Comm comm) : comm(comm) {
+NekDriver::NekDriver(MPI_Comm comm) : procInfo(comm) {
   // ROR: 2018-03-22: MPI_Comm_c2f is a macro (in MPICH, at least),
   // so we can't pass something like:
   //     openmc_init(&MPI_Comm_c2f(comm));
   // Hence, the dummy variable.
-  MPI_Fint intComm = MPI_Comm_c2f(comm);
+  MPI_Fint intComm = MPI_Comm_c2f(procInfo.comm);
   C2F_nek_init(static_cast<const int *>(&intComm));
 }
 
@@ -91,6 +91,8 @@ NekDriver::~NekDriver() {
 // ============================================================================
 
 CoupledDriver::CoupledDriver(MPI_Comm globalComm, MPI_Comm neutronComm, MPI_Comm thComm) :
-    globalComm(globalComm),
+    globalProcInfo(globalComm),
+    neutronProcInfo(neutronComm),
+    thProcInfo(thComm),
     neutronDriver(neutronComm),
     thDriver(thComm) {}
