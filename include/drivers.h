@@ -1,11 +1,11 @@
 #ifndef STREAM_DRIVERS_H
 #define STREAM_DRIVERS_H
 
-#include "mpi.h"
-#include "openmc.h"
-
 #include <unordered_map>
 #include <vector>
+#include "mpi.h"
+#include "openmc.h"
+#include "procinfo.h"
 
 // ============================================================================
 // Base Classes
@@ -13,24 +13,23 @@
 
 class ThDriver {
 public:
-  MPI_Comm comm;
+  ProcInfo procInfo;
 
+  explicit ThDriver(MPI_Comm comm) : procInfo(comm) {};
   ThDriver() {};
-  ThDriver(MPI_Comm comm) : comm(comm) {};
   virtual ~ThDriver() {};
 
   virtual void initStep() {};
   virtual void solveStep() {};
   virtual void finalizeStep() {};
-
 };
 
 class NeutronDriver {
 public:
-  MPI_Comm comm;
+  ProcInfo procInfo;
 
+  explicit NeutronDriver(MPI_Comm comm) : procInfo(comm) {};
   NeutronDriver() {};
-  NeutronDriver(MPI_Comm comm) : comm(comm) {};
   virtual ~NeutronDriver() {};
 
   virtual void initStep() {};
@@ -44,9 +43,7 @@ public:
 
 class OpenmcDriver : public NeutronDriver {
 public:
-  MPI_Comm comm;
-
-  OpenmcDriver(MPI_Comm comm);
+  explicit OpenmcDriver(MPI_Comm comm);
   ~OpenmcDriver();
 
   void initStep();
@@ -62,9 +59,7 @@ private:
 
 class NekDriver : public ThDriver {
 public:
-  MPI_Comm comm;
-
-  NekDriver(MPI_Comm comm);
+  explicit NekDriver(MPI_Comm comm);
   ~NekDriver();
 
   void initStep();
@@ -77,14 +72,17 @@ public:
 
 class CoupledDriver {
 public:
-  MPI_Comm globalComm;
+  ProcInfo procInfo;
 
   NeutronDriver neutronDriver;
   ThDriver thDriver;
 
+  explicit CoupledDriver(MPI_Comm coupledComm, MPI_Comm neutronComm, MPI_Comm thComm) :
+      procInfo(coupledComm),
+      neutronDriver(neutronComm),
+      thDriver(thComm) {};
   CoupledDriver(){};
-  CoupledDriver(MPI_Comm globalComm, MPI_Comm neutronComm, MPI_Comm thComm);
-  ~CoupledDriver() {};
+  virtual ~CoupledDriver() {};
 };
 
 #endif //STREAM_DRIVERS_H
