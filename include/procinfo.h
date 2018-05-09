@@ -11,7 +11,7 @@ public:
   int rank = MPI_PROC_NULL;
 
   ProcInfo() {};
-  ProcInfo(MPI_Comm comm) : comm(comm) {
+  explicit ProcInfo(MPI_Comm comm) : comm(comm) {
     MPI_Comm_group(comm, &group);
     MPI_Comm_rank(comm, &rank);
     MPI_Comm_size(comm, &size);
