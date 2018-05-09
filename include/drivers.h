@@ -72,21 +72,17 @@ public:
 
 class CoupledDriver {
 public:
-  ProcInfo globalProcInfo;
-  ProcInfo neutronProcInfo;
-  ProcInfo thProcInfo;
+  ProcInfo procInfo;
 
   NeutronDriver neutronDriver;
   ThDriver thDriver;
 
-  CoupledDriver(MPI_Comm globalComm, MPI_Comm neutronComm, MPI_Comm thComm) :
-      globalProcInfo(globalComm),
-      neutronProcInfo(neutronComm),
-      thProcInfo(thComm),
+  explicit CoupledDriver(MPI_Comm coupledComm, MPI_Comm neutronComm, MPI_Comm thComm) :
+      procInfo(coupledComm),
       neutronDriver(neutronComm),
       thDriver(thComm) {};
   CoupledDriver(){};
-  ~CoupledDriver() {};
+  virtual ~CoupledDriver() {};
 };
 
 #endif //STREAM_DRIVERS_H
