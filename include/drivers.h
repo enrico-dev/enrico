@@ -37,6 +37,21 @@ public:
   virtual void finalizeStep() {};
 };
 
+class CoupledDriver {
+public:
+  ProcInfo procInfo;
+
+  NeutronDriver neutronDriver;
+  ThDriver thDriver;
+
+  explicit CoupledDriver(MPI_Comm coupledComm, MPI_Comm neutronComm, MPI_Comm thComm) :
+      procInfo(coupledComm),
+      neutronDriver(neutronComm),
+      thDriver(thComm) {};
+  CoupledDriver(){};
+  virtual ~CoupledDriver() {};
+};
+
 // ============================================================================
 // Implementations
 // ============================================================================
@@ -70,19 +85,20 @@ public:
   int getElemCentroid(int globalElem);
 };
 
-class CoupledDriver {
-public:
+// This is not actually derived from CoupledDriver.  Currently, it is unclear
+// how or if the base class will be implemented.  The issue will be revisited
+class OpenmcNekDriver {
   ProcInfo procInfo;
 
-  NeutronDriver neutronDriver;
-  ThDriver thDriver;
+  OpenmcDriver openmcDriver;
+  NekDriver nekDriver;
 
-  explicit CoupledDriver(MPI_Comm coupledComm, MPI_Comm neutronComm, MPI_Comm thComm) :
+  explicit OpenmcNekDriver(MPI_Comm coupledComm, MPI_Comm openmcComm, MPI_Comm nekComm) :
       procInfo(coupledComm),
-      neutronDriver(neutronComm),
-      thDriver(thComm) {};
-  CoupledDriver(){};
-  virtual ~CoupledDriver() {};
+      openmcDriver(openmcComm),
+      nekDriver(nekComm) {};
+  OpenmcNekDriver(){};
+  virtual ~OpenmcNekDriver() {};
 };
 
 #endif //STREAM_DRIVERS_H
