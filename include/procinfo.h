@@ -12,9 +12,11 @@ public:
 
   ProcInfo() {};
   explicit ProcInfo(MPI_Comm comm) : comm(comm) {
-    MPI_Comm_group(comm, &group);
-    MPI_Comm_rank(comm, &rank);
-    MPI_Comm_size(comm, &size);
+    if (comm != MPI_COMM_NULL) {
+      MPI_Comm_group(comm, &group);
+      MPI_Comm_rank(comm, &rank);
+      MPI_Comm_size(comm, &size);
+    }
   }
 };
 

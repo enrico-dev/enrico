@@ -28,7 +28,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nek5000)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/openmc)
 
 # Target for STREAM library
-add_library(libstream ${CMAKE_CURRENT_LIST_DIR}/src/drivers.cpp )
+add_library(libstream ${CMAKE_CURRENT_LIST_DIR}/src/drivers.cpp src/message_passing.cpp)
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
 target_link_libraries(libstream PUBLIC libnek5000 libopenmc)
 

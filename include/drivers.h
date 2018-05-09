@@ -88,6 +88,7 @@ public:
 // This is not actually derived from CoupledDriver.  Currently, it is unclear
 // how or if the base class will be implemented.  The issue will be revisited
 class OpenmcNekDriver {
+public:
   ProcInfo procInfo;
 
   OpenmcDriver openmcDriver;
@@ -97,8 +98,7 @@ class OpenmcNekDriver {
       procInfo(coupledComm),
       openmcDriver(openmcComm),
       nekDriver(nekComm) {};
-  OpenmcNekDriver(){};
-  virtual ~OpenmcNekDriver() {};
+  ~OpenmcNekDriver() {};
 };
 
 #endif //STREAM_DRIVERS_H
