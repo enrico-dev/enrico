@@ -15,8 +15,8 @@ class ThDriver {
 public:
   ProcInfo procInfo;
 
-  ThDriver() {};
   explicit ThDriver(MPI_Comm comm) : procInfo(comm) {};
+  ThDriver() {};
   virtual ~ThDriver() {};
 
   virtual void initStep() {};
@@ -28,8 +28,8 @@ class NeutronDriver {
 public:
   ProcInfo procInfo;
 
-  NeutronDriver() {};
   explicit NeutronDriver(MPI_Comm comm) : procInfo(comm) {};
+  NeutronDriver() {};
   virtual ~NeutronDriver() {};
 
   virtual void initStep() {};
@@ -43,8 +43,6 @@ public:
 
 class OpenmcDriver : public NeutronDriver {
 public:
-  ProcInfo procInfo;
-
   explicit OpenmcDriver(MPI_Comm comm);
   ~OpenmcDriver();
 
@@ -61,8 +59,6 @@ private:
 
 class NekDriver : public ThDriver {
 public:
-  ProcInfo procInfo;
-
   explicit NekDriver(MPI_Comm comm);
   ~NekDriver();
 
@@ -76,7 +72,6 @@ public:
 
 class CoupledDriver {
 public:
-
   ProcInfo globalProcInfo;
   ProcInfo neutronProcInfo;
   ProcInfo thProcInfo;
@@ -84,7 +79,12 @@ public:
   NeutronDriver neutronDriver;
   ThDriver thDriver;
 
-  CoupledDriver(MPI_Comm globalComm, MPI_Comm neutronComm, MPI_Comm thComm);
+  CoupledDriver(MPI_Comm globalComm, MPI_Comm neutronComm, MPI_Comm thComm) :
+      globalProcInfo(globalComm),
+      neutronProcInfo(neutronComm),
+      thProcInfo(thComm),
+      neutronDriver(neutronComm),
+      thDriver(thComm) {};
   CoupledDriver(){};
   ~CoupledDriver() {};
 };

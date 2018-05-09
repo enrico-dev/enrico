@@ -9,7 +9,7 @@
 // OpenMC Driver
 // ============================================================================
 
-OpenmcDriver::OpenmcDriver(MPI_Comm comm) : procInfo(comm) {
+OpenmcDriver::OpenmcDriver(MPI_Comm comm) : NeutronDriver(comm) {
   // ROR: 2018-03-22: MPI_Comm_c2f is a macro (in MPICH, at least),
   // so we can't pass something like:
   //     openmc_init(&MPI_Comm_c2f(comm));
@@ -63,7 +63,7 @@ OpenmcDriver::~OpenmcDriver() {
 // Nek5000 Driver
 // ============================================================================
 
-NekDriver::NekDriver(MPI_Comm comm) : procInfo(comm) {
+NekDriver::NekDriver(MPI_Comm comm) : ThDriver(comm) {
   // ROR: 2018-03-22: MPI_Comm_c2f is a macro (in MPICH, at least),
   // so we can't pass something like:
   //     openmc_init(&MPI_Comm_c2f(comm));
@@ -85,14 +85,3 @@ void NekDriver::finalizeStep() {
 NekDriver::~NekDriver() {
   C2F_nek_end();
 }
-
-// ============================================================================
-// Coupled Driver
-// ============================================================================
-
-CoupledDriver::CoupledDriver(MPI_Comm globalComm, MPI_Comm neutronComm, MPI_Comm thComm) :
-    globalProcInfo(globalComm),
-    neutronProcInfo(neutronComm),
-    thProcInfo(thComm),
-    neutronDriver(neutronComm),
-    thDriver(thComm) {}
