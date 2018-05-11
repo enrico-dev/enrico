@@ -3,7 +3,6 @@ from numbers import Real, Integral
 from xml.etree import ElementTree as ET
 import sys
 
-from six import string_types
 import numpy as np
 
 import openmc.checkvalue as cv
@@ -39,6 +38,9 @@ class Mesh(IDManagerMixin):
         are given, it is assumed that the mesh is an x-y mesh.
     width : Iterable of float
         The width of mesh cells in each direction.
+    indices : list of tuple
+        A list of mesh indices for each mesh element, e.g. [(1, 1, 1), (2, 1,
+        1), ...]
 
     """
 
@@ -83,11 +85,29 @@ class Mesh(IDManagerMixin):
     def num_mesh_cells(self):
         return np.prod(self._dimension)
 
+    @property
+    def indices(self):
+        ndim = len(self._dimension)
+        if ndim == 3:
+            nx, ny, nz = self.dimension
+            return ((x, y, z)
+                    for z in range(1, nz + 1)
+                    for y in range(1, ny + 1)
+                    for x in range(1, nx + 1))
+        elif ndim == 2:
+            nx, ny = self.dimension
+            return ((x, y)
+                    for y in range(1, ny + 1)
+                    for x in range(1, nx + 1))
+        else:
+            nx, = self.dimension
+            return ((x,) for x in range(1, nx + 1))
+
     @name.setter
     def name(self, name):
         if name is not None:
             cv.check_type('name for mesh ID="{0}"'.format(self._id),
-                          name, string_types)
+                          name, str)
             self._name = name
         else:
             self._name = ''
@@ -95,7 +115,7 @@ class Mesh(IDManagerMixin):
     @type.setter
     def type(self, meshtype):
         cv.check_type('type for mesh ID="{0}"'.format(self._id),
-                      meshtype, string_types)
+                      meshtype, str)
         cv.check_value('type for mesh ID="{0}"'.format(self._id),
                        meshtype, ['regular'])
         self._type = meshtype
@@ -162,41 +182,6 @@ class Mesh(IDManagerMixin):
 
         return mesh
 
-    def cell_generator(self):
-        """Generator function to traverse through every [i,j,k] index of the
-        mesh
-
-        For example the following code:
-
-        .. code-block:: python
-
-            for mesh_index in mymesh.cell_generator():
-                print(mesh_index)
-
-        will produce the following output for a 3-D 2x2x2 mesh in mymesh::
-
-            [1, 1, 1]
-            [2, 1, 1]
-            [1, 2, 1]
-            [2, 2, 1]
-            ...
-
-
-        """
-
-        if len(self.dimension) == 1:
-            for x in range(self.dimension[0]):
-                    yield [x + 1, 1, 1]
-        elif len(self.dimension) == 2:
-            for y in range(self.dimension[1]):
-                for x in range(self.dimension[0]):
-                    yield [x + 1, y + 1, 1]
-        else:
-            for z in range(self.dimension[2]):
-                for y in range(self.dimension[1]):
-                    for x in range(self.dimension[0]):
-                        yield [x + 1, y + 1, z + 1]
-
     def to_xml_element(self):
         """Return XML representation of the mesh
 
@@ -260,12 +245,14 @@ class Mesh(IDManagerMixin):
             cv.check_value('bc', entry, ['transmission', 'vacuum',
                                          'reflective', 'periodic'])
 
+        n_dim = len(self.dimension)
+
         # Build the cell which will contain the lattice
         xplanes = [openmc.XPlane(x0=self.lower_left[0],
                                  boundary_type=bc[0]),
                    openmc.XPlane(x0=self.upper_right[0],
                                  boundary_type=bc[1])]
-        if len(self.dimension) == 1:
+        if n_dim == 1:
             yplanes = [openmc.YPlane(y0=-1e10, boundary_type='reflective'),
                        openmc.YPlane(y0=1e10, boundary_type='reflective')]
         else:
@@ -274,7 +261,7 @@ class Mesh(IDManagerMixin):
                        openmc.YPlane(y0=self.upper_right[1],
                                      boundary_type=bc[3])]
 
-        if len(self.dimension) <= 2:
+        if n_dim <= 2:
             # Would prefer to have the z ranges be the max supported float, but
             # these values are apparently different between python and Fortran.
             # Choosing a safe and sane default.
@@ -294,12 +281,12 @@ class Mesh(IDManagerMixin):
                             (+yplanes[0] & -yplanes[1]) &
                             (+zplanes[0] & -zplanes[1]))
 
-        # Build the universes which will be used for each of the [i,j,k]
+        # Build the universes which will be used for each of the (i,j,k)
         # locations within the mesh.
         # We will concurrently build cells to assign to these universes
         cells = []
         universes = []
-        for [i, j, k] in self.cell_generator():
+        for index in self.indices:
             cells.append(openmc.Cell())
             universes.append(openmc.Universe())
             universes[-1].add_cell(cells[-1])
@@ -309,7 +296,24 @@ class Mesh(IDManagerMixin):
 
         # Assign the universe and rotate to match the indexing expected for
         # the lattice
-        lattice.universes = np.rot90(np.reshape(universes, self.dimension))
+        if n_dim == 1:
+            universe_array = np.array([universes])
+        elif n_dim == 2:
+            universe_array = np.empty(self.dimension, dtype=openmc.Universe)
+            i = 0
+            for y in range(self.dimension[1] - 1, -1, -1):
+                for x in range(self.dimension[0]):
+                    universe_array[y][x] = universes[i]
+                    i += 1
+        else:
+            universe_array = np.empty(self.dimension, dtype=openmc.Universe)
+            i = 0
+            for z in range(self.dimension[2]):
+                for y in range(self.dimension[1] - 1, -1, -1):
+                    for x in range(self.dimension[0]):
+                        universe_array[z][y][x] = universes[i]
+                        i += 1
+        lattice.universes = universe_array
 
         if self.width is not None:
             lattice.pitch = self.width
@@ -317,9 +321,9 @@ class Mesh(IDManagerMixin):
             dx = ((self.upper_right[0] - self.lower_left[0]) /
                   self.dimension[0])
 
-            if len(self.dimension) == 1:
+            if n_dim == 1:
                 lattice.pitch = [dx]
-            elif len(self.dimension) == 2:
+            elif n_dim == 2:
                 dy = ((self.upper_right[1] - self.lower_left[1]) /
                       self.dimension[1])
                 lattice.pitch = [dx, dy]
