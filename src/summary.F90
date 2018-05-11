@@ -1,7 +1,5 @@
 module summary
 
-  use hdf5
-
   use constants
   use endf,            only: reaction_name
   use error,           only: write_message
@@ -38,7 +36,7 @@ contains
     call write_message("Writing summary.h5 file...", 5)
 
     ! Create a new file using default properties.
-    file_id = file_create("summary.h5")
+    file_id = file_open("summary.h5", 'w')
 
     call write_header(file_id)
     call write_nuclides(file_id)
@@ -77,34 +75,81 @@ contains
   subroutine write_nuclides(file_id)
     integer(HID_T), intent(in) :: file_id
     integer(HID_T) :: nuclide_group
+    integer(HID_T) :: macro_group
     integer :: i
-    character(12), allocatable :: nucnames(:)
+    character(12), allocatable :: nuc_names(:)
+    character(12), allocatable :: macro_names(:)
     real(8), allocatable :: awrs(:)
+    integer :: num_nuclides
+    integer :: num_macros
+    integer :: j
+    integer :: k
 
-    ! Write useful data from nuclide objects
-    nuclide_group = create_group(file_id, "nuclides")
-    call write_attribute(nuclide_group, "n_nuclides", n_nuclides)
+    ! Find how many of these nuclides are macroscopic objects
+    if (run_CE) then
+      ! Then none are macroscopic
+      num_nuclides = n_nuclides
+      num_macros = 0
+    else
+      num_nuclides = 0
+      num_macros = 0
+      do i = 1, n_nuclides
+        if (nuclides_MG(i) % obj % awr /= MACROSCOPIC_AWR) then
+          num_nuclides = num_nuclides + 1
+        else
+          num_macros = num_macros + 1
+        end if
+      end do
+    end if
 
-    ! Build array of nuclide names and awrs
-    allocate(nucnames(n_nuclides))
-    allocate(awrs(n_nuclides))
+    ! Build array of nuclide names and awrs while only sorting nuclides from
+    ! macroscopics
+    if (num_nuclides > 0) then
+      allocate(nuc_names(num_nuclides))
+      allocate(awrs(num_nuclides))
+    end if
+    if (num_macros > 0) then
+      allocate(macro_names(num_macros))
+    end if
+
+    j = 1
+    k = 1
     do i = 1, n_nuclides
       if (run_CE) then
-        nucnames(i) = nuclides(i) % name
+        nuc_names(i) = nuclides(i) % name
         awrs(i)     = nuclides(i) % awr
       else
-        nucnames(i) = nuclides_MG(i) % obj % name
-        awrs(i)     = nuclides_MG(i) % obj % awr
+        if (nuclides_MG(i) % obj % awr /= MACROSCOPIC_AWR) then
+          nuc_names(j) = nuclides_MG(i) % obj % name
+          awrs(j)     = nuclides_MG(i) % obj % awr
+          j = j + 1
+        else
+          macro_names(k) = nuclides_MG(i) % obj % name
+          k = k + 1
+        end if
       end if
     end do
 
+    nuclide_group = create_group(file_id, "nuclides")
+    call write_attribute(nuclide_group, "n_nuclides", num_nuclides)
+    macro_group = create_group(file_id, "macroscopics")
+    call write_attribute(macro_group, "n_macroscopics", num_macros)
     ! Write nuclide names and awrs
-    call write_dataset(nuclide_group, "names", nucnames)
-    call write_dataset(nuclide_group, "awrs", awrs)
-
+    if (num_nuclides > 0) then
+      ! Write useful data from nuclide objects
+      call write_dataset(nuclide_group, "names", nuc_names)
+      call write_dataset(nuclide_group, "awrs", awrs)
+    end if
+    if (num_macros > 0) then
+      ! Write useful data from macroscopic objects
+      call write_dataset(macro_group, "names", macro_names)
+    end if
     call close_group(nuclide_group)
+    call close_group(macro_group)
 
-    deallocate(nucnames, awrs)
+
+    if (allocated(nuc_names)) deallocate(nuc_names, awrs)
+    if (allocated(macro_names)) deallocate(macro_names)
 
   end subroutine write_nuclides
 
@@ -122,13 +167,11 @@ contains
     real(8), allocatable :: cell_temperatures(:)
     integer(HID_T) :: geom_group
     integer(HID_T) :: cells_group, cell_group
-    integer(HID_T) :: surfaces_group, surface_group
+    integer(HID_T) :: surfaces_group
     integer(HID_T) :: universes_group, univ_group
     integer(HID_T) :: lattices_group, lattice_group
-    real(8), allocatable :: coeffs(:)
     character(:), allocatable :: region_spec
     type(Cell),     pointer :: c
-    class(Surface), pointer :: s
     class(Lattice), pointer :: lat
 
     ! Use H5LT interface to write number of geometry objects
@@ -223,7 +266,7 @@ contains
           region_spec = trim(region_spec) // " |"
         case default
           region_spec = trim(region_spec) // " " // to_str(&
-               sign(surfaces(abs(k))%obj%id, k))
+               sign(surfaces(abs(k))%id(), k))
         end select
       end do
       call write_dataset(cell_group, "region", adjustl(region_spec))
@@ -241,92 +284,7 @@ contains
 
     ! Write information on each surface
     SURFACE_LOOP: do i = 1, n_surfaces
-      s => surfaces(i)%obj
-      surface_group = create_group(surfaces_group, "surface " // &
-           trim(to_str(s%id)))
-
-      ! Write name for this surface
-      call write_dataset(surface_group, "name", s%name)
-
-      ! Write surface type
-      select type (s)
-      type is (SurfaceXPlane)
-        call write_dataset(surface_group, "type", "x-plane")
-        allocate(coeffs(1))
-        coeffs(1) = s%x0
-
-      type is (SurfaceYPlane)
-        call write_dataset(surface_group, "type", "y-plane")
-        allocate(coeffs(1))
-        coeffs(1) = s%y0
-
-      type is (SurfaceZPlane)
-        call write_dataset(surface_group, "type", "z-plane")
-        allocate(coeffs(1))
-        coeffs(1) = s%z0
-
-      type is (SurfacePlane)
-        call write_dataset(surface_group, "type", "plane")
-        allocate(coeffs(4))
-        coeffs(:) = [s%A, s%B, s%C, s%D]
-
-      type is (SurfaceXCylinder)
-        call write_dataset(surface_group, "type", "x-cylinder")
-        allocate(coeffs(3))
-        coeffs(:) = [s%y0, s%z0, s%r]
-
-      type is (SurfaceYCylinder)
-        call write_dataset(surface_group, "type", "y-cylinder")
-        allocate(coeffs(3))
-        coeffs(:) = [s%x0, s%z0, s%r]
-
-      type is (SurfaceZCylinder)
-        call write_dataset(surface_group, "type", "z-cylinder")
-        allocate(coeffs(3))
-        coeffs(:) = [s%x0, s%y0, s%r]
-
-      type is (SurfaceSphere)
-        call write_dataset(surface_group, "type", "sphere")
-        allocate(coeffs(4))
-        coeffs(:) = [s%x0, s%y0, s%z0, s%r]
-
-      type is (SurfaceXCone)
-        call write_dataset(surface_group, "type", "x-cone")
-        allocate(coeffs(4))
-        coeffs(:) = [s%x0, s%y0, s%z0, s%r2]
-
-      type is (SurfaceYCone)
-        call write_dataset(surface_group, "type", "y-cone")
-        allocate(coeffs(4))
-        coeffs(:) = [s%x0, s%y0, s%z0, s%r2]
-
-      type is (SurfaceZCone)
-        call write_dataset(surface_group, "type", "z-cone")
-        allocate(coeffs(4))
-        coeffs(:) = [s%x0, s%y0, s%z0, s%r2]
-
-      type is (SurfaceQuadric)
-        call write_dataset(surface_group, "type", "quadric")
-        allocate(coeffs(10))
-        coeffs(:) = [s%A, s%B, s%C, s%D, s%E, s%F, s%G, s%H, s%J, s%K]
-
-      end select
-      call write_dataset(surface_group, "coefficients", coeffs)
-      deallocate(coeffs)
-
-      ! Write boundary type
-      select case (s%bc)
-      case (BC_TRANSMIT)
-        call write_dataset(surface_group, "boundary_type", "transmission")
-      case (BC_VACUUM)
-        call write_dataset(surface_group, "boundary_type", "vacuum")
-      case (BC_REFLECT)
-        call write_dataset(surface_group, "boundary_type", "reflective")
-      case (BC_PERIODIC)
-        call write_dataset(surface_group, "boundary_type", "periodic")
-      end select
-
-      call close_group(surface_group)
+      call surfaces(i) % to_hdf5(surfaces_group)
     end do SURFACE_LOOP
 
     call close_group(surfaces_group)
@@ -458,7 +416,13 @@ contains
 
     integer :: i
     integer :: j
-    character(20), allocatable :: nucnames(:)
+    integer :: k
+    integer :: n
+    character(20), allocatable :: nuc_names(:)
+    character(20), allocatable :: macro_names(:)
+    real(8), allocatable :: nuc_densities(:)
+    integer :: num_nuclides
+    integer :: num_macros
     integer(HID_T) :: materials_group
     integer(HID_T) :: material_group
     type(Material), pointer :: m
@@ -486,24 +450,67 @@ contains
       ! Write atom density with units
       call write_dataset(material_group, "atom_density", m % density)
 
-      ! Copy ZAID for each nuclide to temporary array
-      allocate(nucnames(m%n_nuclides))
-      do j = 1, m%n_nuclides
-        if (run_CE) then
-          nucnames(j) = nuclides(m%nuclide(j))%name
-        else
-          nucnames(j) = nuclides_MG(m%nuclide(j))%obj%name
+      if (run_CE) then
+        num_nuclides = m % n_nuclides
+        num_macros = 0
+      else
+        ! Find the number of macroscopic and nuclide data in this material
+        num_nuclides  = 0
+        num_macros = 0
+        do j = 1, m % n_nuclides
+          if (nuclides_MG(m % nuclide(j)) % obj % awr /= MACROSCOPIC_AWR) then
+            num_nuclides = num_nuclides + 1
+          else
+            num_macros = num_macros + 1
+          end if
+        end do
+      end if
+
+      ! Copy ZAID or macro name for each nuclide to temporary array
+      if (num_nuclides > 0) then
+        allocate(nuc_names(num_nuclides))
+        allocate(nuc_densities(num_nuclides))
+      end if
+      if (run_CE) then
+        do j = 1, m % n_nuclides
+          nuc_names(j) = nuclides(m%nuclide(j))%name
+          nuc_densities(j) = m % atom_density(j)
+        end do
+      else
+        if (num_macros > 0) then
+          allocate(macro_names(num_macros))
         end if
-      end do
+
+        k = 1
+        n = 1
+        do j = 1, m % n_nuclides
+          if (nuclides_MG(m % nuclide(j)) % obj % awr /= MACROSCOPIC_AWR) then
+            nuc_names(k) = nuclides_MG(m % nuclide(j)) % obj % name
+            nuc_densities(k) = m % atom_density(j)
+            k = k + 1
+          else
+            macro_names(n) = nuclides_MG(m % nuclide(j)) % obj % name
+            n = n + 1
+          end if
+        end do
+      end if
 
       ! Write temporary array to 'nuclides'
-      call write_dataset(material_group, "nuclides", nucnames)
+      if (num_nuclides > 0) then
+        call write_dataset(material_group, "nuclides", nuc_names)
+        ! Deallocate temporary array
+        deallocate(nuc_names)
+        ! Write atom densities
+        call write_dataset(material_group, "nuclide_densities", nuc_densities)
+        deallocate(nuc_densities)
+      end if
 
-      ! Deallocate temporary array
-      deallocate(nucnames)
-
-      ! Write atom densities
-      call write_dataset(material_group, "nuclide_densities", m%atom_density)
+      ! Write temporary array to 'macroscopics'
+      if (num_macros > 0) then
+        call write_dataset(material_group, "macroscopics", macro_names)
+        ! Deallocate temporary array
+        deallocate(macro_names)
+      end if
 
       if (m%n_sab > 0) then
         call write_dataset(material_group, "sab_names", m%sab_names)

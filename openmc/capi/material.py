@@ -1,13 +1,14 @@
-from collections import Mapping
+from collections.abc import Mapping
 from ctypes import c_int, c_int32, c_double, c_char_p, POINTER
 from weakref import WeakValueDictionary
 
 import numpy as np
 from numpy.ctypeslib import as_array
 
+from openmc.exceptions import AllocationError, InvalidIDError
 from . import _dll, Nuclide
 from .core import _FortranObjectWithID
-from .error import _error_handler, AllocationError, InvalidIDError
+from .error import _error_handler
 
 
 __all__ = ['Material', 'materials']
@@ -78,10 +79,7 @@ class Material(_FortranObjectWithID):
             if new:
                 # Determine ID to assign
                 if uid is None:
-                    try:
-                        uid = max(mapping) + 1
-                    except ValueError:
-                        uid = 1
+                    uid = max(mapping, default=0) + 1
                 else:
                     if uid in mapping:
                         raise AllocationError('A material with ID={} has already '
@@ -92,6 +90,9 @@ class Material(_FortranObjectWithID):
                 index = index.value
             else:
                 index = mapping[uid]._index
+        elif index == -1:
+            # Special value indicates void material
+            return None
 
         if index not in cls.__instances:
             instance = super(Material, cls).__new__(cls)

@@ -2,8 +2,6 @@ module tally_filter_surface
 
   use, intrinsic :: ISO_C_BINDING
 
-  use hdf5
-
   use constants,          only: ONE, MAX_LINE_LEN
   use dict_header,        only: EMPTY
   use error,              only: fatal_error
@@ -105,7 +103,7 @@ contains
     integer,              intent(in) :: bin
     character(MAX_LINE_LEN)          :: label
 
-    label = "Surface " // to_str(surfaces(this % surfaces(bin)) % obj % id)
+    label = "Surface " // to_str(surfaces(this % surfaces(bin)) % id())
   end function text_label_surface
 
 end module tally_filter_surface

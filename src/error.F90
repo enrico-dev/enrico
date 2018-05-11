@@ -15,19 +15,19 @@ module error
   public :: write_message
 
   ! Error codes
-  integer(C_INT), public, bind(C) :: E_UNASSIGNED = -1
-  integer(C_INT), public, bind(C) :: E_ALLOCATE = -2
-  integer(C_INT), public, bind(C) :: E_OUT_OF_BOUNDS = -3
-  integer(C_INT), public, bind(C) :: E_INVALID_SIZE = -4
-  integer(C_INT), public, bind(C) :: E_INVALID_ARGUMENT = -5
-  integer(C_INT), public, bind(C) :: E_INVALID_TYPE = -6
-  integer(C_INT), public, bind(C) :: E_INVALID_ID = -7
-  integer(C_INT), public, bind(C) :: E_GEOMETRY = -8
-  integer(C_INT), public, bind(C) :: E_DATA = -9
-  integer(C_INT), public, bind(C) :: E_PHYSICS = -10
+  integer(C_INT), public, bind(C, name='OPENMC_E_UNASSIGNED') :: E_UNASSIGNED = -1
+  integer(C_INT), public, bind(C, name='OPENMC_E_ALLOCATE') :: E_ALLOCATE = -2
+  integer(C_INT), public, bind(C, name='OPENMC_E_OUT_OF_BOUNDS') :: E_OUT_OF_BOUNDS = -3
+  integer(C_INT), public, bind(C, name='OPENMC_E_INVALID_SIZE') :: E_INVALID_SIZE = -4
+  integer(C_INT), public, bind(C, name='OPENMC_E_INVALID_ARGUMENT') :: E_INVALID_ARGUMENT = -5
+  integer(C_INT), public, bind(C, name='OPENMC_E_INVALID_TYPE') :: E_INVALID_TYPE = -6
+  integer(C_INT), public, bind(C, name='OPENMC_E_INVALID_ID') :: E_INVALID_ID = -7
+  integer(C_INT), public, bind(C, name='OPENMC_E_GEOMETRY') :: E_GEOMETRY = -8
+  integer(C_INT), public, bind(C, name='OPENMC_E_DATA') :: E_DATA = -9
+  integer(C_INT), public, bind(C, name='OPENMC_E_PHYSICS') :: E_PHYSICS = -10
 
   ! Warning codes
-  integer(C_INT), public, bind(C) :: E_WARNING = 1
+  integer(C_INT), public, bind(C, name='OPENMC_E_WARNING') :: E_WARNING = 1
 
   ! Error message
   character(kind=C_CHAR), public, bind(C) :: openmc_err_msg(256)
@@ -111,6 +111,14 @@ contains
 
   end subroutine warning
 
+  subroutine warning_from_c(message, message_len) bind(C)
+    integer(C_INT),         intent(in), value :: message_len
+    character(kind=C_CHAR), intent(in)        :: message(message_len)
+    character(message_len+1)                  :: message_out
+    write(message_out, *) message
+    call warning(message_out)
+  end subroutine
+
 !===============================================================================
 ! FATAL_ERROR alerts the user that an error has been encountered and displays a
 ! message about the particular problem. Errors are considered 'fatal' and hence
@@ -128,7 +136,7 @@ contains
     integer :: line_wrap ! length of line
     integer :: length    ! length of message
     integer :: indent    ! length of indentation
-#ifdef MPI
+#ifdef OPENMC_MPI
     integer :: mpi_err
 #endif
 
@@ -180,7 +188,7 @@ contains
       end if
     end do
 
-#ifdef MPI
+#ifdef OPENMC_MPI
     ! Abort MPI
     call MPI_ABORT(mpi_intracomm, code, mpi_err)
 #endif
@@ -193,6 +201,14 @@ contains
 #endif
 
   end subroutine fatal_error
+
+  subroutine fatal_error_from_c(message, message_len) bind(C)
+    integer(C_INT),         intent(in), value :: message_len
+    character(kind=C_CHAR), intent(in)        :: message(message_len)
+    character(message_len+1)                  :: message_out
+    write(message_out, *) message
+    call fatal_error(message_out)
+  end subroutine
 
 !===============================================================================
 ! WRITE_MESSAGE displays an informational message to the log file and the
