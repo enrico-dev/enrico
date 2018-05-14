@@ -2,7 +2,6 @@ module volume_calc
 
   use, intrinsic :: ISO_C_BINDING
 
-  use hdf5, only: HID_T
 #ifdef _OPENMP
   use omp_lib
 #endif
@@ -11,8 +10,8 @@ module volume_calc
   use error,        only: write_message
   use geometry,     only: find_cell
   use geometry_header, only: universes, cells
-  use hdf5_interface, only: file_create, file_close, write_attribute, &
-       create_group, close_group, write_dataset
+  use hdf5_interface, only: file_open, file_close, write_attribute, &
+       create_group, close_group, write_dataset, HID_T
   use output,       only: header, time_stamp
   use material_header, only: materials
   use message_passing
@@ -37,9 +36,10 @@ contains
 ! the user has specified and writes results to HDF5 files
 !===============================================================================
 
-  subroutine openmc_calculate_volumes() bind(C)
+  function openmc_calculate_volumes() result(err) bind(C)
     integer :: i, j
     integer :: n
+    integer(C_INT) :: err
     real(8), allocatable :: volume(:,:)  ! volume mean/stdev in each domain
     character(10) :: domain_type
     character(MAX_FILE_LEN) :: filename  ! filename for HDF5 file
@@ -100,7 +100,8 @@ contains
       call write_message("Elapsed time: " // trim(to_str(time_volume % &
            get_value())) // " s", 6)
     end if
-  end subroutine openmc_calculate_volumes
+    err = 0
+  end function openmc_calculate_volumes
 
 !===============================================================================
 ! GET_VOLUME stochastically determines the volume of a set of domains along with
@@ -136,7 +137,7 @@ contains
     integer :: total_hits  ! total hits for a single domain (summed over materials)
     integer :: min_samples ! minimum number of samples per process
     integer :: remainder   ! leftover samples from uneven divide
-#ifdef MPI
+#ifdef OPENMC_MPI
     integer :: mpi_err ! MPI error code
     integer :: m  ! index over materials
     integer :: n  ! number of materials
@@ -193,11 +194,13 @@ contains
 
       if (this % domain_type == FILTER_MATERIAL) then
         i_material = p % material
-        do i_domain = 1, size(this % domain_id)
-          if (i_material == materials(i_domain) % id) then
-            call check_hit(i_domain, i_material, indices, hits, n_mat)
-          end if
-        end do
+        if (i_material /= MATERIAL_VOID) then
+          do i_domain = 1, size(this % domain_id)
+            if (materials(i_material) % id == this % domain_id(i_domain)) then
+              call check_hit(i_domain, i_material, indices, hits, n_mat)
+            end if
+          end do
+        end if
 
       elseif (this % domain_type == FILTER_CELL) THEN
         do level = 1, p % n_coord
@@ -279,7 +282,7 @@ contains
       total_hits = 0
 
       if (master) then
-#ifdef MPI
+#ifdef OPENMC_MPI
         do j = 1, n_procs - 1
           call MPI_RECV(n, 1, MPI_INTEGER, j, 0, mpi_intracomm, &
                MPI_STATUS_IGNORE, mpi_err)
@@ -341,7 +344,7 @@ contains
         end do
 
       else
-#ifdef MPI
+#ifdef OPENMC_MPI
         n = master_indices(i_domain) % size()
         allocate(data(2*n))
         do k = 0, n - 1
@@ -433,7 +436,7 @@ contains
     character(MAX_WORD_LEN), allocatable :: nucnames(:) ! names of nuclides
 
     ! Create HDF5 file
-    file_id = file_create(filename)
+    file_id = file_open(filename, 'w')
 
     ! Write header info
     call write_attribute(file_id, "filetype", "volume")

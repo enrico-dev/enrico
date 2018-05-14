@@ -43,7 +43,7 @@ public:
 
 class OpenmcDriver : public NeutronDriver {
 public:
-  explicit OpenmcDriver(MPI_Comm comm);
+  explicit OpenmcDriver(int argc, char* argv[], MPI_Comm comm);
   ~OpenmcDriver();
 
   void initStep();

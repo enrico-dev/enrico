@@ -5,7 +5,7 @@ int main(int argc, char* argv[])
 {
   MPI_Init(&argc, &argv);
 
-  auto *testDriver = new OpenmcDriver(MPI_COMM_WORLD);
+  auto *testDriver = new OpenmcDriver(argc, argv, MPI_COMM_WORLD);
   testDriver->initStep();
   testDriver->solveStep();
   testDriver->finalizeStep();

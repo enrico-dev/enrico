@@ -1,6 +1,5 @@
 import os
 import xml.etree.ElementTree as ET
-from six import string_types
 
 import h5py
 
@@ -24,8 +23,13 @@ class DataLibrary(EqualityMixin):
     def __init__(self):
         self.libraries = []
 
-    def get_by_material(self, value):
+    def get_by_material(self, name):
         """Return the library dictionary containing a given material.
+
+        Parameters
+        ----------
+        name : str
+            Name of material, e.g. 'Am241'
 
         Returns
         -------
@@ -35,7 +39,7 @@ class DataLibrary(EqualityMixin):
 
         """
         for library in self.libraries:
-            if value in library['materials']:
+            if name in library['materials']:
                 return library
         return None
 
@@ -125,7 +129,7 @@ class DataLibrary(EqualityMixin):
             raise ValueError("Either path or OPENMC_CROSS_SECTIONS "
                              "environmental variable must be set")
 
-        check_type('path', path, string_types)
+        check_type('path', path, str)
 
         tree = ET.parse(path)
         root = tree.getroot()

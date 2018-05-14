@@ -4,7 +4,6 @@ module tally
 
   use algorithm,        only: binary_search
   use constants
-  use cross_section,    only: multipole_deriv_eval
   use dict_header,      only: EMPTY
   use error,            only: fatal_error
   use geometry_header
@@ -85,7 +84,6 @@ contains
     integer :: i                    ! loop index for scoring bins
     integer :: l                    ! loop index for nuclides in material
     integer :: m                    ! loop index for reactions
-    integer :: q                    ! loop index for scoring bins
     integer :: i_temp               ! temperature index
     integer :: i_nuc                ! index in nuclides array (from material)
     integer :: i_energy             ! index in nuclide energy grid
@@ -105,9 +103,7 @@ contains
     ! Pre-collision energy of particle
     E = p % last_E
 
-    i = 0
-    SCORE_LOOP: do q = 1, t % n_user_score_bins
-      i = i + 1
+    SCORE_LOOP: do i = 1, t % n_score_bins
 
       ! determine what type of score bin
       score_bin = t % score_bins(i)
@@ -121,7 +117,7 @@ contains
       select case(score_bin)
 
 
-      case (SCORE_FLUX, SCORE_FLUX_YN)
+      case (SCORE_FLUX)
         if (t % estimator == ESTIMATOR_ANALOG) then
           ! All events score to a flux bin. We actually use a collision
           ! estimator in place of an analog one since there is no way to count
@@ -141,7 +137,7 @@ contains
         end if
 
 
-      case (SCORE_TOTAL, SCORE_TOTAL_YN)
+      case (SCORE_TOTAL)
         if (t % estimator == ESTIMATOR_ANALOG) then
           ! All events will score to the total reaction rate. We can just
           ! use the weight of the particle entering the collision as the
@@ -188,7 +184,7 @@ contains
         end if
 
 
-      case (SCORE_SCATTER, SCORE_SCATTER_N)
+      case (SCORE_SCATTER)
         if (t % estimator == ESTIMATOR_ANALOG) then
           ! Skip any event where the particle didn't scatter
           if (p % event /= EVENT_SCATTER) cycle SCORE_LOOP
@@ -198,7 +194,6 @@ contains
           score = p % last_wgt * flux
 
         else
-          ! Note SCORE_SCATTER_N not available for tracklength/collision.
           if (i_nuclide > 0) then
             score = (micro_xs(i_nuclide) % total &
                  - micro_xs(i_nuclide) % absorption) * atom_density * flux
@@ -208,33 +203,7 @@ contains
         end if
 
 
-      case (SCORE_SCATTER_PN)
-        ! Only analog estimators are available.
-        ! Skip any event where the particle didn't scatter
-        if (p % event /= EVENT_SCATTER) then
-          i = i + t % moment_order(i)
-          cycle SCORE_LOOP
-        end if
-        ! Since only scattering events make it here, again we can use
-        ! the weight entering the collision as the estimator for the
-        ! reaction rate
-        score = p % last_wgt * flux
-
-
-      case (SCORE_SCATTER_YN)
-        ! Only analog estimators are available.
-        ! Skip any event where the particle didn't scatter
-        if (p % event /= EVENT_SCATTER) then
-          i = i + (t % moment_order(i) + 1)**2 - 1
-          cycle SCORE_LOOP
-        end if
-        ! Since only scattering events make it here, again we can use
-        ! the weight entering the collision as the estimator for the
-        ! reaction rate
-        score = p % last_wgt * flux
-
-
-      case (SCORE_NU_SCATTER, SCORE_NU_SCATTER_N)
+      case (SCORE_NU_SCATTER)
         ! Only analog estimators are available.
         ! Skip any event where the particle didn't scatter
         if (p % event /= EVENT_SCATTER) cycle SCORE_LOOP
@@ -251,58 +220,6 @@ contains
 
           ! Get yield and apply to score
           associate (rxn => nuclides(p % event_nuclide) % reactions(m))
-            score = p % last_wgt * flux &
-                 * rxn % products(1) % yield % evaluate(E)
-          end associate
-        end if
-
-
-      case (SCORE_NU_SCATTER_PN)
-        ! Only analog estimators are available.
-        ! Skip any event where the particle didn't scatter
-        if (p % event /= EVENT_SCATTER) then
-          i = i + t % moment_order(i)
-          cycle SCORE_LOOP
-        end if
-        ! For scattering production, we need to use the pre-collision
-        ! weight times the yield as the estimate for the number of
-        ! neutrons exiting a reaction with neutrons in the exit channel
-        if (p % event_MT == ELASTIC .or. p % event_MT == N_LEVEL .or. &
-             (p % event_MT >= N_N1 .and. p % event_MT <= N_NC)) then
-          ! Don't waste time on very common reactions we know have
-          ! multiplicities of one.
-          score = p % last_wgt * flux
-        else
-          m = nuclides(p % event_nuclide) % reaction_index(p % event_MT)
-
-          ! Get yield and apply to score
-          associate (rxn => nuclides(p % event_nuclide) % reactions(m))
-            score = p % last_wgt * flux &
-                 * rxn % products(1) % yield % evaluate(E)
-          end associate
-        end if
-
-
-      case (SCORE_NU_SCATTER_YN)
-        ! Only analog estimators are available.
-        ! Skip any event where the particle didn't scatter
-        if (p % event /= EVENT_SCATTER) then
-          i = i + (t % moment_order(i) + 1)**2 - 1
-          cycle SCORE_LOOP
-        end if
-        ! For scattering production, we need to use the pre-collision
-        ! weight times the yield as the estimate for the number of
-        ! neutrons exiting a reaction with neutrons in the exit channel
-        if (p % event_MT == ELASTIC .or. p % event_MT == N_LEVEL .or. &
-             (p % event_MT >= N_N1 .and. p % event_MT <= N_NC)) then
-          ! Don't waste time on very common reactions we know have
-          ! multiplicities of one.
-          score = p % last_wgt * flux
-        else
-          m = nuclides(p % event_nuclide) % reaction_index(p % event_MT)
-
-          ! Get yield and apply to score
-          associate (rxn => nuclides(p%event_nuclide)%reactions(m))
             score = p % last_wgt * flux &
                  * rxn % products(1) % yield % evaluate(E)
           end associate
@@ -1017,9 +934,26 @@ contains
 
         else
           if (i_nuclide > 0) then
+            if (micro_xs(i_nuclide) % elastic == CACHE_INVALID) then
+              call nuclides(i_nuclide) % calculate_elastic_xs(micro_xs(i_nuclide))
+            end if
             score = micro_xs(i_nuclide) % elastic * atom_density * flux
           else
-            score = material_xs % elastic * flux
+            score = ZERO
+            if (p % material /= MATERIAL_VOID) then
+              do l = 1, materials(p % material) % n_nuclides
+                ! Get atom density
+                atom_density_ = materials(p % material) % atom_density(l)
+
+                ! Get index in nuclides array
+                i_nuc = materials(p % material) % nuclide(l)
+                if (micro_xs(i_nuc) % elastic == CACHE_INVALID) then
+                  call nuclides(i_nuc) % calculate_elastic_xs(micro_xs(i_nuc))
+                end if
+
+                score = score + micro_xs(i_nuc) % elastic * atom_density_ * flux
+              end do
+            end if
           end if
         end if
 
@@ -1265,8 +1199,9 @@ contains
 
       !#########################################################################
       ! Expand score if necessary and add to tally results.
-      call expand_and_score(p, t, score_index, filter_index, score_bin, &
-                            score, i)
+!$omp atomic
+      t % results(RESULT_VALUE, score_index, filter_index) = &
+           t % results(RESULT_VALUE, score_index, filter_index) + score
 
     end do SCORE_LOOP
   end subroutine score_general_ce
@@ -1343,7 +1278,7 @@ contains
     end if
 
     i = 0
-    SCORE_LOOP: do q = 1, t % n_user_score_bins
+    SCORE_LOOP: do q = 1, t % n_score_bins
       i = i + 1
 
       ! determine what type of score bin
@@ -1358,7 +1293,7 @@ contains
       select case(score_bin)
 
 
-      case (SCORE_FLUX, SCORE_FLUX_YN)
+      case (SCORE_FLUX)
         if (t % estimator == ESTIMATOR_ANALOG) then
           ! All events score to a flux bin. We actually use a collision
           ! estimator in place of an analog one since there is no way to count
@@ -1379,7 +1314,7 @@ contains
         end if
 
 
-      case (SCORE_TOTAL, SCORE_TOTAL_YN)
+      case (SCORE_TOTAL)
         if (t % estimator == ESTIMATOR_ANALOG) then
           ! All events will score to the total reaction rate. We can just
           ! use the weight of the particle entering the collision as the
@@ -1440,15 +1375,10 @@ contains
         end if
 
 
-      case (SCORE_SCATTER, SCORE_SCATTER_N, SCORE_SCATTER_PN, SCORE_SCATTER_YN)
+      case (SCORE_SCATTER)
         if (t % estimator == ESTIMATOR_ANALOG) then
           ! Skip any event where the particle didn't scatter
           if (p % event /= EVENT_SCATTER) then
-            if (score_bin == SCORE_SCATTER_PN) then
-              i = i + t % moment_order(i)
-            else if (score_bin == SCORE_SCATTER_YN) then
-              i = i + (t % moment_order(i) + 1)**2 - 1
-            end if
             cycle SCORE_LOOP
           end if
 
@@ -1469,7 +1399,6 @@ contains
           end if
 
         else
-          ! Note SCORE_SCATTER_*N not available for tracklength/collision.
           if (i_nuclide > 0) then
             score = atom_density * flux * &
                  nucxs % get_xs('scatter/mult', p_g, UVW=p_uvw)
@@ -1482,16 +1411,10 @@ contains
         end if
 
 
-      case (SCORE_NU_SCATTER, SCORE_NU_SCATTER_N, SCORE_NU_SCATTER_PN, &
-            SCORE_NU_SCATTER_YN)
+      case (SCORE_NU_SCATTER)
         if (t % estimator == ESTIMATOR_ANALOG) then
           ! Skip any event where the particle didn't scatter
           if (p % event /= EVENT_SCATTER) then
-            if (score_bin == SCORE_NU_SCATTER_PN) then
-              i = i + t % moment_order(i)
-            else if (score_bin == SCORE_NU_SCATTER_YN) then
-              i = i + (t % moment_order(i) + 1)**2 - 1
-            end if
             cycle SCORE_LOOP
           end if
 
@@ -1512,7 +1435,6 @@ contains
           end if
 
         else
-          ! Note SCORE_NU_SCATTER_*N not available for tracklength/collision.
           if (i_nuclide > 0) then
               score = nucxs % get_xs('scatter', p_g, UVW=p_uvw) * &
                    atom_density * flux
@@ -2061,123 +1983,14 @@ contains
 
       !#########################################################################
       ! Expand score if necessary and add to tally results.
-      call expand_and_score(p, t, score_index, filter_index, score_bin, &
-                            score, i)
+!$omp atomic
+      t % results(RESULT_VALUE, score_index, filter_index) = &
+           t % results(RESULT_VALUE, score_index, filter_index) + score
 
     end do SCORE_LOOP
 
     nullify(matxs, nucxs)
   end subroutine score_general_mg
-
-!===============================================================================
-! EXPAND_AND_SCORE takes a previously determined score value and adjusts it
-! if necessary (for functional expansion weighting), and then adds the resultant
-! value to the tally results array.
-!===============================================================================
-
-  subroutine expand_and_score(p, t, score_index, filter_index, score_bin, &
-                              score, i)
-    type(Particle),    intent(in)    :: p
-    type(TallyObject), intent(inout) :: t
-    integer,           intent(inout) :: score_index
-    integer,           intent(in)    :: filter_index ! for % results
-    integer,           intent(in)    :: score_bin    ! score of concern
-    real(8),           intent(inout) :: score        ! data to score
-    integer,           intent(inout) :: i            ! Working index
-
-    integer :: num_nm ! Number of N,M orders in harmonic
-    integer :: n      ! Moment loop index
-    real(8) :: uvw(3)
-
-    select case(score_bin)
-    case (SCORE_SCATTER_N, SCORE_NU_SCATTER_N)
-      ! Find the scattering order for a singly requested moment, and
-      ! store its moment contribution.
-      if (t % moment_order(i) == 1) then
-        score = score * p % mu ! avoid function call overhead
-      else
-        score = score * calc_pn(t % moment_order(i), p % mu)
-      endif
-!$omp atomic
-      t % results(RESULT_VALUE, score_index, filter_index) = &
-           t % results(RESULT_VALUE, score_index, filter_index) + score
-
-
-    case(SCORE_SCATTER_YN, SCORE_NU_SCATTER_YN)
-      score_index = score_index - 1
-      num_nm = 1
-      ! Find the order for a collection of requested moments
-      ! and store the moment contribution of each
-      do n = 0, t % moment_order(i)
-        ! determine scoring bin index
-        score_index = score_index + num_nm
-        ! Update number of total n,m bins for this n (m = [-n: n])
-        num_nm = 2 * n + 1
-
-        ! multiply score by the angular flux moments and store
-!$omp critical (score_general_scatt_yn)
-        t % results(RESULT_VALUE, score_index: score_index + num_nm - 1, &
-             filter_index) = t % results(RESULT_VALUE, &
-             score_index: score_index + num_nm - 1, filter_index) &
-             + score * calc_pn(n, p % mu) * calc_rn(n, p % last_uvw)
-!$omp end critical (score_general_scatt_yn)
-      end do
-      i = i + (t % moment_order(i) + 1)**2 - 1
-
-
-    case(SCORE_FLUX_YN, SCORE_TOTAL_YN)
-      score_index = score_index - 1
-      num_nm = 1
-      if (t % estimator == ESTIMATOR_ANALOG .or. &
-           t % estimator == ESTIMATOR_COLLISION) then
-        uvw = p % last_uvw
-      else if (t % estimator == ESTIMATOR_TRACKLENGTH) then
-        uvw = p % coord(1) % uvw
-      end if
-      ! Find the order for a collection of requested moments
-      ! and store the moment contribution of each
-      do n = 0, t % moment_order(i)
-        ! determine scoring bin index
-        score_index = score_index + num_nm
-        ! Update number of total n,m bins for this n (m = [-n: n])
-        num_nm = 2 * n + 1
-
-        ! multiply score by the angular flux moments and store
-!$omp critical (score_general_flux_tot_yn)
-        t % results(RESULT_VALUE, score_index: score_index + num_nm - 1, &
-             filter_index) = t % results(RESULT_VALUE, &
-             score_index: score_index + num_nm - 1, filter_index) &
-             + score * calc_rn(n, uvw)
-!$omp end critical (score_general_flux_tot_yn)
-      end do
-      i = i + (t % moment_order(i) + 1)**2 - 1
-
-
-    case (SCORE_SCATTER_PN, SCORE_NU_SCATTER_PN)
-      score_index = score_index - 1
-      ! Find the scattering order for a collection of requested moments
-      ! and store the moment contribution of each
-      do n = 0, t % moment_order(i)
-        ! determine scoring bin index
-        score_index = score_index + 1
-
-        ! get the score and tally it
-!$omp atomic
-        t % results(RESULT_VALUE, score_index, filter_index) = &
-             t % results(RESULT_VALUE, score_index, filter_index) &
-             + score * calc_pn(n, p % mu)
-      end do
-      i = i + t % moment_order(i)
-
-
-    case default
-!$omp atomic
-      t % results(RESULT_VALUE, score_index, filter_index) = &
-           t % results(RESULT_VALUE, score_index, filter_index) + score
-
-    end select
-
-  end subroutine expand_and_score
 
 !===============================================================================
 ! SCORE_ALL_NUCLIDES tallies individual nuclide reaction rates specifically when
@@ -2382,7 +2195,7 @@ contains
 
     type(Particle), intent(in) :: p
 
-    integer :: i, j, m
+    integer :: i, j
     integer :: i_tally
     integer :: i_filt
     integer :: i_bin
@@ -3048,9 +2861,9 @@ contains
 ! tally total or partial currents between two cells
 !===============================================================================
 
-    subroutine  score_surface_tally(p)
-
-    type(Particle), intent(in)    :: p
+  subroutine score_surface_tally(p, tally_vec)
+    type(Particle), intent(in)  :: p
+    type(VectorInt), intent(in) :: tally_vec
 
     integer :: i
     integer :: i_tally
@@ -3070,9 +2883,9 @@ contains
     ! No collision, so no weight change when survival biasing
     flux = p % wgt
 
-    TALLY_LOOP: do i = 1, active_surface_tallies % size()
+    TALLY_LOOP: do i = 1, tally_vec % size()
       ! Get index of tally and pointer to tally
-      i_tally = active_surface_tallies % data(i)
+      i_tally = tally_vec % data(i)
       associate (t => tallies(i_tally) % obj)
 
       ! Find all valid bins in each filter if they have not already been found
@@ -3118,7 +2931,7 @@ contains
 
         ! Currently only one score type
         k = 0
-        SCORE_LOOP: do q = 1, t % n_user_score_bins
+        SCORE_LOOP: do q = 1, t % n_score_bins
           k = k + 1
 
           ! determine what type of score bin
@@ -3128,8 +2941,10 @@ contains
           score_index = q
 
           ! Expand score if necessary and add to tally results.
-          call expand_and_score(p, t, score_index, filter_index, score_bin, &
-               score, k)
+!$omp atomic
+          t % results(RESULT_VALUE, score_index, filter_index) = &
+               t % results(RESULT_VALUE, score_index, filter_index) + score
+
         end do SCORE_LOOP
 
         ! ======================================================================
@@ -3173,290 +2988,6 @@ contains
   end subroutine score_surface_tally
 
 !===============================================================================
-! SCORE_SURFACE_CURRENT tallies surface crossings in a mesh tally by manually
-! determining which mesh surfaces were crossed
-!===============================================================================
-
-  subroutine score_surface_current(p)
-
-    type(Particle), intent(in) :: p
-
-    integer :: i
-    integer :: i_tally
-    integer :: j, k                 ! loop indices
-    integer :: n_dim                ! num dimensions of the mesh
-    integer :: d1                   ! dimension index
-    integer :: d2                   ! dimension index
-    integer :: d3                   ! dimension index
-    integer :: ijk0(3)              ! indices of starting coordinates
-    integer :: ijk1(3)              ! indices of ending coordinates
-    integer :: n_cross              ! number of surface crossings
-    integer :: filter_index         ! index of scoring bin
-    integer :: i_filter_mesh        ! index of mesh filter in filters array
-    integer :: i_filter_surf        ! index of surface filter in filters
-    integer :: i_filter_energy      ! index of energy filter in filters
-    real(8) :: uvw(3)               ! cosine of angle of particle
-    real(8) :: xyz0(3)              ! starting/intermediate coordinates
-    real(8) :: xyz1(3)              ! ending coordinates of particle
-    real(8) :: xyz_cross(3)         ! coordinates of bounding surfaces
-    real(8) :: d(3)                 ! distance to each bounding surface
-    real(8) :: distance             ! actual distance traveled
-    integer :: matching_bin         ! next valid filter bin
-    logical :: start_in_mesh        ! particle's starting xyz in mesh?
-    logical :: end_in_mesh          ! particle's ending xyz in mesh?
-    logical :: cross_surface        ! whether the particle crosses a surface
-    logical :: energy_filter        ! energy filter present
-    type(RegularMesh), pointer :: m
-
-    TALLY_LOOP: do i = 1, active_current_tallies % size()
-      ! Copy starting and ending location of particle
-      xyz0 = p % last_xyz_current
-      xyz1 = p % coord(1) % xyz
-
-      ! Get pointer to tally
-      i_tally = active_current_tallies % data(i)
-      associate (t => tallies(i_tally) % obj)
-
-      ! Check for energy filter
-      energy_filter = (t % find_filter(FILTER_ENERGYIN) > 0)
-
-      ! Get index for mesh, surface, and energy filters
-      i_filter_mesh = t % filter(t % find_filter(FILTER_MESH))
-      i_filter_surf = t % filter(t % find_filter(FILTER_SURFACE))
-      if (energy_filter) then
-        i_filter_energy = t % filter(t % find_filter(FILTER_ENERGYIN))
-      end if
-
-      ! Reset the matching bins arrays
-      call filter_matches(i_filter_mesh) % bins % resize(1)
-      call filter_matches(i_filter_surf) % bins % resize(1)
-      if (energy_filter) then
-        call filter_matches(i_filter_energy) % bins % resize(1)
-      end if
-
-      ! Get pointer to mesh
-      select type(filt => filters(i_filter_mesh) % obj)
-      type is (MeshFilter)
-        m => meshes(filt % mesh)
-      end select
-
-      n_dim = m % n_dimension
-
-      ! Determine indices for starting and ending location
-      call m % get_indices(xyz0, ijk0, start_in_mesh)
-      call m % get_indices(xyz1, ijk1, end_in_mesh)
-
-      ! Check to see if start or end is in mesh -- if not, check if track still
-      ! intersects with mesh
-      if ((.not. start_in_mesh) .and. (.not. end_in_mesh)) then
-        if (.not. m % intersects(xyz0, xyz1)) cycle
-      end if
-
-      ! Calculate number of surface crossings
-      n_cross = sum(abs(ijk1(:n_dim) - ijk0(:n_dim)))
-      if (n_cross == 0) then
-        cycle
-      end if
-
-      ! Copy particle's direction
-      uvw = p % coord(1) % uvw
-
-      ! Determine incoming energy bin.  We need to tell the energy filter this
-      ! is a tracklength tally so it uses the pre-collision energy.
-      if (energy_filter) then
-        call filter_matches(i_filter_energy) % bins % clear()
-        call filter_matches(i_filter_energy) % weights % clear()
-        call filters(i_filter_energy) % obj % get_all_bins(p, &
-             ESTIMATOR_TRACKLENGTH, filter_matches(i_filter_energy))
-        if (filter_matches(i_filter_energy) % bins % size() == 0) cycle
-        matching_bin = filter_matches(i_filter_energy) % bins % data(1)
-        filter_matches(i_filter_energy) % bins % data(1) = matching_bin
-      end if
-
-      ! Bounding coordinates
-      do d1 = 1, n_dim
-        if (uvw(d1) > 0) then
-          xyz_cross(d1) = m % lower_left(d1) + ijk0(d1) * m % width(d1)
-        else
-          xyz_cross(d1) = m % lower_left(d1) + (ijk0(d1) - 1) * m % width(d1)
-        end if
-      end do
-
-      do j = 1, n_cross
-        ! Reset scoring bin index
-        filter_matches(i_filter_surf) % bins % data(1) = 0
-
-        ! Set the distances to infinity
-        d = INFINITY
-
-        ! Calculate distance to each bounding surface. We need to treat
-        ! special case where the cosine of the angle is zero since this would
-        ! result in a divide-by-zero.
-        do d1 = 1, n_dim
-          if (uvw(d1) == 0) then
-            d(d1) = INFINITY
-          else
-            d(d1) = (xyz_cross(d1) - xyz0(d1))/uvw(d1)
-          end if
-        end do
-
-        ! Determine the closest bounding surface of the mesh cell by
-        ! calculating the minimum distance. Then use the minimum distance and
-        ! direction of the particle to determine which surface was crossed.
-        distance = minval(d)
-
-        ! Loop over the dimensions
-        do d1 = 1, n_dim
-
-          ! Get the other dimensions.
-          if (d1 == 1) then
-            d2 = mod(d1, 3) + 1
-            d3 = mod(d1 + 1, 3) + 1
-          else
-            d2 = mod(d1 + 1, 3) + 1
-            d3 = mod(d1, 3) + 1
-          end if
-
-          ! Check whether distance is the shortest distance
-          if (distance == d(d1)) then
-
-            ! Check whether particle is moving in positive d1 direction
-            if (uvw(d1) > 0) then
-
-              ! Outward current on d1 max surface
-              if (all(ijk0(:n_dim) >= 1) .and. &
-                   all(ijk0(:n_dim) <= m % dimension)) then
-                filter_matches(i_filter_surf) % bins % data(1) = d1 * 4 - 1
-                filter_matches(i_filter_mesh) % bins % data(1) = &
-                     m % get_bin_from_indices(ijk0)
-                filter_index = 1
-                do k = 1, size(t % filter)
-                  filter_index = filter_index + (filter_matches(t % &
-                       filter(k)) % bins % data(1) - 1) * t % stride(k)
-                end do
-!$omp atomic
-                t % results(RESULT_VALUE, 1, filter_index) = &
-                     t % results(RESULT_VALUE, 1, filter_index) + p % wgt
-              end if
-
-              ! Inward current on d1 min surface
-              cross_surface = .false.
-              select case(n_dim)
-
-              case (1)
-                if (ijk0(d1) >= 0 .and. ijk0(d1) <  m % dimension(d1)) then
-                  cross_surface = .true.
-                end if
-
-              case (2)
-                if (ijk0(d1) >= 0 .and. ijk0(d1) <  m % dimension(d1) .and. &
-                     ijk0(d2) >= 1 .and. ijk0(d2) <= m % dimension(d2)) then
-                  cross_surface = .true.
-                end if
-
-              case (3)
-                if (ijk0(d1) >= 0 .and. ijk0(d1) <  m % dimension(d1) .and. &
-                     ijk0(d2) >= 1 .and. ijk0(d2) <= m % dimension(d2) .and. &
-                     ijk0(d3) >= 1 .and. ijk0(d3) <= m % dimension(d3)) then
-                  cross_surface = .true.
-                end if
-              end select
-
-              ! If the particle crossed the surface, tally the current
-              if (cross_surface) then
-                ijk0(d1) = ijk0(d1) + 1
-                filter_matches(i_filter_surf) % bins % data(1) = d1 * 4 - 2
-                filter_matches(i_filter_mesh) % bins % data(1) = &
-                     m % get_bin_from_indices(ijk0)
-                filter_index = 1
-                do k = 1, size(t % filter)
-                  filter_index = filter_index + (filter_matches(t % &
-                       filter(k)) % bins % data(1) - 1) * t % stride(k)
-                end do
-!$omp atomic
-                t % results(RESULT_VALUE, 1, filter_index) = &
-                     t % results(RESULT_VALUE, 1, filter_index) + p % wgt
-                ijk0(d1) = ijk0(d1) - 1
-              end if
-
-              ijk0(d1) = ijk0(d1) + 1
-              xyz_cross(d1) = xyz_cross(d1) + m % width(d1)
-
-              ! The particle is moving in the negative d1 direction
-            else
-
-              ! Outward current on d1 min surface
-              if (all(ijk0(:n_dim) >= 1) .and. &
-                   all(ijk0(:n_dim) <= m % dimension)) then
-                filter_matches(i_filter_surf) % bins % data(1) = d1 * 4 - 3
-                filter_matches(i_filter_mesh) % bins % data(1) = &
-                     m % get_bin_from_indices(ijk0)
-                filter_index = 1
-                do k = 1, size(t % filter)
-                  filter_index = filter_index + (filter_matches(t % &
-                       filter(k)) % bins % data(1) - 1) * t % stride(k)
-                end do
-!$omp atomic
-                t % results(RESULT_VALUE, 1, filter_index) = &
-                     t % results(RESULT_VALUE, 1, filter_index) + p % wgt
-              end if
-
-              ! Inward current on d1 max surface
-              cross_surface = .false.
-              select case(n_dim)
-
-              case (1)
-                if (ijk0(d1) >  1 .and. ijk0(d1) <= m % dimension(d1) + 1) then
-                  cross_surface = .true.
-                end if
-
-              case (2)
-                if (ijk0(d1) >  1 .and. ijk0(d1) <= m % dimension(d1) + 1 .and.&
-                     ijk0(d2) >= 1 .and. ijk0(d2) <= m % dimension(d2)) then
-                  cross_surface = .true.
-                end if
-
-              case (3)
-                if (ijk0(d1) >  1 .and. ijk0(d1) <= m % dimension(d1) + 1 .and.&
-                     ijk0(d2) >= 1 .and. ijk0(d2) <= m % dimension(d2) .and. &
-                     ijk0(d3) >= 1 .and. ijk0(d3) <= m % dimension(d3)) then
-                  cross_surface = .true.
-                end if
-              end select
-
-              ! If the particle crossed the surface, tally the current
-              if (cross_surface) then
-                ijk0(d1) = ijk0(d1) - 1
-                filter_matches(i_filter_surf) % bins % data(1) = d1 * 4
-                filter_matches(i_filter_mesh) % bins % data(1) = &
-                     m % get_bin_from_indices(ijk0)
-                filter_index = 1
-                do k = 1, size(t % filter)
-                  filter_index = filter_index + (filter_matches(t % &
-                       filter(k)) % bins % data(1) - 1) * t % stride(k)
-                end do
-!$omp atomic
-                t % results(RESULT_VALUE, 1, filter_index) = &
-                     t % results(RESULT_VALUE, 1, filter_index) + p % wgt
-                ijk0(d1) = ijk0(d1) + 1
-              end if
-
-              ijk0(d1) = ijk0(d1) - 1
-              xyz_cross(d1) = xyz_cross(d1) - m % width(d1)
-            end if
-          end if
-        end do
-
-        ! Calculate new coordinates
-        xyz0 = xyz0 + distance * uvw
-      end do
-
-      end associate
-    end do TALLY_LOOP
-
-  end subroutine score_surface_current
-
-!===============================================================================
 ! APPLY_DERIVATIVE_TO_SCORE multiply the given score by its relative derivative
 !===============================================================================
 
@@ -3472,7 +3003,7 @@ contains
     integer :: l
     logical :: scoring_diff_nuclide
     real(8) :: flux_deriv
-    real(8) :: dsigT, dsigA, dsigF, cum_dsig
+    real(8) :: dsig_t, dsig_a, dsig_f, cum_dsig
 
     if (score == ZERO) return
 
@@ -3713,17 +3244,17 @@ contains
                   if (mat % nuclide(l) == p % event_nuclide) exit
                 end do
 
-                dsigT = ZERO
+                dsig_t = ZERO
                 associate (nuc => nuclides(p % event_nuclide))
                   if (nuc % mp_present .and. &
                        p % last_E >= nuc % multipole % start_E .and. &
                        p % last_E <= nuc % multipole % end_E) then
                     call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                         p % sqrtkT, dsigT, dsigA, dsigF)
+                         p % sqrtkT, dsig_t, dsig_a, dsig_f)
                   end if
                 end associate
                 score = score * (flux_deriv &
-                     + dsigT * mat % atom_density(l) / material_xs % total)
+                     + dsig_t * mat % atom_density(l) / material_xs % total)
               end associate
             else
               score = score * flux_deriv
@@ -3739,17 +3270,17 @@ contains
                   if (mat % nuclide(l) == p % event_nuclide) exit
                 end do
 
-                dsigT = ZERO
-                dsigA = ZERO
+                dsig_t = ZERO
+                dsig_a = ZERO
                 associate (nuc => nuclides(p % event_nuclide))
                   if (nuc % mp_present .and. &
                        p % last_E >= nuc % multipole % start_E .and. &
                        p % last_E <= nuc % multipole % end_E) then
                     call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                         p % sqrtkT, dsigT, dsigA, dsigF)
+                         p % sqrtkT, dsig_t, dsig_a, dsig_f)
                   end if
                 end associate
-                score = score * (flux_deriv + (dsigT - dsigA) &
+                score = score * (flux_deriv + (dsig_t - dsig_a) &
                      * mat % atom_density(l) / &
                      (material_xs % total - material_xs % absorption))
               end associate
@@ -3766,17 +3297,17 @@ contains
                   if (mat % nuclide(l) == p % event_nuclide) exit
                 end do
 
-                dsigA = ZERO
+                dsig_a = ZERO
                 associate (nuc => nuclides(p % event_nuclide))
                   if (nuc % mp_present .and. &
                        p % last_E >= nuc % multipole % start_E .and. &
                        p % last_E <= nuc % multipole % end_E) then
                     call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                         p % sqrtkT, dsigT, dsigA, dsigF)
+                         p % sqrtkT, dsig_t, dsig_a, dsig_f)
                   end if
                 end associate
-                score = score * (flux_deriv &
-                     + dsigA * mat % atom_density(l) / material_xs % absorption)
+                score = score * (flux_deriv + dsig_a * mat % atom_density(l) &
+                                              / material_xs % absorption)
               end associate
             else
               score = score * flux_deriv
@@ -3791,17 +3322,17 @@ contains
                   if (mat % nuclide(l) == p % event_nuclide) exit
                 end do
 
-                dsigF = ZERO
+                dsig_f = ZERO
                 associate (nuc => nuclides(p % event_nuclide))
                   if (nuc % mp_present .and. &
                        p % last_E >= nuc % multipole % start_E .and. &
                        p % last_E <= nuc % multipole % end_E) then
                     call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                         p % sqrtkT, dsigT, dsigA, dsigF)
+                         p % sqrtkT, dsig_t, dsig_a, dsig_f)
                   end if
                 end associate
                 score = score * (flux_deriv &
-                     + dsigF * mat % atom_density(l) / material_xs % fission)
+                     + dsig_f * mat % atom_density(l) / material_xs % fission)
               end associate
             else
               score = score * flux_deriv
@@ -3816,17 +3347,17 @@ contains
                   if (mat % nuclide(l) == p % event_nuclide) exit
                 end do
 
-                dsigF = ZERO
+                dsig_f = ZERO
                 associate (nuc => nuclides(p % event_nuclide))
                   if (nuc % mp_present .and. &
                        p % last_E >= nuc % multipole % start_E .and. &
                        p % last_E <= nuc % multipole % end_E) then
                     call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                         p % sqrtkT, dsigT, dsigA, dsigF)
+                         p % sqrtkT, dsig_t, dsig_a, dsig_f)
                   end if
                 end associate
                 score = score * (flux_deriv &
-                     + dsigF * mat % atom_density(l) / material_xs % nu_fission&
+                     + dsig_f * mat % atom_density(l) / material_xs % nu_fission&
                      * micro_xs(p % event_nuclide) % nu_fission &
                      / micro_xs(p % event_nuclide) % fission)
               end associate
@@ -3859,8 +3390,8 @@ contains
                          p % last_E <= nuc % multipole % end_E .and. &
                          micro_xs(mat % nuclide(l)) % total > ZERO) then
                       call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                           p % sqrtkT, dsigT, dsigA, dsigF)
-                      cum_dsig = cum_dsig + dsigT * mat % atom_density(l)
+                           p % sqrtkT, dsig_t, dsig_a, dsig_f)
+                      cum_dsig = cum_dsig + dsig_t * mat % atom_density(l)
                     end if
                   end associate
                 end do
@@ -3869,17 +3400,17 @@ contains
                    + cum_dsig / material_xs % total)
             else if (materials(p % material) % id == deriv % diff_material &
                  .and. material_xs % total > ZERO) then
-              dsigT = ZERO
+              dsig_t = ZERO
               associate (nuc => nuclides(i_nuclide))
                 if (nuc % mp_present .and. &
                      p % last_E >= nuc % multipole % start_E .and. &
                      p % last_E <= nuc % multipole % end_E) then
                   call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                       p % sqrtkT, dsigT, dsigA, dsigF)
+                       p % sqrtkT, dsig_t, dsig_a, dsig_f)
                 end if
               end associate
               score = score * (flux_deriv &
-                   + dsigT / micro_xs(i_nuclide) % total)
+                   + dsig_t / micro_xs(i_nuclide) % total)
             else
               score = score * flux_deriv
             end if
@@ -3898,9 +3429,9 @@ contains
                          (micro_xs(mat % nuclide(l)) % total &
                          - micro_xs(mat % nuclide(l)) % absorption) > ZERO) then
                       call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                           p % sqrtkT, dsigT, dsigA, dsigF)
+                           p % sqrtkT, dsig_t, dsig_a, dsig_f)
                       cum_dsig = cum_dsig &
-                           + (dsigT - dsigA) * mat % atom_density(l)
+                           + (dsig_t - dsig_a) * mat % atom_density(l)
                     end if
                   end associate
                 end do
@@ -3910,17 +3441,17 @@ contains
             else if ( materials(p % material) % id == deriv % diff_material &
                  .and. (material_xs % total - material_xs % absorption) > ZERO)&
                  then
-              dsigT = ZERO
-              dsigA = ZERO
+              dsig_t = ZERO
+              dsig_a = ZERO
               associate (nuc => nuclides(i_nuclide))
                 if (nuc % mp_present .and. &
                      p % last_E >= nuc % multipole % start_E .and. &
                      p % last_E <= nuc % multipole % end_E) then
                   call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                       p % sqrtkT, dsigT, dsigA, dsigF)
+                       p % sqrtkT, dsig_t, dsig_a, dsig_f)
                 end if
               end associate
-              score = score * (flux_deriv + (dsigT - dsigA) &
+              score = score * (flux_deriv + (dsig_t - dsig_a) &
                    / (micro_xs(i_nuclide) % total &
                    - micro_xs(i_nuclide) % absorption))
             else
@@ -3940,8 +3471,8 @@ contains
                          p % last_E <= nuc % multipole % end_E .and. &
                          micro_xs(mat % nuclide(l)) % absorption > ZERO) then
                       call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                           p % sqrtkT, dsigT, dsigA, dsigF)
-                      cum_dsig = cum_dsig + dsigA * mat % atom_density(l)
+                           p % sqrtkT, dsig_t, dsig_a, dsig_f)
+                      cum_dsig = cum_dsig + dsig_a * mat % atom_density(l)
                     end if
                   end associate
                 end do
@@ -3950,17 +3481,17 @@ contains
                    + cum_dsig / material_xs % absorption)
             else if (materials(p % material) % id == deriv % diff_material &
                  .and. material_xs % absorption > ZERO) then
-              dsigA = ZERO
+              dsig_a = ZERO
               associate (nuc => nuclides(i_nuclide))
                 if (nuc % mp_present .and. &
                      p % last_E >= nuc % multipole % start_E .and. &
                      p % last_E <= nuc % multipole % end_E) then
                   call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                       p % sqrtkT, dsigT, dsigA, dsigF)
+                       p % sqrtkT, dsig_t, dsig_a, dsig_f)
                 end if
               end associate
               score = score * (flux_deriv &
-                   + dsigA / micro_xs(i_nuclide) % absorption)
+                   + dsig_a / micro_xs(i_nuclide) % absorption)
             else
               score = score * flux_deriv
             end if
@@ -3978,8 +3509,8 @@ contains
                          p % last_E <= nuc % multipole % end_E .and. &
                          micro_xs(mat % nuclide(l)) % fission > ZERO) then
                       call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                           p % sqrtkT, dsigT, dsigA, dsigF)
-                      cum_dsig = cum_dsig + dsigF * mat % atom_density(l)
+                           p % sqrtkT, dsig_t, dsig_a, dsig_f)
+                      cum_dsig = cum_dsig + dsig_f * mat % atom_density(l)
                     end if
                   end associate
                 end do
@@ -3988,17 +3519,17 @@ contains
                    + cum_dsig / material_xs % fission)
             else if (materials(p % material) % id == deriv % diff_material &
                  .and. material_xs % fission > ZERO) then
-              dsigF = ZERO
+              dsig_f = ZERO
               associate (nuc => nuclides(i_nuclide))
                 if (nuc % mp_present .and. &
                      p % last_E >= nuc % multipole % start_E .and. &
                      p % last_E <= nuc % multipole % end_E) then
                   call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                       p % sqrtkT, dsigT, dsigA, dsigF)
+                       p % sqrtkT, dsig_t, dsig_a, dsig_f)
                 end if
               end associate
               score = score * (flux_deriv &
-                   + dsigF / micro_xs(i_nuclide) % fission)
+                   + dsig_f / micro_xs(i_nuclide) % fission)
             else
               score = score * flux_deriv
             end if
@@ -4016,8 +3547,8 @@ contains
                          p % last_E <= nuc % multipole % end_E .and. &
                          micro_xs(mat % nuclide(l)) % nu_fission > ZERO) then
                       call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                           p % sqrtkT, dsigT, dsigA, dsigF)
-                      cum_dsig = cum_dsig + dsigF * mat % atom_density(l) &
+                           p % sqrtkT, dsig_t, dsig_a, dsig_f)
+                      cum_dsig = cum_dsig + dsig_f * mat % atom_density(l) &
                            * micro_xs(mat % nuclide(l)) % nu_fission &
                            / micro_xs(mat % nuclide(l)) % fission
                     end if
@@ -4028,17 +3559,17 @@ contains
                    + cum_dsig / material_xs % nu_fission)
             else if (materials(p % material) % id == deriv % diff_material &
                  .and. material_xs % nu_fission > ZERO) then
-              dsigF = ZERO
+              dsig_f = ZERO
               associate (nuc => nuclides(i_nuclide))
                 if (nuc % mp_present .and. &
                      p % last_E >= nuc % multipole % start_E .and. &
                      p % last_E <= nuc % multipole % end_E) then
                   call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                       p % sqrtkT, dsigT, dsigA, dsigF)
+                       p % sqrtkT, dsig_t, dsig_a, dsig_f)
                 end if
               end associate
               score = score * (flux_deriv &
-                   + dsigF / micro_xs(i_nuclide) % fission)
+                   + dsig_f / micro_xs(i_nuclide) % fission)
             else
               score = score * flux_deriv
             end if
@@ -4066,7 +3597,7 @@ contains
     real(8),        intent(in) :: distance ! Neutron flight distance
 
     integer :: i, l
-    real(8) :: dsigT, dsigA, dsigF
+    real(8) :: dsig_t, dsig_a, dsig_f
 
     ! A void material cannot be perturbed so it will not affect flux derivatives
     if (p % material == MATERIAL_VOID) return
@@ -4109,9 +3640,9 @@ contains
                     ! (1 / phi) * (d_phi / d_T) = - (d_Sigma_tot / d_T) * dist
                     ! (1 / phi) * (d_phi / d_T) = - N (d_sigma_tot / d_T) * dist
                     call multipole_deriv_eval(nuc % multipole, p % E, &
-                         p % sqrtkT, dsigT, dsigA, dsigF)
+                         p % sqrtkT, dsig_t, dsig_a, dsig_f)
                     deriv % flux_deriv = deriv % flux_deriv &
-                         - distance * dsigT * mat % atom_density(l)
+                         - distance * dsig_t * mat % atom_density(l)
                   end if
                 end associate
               end do
@@ -4142,7 +3673,7 @@ contains
     type(Particle), intent(in) :: p
 
     integer :: i, j, l
-    real(8) :: dsigT, dsigA, dsigF
+    real(8) :: dsig_t, dsig_a, dsig_f
 
     ! A void material cannot be perturbed so it will not affect flux derivatives
     if (p % material == MATERIAL_VOID) return
@@ -4196,8 +3727,8 @@ contains
                     ! (1 / phi) * (d_phi / d_T) = (d_Sigma_s / d_T) / Sigma_s
                     ! (1 / phi) * (d_phi / d_T) = (d_sigma_s / d_T) / sigma_s
                     call multipole_deriv_eval(nuc % multipole, p % last_E, &
-                         p % sqrtkT, dsigT, dsigA, dsigF)
-                    deriv % flux_deriv = deriv % flux_deriv + (dsigT - dsigA)&
+                         p % sqrtkT, dsig_t, dsig_a, dsig_f)
+                    deriv % flux_deriv = deriv % flux_deriv + (dsig_t - dsig_a)&
                          / (micro_xs(mat % nuclide(l)) % total &
                          - micro_xs(mat % nuclide(l)) % absorption)
                     ! Note that this is an approximation!  The real scattering
@@ -4241,7 +3772,7 @@ contains
     real(C_DOUBLE) :: k_tra ! Copy of batch tracklength estimate of keff
     real(C_DOUBLE) :: val
 
-#ifdef MPI
+#ifdef OPENMC_MPI
     ! Combine tally results onto master process
     if (reduce_tallies) call reduce_tally_results()
 #endif
@@ -4289,7 +3820,7 @@ contains
 ! REDUCE_TALLY_RESULTS collects all the results from tallies onto one processor
 !===============================================================================
 
-#ifdef MPI
+#ifdef OPENMC_MPI
   subroutine reduce_tally_results()
 
     integer :: i
@@ -4359,7 +3890,7 @@ contains
     call active_collision_tallies % clear()
     call active_tracklength_tallies % clear()
     call active_surface_tallies % clear()
-    call active_current_tallies % clear()
+    call active_meshsurf_tallies % clear()
 
     do i = 1, n_tallies
       associate (t => tallies(i) % obj)
@@ -4376,8 +3907,8 @@ contains
             elseif (t % estimator == ESTIMATOR_COLLISION) then
               call active_collision_tallies % push_back(i)
             end if
-          elseif (t % type == TALLY_MESH_CURRENT) then
-            call active_current_tallies % push_back(i)
+          elseif (t % type == TALLY_MESH_SURFACE) then
+            call active_meshsurf_tallies % push_back(i)
           elseif (t % type == TALLY_SURFACE) then
             call active_surface_tallies % push_back(i)
           end if

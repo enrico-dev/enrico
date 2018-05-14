@@ -9,13 +9,8 @@
 // OpenMC Driver
 // ============================================================================
 
-OpenmcDriver::OpenmcDriver(MPI_Comm comm) : NeutronDriver(comm) {
-  // ROR: 2018-03-22: MPI_Comm_c2f is a macro (in MPICH, at least),
-  // so we can't pass something like:
-  //     openmc_init(&MPI_Comm_c2f(comm));
-  // Hence, the dummy variable.
-  MPI_Fint intComm = MPI_Comm_c2f(procInfo.comm);
-  openmc_init(static_cast<const int *>(&intComm));
+OpenmcDriver::OpenmcDriver(int argc, char* argv[], MPI_Comm comm) : NeutronDriver(comm) {
+  openmc_init(argc, argv, &comm);
 
   int32_t index_filters[1];
   openmc_extend_filters(1, &index_filters[0], nullptr);

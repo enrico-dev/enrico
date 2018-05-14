@@ -1,13 +1,14 @@
-from collections import Mapping
+from collections.abc import Mapping
 from ctypes import c_int, c_char_p, POINTER
 from weakref import WeakValueDictionary
 
 import numpy as np
 from numpy.ctypeslib import as_array
 
+from openmc.exceptions import DataError, AllocationError
 from . import _dll
 from .core import _FortranObject
-from .error import _error_handler, DataError, AllocationError
+from .error import _error_handler
 
 
 __all__ = ['Nuclide', 'nuclides', 'load_nuclide']
@@ -58,7 +59,7 @@ class Nuclide(_FortranObject):
 
     def __new__(cls, *args):
         if args not in cls.__instances:
-            instance = super(Nuclide, cls).__new__(cls)
+            instance = super().__new__(cls)
             cls.__instances[args] = instance
         return cls.__instances[args]
 
