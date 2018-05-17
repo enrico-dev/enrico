@@ -41,11 +41,15 @@ test:nek5000_api:
 
 test:coupled_driver:
   stage: test
+  dependencies:
+    - download:cross_sections
   variables:
     GIT_STRATEGY: none
     CC: mpicc
     CXX: mpicxx
     FC: mpif90
+    OPENMC_CROSS_SECTIONS: $CI_PROJECT_DIR/nndc_hdf5/cross_sections.xml
+    OMP_NUM_THREADS: 4
   script:
     - cd tests/coupled_driver
     - cmake -DCASENAME=ethier ../../
