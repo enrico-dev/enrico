@@ -94,9 +94,9 @@ public:
   OpenmcDriver openmcDriver;
   NekDriver nekDriver;
 
-  explicit OpenmcNekDriver(MPI_Comm coupledComm, MPI_Comm openmcComm, MPI_Comm nekComm) :
+  explicit OpenmcNekDriver(int argc, char *argv[], MPI_Comm coupledComm, MPI_Comm openmcComm, MPI_Comm nekComm) :
       procInfo(coupledComm),
-      openmcDriver(openmcComm),
+      openmcDriver(argc, argv, openmcComm),
       nekDriver(nekComm) {};
   ~OpenmcNekDriver() {};
 };

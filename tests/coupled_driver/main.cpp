@@ -13,7 +13,7 @@ int main(int argc, char *argv[]) {
   MPI_Comm nekComm = MPI_COMM_WORLD;
 
   auto *testDriver =
-      new OpenmcNekDriver(coupledComm, openmcComm, nekComm);
+      new OpenmcNekDriver(argc, argv, coupledComm, openmcComm, nekComm);
 
   testDriver->openmcDriver.initStep();
   testDriver->openmcDriver.solveStep();
