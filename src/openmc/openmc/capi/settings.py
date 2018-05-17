@@ -11,8 +11,7 @@ _RUN_MODES = {1: 'fixed source',
               5: 'volume'}
 
 _dll.openmc_set_seed.argtypes = [c_int64]
-_dll.openmc_set_seed.restype = c_int
-_dll.openmc_set_seed.errcheck = _error_handler
+_dll.openmc_get_seed.restype = c_int64
 
 
 class _Settings(object):
@@ -21,11 +20,11 @@ class _Settings(object):
     generations_per_batch = _DLLGlobal(c_int32, 'gen_per_batch')
     inactive = _DLLGlobal(c_int32, 'n_inactive')
     particles = _DLLGlobal(c_int64, 'n_particles')
-    verbosity = _DLLGlobal(c_int, 'verbosity')
+    verbosity = _DLLGlobal(c_int, 'openmc_verbosity')
 
     @property
     def run_mode(self):
-        i = c_int.in_dll(_dll, 'run_mode').value
+        i = c_int.in_dll(_dll, 'openmc_run_mode').value
         try:
             return _RUN_MODES[i]
         except KeyError:
@@ -33,7 +32,7 @@ class _Settings(object):
 
     @run_mode.setter
     def run_mode(self, mode):
-        current_idx = c_int.in_dll(_dll, 'run_mode')
+        current_idx = c_int.in_dll(_dll, 'openmc_run_mode')
         for idx, mode_value in _RUN_MODES.items():
             if mode_value == mode:
                 current_idx.value = idx
@@ -43,7 +42,7 @@ class _Settings(object):
 
     @property
     def seed(self):
-        return c_int64.in_dll(_dll, 'seed').value
+        return _dll.openmc_get_seed()
 
     @seed.setter
     def seed(self, seed):
