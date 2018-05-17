@@ -15,13 +15,19 @@ int main(int argc, char *argv[]) {
   {
     OpenmcNekDriver testDriver(argc, argv, coupledComm, openmcComm, nekComm);
 
-    testDriver.openmcDriver.initStep();
-    testDriver.openmcDriver.solveStep();
-    testDriver.openmcDriver.finalizeStep();
+    if (testDriver.openmcDriver.procInfo.comm != MPI_COMM_NULL) {
+      testDriver.openmcDriver.initStep();
+      testDriver.openmcDriver.solveStep();
+      testDriver.openmcDriver.finalizeStep();
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
 
-    testDriver.nekDriver.initStep();
-    testDriver.nekDriver.solveStep();
-    testDriver.nekDriver.finalizeStep();
+    if (testDriver.nekDriver.procInfo.comm != MPI_COMM_NULL) {
+      testDriver.nekDriver.initStep();
+      testDriver.nekDriver.solveStep();
+      testDriver.nekDriver.finalizeStep();
+    }
+    MPI_Barrier(MPI_COMM_WORLD);
   }
 
   MPI_Finalize();

@@ -46,15 +46,11 @@ void OpenmcDriver::initStep() {
 }
 
 void OpenmcDriver::solveStep() {
-  if (procInfo.comm != MPI_COMM_NULL)
-    openmc_run();
-  MPI_Barrier(MPI_COMM_WORLD);
+  openmc_run();
 }
 
 void OpenmcDriver::finalizeStep() {
-  if (procInfo.comm != MPI_COMM_NULL)
-    openmc_simulation_finalize();
-  MPI_Barrier(MPI_COMM_WORLD);
+  openmc_simulation_finalize();
 }
 
 OpenmcDriver::~OpenmcDriver() {
@@ -68,10 +64,6 @@ OpenmcDriver::~OpenmcDriver() {
 // ============================================================================
 
 NekDriver::NekDriver(MPI_Comm comm) : ThDriver(comm) {
-  // ROR: 2018-03-22: MPI_Comm_c2f is a macro (in MPICH, at least),
-  // so we can't pass something like:
-  //     openmc_init(&MPI_Comm_c2f(comm));
-  // Hence, the dummy variable.
   if (procInfo.comm != MPI_COMM_NULL) {
     MPI_Fint intComm = MPI_Comm_c2f(procInfo.comm);
     C2F_nek_init(static_cast<const int *>(&intComm));
@@ -83,9 +75,7 @@ void NekDriver::initStep() {
 }
 
 void NekDriver::solveStep() {
-  if (procInfo.comm != MPI_COMM_NULL)
-    C2F_nek_solve();
-  MPI_Barrier(MPI_COMM_WORLD);
+  C2F_nek_solve();
 }
 
 void NekDriver::finalizeStep() {
