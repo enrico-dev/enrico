@@ -28,7 +28,7 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nek5000)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/openmc)
 
 # Target for STREAM library
-add_library(libstream ${CMAKE_CURRENT_LIST_DIR}/src/drivers.cpp )
+add_library(libstream ${CMAKE_CURRENT_LIST_DIR}/src/drivers.cpp src/message_passing.cpp)
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
 target_link_libraries(libstream PUBLIC libnek5000 libopenmc)
 
@@ -44,3 +44,6 @@ add_executable(test_nek5000_api ${CMAKE_CURRENT_LIST_DIR}/tests/nek5000_api/main
 target_link_libraries(test_nek5000_api PUBLIC libstream)
 
 add_executable(comm_split_demo ${CMAKE_CURRENT_LIST_DIR}/tests/comm_split_demo/main.cpp)
+
+add_executable(test_coupled_driver ${CMAKE_CURRENT_LIST_DIR}/tests/coupled_driver/main.cpp)
+target_link_libraries(test_coupled_driver PUBLIC libstream)
