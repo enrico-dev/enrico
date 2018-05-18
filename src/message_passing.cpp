@@ -4,7 +4,7 @@
 /**
  * @brief Splits a given MPI comunicator into a new comm with a specified number of procs in every node.
  *
- * Tne new comm (*subComm*) will span **all** nodes in the original comm (*superComm*).  This will work correctly even
+ * The new comm (*subComm*) will span **all** nodes in the original comm (*superComm*).  This will work correctly even
  * if *subComm* spans only a single node.
  *
  * Depending on the calling proc, *subComm* will be one of two values:
