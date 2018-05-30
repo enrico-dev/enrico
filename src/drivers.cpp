@@ -2,6 +2,7 @@
 #include "mpi.h"
 #include "openmc.h"
 #include "nek_interface.h"
+#include "stream_geom.h"
 
 #include <unordered_set>
 
@@ -79,6 +80,14 @@ void NekDriver::solveStep() {
 }
 
 void NekDriver::finalizeStep() {
+}
+
+Position NekDriver::getLocalElCentroid(int localEl) {
+  double x, y, z;
+  int err;
+  err = nek_get_local_el_centroid(localEl, &x, &y, &z);
+  Position centroid = {x, y, z};
+  return centroid;
 }
 
 NekDriver::~NekDriver() {
