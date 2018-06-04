@@ -2,7 +2,7 @@
 
 # General Compilation
 
-STREAM must be compiled in the directory that contains the Nek5000 input deck (SIZE and \<casename\>.usr files).  We 
+STREAM must be compiled in a directory that contains the Nek5000 input deck (SIZE and \<casename\>.usr files).  We 
 refer to this directory as the **case directory**.  Compilation follows this general pattern:
 
   1. `cd` into the case directory
@@ -17,43 +17,37 @@ refer to this directory as the **case directory**.  Compilation follows this gen
      
 The availabe targets are described below.
 
-# Tests
+# API Tests
 
-## Available API tests
+The tests in `tests/api_tests/` run OpenMC and Nek5000 via the single-physics and coupled C++ drivers.  They do not test
+solution transfer.  The API tests have input decks from the Nek5000 "ethier" case.
 
-The available tests run OpenMC and Nek5000 via the single-physics and coupled C++ drivers.  They do not implement
-solution transfer.  
-* `tests/openmc_api`: Instantiates and runs an `OpenmcDriver`.
-* `tests/nek5000_api`: Instantiates and runs a `NekDriver`.
-* `tests/coupled_driver`: Instantiates an `OpenmcNekDriver`.  Runs the `OpenmcDriver` and `NekDriver` member objects.
+* `tests_openmc_api`: Instantiates and runs an `OpenmcDriver`.
+* `tests_nek5000_api`: Instantiates and runs a `NekDriver`.
+* `tests_coupled_api`: Instantiates an `OpenmcNekDriver`.  Runs the `OpenmcDriver` and `NekDriver` member objects.
 
-## Compiling and Running API Tests
+## Compiling
 
-Currently, the API tests have input decks from the Nek5000 "ethier" case.  Since the API tests simply run the
-C++ drivers without coupling, the particular input deck is not significant.
+The tests can be compiled by entering the `tests/api_tests/` directory, configuring with CMake, and running `make` for
+one or more of the desired targets:
 
-### OpenmcDriver Test
 ``` Console
-$ cd tests/openmc_driver
+$ cd tests/api_tests/
 $ CC=mpicc CXX=mpicxx F90=mpif90 cmake -DCASENAME=ethier ../../
-$ make test_openmc_driver
-$ mpirun -np 4 ./test_openmc_driver
+$ make test_openmc_api
+$ make test_nek5000_api
+$ make test_coupled_api
 ```
 
-### NekDriver Test
-``` Console
-$ cd tests/nek_driver
-$ CC=mpicc CXX=mpicxx F90=mpif90 cmake -DCASENAME=ethier ../../
-$ make test_nek_driver
-$ mpirun -np 4 ./test_nek_driver
-```
+## Running
 
-### CoupledDriver Test
+The tests can be run using `mpirun` with a given number of processes (`-np`) and OpenMP threads (`OMP_NUM_THREADS`).
+The number of OpenMP threads does not affect `test_nek5000_api`, since it is run with MPI only.  
+
 ``` Console
-$ cd tests/coupled_driver
-$ CC=mpicc CXX=mpicxx F90=mpif90 cmake -DCASENAME=ethier ../../
-$ make test_coupled_driver
-$ mpirun -np 4 ./test_coupled_driver
+$ OMP_NUM_THREADS=4 mpirun -np 4 ./test_openmc_api
+$ mpirun -np 4 ./test_nek5000_api
+$ OMP_NUM_THREADS=4 mpirun -np 4 ./test_coupled_api
 ```
 
 # Library Targets
@@ -64,7 +58,7 @@ targets are:
 * `libopenmc`: The OpenMC library
 * `libnek5000`: The Nek5000 library
 
-# Nek5000 targets
+# Nek5000 Utilities
 
 Nek5000 provides several utilities for working with mesh data.  These may be compiled using the following
 targets:
