@@ -14,7 +14,14 @@ void C2F_nek_finalize_step();
 void C2F_nek_end();
 void C2F_nek_solve();
 
-// From nek_interface.f90
+/** Retrieves an array of centriods for a given array of local element numbers.
+ *
+ * This is the interoperable declaration for the Fortran function \ref nek_get_lelt_centroids
+ *
+ * @param[in]  lelts   An array of local element numbers.
+ * @param[in]  n_lelts The number of local elements in *lelts*.
+ * @param[out] ctroids An array of centroids corresponding to each local element in *lelts*.
+ */
 inline int nek_get_lelt_centroids(const int *lelts, const int n_lelts,
                                   Position *ctroids);
 };

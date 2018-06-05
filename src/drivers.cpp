@@ -74,6 +74,13 @@ void NekDriver::solveStep() { C2F_nek_solve(); }
 
 void NekDriver::finalizeStep() {}
 
+/** Retrieves an array of centriods for a given array of local element numbers.
+ *
+ * @param[in] lelts    An array of local element numbers.
+ * @param[in] nLelts   The number of local elements in *lelts*.
+ * @param[out] ctroids An array of centroids corresponding to each local element
+ * in *lelts*.
+ */
 void NekDriver::getLeltCentroids(const int *lelts, const int nLelts,
                                  Position *ctroids) {
   nek_get_lelt_centroids(lelts, nLelts, ctroids);

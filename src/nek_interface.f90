@@ -4,7 +4,12 @@ module nek_interface
 
   implicit none
 
-  ! TODO: Move this to its own header?
+  !> Describes an (x,y,z) coordinate in 3D space
+  !!
+  !! @var x
+  !! @var y
+  !! @var z
+  !! @todo Move this to its own header?
   type, bind(C) :: Position
     real(C_DOUBLE) :: x
     real(C_DOUBLE) :: y
@@ -13,6 +18,11 @@ module nek_interface
 
 contains
 
+  !> Retrieves an array of centriods for a given array of local element numbers.
+  !!
+  !! @param[in]  lelts   An array of local element numbers.
+  !! @param[in]  n_lelts The number of local elements in *lelts*.
+  !! @param[out] ctroids An array of centroids corresponding to each local element in *lelts*.
   function nek_get_lelt_centroids(lelts, n_lelts, ctroids) result(err) bind(C)
     integer(C_INT), dimension(n_lelts), intent(in) :: lelts
     integer(C_INT), intent(in), value :: n_lelts
