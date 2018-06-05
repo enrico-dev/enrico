@@ -2,7 +2,7 @@
 
 extern "C" {
   struct Position { double x, y, z; };
-  void set_position_array(Position *, const int &);
+  void set_position_array(Position *, const int);
 }
 
 int main() {

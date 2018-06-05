@@ -32,7 +32,7 @@ module fobj
 
     subroutine set_position_array(pstns, n) bind(C)
       type(Position), intent(inout), dimension(1:n) :: pstns
-      integer(C_INT), intent(in):: n
+      integer(C_INT), intent(in), value :: n
       integer(C_INT) :: i
       do i = 1, n
         pstns(i)%x = i*10 + 1
