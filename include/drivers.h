@@ -82,8 +82,7 @@ public:
   void solveStep();
   void finalizeStep();
 
-  Position getLocalElCentroid(int localEl);
-  Position getGlobalElCentroid(int globalEl);
+  void getLeltCentroids(const int *lelts, const int nLelts, Position *ctroids);
 };
 
 // This is not actually derived from CoupledDriver.  Currently, it is unclear

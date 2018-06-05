@@ -2,6 +2,7 @@
 #define STREAM_NEK_INTERFACE_H
 
 #include "nek_mangling.h"
+#include "stream_geom.h"
 
 extern "C" {
 
@@ -14,8 +15,8 @@ void C2F_nek_end();
 void C2F_nek_solve();
 
 // From nek_interface.f90
-int nek_get_local_el_centroid(int local_el, double *x, double *y, double *z);
-
+inline int nek_get_lelt_centroids(const int *lelts, const int n_lelts,
+                                  Position *ctroids);
 };
 
-#endif //STREAM_NEK_INTERFACE_H
+#endif // STREAM_NEK_INTERFACE_H

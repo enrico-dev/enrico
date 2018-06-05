@@ -2,25 +2,32 @@ module nek_interface
   use, intrinsic :: ISO_C_BINDING
   implicit none
 
+  ! TODO: Move this to its own header?
+  type, bind(C) :: Position
+    real(C_DOUBLE) :: x
+    real(C_DOUBLE) :: y
+    real(C_DOUBLE) :: z
+  end type Position
+
 contains
 
-  function nek_get_local_el_centroid(local_el, x, y, z) result(err) bind(C)
-    integer(C_INT), intent(in) :: local_el
-    real(C_DOUBLE), intent(out) :: x, y, z
-    integer(C_INT) :: err
+  function nek_get_lelt_centroids(lelts, n_lelts, ctroids) result(err) bind(C)
+    integer(C_INT), dimension(n_lelts), intent(in) :: lelts
+    integer(C_INT), intent(in), value :: n_lelts
+    type(Position), dimension(n_lelts), intent(out) :: ctroids
+    integer(C_INT) :: err, i
 
     include 'PARALLEL'
     include 'SIZE'
 
-    if (local_el <= lelt) then
-      ! TODO: Does not handle GLL indices correctly!  Just a stub!
-      x = xm1(1,1,1,local_el)
-      y = ym1(1,1,1,local_el)
-      z = zm1(1,1,1,local_el)
-      err = 0
-    else
-      err = -1
-    end if
-  end function nek_get_local_el_centroid
+    do i = 1, n_lelts
+      ! TODO: Does not handle GLL indices correctly!  Just demos interface
+      ctroids[i]%x = xm1(1,1,1,lelts[i])
+      ctroids[i]%y = ym1(1,1,1,lelts[i])
+      ctroids[i]%z = zm1(1,1,1,lelts[i])
+    end do
+
+    err = 0
+  end function nek_get_lelt_centroids
 
 end module nek_interface
