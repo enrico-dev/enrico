@@ -1,5 +1,7 @@
 module nek_interface
   use, intrinsic :: ISO_C_BINDING
+  use geom, only: xm1, ym1, zm1
+
   implicit none
 
   ! TODO: Move this to its own header?
@@ -17,14 +19,11 @@ contains
     type(Position), dimension(n_lelts), intent(out) :: ctroids
     integer(C_INT) :: err, i
 
-    include 'PARALLEL'
-    include 'SIZE'
-
     do i = 1, n_lelts
       ! TODO: Does not handle GLL indices correctly!  Just demos interface
-      ctroids[i]%x = xm1(1,1,1,lelts[i])
-      ctroids[i]%y = ym1(1,1,1,lelts[i])
-      ctroids[i]%z = zm1(1,1,1,lelts[i])
+      ctroids(i)%x = xm1(1,1,1,lelts(i))
+      ctroids(i)%y = ym1(1,1,1,lelts(i))
+      ctroids(i)%z = zm1(1,1,1,lelts(i))
     end do
 
     err = 0
