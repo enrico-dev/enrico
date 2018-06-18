@@ -8,9 +8,6 @@ extern "C" {
 
 // From libnek5000
 void C2F_nek_init(const int *intracomm);
-void C2F_nek_init_step();
-void C2F_nek_step();
-void C2F_nek_finalize_step();
 void C2F_nek_end();
 void C2F_nek_solve();
 
@@ -24,6 +21,10 @@ void C2F_nek_solve();
  */
 inline int nek_get_lelt_centroids(const int *lelts, const int n_lelts,
                                   Position *ctroids);
+
+void nek_init_step();
+void nek_step();
+void nek_finalize_step();
 };
 
 #endif // STREAM_NEK_INTERFACE_H

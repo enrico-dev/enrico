@@ -1,5 +1,8 @@
+      module nek_interface_fixedform
+      use, intrinsic :: ISO_C_BINDING
+      contains
 C=======================================================================
-      subroutine nek_init_step()
+      subroutine nek_init_step() bind(C)
       include 'SIZE'
       include 'TSTEP'
       include 'INPUT'
@@ -41,7 +44,7 @@ C=======================================================================
       return
       end
 C=======================================================================
-      subroutine nek_step()
+      subroutine nek_step() bind(C)
 
       include 'SIZE'
       include 'TSTEP'
@@ -56,7 +59,7 @@ C=======================================================================
       return
       end
 C=======================================================================
-      subroutine nek_finalize_step()
+      subroutine nek_finalize_step() bind(C)
       include 'SIZE'
       include 'TSTEP'
       include 'INPUT'
@@ -607,6 +610,6 @@ c-----------------------------------------------------------------------
 
       return
       end
-
 c-----------------------------------------------------------------------
+      end module nek_interface_fixedform
 
