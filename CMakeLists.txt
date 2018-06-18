@@ -29,15 +29,15 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/openmc)
 
 # Target for STREAM library
 set_source_files_properties(
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_parallel.f90
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_geom.f90
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_parallel.F90
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_geom.F90
     PROPERTIES Fortran_FORMAT FIXED)
 add_library(libstream
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/message_passing.cpp
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_interface.f90
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_parallel.f90
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_geom.f90)
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_interface.F90
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_parallel.F90
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_geom.F90)
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
 target_link_libraries(libstream PUBLIC libnek5000 libopenmc)
 
