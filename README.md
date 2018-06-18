@@ -9,7 +9,7 @@ refer to this directory as the **case directory**.  Compilation follows this gen
 
   2. Run CMake for the given Nek5000 case:
 
-     `$ CC=mpicc CXX=mpicxx F90=mpif90 cmake -DCASENAME=<casename> $HOME/stream`
+     `$ CC=mpicc CXX=mpicxx FC=mpif90 cmake -DCASENAME=<casename> $HOME/stream`
    
   3. Run `make` for a desired driver:
 
@@ -33,7 +33,7 @@ one or more of the desired targets:
 
 ``` Console
 $ cd tests/api_tests/
-$ CC=mpicc CXX=mpicxx F90=mpif90 cmake -DCASENAME=ethier ../../
+$ CC=mpicc CXX=mpicxx FC=mpif90 cmake -DCASENAME=ethier ../../
 $ make test_openmc_api
 $ make test_nek5000_api
 $ make test_coupled_api
