@@ -2,6 +2,7 @@
       use, intrinsic :: ISO_C_BINDING
       contains
 C=======================================================================
+      !> Setup and run a Nek5000 solve for one Picard iteration
       subroutine nek_init_step() bind(C)
       include 'SIZE'
       include 'TSTEP'
@@ -59,6 +60,7 @@ C=======================================================================
       return
       end
 C=======================================================================
+      !> Teardown a Nek5000 step for one Picard iteration
       subroutine nek_finalize_step() bind(C)
       include 'SIZE'
       include 'TSTEP'
@@ -317,8 +319,13 @@ c-----------------------
       return
       end
 c-----------------------------------------------------------------------
-! calculates Legendre polynomials using a recurrence relationship. If
-! n > the maximum Legendre order, the function returns 0.0.
+      !> Calculates Legendre polynomials using a recurrence relationship.
+      !!
+      !! If n > the maximum Legendre order, the function returns 0.0.
+      !!
+      !! @param[in] x
+      !! @param[in] n
+      !! @return pl_leg
       function pl_leg(x,n)
       parameter (nl_max=100) ! should never be bigger than 100
       real*8 pl,pl_leg
@@ -345,7 +352,11 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
-! calculates Fourier polynomials Fn(x)
+      !> Calculates Fourier polynomials Fn(x)
+      !!
+      !! @param[in] x
+      !! @param[in] n
+      !! @return fl_four
       function fl_four(x,n)
       real*8 fl_four,pi
       real*8 x, A
@@ -360,11 +371,10 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
-c-----------------------------------------------------------------------
+      !> Solve the convection-diffusion equation for passive scalar IPSCAL
+      !!
+      !! @param[in] igeom
       subroutine cdscal_mod (igeom)
-C
-C     Solve the convection-diffusion equation for passive scalar IPSCAL
-C
       include 'SIZE'
       include 'INPUT'
       include 'GEOM'
@@ -479,18 +489,19 @@ C        Radiation case, smooth convergence, avoid flip-flop (ER).
       return
       end
 c-----------------------------------------------------------------------
+      !> Driver for temperature or passive scalar.
+      !!
+      !! Current version:
+      !! (1) Varaiable properties.
+      !! (2) Implicit time stepping.
+      !! (3) User specified tolerance for the Helmholtz solver
+      !!     (not based on eigenvalues).
+      !! (4) A passive scalar can be defined on either the
+      !!     temperatur or the velocity mesh.
+      !! (5) A passive scalar has its own multiplicity (B.C.).
+      !!
+      !! @param[in] igeom
       subroutine heat_mod (igeom)
-C
-C     Driver for temperature or passive scalar.
-C
-C     Current version:
-C     (1) Varaiable properties.
-C     (2) Implicit time stepping.
-C     (3) User specified tolerance for the Helmholtz solver
-C         (not based on eigenvalues).
-C     (4) A passive scalar can be defined on either the
-C         temperatur or the velocity mesh.
-C     (5) A passive scalar has its own multiplicity (B.C.).
 C
 
 C     TODO: Update turbulence model for Nek5000 v17
@@ -526,6 +537,7 @@ C   &   istep,'  Scalars done',time,dnekclock()-ts
       return
       end
 c-----------------------------------------------------------------------
+      !> Run a Nek5000 solve for one Picard iteration
       subroutine nek_advance_moose
 
       include 'SIZE'
