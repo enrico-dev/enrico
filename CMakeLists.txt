@@ -18,7 +18,7 @@ include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/src/openmc/include
     ${CMAKE_CURRENT_LIST_DIR}/src/nek5000/core
     ${CMAKE_CURRENT_LIST_DIR}/src/nek5000/3rd_party/gslib/gslib-1.0.1/src
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek5000/nek5000_interface
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek5000_interface
     ${CMAKE_BINARY_DIR})
 
 # For building libnek5000 and libopenmc
@@ -26,18 +26,33 @@ add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/nek5000)
 add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/src/openmc)
 
 # Target for STREAM library
-set_source_files_properties(
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_parallel.F90
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_geom.F90
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_interface_fixedform.F90
-    PROPERTIES Fortran_FORMAT FIXED)
+
+# Use preprocessor and 8-byte reals
+if(CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
+  set(FIXEDFORMAT_FLAGS "-fdefault-real-8 -fdefault-double-8 -cpp")
+elseif(CMAKE_Fortran_COMPILER_ID STREQUAL PGI)
+  set(FIXEDFORMAT_FLAGS "-r8 -Mpreprocess")
+elseif(CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
+  set(FIXEDFORMAT_FLAGS "-r8 -fpconstant -fpp")
+elseif(CMAKE_Fortran_COMPILER_ID STREQUAL XL)
+  set(FIXEDFORMAT_FLAGS "-qrealsize=8 -qdpc=e -qsuffix=cpp=f -qsuppress=cmpmsg")
+else()
+  message(FATAL_ERROR "Specified compiler (${CMAKE_Fortran_COMPILER_ID}) is not supported by Nek5000")
+endif()
+set(FIXEDFORMAT_SOURCES
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_parallel.F
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_geom.F
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_interface_fixedform.F)
+set_source_files_properties(${FIXEDFORMAT_SOURCES} PROPERTIES Fortran_FORMAT FIXED)
+set_source_files_properties(${FIXEDFORMAT_SOURCES} PROPERTIES COMPILE_FLAGS ${FIXEDFORMAT_FLAGS})
+
 add_library(libstream
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/message_passing.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_interface.F90
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_interface_fixedform.F90
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_parallel.F90
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_geom.F90)
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_interface_fixedform.F
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_parallel.F
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_geom.F)
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
 target_link_libraries(libstream PUBLIC libnek5000 libopenmc)
 
