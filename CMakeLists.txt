@@ -61,13 +61,13 @@ add_executable(stream ${CMAKE_CURRENT_LIST_DIR}/src/main.cpp)
 target_link_libraries(stream PUBLIC libstream)
 
 # For building tests
-add_executable(test_openmc_api ${CMAKE_CURRENT_LIST_DIR}/tests/openmc_api/main.cpp)
+add_executable(test_openmc_api ${CMAKE_CURRENT_LIST_DIR}/tests/api_tests/test_openmc_api.cpp)
 target_link_libraries(test_openmc_api PUBLIC libstream)
 
-add_executable(test_nek5000_api ${CMAKE_CURRENT_LIST_DIR}/tests/nek5000_api/main.cpp)
+add_executable(test_nek5000_api ${CMAKE_CURRENT_LIST_DIR}/tests/api_tests/test_nek5000_api.cpp)
 target_link_libraries(test_nek5000_api PUBLIC libstream)
 
-add_executable(comm_split_demo ${CMAKE_CURRENT_LIST_DIR}/tests/comm_split_demo/main.cpp)
+add_executable(test_coupled_api ${CMAKE_CURRENT_LIST_DIR}/tests/api_tests/test_coupled_api.cpp)
+target_link_libraries(test_coupled_api PUBLIC libstream)
 
-add_executable(test_coupled_driver ${CMAKE_CURRENT_LIST_DIR}/tests/coupled_driver/main.cpp)
-target_link_libraries(test_coupled_driver PUBLIC libstream)
+add_executable(comm_split_demo ${CMAKE_CURRENT_LIST_DIR}/tests/comm_split_demo/main.cpp)

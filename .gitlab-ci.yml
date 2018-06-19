@@ -21,7 +21,7 @@ test:openmc_api:
     OPENMC_CROSS_SECTIONS: $CI_PROJECT_DIR/nndc_hdf5/cross_sections.xml
     OMP_NUM_THREADS: 4
   script:
-    - cd tests/openmc_api
+    - cd tests/api_tests
     - cmake -DCASENAME=ethier ../../
     - make -j -l4 test_openmc_api
     - mpirun -np 2 ./test_openmc_api
@@ -34,7 +34,7 @@ test:nek5000_api:
     CXX: mpicxx
     FC: mpif90
   script:
-    - cd tests/nek5000_api
+    - cd tests/api_tests
     - cmake -DCASENAME=ethier ../../
     - make -j -l4 test_nek5000_api
     - mpirun -np 8 ./test_nek5000_api
@@ -51,7 +51,7 @@ test:coupled_driver:
     OPENMC_CROSS_SECTIONS: $CI_PROJECT_DIR/nndc_hdf5/cross_sections.xml
     OMP_NUM_THREADS: 4
   script:
-    - cd tests/coupled_driver
+    - cd tests/api_tests
     - cmake -DCASENAME=ethier ../../
-    - make -j -l4 test_coupled_driver
-    - mpirun -np 8 ./test_coupled_driver
+    - make -j -l4 test_coupled_api
+    - mpirun -np 8 ./test_coupled_api
