@@ -51,8 +51,9 @@ set(FIXEDFORMAT_SOURCES
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_parallel.F
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_geom.F
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_interface_fixedform.F)
-set_source_files_properties(${FIXEDFORMAT_SOURCES} PROPERTIES Fortran_FORMAT FIXED)
-set_source_files_properties(${FIXEDFORMAT_SOURCES} PROPERTIES COMPILE_FLAGS ${FIXEDFORMAT_FLAGS})
+set_source_files_properties(${FIXEDFORMAT_SOURCES} PROPERTIES
+    Fortran_FORMAT FIXED
+    COMPILE_FLAGS ${FIXEDFORMAT_FLAGS})
 
 # Build all compoments of libstream
 add_library(libstream
