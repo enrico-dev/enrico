@@ -7,12 +7,10 @@ extern "C" {
 
 int main() {
   const int n = 5;
-  Position *p = new Position[n]; 
+  Position p[n];
 
   set_position_array(p, n);
 
   for (int i=0; i<n; ++i)
     std::cout << p[i].x << p[i].y << p[i].z << std::endl;
-
-  delete []p;
 }
