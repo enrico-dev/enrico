@@ -1,4 +1,4 @@
-      module parallel
+      module nek_parallel
       include 'SIZE'
       include 'PARALLEL'
-      end module parallel
+      end module nek_parallel

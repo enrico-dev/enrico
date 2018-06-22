@@ -1,4 +1,4 @@
-      module geom
+      module nek_geom
       include 'SIZE'
       include 'GEOM'
-      end module geom
+      end module nek_geom

@@ -1,6 +1,6 @@
 module nek_interface
   use, intrinsic :: ISO_C_BINDING
-  use geom, only: xm1, ym1, zm1
+  use nek_geom, only: xm1, ym1, zm1
 
   implicit none
 

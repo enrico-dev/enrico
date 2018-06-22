@@ -1,3 +1,3 @@
-      module size
+      module nek_size
       include 'SIZE'
-      end module size
+      end module nek_size
