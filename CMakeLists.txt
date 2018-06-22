@@ -22,7 +22,7 @@ include_directories(
     ${CMAKE_CURRENT_LIST_DIR}/src/openmc/include
     ${CMAKE_CURRENT_LIST_DIR}/src/nek5000/core
     ${CMAKE_CURRENT_LIST_DIR}/src/nek5000/3rd_party/gslib/gslib-1.0.1/src
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek5000_interface
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface
     ${CMAKE_BINARY_DIR})
 
 # =============================================================================
@@ -58,10 +58,11 @@ set_source_files_properties(${FIXEDFORMAT_SOURCES} PROPERTIES COMPILE_FLAGS ${FI
 add_library(libstream
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/message_passing.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_geom.F
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_interface.F90
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_interface_fixedform.F
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_parallel.F
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_geom.F)
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_size.F)
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
 target_link_libraries(libstream PUBLIC libnek5000 libopenmc)
 

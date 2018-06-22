@@ -1,4 +1,4 @@
       module nek_geom
-      include 'SIZE'
+      use nek_size
       include 'GEOM'
       end module nek_geom
