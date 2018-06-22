@@ -2,12 +2,12 @@ module fobj
   use ISO_C_BINDING
   implicit none
 
-  ! Specifying a `name` in the `bind` atribute is not allowed.  The Fortran 2003 standard says:
+  ! Specifying a `name` in the `bind` attribute is not allowed.  The Fortran 2003 standard says:
   !
   !   "The names of the types and the names of the components are not significant for the purposes 
   !   of determining whether a Fortran derived type is interoperable with a C struct type."
   !
-  ! A working example from the standard shows a C struct and Fortran type with differeng names:
+  ! A working example from the standard shows a C struct and Fortran type with differing names:
   ! 
   !   typedef struct {
   !     int m, n;
@@ -25,8 +25,6 @@ module fobj
     real(C_DOUBLE) :: y
     real(C_DOUBLE) :: z
   end type Position
-
-
 
   contains
 
