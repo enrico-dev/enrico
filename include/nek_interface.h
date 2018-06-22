@@ -19,8 +19,7 @@ void C2F_nek_solve();
  * @param[in]  n_lelts The number of local elements in *lelts*.
  * @param[out] ctroids An array of centroids corresponding to each local element in *lelts*.
  */
-inline int nek_get_lelt_centroids(const int *lelts, const int n_lelts,
-                                  Position *ctroids);
+int nek_get_lelt_centroids(const int *lelts, const int n_lelts, Position *ctroids);
 
 void nek_init_step();
 void nek_step();
