@@ -6,6 +6,7 @@
 #include "mpi.h"
 #include "openmc.h"
 #include "procinfo.h"
+#include "stream_geom.h"
 
 // ============================================================================
 // Base Classes
@@ -65,7 +66,7 @@ public:
   void solveStep();
   void finalizeStep();
 
-  int getCellCentroid(int32_t cellId, double *centroid);
+  Position getCellCentroid(int32_t cellId);
 private:
   // Map that gives a list of Nek element global indices for a given OpenMC
   // material index
@@ -81,8 +82,7 @@ public:
   void solveStep();
   void finalizeStep();
 
-  int getElemNumber();
-  int getElemCentroid(int globalElem);
+  void getLeltCentroids(const int *lelts, const int nLelts, Position *ctroids);
 };
 
 // This is not actually derived from CoupledDriver.  Currently, it is unclear

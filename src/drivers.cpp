@@ -1,7 +1,8 @@
 #include "drivers.h"
 #include "mpi.h"
-#include "openmc.h"
 #include "nek_interface.h"
+#include "openmc.h"
+#include "stream_geom.h"
 
 #include <unordered_set>
 
@@ -9,7 +10,8 @@
 // OpenMC Driver
 // ============================================================================
 
-OpenmcDriver::OpenmcDriver(int argc, char* argv[], MPI_Comm comm) : NeutronDriver(comm) {
+OpenmcDriver::OpenmcDriver(int argc, char *argv[], MPI_Comm comm)
+    : NeutronDriver(comm) {
   if (procInfo.comm != MPI_COMM_NULL) {
     openmc_init(argc, argv, &comm);
 
@@ -42,16 +44,11 @@ OpenmcDriver::OpenmcDriver(int argc, char* argv[], MPI_Comm comm) : NeutronDrive
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void OpenmcDriver::initStep() {
-}
+void OpenmcDriver::initStep() {}
 
-void OpenmcDriver::solveStep() {
-  openmc_run();
-}
+void OpenmcDriver::solveStep() { openmc_run(); }
 
-void OpenmcDriver::finalizeStep() {
-  openmc_simulation_finalize();
-}
+void OpenmcDriver::finalizeStep() { openmc_simulation_finalize(); }
 
 OpenmcDriver::~OpenmcDriver() {
   if (procInfo.comm != MPI_COMM_NULL)
@@ -71,14 +68,22 @@ NekDriver::NekDriver(MPI_Comm comm) : ThDriver(comm) {
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void NekDriver::initStep() {
-}
+void NekDriver::initStep() {}
 
-void NekDriver::solveStep() {
-  C2F_nek_solve();
-}
+void NekDriver::solveStep() { C2F_nek_solve(); }
 
-void NekDriver::finalizeStep() {
+void NekDriver::finalizeStep() {}
+
+/** Retrieves an array of centriods for a given array of local element numbers.
+ *
+ * @param[in] lelts    An array of local element numbers.
+ * @param[in] nLelts   The number of local elements in *lelts*.
+ * @param[out] ctroids An array of centroids corresponding to each local element
+ * in *lelts*.
+ */
+void NekDriver::getLeltCentroids(const int *lelts, const int nLelts,
+                                 Position *ctroids) {
+  nek_get_lelt_centroids(lelts, nLelts, ctroids);
 }
 
 NekDriver::~NekDriver() {
