@@ -1,6 +1,7 @@
 #ifndef STREAM_DRIVERS_H
 #define STREAM_DRIVERS_H
 
+#include <map>
 #include <unordered_map>
 #include <vector>
 #include "mpi.h"
@@ -45,10 +46,7 @@ public:
   NeutronDriver neutronDriver;
   ThDriver thDriver;
 
-  explicit CoupledDriver(MPI_Comm coupledComm, MPI_Comm neutronComm, MPI_Comm thComm) :
-      procInfo(coupledComm),
-      neutronDriver(neutronComm),
-      thDriver(thComm) {};
+  explicit CoupledDriver(MPI_Comm coupledComm, MPI_Comm neutronComm, MPI_Comm thComm);
   CoupledDriver(){};
   virtual ~CoupledDriver() {};
 };
@@ -58,6 +56,10 @@ public:
 // ============================================================================
 
 class OpenmcDriver : public NeutronDriver {
+// ROR 2018-06-02: Declaring this member function as a friend isn't working for
+// me.  I must have an error that I can't see.
+// friend void OpenmcNekDriver::initMatsToNekElems();
+friend class OpenmcNekDriver;
 public:
   explicit OpenmcDriver(int argc, char* argv[], MPI_Comm comm);
   ~OpenmcDriver();
@@ -66,14 +68,14 @@ public:
   void solveStep();
   void finalizeStep();
 
-  Position getCellCentroid(int32_t cellId);
-private:
-  // Map that gives a list of Nek element global indices for a given OpenMC
-  // material index
-  std::unordered_map<int32_t,std::vector<int>> mats_to_nek_elems;
+  Position getMatCentroid(const int32_t matId);
+  int32_t getMatId(const Position position);
 };
 
 class NekDriver : public ThDriver {
+// ROR 2018-06-02: Declaring a member function (rather than whole class) as a friend
+// isn't working for me.  I must have an error that I can't see.
+friend class OpenmcNekDriver;
 public:
   explicit NekDriver(MPI_Comm comm);
   ~NekDriver();
@@ -82,7 +84,11 @@ public:
   void solveStep();
   void finalizeStep();
 
-  void getLeltCentroids(const int *lelts, const int nLelts, Position *ctroids);
+  Position getGlobalElemCentroid(const int32_t globalElem);
+
+  int lelg;
+  int lelt;
+  int lx1;
 };
 
 // This is not actually derived from CoupledDriver.  Currently, it is unclear
@@ -94,11 +100,17 @@ public:
   OpenmcDriver openmcDriver;
   NekDriver nekDriver;
 
-  explicit OpenmcNekDriver(int argc, char *argv[], MPI_Comm coupledComm, MPI_Comm openmcComm, MPI_Comm nekComm) :
-      procInfo(coupledComm),
-      openmcDriver(argc, argv, openmcComm),
-      nekDriver(nekComm) {};
+  explicit OpenmcNekDriver(int argc, char *argv[], MPI_Comm coupledComm, MPI_Comm openmcComm, MPI_Comm nekComm);
   ~OpenmcNekDriver() {};
+
+private:
+  void initMatsToElems();
+  void initElemsToMats();
+  // Map that gives a list of Nek element global indices for a given OpenMC
+  // material index
+  std::unordered_map<int32_t,std::vector<int32_t>> matsToElems;
+  // Map that gives a list of OpenMC material indices for a given Nek global element index
+  std::map<int32_t, std::vector<int32_t>> elemsToMats;
 };
 
 #endif //STREAM_DRIVERS_H

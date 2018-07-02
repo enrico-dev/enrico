@@ -50,6 +50,13 @@ void OpenmcDriver::solveStep() { openmc_run(); }
 
 void OpenmcDriver::finalizeStep() { openmc_simulation_finalize(); }
 
+int32_t OpenmcDriver::getMatId(const Position position) {
+  int32_t matId, instance;
+  double xyz[3] = {position.x, position.y, position.z};
+  openmc_find(xyz, 2, &matId, &instance);
+  return matId;
+}
+
 OpenmcDriver::~OpenmcDriver() {
   if (procInfo.comm != MPI_COMM_NULL)
     openmc_finalize();
@@ -61,6 +68,10 @@ OpenmcDriver::~OpenmcDriver() {
 // ============================================================================
 
 NekDriver::NekDriver(MPI_Comm comm) : ThDriver(comm) {
+  lelg = nek_get_lelg();
+  lelt = nek_get_lelt();
+  lx1 = nek_get_lx1();
+
   if (procInfo.comm != MPI_COMM_NULL) {
     MPI_Fint intComm = MPI_Comm_c2f(procInfo.comm);
     C2F_nek_init(static_cast<const int *>(&intComm));
@@ -74,20 +85,33 @@ void NekDriver::solveStep() { C2F_nek_solve(); }
 
 void NekDriver::finalizeStep() {}
 
-/** Retrieves an array of centriods for a given array of local element numbers.
- *
- * @param[in] lelts    An array of local element numbers.
- * @param[in] nLelts   The number of local elements in *lelts*.
- * @param[out] ctroids An array of centroids corresponding to each local element
- * in *lelts*.
- */
-void NekDriver::getLeltCentroids(const int *lelts, const int nLelts,
-                                 Position *ctroids) {
-  nek_get_lelt_centroids(lelts, nLelts, ctroids);
+Position NekDriver::getGlobalElemCentroid(const int32_t globalElem) {
+  Position centroid;
+  int ierr = nek_get_global_elem_centroid(globalElem, &centroid);
+  return centroid;
 }
 
 NekDriver::~NekDriver() {
   if (procInfo.comm != MPI_COMM_NULL)
     C2F_nek_end();
   MPI_Barrier(MPI_COMM_WORLD);
+}
+
+// ============================================================================
+// OpenmcNekDriver
+// ============================================================================
+
+OpenmcNekDriver::OpenmcNekDriver(int argc, char **argv, MPI_Comm coupledComm, MPI_Comm openmcComm, MPI_Comm nekComm) :
+    procInfo(coupledComm),
+    openmcDriver(argc, argv, openmcComm),
+    nekDriver(nekComm) {
+  initMatsToElems();
+};
+
+void OpenmcNekDriver::initMatsToElems() {
+  for (int globalElem = 1; globalElem <= nekDriver.lelg; ++globalElem) {
+    Position elemPos = nekDriver.getGlobalElemCentroid(globalElem);
+    int32_t matId = openmcDriver.getMatId(elemPos);
+    matsToElems[matId].push_back(globalElem);
+  }
 }
