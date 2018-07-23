@@ -4,6 +4,7 @@ module nek_interface
   use nek_size, only: nelt, nx1, ny1, nz1
   use nek_parallel, only: lglel, gllel, gllnid
   use nek_mass, only: bm1
+  use nek_size, only: lelg, lelt, lx1
 
   implicit none
 
@@ -27,7 +28,8 @@ contains
     type(Position), intent(out) :: centroid
     integer(C_INT) :: ierr
     integer :: i, j, k
-    double precision :: mass
+    real(C_DOUBLE) :: mass
+    integer(C_INT) :: local_elem
 
     local_elem = gllel(global_elem)
 
@@ -54,19 +56,19 @@ contains
     ierr = 0
   end function nek_get_global_elem_centroid
 
-  function nek_get_lelg() result(c_lelg)
+  function nek_get_lelg() result(c_lelg) bind(C)
     integer(C_INT) :: c_lelg
     c_lelg = lelg
   end function nek_get_lelg
 
-  function nek_get_lelt() result(c_lelt)
+  function nek_get_lelt() result(c_lelt) bind(C)
     integer(C_INT) :: c_lelt
     c_lelt = lelt
   end function nek_get_lelt
 
-  function nek_get_lx1() result(c_lx1)
+  function nek_get_lx1() result(c_lx1) bind(C)
     integer(C_INT) :: c_lx1
-    c_lelg = lx1
+    c_lx1 = lx1
   end function nek_get_lx1
 
 end module nek_interface
