@@ -9,6 +9,8 @@
 #include "procinfo.h"
 #include "stream_geom.h"
 
+namespace stream {
+
 // ============================================================================
 // Base Classes
 // ============================================================================
@@ -108,5 +110,7 @@ private:
   // Map that gives a list of OpenMC material indices for a given Nek global element index
   std::map<int32_t, std::vector<int32_t>> elemsToMats;
 };
+
+} // namespace stream
 
 #endif //STREAM_DRIVERS_H

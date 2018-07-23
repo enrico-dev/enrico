@@ -7,6 +7,8 @@
 #include <algorithm> // for max
 #include <unordered_set>
 
+namespace stream {
+
 // ============================================================================
 // OpenMC Driver
 // ============================================================================
@@ -138,3 +140,5 @@ void OpenmcNekDriver::initTallies() {
     openmc_tally_set_filters(openmcDriver.indexTally, 1, &index_filter);
   }
 }
+
+} // namespace stream

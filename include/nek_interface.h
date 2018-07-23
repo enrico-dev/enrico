@@ -11,7 +11,7 @@ void C2F_nek_init(const int *intracomm);
 void C2F_nek_end();
 void C2F_nek_solve();
 
-int32_t nek_get_global_elem_centroid(int32_t global_elem, Position *centroid);
+int32_t nek_get_global_elem_centroid(int32_t global_elem, stream::Position *centroid);
 int32_t nek_get_lelg();
 int32_t nek_get_lelt();
 int32_t nek_get_lx1();

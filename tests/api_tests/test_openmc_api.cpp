@@ -5,7 +5,7 @@ int main(int argc, char *argv[]) {
   MPI_Init(&argc, &argv);
 
   {
-    OpenmcDriver testDriver(argc, argv, MPI_COMM_WORLD);
+    stream::OpenmcDriver testDriver(argc, argv, MPI_COMM_WORLD);
     testDriver.initStep();
     testDriver.solveStep();
     testDriver.finalizeStep();
