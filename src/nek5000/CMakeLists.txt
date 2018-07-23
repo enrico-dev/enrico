@@ -19,8 +19,18 @@ option(NEKNEK      "USE overlapping mesh solver (default: OFF)"     OFF)
 option(CMTNEK      "Use DG compressible-flow solver (default: OFF)" OFF)
 
 if(NOT CASENAME)
-  set(CASENAME zero)
-  message(WARNING "A Nek5000 case was *NOT* provided with '-DCASENAME=<casename>'.  Nek5000 will be configured with a generic input deck.'")
+  # If no CASENAME was specified, try to find one in working directory by
+  # checking whether there are any .usr files
+  file(GLOB usr_files "${CMAKE_BINARY_DIR}/*.usr")
+  if (usr_files)
+    list(GET usr_files 0 first_usr_file)
+    get_filename_component(CASENAME "${first_usr_file}" NAME_WE)
+    message(STATUS "A Nek5000 case was not specified, but the '${CASENAME}' case was found.")
+    unset(first_usr_file)
+  else ()
+    set(CASENAME zero)
+    message(WARNING "A Nek5000 case was *NOT* provided with '-DCASENAME=<casename>'.  Nek5000 will be configured with a generic input deck.'")
+  endif()
 endif()
 
 # =============================================================================
