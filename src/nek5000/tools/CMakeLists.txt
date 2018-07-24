@@ -61,3 +61,4 @@ endif()
 
 include(${CMAKE_CURRENT_LIST_DIR}/genbox/CMakeLists.txt)
 include(${CMAKE_CURRENT_LIST_DIR}/genmap/CMakeLists.txt)
+include(${CMAKE_CURRENT_LIST_DIR}/reatore2/CMakeLists.txt)

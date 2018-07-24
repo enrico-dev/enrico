@@ -62,6 +62,7 @@ add_library(libstream
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_geom.F
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_interface.F90
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_interface_fixedform.F
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_mass.F
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_parallel.F
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_size.F)
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
