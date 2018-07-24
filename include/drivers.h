@@ -56,26 +56,21 @@ public:
 // ============================================================================
 
 class OpenmcDriver : public NeutronDriver {
-// ROR 2018-06-02: Declaring this member function as a friend isn't working for
-// me.  I must have an error that I can't see.
-// friend void OpenmcNekDriver::initMatsToNekElems();
-friend class OpenmcNekDriver;
 public:
-  explicit OpenmcDriver(int argc, char* argv[], MPI_Comm comm);
+  OpenmcDriver(int argc, char* argv[], MPI_Comm comm);
   ~OpenmcDriver();
 
   void initStep();
   void solveStep();
   void finalizeStep();
 
-  Position getMatCentroid(const int32_t matId);
-  int32_t getMatId(const Position position);
+  Position getMatCentroid(int32_t matId) const;
+  int32_t getMatId(Position position) const;
+
+  int32_t indexTally;
 };
 
 class NekDriver : public ThDriver {
-// ROR 2018-06-02: Declaring a member function (rather than whole class) as a friend
-// isn't working for me.  I must have an error that I can't see.
-friend class OpenmcNekDriver;
 public:
   explicit NekDriver(MPI_Comm comm);
   ~NekDriver();
@@ -100,12 +95,13 @@ public:
   OpenmcDriver openmcDriver;
   NekDriver nekDriver;
 
-  explicit OpenmcNekDriver(int argc, char *argv[], MPI_Comm coupledComm, MPI_Comm openmcComm, MPI_Comm nekComm);
+  OpenmcNekDriver(int argc, char *argv[], MPI_Comm coupledComm, MPI_Comm openmcComm, MPI_Comm nekComm);
   ~OpenmcNekDriver() {};
 
 private:
   void initMatsToElems();
   void initElemsToMats();
+  void initTallies();
   // Map that gives a list of Nek element global indices for a given OpenMC
   // material index
   std::unordered_map<int32_t,std::vector<int32_t>> matsToElems;
