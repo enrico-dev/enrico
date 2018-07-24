@@ -10,12 +10,28 @@
 namespace stream {
 
 // ============================================================================
+// HeatFluids Driver
+// ============================================================================
+
+bool HeatFluidsDriver::active() const {
+  return procInfo.comm != MPI_COMM_NULL;
+}
+
+// ============================================================================
+// Transport Driver
+// ============================================================================
+
+bool TransportDriver::active() const {
+  return procInfo.comm != MPI_COMM_NULL;
+}
+
+// ============================================================================
 // OpenMC Driver
 // ============================================================================
 
 OpenmcDriver::OpenmcDriver(int argc, char *argv[], MPI_Comm comm)
-    : NeutronDriver(comm) {
-  if (procInfo.comm != MPI_COMM_NULL) {
+    : TransportDriver(comm) {
+  if (active()) {
     openmc_init(argc, argv, &comm);
   }
   MPI_Barrier(MPI_COMM_WORLD);
@@ -35,7 +51,7 @@ int32_t OpenmcDriver::getMatId(Position position) const {
 }
 
 OpenmcDriver::~OpenmcDriver() {
-  if (procInfo.comm != MPI_COMM_NULL)
+  if (active())
     openmc_finalize();
   MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -44,12 +60,12 @@ OpenmcDriver::~OpenmcDriver() {
 // Nek5000 Driver
 // ============================================================================
 
-NekDriver::NekDriver(MPI_Comm comm) : ThDriver(comm) {
+NekDriver::NekDriver(MPI_Comm comm) : HeatFluidsDriver(comm) {
   lelg = nek_get_lelg();
   lelt = nek_get_lelt();
   lx1 = nek_get_lx1();
 
-  if (procInfo.comm != MPI_COMM_NULL) {
+  if (active()) {
     MPI_Fint intComm = MPI_Comm_c2f(procInfo.comm);
     C2F_nek_init(static_cast<const int *>(&intComm));
   }
@@ -62,14 +78,14 @@ void NekDriver::solveStep() { C2F_nek_solve(); }
 
 void NekDriver::finalizeStep() {}
 
-Position NekDriver::getGlobalElemCentroid(const int32_t globalElem) {
+Position NekDriver::getGlobalElemCentroid(int32_t globalElem) const {
   Position centroid;
   int ierr = nek_get_global_elem_centroid(globalElem, &centroid);
   return centroid;
 }
 
 NekDriver::~NekDriver() {
-  if (procInfo.comm != MPI_COMM_NULL)
+  if (active())
     C2F_nek_end();
   MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -87,7 +103,7 @@ OpenmcNekDriver::OpenmcNekDriver(int argc, char **argv, MPI_Comm coupledComm, MP
 };
 
 void OpenmcNekDriver::initMatsToElems() {
-  if (openmcDriver.procInfo.comm != MPI_COMM_NULL) {
+  if (openmcDriver.active()) {
     for (int globalElem = 1; globalElem <= nekDriver.lelg; ++globalElem) {
       Position elemPos = nekDriver.getGlobalElemCentroid(globalElem);
       int32_t matId = openmcDriver.getMatId(elemPos);
@@ -97,7 +113,7 @@ void OpenmcNekDriver::initMatsToElems() {
 }
 
 void OpenmcNekDriver::initTallies() {
-  if (openmcDriver.procInfo.comm != MPI_COMM_NULL) {
+  if (openmcDriver.active()) {
     // Determine maximum tally/filter ID used so far
     // TODO: Add functions in OpenMC API for this
     int32_t max_filter_id = 0;
