@@ -5,10 +5,10 @@ int main(int argc, char *argv[]) {
   MPI_Init(&argc, &argv);
 
   {
-    stream::OpenmcDriver testDriver(argc, argv, MPI_COMM_WORLD);
-    testDriver.init_step();
-    testDriver.solve_step();
-    testDriver.finalize_step();
+    stream::OpenmcDriver test_driver(argc, argv, MPI_COMM_WORLD);
+    test_driver.init_step();
+    test_driver.solve_step();
+    test_driver.finalize_step();
   }
 
   MPI_Finalize();
