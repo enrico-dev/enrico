@@ -9,42 +9,46 @@
 #include "procinfo.h"
 #include "stream_geom.h"
 
+namespace stream {
+
 // ============================================================================
 // Base Classes
 // ============================================================================
 
-class ThDriver {
+class HeatFluidsDriver {
 public:
   ProcInfo procInfo;
 
-  explicit ThDriver(MPI_Comm comm) : procInfo(comm) {};
-  ThDriver() {};
-  virtual ~ThDriver() {};
+  explicit HeatFluidsDriver(MPI_Comm comm) : procInfo(comm) {};
+  HeatFluidsDriver() {};
+  virtual ~HeatFluidsDriver() {};
 
   virtual void initStep() {};
   virtual void solveStep() {};
   virtual void finalizeStep() {};
+  bool active() const;
 };
 
-class NeutronDriver {
+class TransportDriver {
 public:
   ProcInfo procInfo;
 
-  explicit NeutronDriver(MPI_Comm comm) : procInfo(comm) {};
-  NeutronDriver() {};
-  virtual ~NeutronDriver() {};
+  explicit TransportDriver(MPI_Comm comm) : procInfo(comm) {};
+  TransportDriver() {};
+  virtual ~TransportDriver() {};
 
   virtual void initStep() {};
   virtual void solveStep() {};
   virtual void finalizeStep() {};
+  bool active() const;
 };
 
 class CoupledDriver {
 public:
   ProcInfo procInfo;
 
-  NeutronDriver neutronDriver;
-  ThDriver thDriver;
+  TransportDriver transportDriver;
+  HeatFluidsDriver heatFluidsDriver;
 
   explicit CoupledDriver(MPI_Comm coupledComm, MPI_Comm neutronComm, MPI_Comm thComm);
   CoupledDriver(){};
@@ -55,7 +59,7 @@ public:
 // Implementations
 // ============================================================================
 
-class OpenmcDriver : public NeutronDriver {
+class OpenmcDriver : public TransportDriver {
 public:
   OpenmcDriver(int argc, char* argv[], MPI_Comm comm);
   ~OpenmcDriver();
@@ -70,7 +74,7 @@ public:
   int32_t indexTally;
 };
 
-class NekDriver : public ThDriver {
+class NekDriver : public HeatFluidsDriver {
 public:
   explicit NekDriver(MPI_Comm comm);
   ~NekDriver();
@@ -79,7 +83,7 @@ public:
   void solveStep();
   void finalizeStep();
 
-  Position getGlobalElemCentroid(const int32_t globalElem);
+  Position getGlobalElemCentroid(int32_t globalElem) const;
 
   int lelg;
   int lelt;
@@ -108,5 +112,7 @@ private:
   // Map that gives a list of OpenMC material indices for a given Nek global element index
   std::map<int32_t, std::vector<int32_t>> elemsToMats;
 };
+
+} // namespace stream
 
 #endif //STREAM_DRIVERS_H

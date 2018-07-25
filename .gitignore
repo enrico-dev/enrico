@@ -1,0 +1,12 @@
+*~
+*.mod
+*.h5
+tallies.out
+CMakeFiles/
+bin/
+lib/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+nek_mangling.h
+SESSION.NAME

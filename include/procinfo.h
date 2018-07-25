@@ -3,6 +3,8 @@
 
 #include "mpi.h"
 
+namespace stream {
+
 class ProcInfo{
 public:
   MPI_Comm comm = MPI_COMM_NULL;
@@ -19,5 +21,7 @@ public:
     }
   }
 };
+
+} // namespace stream
 
 #endif //STREAM_PROCINFO_H

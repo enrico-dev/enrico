@@ -1,6 +1,8 @@
 #include "message_passing.h"
 #include "mpi.h"
 
+namespace stream {
+
 /**
  * @brief Splits a given MPI comunicator into a new comm with a specified number of procs in every node.
  *
@@ -41,3 +43,5 @@ void getInternodeSubComm(MPI_Comm superComm, int procsPerNode, MPI_Comm *subComm
   if (color != 0)
     MPI_Comm_free(subComm);
 }
+
+} // namespace stream
