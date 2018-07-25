@@ -7,7 +7,7 @@ int main(int argc, char *argv[]) {
 
   // openmcComm is split from MPI_COMM_WORLD.  It will contain 1 proc per node.
   MPI_Comm openmcComm = MPI_COMM_NULL;
-  stream::getInternodeSubComm(MPI_COMM_WORLD, 1, &openmcComm);
+  stream::get_internode_sub_comm(MPI_COMM_WORLD, 1, &openmcComm);
 
   MPI_Comm coupledComm = MPI_COMM_WORLD;
   MPI_Comm nekComm = MPI_COMM_WORLD;
@@ -15,17 +15,17 @@ int main(int argc, char *argv[]) {
   {
     stream::OpenmcNekDriver testDriver(argc, argv, coupledComm, openmcComm, nekComm);
 
-    if (testDriver.openmcDriver.procInfo.comm != MPI_COMM_NULL) {
-      testDriver.openmcDriver.initStep();
-      testDriver.openmcDriver.solveStep();
-      testDriver.openmcDriver.finalizeStep();
+    if (testDriver.openmc_driver_.proc_info_.comm != MPI_COMM_NULL) {
+      testDriver.openmc_driver_.init_step();
+      testDriver.openmc_driver_.solve_step();
+      testDriver.openmc_driver_.finalize_step();
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-    if (testDriver.nekDriver.procInfo.comm != MPI_COMM_NULL) {
-      testDriver.nekDriver.initStep();
-      testDriver.nekDriver.solveStep();
-      testDriver.nekDriver.finalizeStep();
+    if (testDriver.nek_driver_.proc_info_.comm != MPI_COMM_NULL) {
+      testDriver.nek_driver_.init_step();
+      testDriver.nek_driver_.solve_step();
+      testDriver.nek_driver_.finalize_step();
     }
     MPI_Barrier(MPI_COMM_WORLD);
   }

@@ -6,9 +6,9 @@ int main(int argc, char *argv[]) {
 
   {
     stream::OpenmcDriver testDriver(argc, argv, MPI_COMM_WORLD);
-    testDriver.initStep();
-    testDriver.solveStep();
-    testDriver.finalizeStep();
+    testDriver.init_step();
+    testDriver.solve_step();
+    testDriver.finalize_step();
   }
 
   MPI_Finalize();

@@ -17,40 +17,40 @@ namespace stream {
 
 class HeatFluidsDriver {
 public:
-  ProcInfo procInfo;
+  ProcInfo proc_info_;
 
-  explicit HeatFluidsDriver(MPI_Comm comm) : procInfo(comm) {};
+  explicit HeatFluidsDriver(MPI_Comm comm) : proc_info_(comm) {};
   HeatFluidsDriver() {};
   virtual ~HeatFluidsDriver() {};
 
-  virtual void initStep() {};
-  virtual void solveStep() {};
-  virtual void finalizeStep() {};
+  virtual void init_step() {};
+  virtual void solve_step() {};
+  virtual void finalize_step() {};
   bool active() const;
 };
 
 class TransportDriver {
 public:
-  ProcInfo procInfo;
+  ProcInfo proc_info_;
 
-  explicit TransportDriver(MPI_Comm comm) : procInfo(comm) {};
+  explicit TransportDriver(MPI_Comm comm) : proc_info_(comm) {};
   TransportDriver() {};
   virtual ~TransportDriver() {};
 
-  virtual void initStep() {};
-  virtual void solveStep() {};
-  virtual void finalizeStep() {};
+  virtual void init_step() {};
+  virtual void solve_step() {};
+  virtual void finalize_step() {};
   bool active() const;
 };
 
 class CoupledDriver {
 public:
-  ProcInfo procInfo;
+  ProcInfo proc_info_;
 
-  TransportDriver transportDriver;
-  HeatFluidsDriver heatFluidsDriver;
+  TransportDriver transport_driver_;
+  HeatFluidsDriver heat_fluids_driver_;
 
-  explicit CoupledDriver(MPI_Comm coupledComm, MPI_Comm neutronComm, MPI_Comm thComm);
+  explicit CoupledDriver(MPI_Comm coupled_comm, MPI_Comm neutron_comm, MPI_Comm heat_fluids_comm);
   CoupledDriver(){};
   virtual ~CoupledDriver() {};
 };
@@ -64,14 +64,14 @@ public:
   OpenmcDriver(int argc, char* argv[], MPI_Comm comm);
   ~OpenmcDriver();
 
-  void initStep();
-  void solveStep();
-  void finalizeStep();
+  void init_step();
+  void solve_step();
+  void finalize_step();
 
-  Position getMatCentroid(int32_t matId) const;
-  int32_t getMatId(Position position) const;
+  Position get_mat_centroid(int32_t mat_id) const;
+  int32_t get_mat_id(Position position) const;
 
-  int32_t indexTally;
+  int32_t index_tally;
 };
 
 class NekDriver : public HeatFluidsDriver {
@@ -79,11 +79,11 @@ public:
   explicit NekDriver(MPI_Comm comm);
   ~NekDriver();
 
-  void initStep();
-  void solveStep();
-  void finalizeStep();
+  void init_step();
+  void solve_step();
+  void finalize_step();
 
-  Position getGlobalElemCentroid(int32_t globalElem) const;
+  Position get_global_elem_centroid(int32_t global_elem) const;
 
   int lelg;
   int lelt;
@@ -94,23 +94,23 @@ public:
 // how or if the base class will be implemented.  The issue will be revisited
 class OpenmcNekDriver {
 public:
-  ProcInfo procInfo;
+  ProcInfo proc_info_;
 
-  OpenmcDriver openmcDriver;
-  NekDriver nekDriver;
+  OpenmcDriver openmc_driver_;
+  NekDriver nek_driver_;
 
-  OpenmcNekDriver(int argc, char *argv[], MPI_Comm coupledComm, MPI_Comm openmcComm, MPI_Comm nekComm);
+  OpenmcNekDriver(int argc, char *argv[], MPI_Comm coupled_comm, MPI_Comm openmc_comm, MPI_Comm nek_comm);
   ~OpenmcNekDriver() {};
 
 private:
-  void initMatsToElems();
-  void initElemsToMats();
-  void initTallies();
+  void init_mats_to_elems();
+  void init_elems_to_mats();
+  void init_tallies();
   // Map that gives a list of Nek element global indices for a given OpenMC
   // material index
-  std::unordered_map<int32_t,std::vector<int32_t>> matsToElems;
+  std::unordered_map<int32_t,std::vector<int32_t>> mats_to_elems_;
   // Map that gives a list of OpenMC material indices for a given Nek global element index
-  std::map<int32_t, std::vector<int32_t>> elemsToMats;
+  std::map<int32_t, std::vector<int32_t>> elems_to_mats_;
 };
 
 } // namespace stream

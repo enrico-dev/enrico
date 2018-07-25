@@ -16,32 +16,32 @@ namespace stream {
  * The caller must then make use of *subComm* with proper value checks.  For example, subsequent MPI operations on
  * *subComm* may need to check if `subComm != MPI_COMM_NULL`.
  *
- * @param superComm An existing communicator that will be split
- * @param procsPerNode The number of MPI procs per node in the new communicator, *subComm*
- * @param subComm A new communicator with either the given number of procs per node *or* `MPI_COMM_NULL`, depending on
+ * @param super_comm An existing communicator that will be split
+ * @param procs_per_node The number of MPI procs per node in the new communicator, *subComm*
+ * @param sub_comm A new communicator with either the given number of procs per node *or* `MPI_COMM_NULL`, depending on
  *                whether the calling proc is in the desired comm.
  */
-void getInternodeSubComm(MPI_Comm superComm, int procsPerNode, MPI_Comm *subComm) {
+void get_internode_sub_comm(MPI_Comm super_comm, int procs_per_node, MPI_Comm *sub_comm) {
 
-  // superCommRank is used as the "key" to retain ordering in the comm splits.
-  // This can allow the subComm to retain some intent from the superComm's proc layout
-  int superCommRank = MPI_PROC_NULL;
-  MPI_Comm_rank(superComm, &superCommRank);
+  // super_comm_rank is used as the "key" to retain ordering in the comm splits.
+  // This can allow the sub_comm to retain some intent from the super_comm's proc layout
+  int super_comm_rank = MPI_PROC_NULL;
+  MPI_Comm_rank(super_comm, &super_comm_rank);
 
-  // intranodeComm is an intermediate object.  It is only used to get an intranodeCommRank,
+  // intranode_comm is an intermediate object.  It is only used to get an intranode_comm_rank,
   // which is used as the "color" in the final comm split.
-  MPI_Comm intranodeComm = MPI_COMM_NULL;
-  MPI_Comm_split_type(superComm, MPI_COMM_TYPE_SHARED, superCommRank, MPI_INFO_NULL, &intranodeComm);
-  int intranodeCommRank = MPI_PROC_NULL;
-  MPI_Comm_rank(intranodeComm, &intranodeCommRank);
-  MPI_Comm_free(&intranodeComm);
+  MPI_Comm intranode_comm = MPI_COMM_NULL;
+  MPI_Comm_split_type(super_comm, MPI_COMM_TYPE_SHARED, super_comm_rank, MPI_INFO_NULL, &intranode_comm);
+  int intranode_comm_rank = MPI_PROC_NULL;
+  MPI_Comm_rank(intranode_comm, &intranode_comm_rank);
+  MPI_Comm_free(&intranode_comm);
 
-  // Finally, split the specified number of procsPerNode from the superComm
+  // Finally, split the specified number of procs_per_node from the super_comm
   // We only want the comm where color == 0.  The second comm is destroyed.
-  int color = intranodeCommRank < procsPerNode ? 0 : 1;
-  MPI_Comm_split(superComm, color, superCommRank, subComm);
+  int color = intranode_comm_rank < procs_per_node ? 0 : 1;
+  MPI_Comm_split(super_comm, color, super_comm_rank, sub_comm);
   if (color != 0)
-    MPI_Comm_free(subComm);
+    MPI_Comm_free(sub_comm);
 }
 
 } // namespace stream

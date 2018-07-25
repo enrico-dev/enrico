@@ -64,7 +64,12 @@ add_library(libstream
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_interface_fixedform.F
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_mass.F
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_parallel.F
-    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_size.F)
+    ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_size.F
+    ${CMAKE_CURRENT_LIST_DIR}/include/drivers.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/message_passing.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/nek_interface.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/procinfo.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/stream_geom.h)
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
 target_link_libraries(libstream PUBLIC libnek5000 libopenmc)
 

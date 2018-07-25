@@ -6,9 +6,9 @@ int main(int argc, char *argv[]) {
 
   {
     stream::NekDriver testDriver(MPI_COMM_WORLD);
-    testDriver.initStep();
-    testDriver.solveStep();
-    testDriver.finalizeStep();
+    testDriver.init_step();
+    testDriver.solve_step();
+    testDriver.finalize_step();
   }
 
   MPI_Finalize();

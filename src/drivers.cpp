@@ -14,7 +14,7 @@ namespace stream {
 // ============================================================================
 
 bool HeatFluidsDriver::active() const {
-  return procInfo.comm != MPI_COMM_NULL;
+  return proc_info_.comm != MPI_COMM_NULL;
 }
 
 // ============================================================================
@@ -22,7 +22,7 @@ bool HeatFluidsDriver::active() const {
 // ============================================================================
 
 bool TransportDriver::active() const {
-  return procInfo.comm != MPI_COMM_NULL;
+  return proc_info_.comm != MPI_COMM_NULL;
 }
 
 // ============================================================================
@@ -37,17 +37,17 @@ OpenmcDriver::OpenmcDriver(int argc, char *argv[], MPI_Comm comm)
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void OpenmcDriver::initStep() { openmc_simulation_init(); }
+void OpenmcDriver::init_step() { openmc_simulation_init(); }
 
-void OpenmcDriver::solveStep() { openmc_run(); }
+void OpenmcDriver::solve_step() { openmc_run(); }
 
-void OpenmcDriver::finalizeStep() { openmc_simulation_finalize(); }
+void OpenmcDriver::finalize_step() { openmc_simulation_finalize(); }
 
-int32_t OpenmcDriver::getMatId(Position position) const {
-  int32_t matId, instance;
+int32_t OpenmcDriver::get_mat_id(Position position) const {
+  int32_t mat_id, instance;
   double xyz[3] = {position.x, position.y, position.z};
-  openmc_find(xyz, 2, &matId, &instance);
-  return matId;
+  openmc_find(xyz, 2, &mat_id, &instance);
+  return mat_id;
 }
 
 OpenmcDriver::~OpenmcDriver() {
@@ -66,21 +66,21 @@ NekDriver::NekDriver(MPI_Comm comm) : HeatFluidsDriver(comm) {
   lx1 = nek_get_lx1();
 
   if (active()) {
-    MPI_Fint intComm = MPI_Comm_c2f(procInfo.comm);
-    C2F_nek_init(static_cast<const int *>(&intComm));
+    MPI_Fint int_comm = MPI_Comm_c2f(proc_info_.comm);
+    C2F_nek_init(static_cast<const int *>(&int_comm));
   }
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void NekDriver::initStep() {}
+void NekDriver::init_step() {}
 
-void NekDriver::solveStep() { C2F_nek_solve(); }
+void NekDriver::solve_step() { C2F_nek_solve(); }
 
-void NekDriver::finalizeStep() {}
+void NekDriver::finalize_step() {}
 
-Position NekDriver::getGlobalElemCentroid(int32_t globalElem) const {
+Position NekDriver::get_global_elem_centroid(int32_t global_elem) const {
   Position centroid;
-  int ierr = nek_get_global_elem_centroid(globalElem, &centroid);
+  int ierr = nek_get_global_elem_centroid(global_elem, &centroid);
   return centroid;
 }
 
@@ -94,26 +94,26 @@ NekDriver::~NekDriver() {
 // OpenmcNekDriver
 // ============================================================================
 
-OpenmcNekDriver::OpenmcNekDriver(int argc, char **argv, MPI_Comm coupledComm, MPI_Comm openmcComm, MPI_Comm nekComm) :
-    procInfo(coupledComm),
-    openmcDriver(argc, argv, openmcComm),
-    nekDriver(nekComm) {
-  initMatsToElems();
-  initTallies();
+OpenmcNekDriver::OpenmcNekDriver(int argc, char **argv, MPI_Comm coupled_comm, MPI_Comm openmc_comm, MPI_Comm nek_comm) :
+    proc_info_(coupled_comm),
+    openmc_driver_(argc, argv, openmc_comm),
+    nek_driver_(nek_comm) {
+  init_mats_to_elems();
+  init_tallies();
 };
 
-void OpenmcNekDriver::initMatsToElems() {
-  if (openmcDriver.active()) {
-    for (int globalElem = 1; globalElem <= nekDriver.lelg; ++globalElem) {
-      Position elemPos = nekDriver.getGlobalElemCentroid(globalElem);
-      int32_t matId = openmcDriver.getMatId(elemPos);
-      matsToElems[matId].push_back(globalElem);
+void OpenmcNekDriver::init_mats_to_elems() {
+  if (openmc_driver_.active()) {
+    for (int global_elem = 1; global_elem <= nek_driver_.lelg; ++global_elem) {
+      Position elem_pos = nek_driver_.get_global_elem_centroid(global_elem);
+      int32_t mat_id = openmc_driver_.get_mat_id(elem_pos);
+      mats_to_elems_[mat_id].push_back(global_elem);
     }
   }
 }
 
-void OpenmcNekDriver::initTallies() {
-  if (openmcDriver.active()) {
+void OpenmcNekDriver::init_tallies() {
+  if (openmc_driver_.active()) {
     // Determine maximum tally/filter ID used so far
     // TODO: Add functions in OpenMC API for this
     int32_t max_filter_id = 0;
@@ -138,7 +138,7 @@ void OpenmcNekDriver::initTallies() {
     // Build set of material indices by looping over the OpenMC mat->Nek elem
     // mapping and using only the keys (material indices)
     std::unordered_set<int32_t> mat_set;
-    for (const auto &pair : matsToElems) {
+    for (const auto &pair : mats_to_elems_) {
       mat_set.insert(pair.first);
     }
 
@@ -147,13 +147,13 @@ void OpenmcNekDriver::initTallies() {
     openmc_material_filter_set_bins(index_filter, mats.size(), mats.data());
 
     // Create tally and assign scores/filters
-    openmc_extend_tallies(1, &openmcDriver.indexTally, nullptr);
-    openmc_tally_set_type(openmcDriver.indexTally, "generic");
-    openmc_tally_set_id(openmcDriver.indexTally, max_tally_id + 1);
+    openmc_extend_tallies(1, &openmc_driver_.index_tally, nullptr);
+    openmc_tally_set_type(openmc_driver_.index_tally, "generic");
+    openmc_tally_set_id(openmc_driver_.index_tally, max_tally_id + 1);
     char score_array[][20]{"kappa-fission"};
     const char *scores[]{score_array[0]}; // OpenMC expects a const char**, ugh
-    openmc_tally_set_scores(openmcDriver.indexTally, 1, scores);
-    openmc_tally_set_filters(openmcDriver.indexTally, 1, &index_filter);
+    openmc_tally_set_scores(openmc_driver_.index_tally, 1, scores);
+    openmc_tally_set_filters(openmc_driver_.index_tally, 1, &index_filter);
   }
 }
 
