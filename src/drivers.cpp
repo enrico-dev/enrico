@@ -61,9 +61,9 @@ OpenmcDriver::~OpenmcDriver() {
 // ============================================================================
 
 NekDriver::NekDriver(MPI_Comm comm) : HeatFluidsDriver(comm) {
-  lelg = nek_get_lelg();
-  lelt = nek_get_lelt();
-  lx1 = nek_get_lx1();
+  lelg_ = nek_get_lelg();
+  lelt_ = nek_get_lelt();
+  lx1_ = nek_get_lx1();
 
   if (active()) {
     MPI_Fint int_comm = MPI_Comm_c2f(proc_info_.comm);
@@ -104,7 +104,7 @@ OpenmcNekDriver::OpenmcNekDriver(int argc, char **argv, MPI_Comm coupled_comm, M
 
 void OpenmcNekDriver::init_mats_to_elems() {
   if (openmc_driver_.active()) {
-    for (int global_elem = 1; global_elem <= nek_driver_.lelg; ++global_elem) {
+    for (int global_elem = 1; global_elem <= nek_driver_.lelg_; ++global_elem) {
       Position elem_pos = nek_driver_.get_global_elem_centroid(global_elem);
       int32_t mat_id = openmc_driver_.get_mat_id(elem_pos);
       mats_to_elems_[mat_id].push_back(global_elem);
@@ -147,13 +147,13 @@ void OpenmcNekDriver::init_tallies() {
     openmc_material_filter_set_bins(index_filter, mats.size(), mats.data());
 
     // Create tally and assign scores/filters
-    openmc_extend_tallies(1, &openmc_driver_.index_tally, nullptr);
-    openmc_tally_set_type(openmc_driver_.index_tally, "generic");
-    openmc_tally_set_id(openmc_driver_.index_tally, max_tally_id + 1);
+    openmc_extend_tallies(1, &openmc_driver_.index_tally_, nullptr);
+    openmc_tally_set_type(openmc_driver_.index_tally_, "generic");
+    openmc_tally_set_id(openmc_driver_.index_tally_, max_tally_id + 1);
     char score_array[][20]{"kappa-fission"};
     const char *scores[]{score_array[0]}; // OpenMC expects a const char**, ugh
-    openmc_tally_set_scores(openmc_driver_.index_tally, 1, scores);
-    openmc_tally_set_filters(openmc_driver_.index_tally, 1, &index_filter);
+    openmc_tally_set_scores(openmc_driver_.index_tally_, 1, scores);
+    openmc_tally_set_filters(openmc_driver_.index_tally_, 1, &index_filter);
   }
 }
 
