@@ -71,7 +71,7 @@ public:
   Position get_mat_centroid(int32_t mat_id) const;
   int32_t get_mat_id(Position position) const;
 
-  int32_t index_tally;
+  int32_t index_tally_;
 };
 
 class NekDriver : public HeatFluidsDriver {
@@ -85,9 +85,9 @@ public:
 
   Position get_global_elem_centroid(int32_t global_elem) const;
 
-  int lelg;
-  int lelt;
-  int lx1;
+  int lelg_;
+  int lelt_;
+  int lx1_;
 };
 
 // This is not actually derived from CoupledDriver.  Currently, it is unclear
