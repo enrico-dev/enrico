@@ -5,7 +5,8 @@
 
 namespace stream {
 
-void get_internode_sub_comm(MPI_Comm super_comm, int procs_per_node, MPI_Comm *sub_comm);
+void get_node_comms(MPI_Comm super_comm, int procs_per_node, MPI_Comm* sub_comm,
+                    MPI_Comm* intranode_comm);
 
 } // namespace stream
 
