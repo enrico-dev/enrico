@@ -20,6 +20,10 @@ public:
       MPI_Comm_size(comm, &size);
     }
   }
+
+  int Bcast(void* buffer, int count, MPI_Datatype datatype, int root=0) {
+    return MPI_Bcast(buffer, count, datatype, root, comm);
+  }
 };
 
 } // namespace stream
