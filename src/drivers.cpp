@@ -14,7 +14,7 @@ namespace stream {
 // ============================================================================
 
 bool HeatFluidsDriver::active() const {
-  return proc_info_.comm != MPI_COMM_NULL;
+  return comm_.comm != MPI_COMM_NULL;
 }
 
 // ============================================================================
@@ -22,7 +22,7 @@ bool HeatFluidsDriver::active() const {
 // ============================================================================
 
 bool TransportDriver::active() const {
-  return proc_info_.comm != MPI_COMM_NULL;
+  return comm_.comm != MPI_COMM_NULL;
 }
 
 // ============================================================================
@@ -66,7 +66,7 @@ NekDriver::NekDriver(MPI_Comm comm) : HeatFluidsDriver(comm) {
   lx1_ = nek_get_lx1();
 
   if (active()) {
-    MPI_Fint int_comm = MPI_Comm_c2f(proc_info_.comm);
+    MPI_Fint int_comm = MPI_Comm_c2f(comm_.comm);
     C2F_nek_init(static_cast<const int *>(&int_comm));
   }
   MPI_Barrier(MPI_COMM_WORLD);
@@ -94,20 +94,51 @@ NekDriver::~NekDriver() {
 // OpenmcNekDriver
 // ============================================================================
 
-OpenmcNekDriver::OpenmcNekDriver(int argc, char **argv, MPI_Comm coupled_comm, MPI_Comm openmc_comm, MPI_Comm nek_comm) :
-    proc_info_(coupled_comm),
+OpenmcNekDriver::OpenmcNekDriver(int argc, char **argv, MPI_Comm coupled_comm,
+                                 MPI_Comm openmc_comm, MPI_Comm nek_comm, MPI_Comm intranode_comm) :
+    comm_(coupled_comm),
     openmc_driver_(argc, argv, openmc_comm),
-    nek_driver_(nek_comm) {
-  init_mats_to_elems();
+    nek_driver_(nek_comm),
+    intranode_comm_(intranode_comm) {
+  init_mappings();
   init_tallies();
 };
 
-void OpenmcNekDriver::init_mats_to_elems() {
-  if (openmc_driver_.active()) {
+void OpenmcNekDriver::init_mappings() {
+  // TODO: This won't work if the Nek/OpenMC communicators are disjoint
+  if (nek_driver_.active()) {
+    // Create buffer to store material IDs corresponding to each Nek global
+    // element. This is needed because calls to OpenMC API functions can only be
+    // made from processes
+    int32_t mat_ids[nek_driver_.lelg_];
+
+    if (openmc_driver_.active()) {
+      for (int global_elem = 1; global_elem <= nek_driver_.lelg_; ++global_elem) {
+        Position elem_pos = nek_driver_.get_global_elem_centroid(global_elem);
+        int32_t mat_id = openmc_driver_.get_mat_id(elem_pos);
+        mats_to_elems_[mat_id].push_back(global_elem);
+
+        // Set value for material ID in array
+        mat_ids[global_elem - 1] = mat_id;
+      }
+
+      // Determine number of unique OpenMC materials
+      std::unordered_set<int32_t> mat_set;
+      for (const auto& pair : mats_to_elems_) {
+        mat_set.insert(pair.first);
+      }
+      n_materials_ = mat_set.size();
+    }
+
+    // Broadcast array of material IDs to each Nek rank
+    intranode_comm_.Bcast(mat_ids, nek_driver_.lelg_, MPI_INT32_T);
+
+    // Broadcast number of materials
+    intranode_comm_.Bcast(&n_materials_, 1, MPI_INT32_T);
+
+    // Set element -> material ID mapping on each Nek rank
     for (int global_elem = 1; global_elem <= nek_driver_.lelg_; ++global_elem) {
-      Position elem_pos = nek_driver_.get_global_elem_centroid(global_elem);
-      int32_t mat_id = openmc_driver_.get_mat_id(elem_pos);
-      mats_to_elems_[mat_id].push_back(global_elem);
+      elems_to_mats_[global_elem] = mat_ids[global_elem - 1];
     }
   }
 }
@@ -130,7 +161,7 @@ void OpenmcNekDriver::init_tallies() {
       max_tally_id = std::max(max_tally_id, tally_id);
     }
 
-    int32_t index_filter;
+    int32_t& index_filter = openmc_driver_.index_filter_;
     openmc_extend_filters(1, &index_filter, nullptr);
     openmc_filter_set_type(index_filter, "material");
     openmc_filter_set_id(index_filter, max_filter_id + 1);
@@ -155,6 +186,69 @@ void OpenmcNekDriver::init_tallies() {
     openmc_tally_set_scores(openmc_driver_.index_tally_, 1, scores);
     openmc_tally_set_filters(openmc_driver_.index_tally_, 1, &index_filter);
   }
+}
+
+void OpenmcNekDriver::update_heat_source() {
+  // Create array to store volumetric heat deposition in each material
+  double heat[n_materials_];
+
+  if (openmc_driver_.active()) {
+    // Get material bins
+    int32_t* mats;
+    int32_t n_mats;
+    openmc_material_filter_get_bins(openmc_driver_.index_filter_, &mats, &n_mats);
+
+    // Get tally results and number of realizations
+    double* results;
+    int shape[3];
+    openmc_tally_results(openmc_driver_.index_tally_, &results, shape);
+    int32_t m;
+    openmc_tally_get_n_realizations(openmc_driver_.index_tally_, &m);
+
+    // Determine energy production in each material
+    double total_heat = 0.0;
+    for (int i = 0; i < n_materials_; ++i) {
+      // Get mean value for tally result and convert units from eV to J
+      // TODO: Get rid of flattened array index by using xtensor?
+      heat[i] = JOULE_PER_EV * results[3*i + 1] / m;
+
+      // Sum up heat in each material
+      total_heat += heat[i];
+    }
+
+    // TODO: Need to have total power in W specified by user
+    double power = 1.0;
+
+    // Normalize heat source in each material and collect in an array
+    for (int i = 0; i < n_materials_; ++i) {
+      // TODO: Need volumes from OpenMC
+      double V = 1.0;
+
+      // Convert heat from J/src to W/cm^3. Dividing by total_heat gives the
+      // fraction of heat deposited in each material. Multiplying by power
+      // givens an absolute value in W
+      double normalization = power / (total_heat * V);
+      heat[i] *= normalization;
+    }
+  }
+
+  // OpenMC has heat source on each of its ranks. We need to make heat
+  // source available on each Nek rank.
+  intranode_comm_.Bcast(heat, n_materials_, MPI_DOUBLE);
+
+  if (nek_driver_.active()) {
+    // for each local element
+    // get corresponding global element ID
+    // if corresponding material
+    // get corresponding material
+    // get heat source for that material
+    // Convert units from W/cm^3 to ???
+    // set source for subsequent Nek run
+  }
+}
+
+void OpenmcNekDriver::update_temperature() {
+
 }
 
 } // namespace stream
