@@ -94,20 +94,41 @@ NekDriver::~NekDriver() {
 // OpenmcNekDriver
 // ============================================================================
 
-OpenmcNekDriver::OpenmcNekDriver(int argc, char **argv, MPI_Comm coupled_comm, MPI_Comm openmc_comm, MPI_Comm nek_comm) :
+OpenmcNekDriver::OpenmcNekDriver(int argc, char **argv, MPI_Comm coupled_comm,
+                                 MPI_Comm openmc_comm, MPI_Comm nek_comm, MPI_Comm intranode_comm) :
     proc_info_(coupled_comm),
     openmc_driver_(argc, argv, openmc_comm),
-    nek_driver_(nek_comm) {
-  init_mats_to_elems();
+    nek_driver_(nek_comm),
+    intranode_(intranode_comm) {
+  init_mappings();
   init_tallies();
 };
 
-void OpenmcNekDriver::init_mats_to_elems() {
-  if (openmc_driver_.active()) {
+void OpenmcNekDriver::init_mappings() {
+  // TODO: This won't work if the Nek/OpenMC communicators are disjoint
+  if (nek_driver_.active()) {
+    // Create buffer to store material IDs corresponding to each Nek global
+    // element. This is needed because calls to OpenMC API functions can only be
+    // made from processes
+    int32_t mat_ids[nek_driver_.lelg_];
+
+    if (openmc_driver_.active()) {
+      for (int global_elem = 1; global_elem <= nek_driver_.lelg_; ++global_elem) {
+        Position elem_pos = nek_driver_.get_global_elem_centroid(global_elem);
+        int32_t mat_id = openmc_driver_.get_mat_id(elem_pos);
+        mats_to_elems_[mat_id].push_back(global_elem);
+
+        // Set value for material ID in array
+        mat_ids[global_elem - 1] = mat_id;
+      }
+    }
+
+    // Broadcast array of material IDs to each Nek rank
+    MPI_Bcast(mat_ids, nek_driver_.lelg_, MPI_INT32_T, 0, intranode_.comm);
+
+    // Set element -> material ID mapping on each Nek rank
     for (int global_elem = 1; global_elem <= nek_driver_.lelg_; ++global_elem) {
-      Position elem_pos = nek_driver_.get_global_elem_centroid(global_elem);
-      int32_t mat_id = openmc_driver_.get_mat_id(elem_pos);
-      mats_to_elems_[mat_id].push_back(global_elem);
+      elems_to_mats_[global_elem] = mat_ids[global_elem - 1];
     }
   }
 }
@@ -155,6 +176,14 @@ void OpenmcNekDriver::init_tallies() {
     openmc_tally_set_scores(openmc_driver_.index_tally_, 1, scores);
     openmc_tally_set_filters(openmc_driver_.index_tally_, 1, &index_filter);
   }
+}
+
+void OpenmcNekDriver::update_heat_source() {
+
+}
+
+void OpenmcNekDriver::update_temperature() {
+
 }
 
 } // namespace stream

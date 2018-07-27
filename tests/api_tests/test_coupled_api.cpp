@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
   MPI_Comm nek_comm = MPI_COMM_WORLD;
 
   {
-    stream::OpenmcNekDriver test_driver(argc, argv, coupled_comm, openmc_comm, nek_comm);
+    stream::OpenmcNekDriver test_driver(argc, argv, coupled_comm, openmc_comm, nek_comm, intranode_comm);
 
     if (test_driver.openmc_driver_.active()) {
       test_driver.openmc_driver_.init_step();
@@ -23,12 +23,16 @@ int main(int argc, char *argv[]) {
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
+    test_driver.update_heat_source();
+
     if (test_driver.nek_driver_.active()) {
       test_driver.nek_driver_.init_step();
       test_driver.nek_driver_.solve_step();
       test_driver.nek_driver_.finalize_step();
     }
     MPI_Barrier(MPI_COMM_WORLD);
+
+    test_driver.update_temperature();
   }
 
   MPI_Finalize();

@@ -94,23 +94,26 @@ public:
 // how or if the base class will be implemented.  The issue will be revisited
 class OpenmcNekDriver {
 public:
-  ProcInfo proc_info_;
-
-  OpenmcDriver openmc_driver_;
-  NekDriver nek_driver_;
-
-  OpenmcNekDriver(int argc, char *argv[], MPI_Comm coupled_comm, MPI_Comm openmc_comm, MPI_Comm nek_comm);
+  OpenmcNekDriver(int argc, char *argv[], MPI_Comm coupled_comm, MPI_Comm openmc_comm,
+                  MPI_Comm nek_comm, MPI_Comm intranode_comm);
   ~OpenmcNekDriver() {};
 
+  void update_heat_source();
+  void update_temperature();
+
+  ProcInfo proc_info_;
+  ProcInfo intranode_;
+  OpenmcDriver openmc_driver_;
+  NekDriver nek_driver_;
 private:
-  void init_mats_to_elems();
-  void init_elems_to_mats();
+  void init_mappings();
   void init_tallies();
+
   // Map that gives a list of Nek element global indices for a given OpenMC
   // material index
   std::unordered_map<int32_t,std::vector<int32_t>> mats_to_elems_;
   // Map that gives a list of OpenMC material indices for a given Nek global element index
-  std::map<int32_t, std::vector<int32_t>> elems_to_mats_;
+  std::map<int32_t,int32_t> elems_to_mats_;
 };
 
 } // namespace stream
