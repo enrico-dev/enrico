@@ -1,19 +1,19 @@
-#ifndef STREAM_PROCINFO_H
-#define STREAM_PROCINFO_H
+#ifndef STREAM_COMM_H
+#define STREAM_COMM_H
 
 #include "mpi.h"
 
 namespace stream {
 
-class ProcInfo{
+class Comm {
 public:
   MPI_Comm comm = MPI_COMM_NULL;
   MPI_Group group = MPI_GROUP_NULL;
   int size = 0;
   int rank = MPI_PROC_NULL;
 
-  ProcInfo() {};
-  explicit ProcInfo(MPI_Comm comm) : comm(comm) {
+  Comm() {};
+  explicit Comm(MPI_Comm comm) : comm(comm) {
     if (comm != MPI_COMM_NULL) {
       MPI_Comm_group(comm, &group);
       MPI_Comm_rank(comm, &rank);
@@ -24,4 +24,4 @@ public:
 
 } // namespace stream
 
-#endif //STREAM_PROCINFO_H
+#endif //STREAM_COMM_H

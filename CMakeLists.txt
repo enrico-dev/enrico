@@ -68,7 +68,7 @@ add_library(libstream
     ${CMAKE_CURRENT_LIST_DIR}/include/drivers.h
     ${CMAKE_CURRENT_LIST_DIR}/include/message_passing.h
     ${CMAKE_CURRENT_LIST_DIR}/include/nek_interface.h
-    ${CMAKE_CURRENT_LIST_DIR}/include/procinfo.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/comm.h
     ${CMAKE_CURRENT_LIST_DIR}/include/stream_geom.h)
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
 target_link_libraries(libstream PUBLIC libnek5000 libopenmc)

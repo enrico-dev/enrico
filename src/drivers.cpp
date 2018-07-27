@@ -14,7 +14,7 @@ namespace stream {
 // ============================================================================
 
 bool HeatFluidsDriver::active() const {
-  return proc_info_.comm != MPI_COMM_NULL;
+  return comm_.comm != MPI_COMM_NULL;
 }
 
 // ============================================================================
@@ -22,7 +22,7 @@ bool HeatFluidsDriver::active() const {
 // ============================================================================
 
 bool TransportDriver::active() const {
-  return proc_info_.comm != MPI_COMM_NULL;
+  return comm_.comm != MPI_COMM_NULL;
 }
 
 // ============================================================================
@@ -66,7 +66,7 @@ NekDriver::NekDriver(MPI_Comm comm) : HeatFluidsDriver(comm) {
   lx1_ = nek_get_lx1();
 
   if (active()) {
-    MPI_Fint int_comm = MPI_Comm_c2f(proc_info_.comm);
+    MPI_Fint int_comm = MPI_Comm_c2f(comm_.comm);
     C2F_nek_init(static_cast<const int *>(&int_comm));
   }
   MPI_Barrier(MPI_COMM_WORLD);
@@ -96,10 +96,10 @@ NekDriver::~NekDriver() {
 
 OpenmcNekDriver::OpenmcNekDriver(int argc, char **argv, MPI_Comm coupled_comm,
                                  MPI_Comm openmc_comm, MPI_Comm nek_comm, MPI_Comm intranode_comm) :
-    proc_info_(coupled_comm),
+    comm_(coupled_comm),
     openmc_driver_(argc, argv, openmc_comm),
     nek_driver_(nek_comm),
-    intranode_(intranode_comm) {
+    intranode_comm_(intranode_comm) {
   init_mappings();
   init_tallies();
 };
@@ -124,7 +124,7 @@ void OpenmcNekDriver::init_mappings() {
     }
 
     // Broadcast array of material IDs to each Nek rank
-    MPI_Bcast(mat_ids, nek_driver_.lelg_, MPI_INT32_T, 0, intranode_.comm);
+    MPI_Bcast(mat_ids, nek_driver_.lelg_, MPI_INT32_T, 0, intranode_comm_.comm);
 
     // Set element -> material ID mapping on each Nek rank
     for (int global_elem = 1; global_elem <= nek_driver_.lelg_; ++global_elem) {

@@ -6,7 +6,7 @@
 #include <vector>
 #include "mpi.h"
 #include "openmc.h"
-#include "procinfo.h"
+#include "comm.h"
 #include "stream_geom.h"
 
 namespace stream {
@@ -17,9 +17,9 @@ namespace stream {
 
 class HeatFluidsDriver {
 public:
-  ProcInfo proc_info_;
+  Comm comm_;
 
-  explicit HeatFluidsDriver(MPI_Comm comm) : proc_info_(comm) {};
+  explicit HeatFluidsDriver(MPI_Comm comm) : comm_(comm) {};
   HeatFluidsDriver() {};
   virtual ~HeatFluidsDriver() {};
 
@@ -31,9 +31,9 @@ public:
 
 class TransportDriver {
 public:
-  ProcInfo proc_info_;
+  Comm comm_;
 
-  explicit TransportDriver(MPI_Comm comm) : proc_info_(comm) {};
+  explicit TransportDriver(MPI_Comm comm) : comm_(comm) {};
   TransportDriver() {};
   virtual ~TransportDriver() {};
 
@@ -45,7 +45,7 @@ public:
 
 class CoupledDriver {
 public:
-  ProcInfo proc_info_;
+  Comm comm_;
 
   TransportDriver transport_driver_;
   HeatFluidsDriver heat_fluids_driver_;
@@ -101,8 +101,8 @@ public:
   void update_heat_source();
   void update_temperature();
 
-  ProcInfo proc_info_;
-  ProcInfo intranode_;
+  Comm comm_;
+  Comm intranode_comm_;
   OpenmcDriver openmc_driver_;
   NekDriver nek_driver_;
 private:
