@@ -121,10 +121,20 @@ void OpenmcNekDriver::init_mappings() {
         // Set value for material ID in array
         mat_ids[global_elem - 1] = mat_id;
       }
+
+      // Determine number of unique OpenMC materials
+      std::unordered_set<int32_t> mat_set;
+      for (const auto& pair : mats_to_elems_) {
+        mat_set.insert(pair.first);
+      }
+      n_materials_ = mat_set.size();
     }
 
     // Broadcast array of material IDs to each Nek rank
-    MPI_Bcast(mat_ids, nek_driver_.lelg_, MPI_INT32_T, 0, intranode_comm_.comm);
+    intranode_comm_.Bcast(mat_ids, nek_driver_.lelg_, MPI_INT32_T);
+
+    // Broadcast number of materials
+    intranode_comm_.Bcast(&n_materials_, 1, MPI_INT32_T);
 
     // Set element -> material ID mapping on each Nek rank
     for (int global_elem = 1; global_elem <= nek_driver_.lelg_; ++global_elem) {
@@ -151,7 +161,7 @@ void OpenmcNekDriver::init_tallies() {
       max_tally_id = std::max(max_tally_id, tally_id);
     }
 
-    int32_t index_filter;
+    int32_t& index_filter = openmc_driver_.index_filter_;
     openmc_extend_filters(1, &index_filter, nullptr);
     openmc_filter_set_type(index_filter, "material");
     openmc_filter_set_id(index_filter, max_filter_id + 1);
@@ -179,7 +189,62 @@ void OpenmcNekDriver::init_tallies() {
 }
 
 void OpenmcNekDriver::update_heat_source() {
+  // Create array to store volumetric heat deposition in each material
+  double heat[n_materials_];
 
+  if (openmc_driver_.active()) {
+    // Get material bins
+    int32_t* mats;
+    int32_t n_mats;
+    openmc_material_filter_get_bins(openmc_driver_.index_filter_, &mats, &n_mats);
+
+    // Get tally results and number of realizations
+    double* results;
+    int shape[3];
+    openmc_tally_results(openmc_driver_.index_tally_, &results, shape);
+    int32_t m;
+    openmc_tally_get_n_realizations(openmc_driver_.index_tally_, &m);
+
+    // Determine energy production in each material
+    double total_heat = 0.0;
+    for (int i = 0; i < n_materials_; ++i) {
+      // Get mean value for tally result and convert units from eV to J
+      // TODO: Get rid of flattened array index by using xtensor?
+      heat[i] = JOULE_PER_EV * results[3*i + 1] / m;
+
+      // Sum up heat in each material
+      total_heat += heat[i];
+    }
+
+    // TODO: Need to have total power in W specified by user
+    double power = 1.0;
+
+    // Normalize heat source in each material and collect in an array
+    for (int i = 0; i < n_materials_; ++i) {
+      // TODO: Need volumes from OpenMC
+      double V = 1.0;
+
+      // Convert heat from J/src to W/cm^3. Dividing by total_heat gives the
+      // fraction of heat deposited in each material. Multiplying by power
+      // givens an absolute value in W
+      double normalization = power / (total_heat * V);
+      heat[i] *= normalization;
+    }
+  }
+
+  // OpenMC has heat source on each of its ranks. We need to make heat
+  // source available on each Nek rank.
+  intranode_comm_.Bcast(heat, n_materials_, MPI_DOUBLE);
+
+  if (nek_driver_.active()) {
+    // for each local element
+    // get corresponding global element ID
+    // if corresponding material
+    // get corresponding material
+    // get heat source for that material
+    // Convert units from W/cm^3 to ???
+    // set source for subsequent Nek run
+  }
 }
 
 void OpenmcNekDriver::update_temperature() {

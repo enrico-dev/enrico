@@ -11,6 +11,8 @@
 
 namespace stream {
 
+constexpr double JOULE_PER_EV = 1.6021766208e-19;
+
 // ============================================================================
 // Base Classes
 // ============================================================================
@@ -71,7 +73,8 @@ public:
   Position get_mat_centroid(int32_t mat_id) const;
   int32_t get_mat_id(Position position) const;
 
-  int32_t index_tally_;
+  int32_t index_tally_;   //!< Index in tallies array for fission tally
+  int32_t index_filter_;  //!< Index in filters arrays for material filter
 };
 
 class NekDriver : public HeatFluidsDriver {
@@ -114,6 +117,7 @@ private:
   std::unordered_map<int32_t,std::vector<int32_t>> mats_to_elems_;
   // Map that gives a list of OpenMC material indices for a given Nek global element index
   std::map<int32_t,int32_t> elems_to_mats_;
+  int32_t n_materials_;
 };
 
 } // namespace stream
