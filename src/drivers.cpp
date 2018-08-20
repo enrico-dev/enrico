@@ -4,7 +4,7 @@
 #include "openmc.h"
 #include "stream_geom.h"
 
-#include <algorithm> // for max
+#include <algorithm> // for max, fill
 #include <unordered_set>
 
 namespace stream {
@@ -68,6 +68,9 @@ NekDriver::NekDriver(MPI_Comm comm) : HeatFluidsDriver(comm) {
   if (active()) {
     MPI_Fint int_comm = MPI_Comm_c2f(comm_.comm);
     C2F_nek_init(static_cast<const int *>(&int_comm));
+
+    nelgt_ = nek_get_nelgt();
+    nelt_ = nek_get_nelt();
   }
   MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -110,10 +113,10 @@ void OpenmcNekDriver::init_mappings() {
     // Create buffer to store material IDs corresponding to each Nek global
     // element. This is needed because calls to OpenMC API functions can only be
     // made from processes
-    int32_t mat_ids[nek_driver_.lelg_];
+    int32_t mat_ids[nek_driver_.nelgt_];
 
     if (openmc_driver_.active()) {
-      for (int global_elem = 1; global_elem <= nek_driver_.lelg_; ++global_elem) {
+      for (int global_elem = 1; global_elem <= nek_driver_.nelgt_; ++global_elem) {
         Position elem_pos = nek_driver_.get_global_elem_centroid(global_elem);
         int32_t mat_id = openmc_driver_.get_mat_id(elem_pos);
         mats_to_elems_[mat_id].push_back(global_elem);
@@ -131,13 +134,13 @@ void OpenmcNekDriver::init_mappings() {
     }
 
     // Broadcast array of material IDs to each Nek rank
-    intranode_comm_.Bcast(mat_ids, nek_driver_.lelg_, MPI_INT32_T);
+    intranode_comm_.Bcast(mat_ids, nek_driver_.nelgt_, MPI_INT32_T);
 
     // Broadcast number of materials
     intranode_comm_.Bcast(&n_materials_, 1, MPI_INT32_T);
 
     // Set element -> material ID mapping on each Nek rank
-    for (int global_elem = 1; global_elem <= nek_driver_.lelg_; ++global_elem) {
+    for (int global_elem = 1; global_elem <= nek_driver_.nelgt_; ++global_elem) {
       elems_to_mats_[global_elem] = mat_ids[global_elem - 1];
     }
   }
@@ -248,6 +251,71 @@ void OpenmcNekDriver::update_heat_source() {
 }
 
 void OpenmcNekDriver::update_temperature() {
+  if (nek_driver_.active()) {
+    // Gather local temperatures into an array
+    int n = nek_driver_.nelt_;
+    double T_local[n];
+    std::fill(T_local, T_local + n, 293.6);
+    // TODO: Get temperature for each local element
+
+    // Gather number of local elements into array on rank 0
+    // TODO: Move this to initialization of Nek driver?
+    int p = nek_driver_.comm_.rank == 0 ? nek_driver_.comm_.size : 0;
+    int recvcounts[p];
+    nek_driver_.comm_.Gather(&n, 1, MPI_INT, recvcounts, 1, MPI_INT);
+
+    // Create array for all temperatures (size zero on non-root processes)
+    int m = nek_driver_.comm_.rank == 0 ? nek_driver_.nelgt_ : 0;
+    double T[m];
+
+    // TODO: Need volumes of all global elements
+    double vol[m];
+    std::fill(vol, vol + m, 1.0);
+
+    // collect temperatures from each local element onto root process
+    if (nek_driver_.comm_.rank == 0) {
+      // Create array of displacements for each process
+      int displs[p];
+      displs[0] = 0;
+      for (int i = 1; i < p; ++i) {
+        displs[i] = displs[i-1] + recvcounts[i-1];
+      }
+
+      // Gather temperatures onto root
+      nek_driver_.comm_.Gatherv(
+        T_local, n, MPI_DOUBLE,
+        T, recvcounts, displs, MPI_DOUBLE
+      );
+    } else {
+      // Send temperature to root via gather
+      nek_driver_.comm_.Gatherv(
+        T_local, n, MPI_DOUBLE,
+        nullptr, nullptr, nullptr, MPI_DOUBLE
+      );
+    }
+    // TODO: Temperatures need to be in order with respect to global element numbers
+
+    if (openmc_driver_.active()) {
+      // broadcast temperatures to all OpenMC processes
+      openmc_driver_.comm_.Bcast(T, m, MPI_DOUBLE);
+      openmc_driver_.comm_.Bcast(vol, m, MPI_DOUBLE);
+
+      // For each OpenMC material, volume average temperatures and set
+      for (const auto& pair : mats_to_elems_) {
+        int32_t mat_id = pair.first;
+        auto& global_elems = pair.second;
+
+        // Get volume-average temperature for this material
+        double average_temp = 0.0;
+        for (int32_t elem : global_elems) {
+          average_temp += T[elem - 1] * vol[elem - 1];
+        }
+        average_temp /= global_elems.size();
+
+        // TODO: Set temperature
+      }
+    }
+  }
 
 }
 

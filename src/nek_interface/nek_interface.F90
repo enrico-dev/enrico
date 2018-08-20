@@ -2,7 +2,7 @@ module nek_interface
   use, intrinsic :: ISO_C_BINDING
   use nek_geom, only: xm1, ym1, zm1
   use nek_size, only: nelt, nx1, ny1, nz1
-  use nek_parallel, only: lglel, gllel, gllnid
+  use nek_parallel, only: lglel, gllel, gllnid, nelgt
   use nek_mass, only: bm1
   use nek_size, only: lelg, lelt, lx1
 
@@ -70,5 +70,17 @@ contains
     integer(C_INT) :: c_lx1
     c_lx1 = lx1
   end function nek_get_lx1
+
+  ! Number of elements in mesh
+  function nek_get_nelgt() result(c_nelgt) bind(C)
+    integer(C_INT) :: c_nelgt
+    c_nelgt = nelgt
+  end function
+
+  ! Number of elements on process
+  function nek_get_nelt() result(c_nelt) bind(C)
+    integer(C_INT) :: c_nelt
+    c_nelt = nelt
+  end function
 
 end module nek_interface

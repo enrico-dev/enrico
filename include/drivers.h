@@ -88,9 +88,11 @@ public:
 
   Position get_global_elem_centroid(int32_t global_elem) const;
 
-  int lelg_;
-  int lelt_;
-  int lx1_;
+  int lelg_; //!< upper bound on number of mesh elements
+  int lelt_; //!< upper bound on number of mesh elements per rank
+  int lx1_; //!< polynomial order of the solution
+  int nelgt_; //!< total number of mesh elements
+  int nelt_; //!< number of local mesh elements
 };
 
 // This is not actually derived from CoupledDriver.  Currently, it is unclear
