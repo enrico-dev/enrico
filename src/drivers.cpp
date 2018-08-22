@@ -5,6 +5,7 @@
 #include "stream_geom.h"
 
 #include <algorithm> // for max, fill, copy
+#include <iterator> // for back_inserter
 #include <unordered_set>
 
 namespace stream {
@@ -42,22 +43,6 @@ void OpenmcDriver::init_step() { openmc_simulation_init(); }
 void OpenmcDriver::solve_step() { openmc_run(); }
 
 void OpenmcDriver::finalize_step() { openmc_simulation_finalize(); }
-
-CellInstance* OpenmcDriver::get_cell_instance(int32_t mat_index) const
-{
-  return mat_to_instance_.at(mat_index);
-}
-
-bool OpenmcDriver::has_cell_instance(CellInstance c) const
-{
-  return mat_to_instance_.find(c.material_index_) != mat_to_instance_.end();
-}
-
-void OpenmcDriver::track_cell_instance(CellInstance c)
-{
-  cells_.push_back(c);
-  mat_to_instance_[c.material_index_] = &cells_.back();
-}
 
 OpenmcDriver::~OpenmcDriver() {
   if (active())
@@ -122,42 +107,58 @@ void OpenmcNekDriver::init_mappings() {
     // Create buffer to store material IDs corresponding to each Nek global
     // element. This is needed because calls to OpenMC API functions can only be
     // made from processes
-    int32_t mat_ids[nek_driver_.nelgt_];
+    int32_t mat_idx[nek_driver_.nelgt_];
 
     if (openmc_driver_.active()) {
+      std::unordered_set<int32_t> tracked;
       for (int global_elem = 1; global_elem <= nek_driver_.nelgt_; ++global_elem) {
         // Determine cell instance corresponding to global element
         Position elem_pos = nek_driver_.get_global_elem_centroid(global_elem);
         CellInstance c {elem_pos};
-        if (!openmc_driver_.has_cell_instance(c)) {
-          openmc_driver_.track_cell_instance(c);
+        if (tracked.find(c.material_index_) == tracked.end()) {
+          openmc_driver_.cells_.push_back(c);
+          tracked.insert(c.material_index_);
         }
 
         // Get corresponding material
-        mats_to_elems_[c.material_index_].push_back(global_elem);
+        mat_to_elems_[c.material_index_].push_back(global_elem);
 
         // Set value for material ID in array
-        mat_ids[global_elem - 1] = c.material_index_;
+        mat_idx[global_elem - 1] = c.material_index_;
       }
 
       // Determine number of unique OpenMC materials
-      std::unordered_set<int32_t> mat_set;
-      for (const auto& pair : mats_to_elems_) {
-        mat_set.insert(pair.first);
-      }
-      n_materials_ = mat_set.size();
+      n_materials_ = openmc_driver_.cells_.size();
     }
 
     // Broadcast array of material IDs to each Nek rank
-    intranode_comm_.Bcast(mat_ids, nek_driver_.nelgt_, MPI_INT32_T);
+    intranode_comm_.Bcast(mat_idx, nek_driver_.nelgt_, MPI_INT32_T);
 
     // Broadcast number of materials
     intranode_comm_.Bcast(&n_materials_, 1, MPI_INT32_T);
 
     // Set element -> material ID mapping on each Nek rank
     for (int global_elem = 1; global_elem <= nek_driver_.nelgt_; ++global_elem) {
-      elems_to_mats_[global_elem] = mat_ids[global_elem - 1];
+      elem_to_mat_[global_elem] = mat_idx[global_elem - 1];
     }
+
+    // Each Nek rank needs to know where to find heat source values in an array.
+    // This requires knowing a mapping of material indices to positions in the
+    // heat array (of size n_materials_). For this mapping, we use a direct
+    // address table and begin by filling it with zeros.
+    heat_index_.reserve(n_materials_);
+    std::fill_n(std::back_inserter(heat_index_), n_materials_, 0);
+
+    // Now, set the mapping values on the OpenMC processes...
+    if (openmc_driver_.active()) {
+      for (int i = 0; i < n_materials_; ++i) {
+        int32_t mat_index = openmc_driver_.cells_[i].material_index_ - 1;
+        heat_index_.at(mat_index) = i;
+      }
+    }
+
+    // ...and broadcast to the other Nek processes
+    intranode_comm_.Bcast(heat_index_.data(), n_materials_, MPI_INT);
   }
 }
 
@@ -242,13 +243,18 @@ void OpenmcNekDriver::update_heat_source() {
   intranode_comm_.Bcast(heat, n_materials_, MPI_DOUBLE);
 
   if (nek_driver_.active()) {
-    // for each local element
-    // get corresponding global element ID
-    // if corresponding material
-    // get corresponding material
-    // get heat source for that material
-    // Convert units from W/cm^3 to ???
-    // set source for subsequent Nek run
+    // Loop over local elements to set heat source
+    for (int local_elem = 1; local_elem <= nek_driver_.nelt_; ++local_elem) {
+      // get corresponding global element ID
+      int global_elem = nek_get_global_elem(local_elem);
+
+      // get corresponding material
+      int32_t mat_index = elem_to_mat_.at(global_elem);
+      int i = get_heat_index(mat_index);
+
+      // TODO: set source for subsequent Nek run
+      // nek_set_heat_source(local_elem, heat[i]);
+    }
   }
 }
 
@@ -335,7 +341,7 @@ void OpenmcNekDriver::update_temperature() {
       // For each OpenMC material, volume average temperatures and set
       for (const auto& c : openmc_driver_.cells_) {
         // Get corresponding global elements
-        const auto& global_elems = mats_to_elems_.at(c.material_index_);
+        const auto& global_elems = mat_to_elems_.at(c.material_index_);
 
         // Get volume-average temperature for this material
         double average_temp = 0.0;

@@ -73,17 +73,11 @@ public:
   void solve_step();
   void finalize_step();
   Position get_mat_centroid(int32_t mat_id) const;
-  CellInstance* get_cell_instance(int32_t mat_index) const;
-  bool has_cell_instance(CellInstance c) const;
-  void track_cell_instance(CellInstance c);
 
   // Data
   int32_t index_tally_;   //!< Index in tallies array for fission tally
   int32_t index_filter_;  //!< Index in filters arrays for material filter
   std::vector<CellInstance> cells_;
-private:
-  //! Mapping of material indices to cell instances
-  std::unordered_map<int32_t, CellInstance*> mat_to_instance_;
 };
 
 class NekDriver : public HeatFluidsDriver {
@@ -123,11 +117,21 @@ private:
   void init_mappings();
   void init_tallies();
 
+  int get_heat_index(int32_t mat_index) const {
+    return heat_index_.at(mat_index - 1);
+  }
+
   // Map that gives a list of Nek element global indices for a given OpenMC
   // material index
-  std::unordered_map<int32_t,std::vector<int>> mats_to_elems_;
-  // Map that gives a list of OpenMC material indices for a given Nek global element index
-  std::map<int,int32_t> elems_to_mats_;
+  std::unordered_map<int32_t,std::vector<int>> mat_to_elems_;
+
+  // Map that gives the OpenMC material index for a given Nek global element index
+  std::unordered_map<int,int32_t> elem_to_mat_;
+
+  // Mapping of material indices (minus 1) to positions in array of heat sources that
+  // is used during update_heat_source
+  std::vector<int> heat_index_;
+
   int32_t n_materials_;
 };
 
