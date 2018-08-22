@@ -5,9 +5,10 @@
 #include <unordered_map>
 #include <vector>
 #include "mpi.h"
-#include "openmc.h"
+#include "openmc/capi.h"
 #include "comm.h"
 #include "stream_geom.h"
+#include "openmc_interface.h"
 
 namespace stream {
 
@@ -63,18 +64,25 @@ public:
 
 class OpenmcDriver : public TransportDriver {
 public:
+  // Constructors and destructors
   OpenmcDriver(int argc, char* argv[], MPI_Comm comm);
   ~OpenmcDriver();
 
+  // Methods
   void init_step();
   void solve_step();
   void finalize_step();
-
   Position get_mat_centroid(int32_t mat_id) const;
-  int32_t get_mat_id(Position position) const;
+  CellInstance* get_cell_instance(int32_t mat_index) const;
+  void track_cell_instance(CellInstance c);
 
+  // Data
   int32_t index_tally_;   //!< Index in tallies array for fission tally
   int32_t index_filter_;  //!< Index in filters arrays for material filter
+  std::vector<CellInstance> cells_;
+private:
+  //! Mapping of material indices to cell instances
+  std::unordered_map<int32_t, CellInstance*> mat_to_instance_;
 };
 
 class NekDriver : public HeatFluidsDriver {
