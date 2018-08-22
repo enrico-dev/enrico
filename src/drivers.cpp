@@ -261,7 +261,7 @@ void OpenmcNekDriver::update_temperature() {
     nek_driver_.comm_.Gather(&n, 1, MPI_INT, recvcounts, 1, MPI_INT);
 
     // Create array for all temperatures (size zero on non-root processes)
-    int m = nek_driver_.comm_.rank == 0 ? nek_driver_.nelgt_ : 0;
+    int m = openmc_driver_.active() ? nek_driver_.nelgt_ : 0;
     double T[m];
 
     // TODO: Need volumes of all global elements
@@ -303,10 +303,12 @@ void OpenmcNekDriver::update_temperature() {
 
         // Get volume-average temperature for this material
         double average_temp = 0.0;
+        double total_vol = 0.0;
         for (int32_t elem : global_elems) {
           average_temp += T[elem - 1] * vol[elem - 1];
+          total_vol += vol[elem - 1];
         }
-        average_temp /= global_elems.size();
+        average_temp /= total_vol;
 
         // Set temperature for cell instance
         c.set_temperature(average_temp);
