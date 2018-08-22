@@ -74,6 +74,7 @@ public:
   void finalize_step();
   Position get_mat_centroid(int32_t mat_id) const;
   CellInstance* get_cell_instance(int32_t mat_index) const;
+  bool has_cell_instance(CellInstance c) const;
   void track_cell_instance(CellInstance c);
 
   // Data
@@ -94,7 +95,7 @@ public:
   void solve_step();
   void finalize_step();
 
-  Position get_global_elem_centroid(int32_t global_elem) const;
+  Position get_global_elem_centroid(int global_elem) const;
 
   int lelg_; //!< upper bound on number of mesh elements
   int lelt_; //!< upper bound on number of mesh elements per rank
@@ -124,9 +125,9 @@ private:
 
   // Map that gives a list of Nek element global indices for a given OpenMC
   // material index
-  std::unordered_map<int32_t,std::vector<int32_t>> mats_to_elems_;
+  std::unordered_map<int32_t,std::vector<int>> mats_to_elems_;
   // Map that gives a list of OpenMC material indices for a given Nek global element index
-  std::map<int32_t,int32_t> elems_to_mats_;
+  std::map<int,int32_t> elems_to_mats_;
   int32_t n_materials_;
 };
 

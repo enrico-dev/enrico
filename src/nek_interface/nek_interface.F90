@@ -56,6 +56,18 @@ contains
     ierr = 0
   end function nek_get_global_elem_centroid
 
+  function nek_get_global_elem(local_elem) result(global_elem) bind(C)
+    integer(C_INT), value :: local_elem
+    integer(C_INT) :: global_elem
+    global_elem = lglel(local_elem)
+  end function
+
+  function nek_get_local_elem(global_elem) result(local_elem) bind(C)
+    integer(C_INT), value :: global_elem
+    integer(C_INT) :: local_elem
+    local_elem = gllel(global_elem)
+  end function
+
   function nek_get_lelg() result(c_lelg) bind(C)
     integer(C_INT) :: c_lelg
     c_lelg = lelg

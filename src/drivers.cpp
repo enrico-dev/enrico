@@ -4,9 +4,8 @@
 #include "openmc/capi.h"
 #include "stream_geom.h"
 
-#include <algorithm> // for max, fill
+#include <algorithm> // for max, fill, copy
 #include <unordered_set>
-#include <iostream>
 
 namespace stream {
 
@@ -49,6 +48,11 @@ CellInstance* OpenmcDriver::get_cell_instance(int32_t mat_index) const
   return mat_to_instance_.at(mat_index);
 }
 
+bool OpenmcDriver::has_cell_instance(CellInstance c) const
+{
+  return mat_to_instance_.find(c.material_index_) != mat_to_instance_.end();
+}
+
 void OpenmcDriver::track_cell_instance(CellInstance c)
 {
   cells_.push_back(c);
@@ -86,7 +90,7 @@ void NekDriver::solve_step() { C2F_nek_solve(); }
 
 void NekDriver::finalize_step() {}
 
-Position NekDriver::get_global_elem_centroid(int32_t global_elem) const {
+Position NekDriver::get_global_elem_centroid(int global_elem) const {
   Position centroid;
   int ierr = nek_get_global_elem_centroid(global_elem, &centroid);
   return centroid;
@@ -125,7 +129,9 @@ void OpenmcNekDriver::init_mappings() {
         // Determine cell instance corresponding to global element
         Position elem_pos = nek_driver_.get_global_elem_centroid(global_elem);
         CellInstance c {elem_pos};
-        openmc_driver_.track_cell_instance(c);
+        if (!openmc_driver_.has_cell_instance(c)) {
+          openmc_driver_.track_cell_instance(c);
+        }
 
         // Get corresponding material
         mats_to_elems_[c.material_index_].push_back(global_elem);
@@ -254,6 +260,14 @@ void OpenmcNekDriver::update_temperature() {
     std::fill(T_local, T_local + n, 293.6);
     // TODO: Get temperature for each local element
 
+    // Since local elements might be out of order with respect to global element
+    // ordering, we need to know what global elements the local ones correspond
+    // to
+    int global_elems[n];
+    for (int i = 0; i < n; ++i) {
+      global_elems[i] = nek_get_global_elem(i + 1) - 1;
+    }
+
     // Gather number of local elements into array on rank 0
     // TODO: Move this to initialization of Nek driver?
     int p = nek_driver_.comm_.rank == 0 ? nek_driver_.comm_.size : 0;
@@ -263,6 +277,9 @@ void OpenmcNekDriver::update_temperature() {
     // Create array for all temperatures (size zero on non-root processes)
     int m = openmc_driver_.active() ? nek_driver_.nelgt_ : 0;
     double T[m];
+
+    // Array for global element indices
+    double all_global_elems[m];
 
     // TODO: Need volumes of all global elements
     double vol[m];
@@ -277,34 +294,53 @@ void OpenmcNekDriver::update_temperature() {
         displs[i] = displs[i-1] + recvcounts[i-1];
       }
 
-      // Gather temperatures onto root
+      // Gather temperatures and global element indices onto root
       nek_driver_.comm_.Gatherv(
         T_local, n, MPI_DOUBLE,
         T, recvcounts, displs, MPI_DOUBLE
       );
+      nek_driver_.comm_.Gatherv(
+        global_elems, n, MPI_INT,
+        all_global_elems, recvcounts, displs, MPI_INT
+      );
     } else {
-      // Send temperature to root via gather
+      // Send temperature and global element indices to root via gather
       nek_driver_.comm_.Gatherv(
         T_local, n, MPI_DOUBLE,
         nullptr, nullptr, nullptr, MPI_DOUBLE
       );
+      nek_driver_.comm_.Gatherv(
+        global_elems, n, MPI_INT,
+        nullptr, nullptr, nullptr, MPI_INT
+      );
     }
-    // TODO: Temperatures need to be in order with respect to global element numbers
 
     if (openmc_driver_.active()) {
-      // broadcast temperatures to all OpenMC processes
+      // broadcast data from Nek root to all OpenMC processes
       openmc_driver_.comm_.Bcast(T, m, MPI_DOUBLE);
+      openmc_driver_.comm_.Bcast(all_global_elems, m, MPI_INT);
       openmc_driver_.comm_.Bcast(vol, m, MPI_DOUBLE);
+
+      // At this point, the values in T are not in the correct ordering with
+      // respect to the global element array. Here, we make a copy of T and
+      // reorder them according to the position they should be in
+      // (all_global_elems)
+      double T_unordered[m];
+      std::copy(T, T+m, T_unordered);
+      for (int i = 0; i < m; ++i) {
+        int global_index = all_global_elems[i];
+        T[global_index] = T_unordered[i];
+      }
 
       // For each OpenMC material, volume average temperatures and set
       for (const auto& c : openmc_driver_.cells_) {
         // Get corresponding global elements
-        auto& global_elems = mats_to_elems_.at(c.material_index_);
+        const auto& global_elems = mats_to_elems_.at(c.material_index_);
 
         // Get volume-average temperature for this material
         double average_temp = 0.0;
         double total_vol = 0.0;
-        for (int32_t elem : global_elems) {
+        for (int elem : global_elems) {
           average_temp += T[elem - 1] * vol[elem - 1];
           total_vol += vol[elem - 1];
         }
