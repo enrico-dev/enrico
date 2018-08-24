@@ -4,6 +4,7 @@
 #include "drivers.h"
 #include "mpi.h"
 #include "nek_interface.h"
+#include "nek_driver.h"
 #include "openmc/capi.h"
 #include "stream_geom.h"
 #include "stream_const.h"

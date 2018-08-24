@@ -1,5 +1,5 @@
-#include "drivers.h"
 #include "mpi.h"
+#include "nek_driver.h"
 
 int main(int argc, char *argv[]) {
   MPI_Init(&argc, &argv);

@@ -61,6 +61,7 @@ add_library(libstream
     src/stream/message_passing.cpp
     src/stream/openmc_interface.cpp
     src/stream/openmc_nek_driver.cpp
+    src/stream/nek_driver.cpp
     src/stream/nek_geom.F
     src/stream/nek_interface.F90
     src/stream/nek_interface_fixedform.F
@@ -70,6 +71,7 @@ add_library(libstream
     include/drivers.h
     include/message_passing.h
     include/nek_interface.h
+    include/nek_driver.h
     include/openmc_interface.h
     include/openmc_nek_driver.h
     include/comm.h
