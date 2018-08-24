@@ -60,6 +60,7 @@ add_library(libstream
     src/stream/drivers.cpp
     src/stream/message_passing.cpp
     src/stream/openmc_interface.cpp
+    src/stream/openmc_nek_driver.cpp
     src/stream/nek_geom.F
     src/stream/nek_interface.F90
     src/stream/nek_interface_fixedform.F
@@ -70,7 +71,9 @@ add_library(libstream
     include/message_passing.h
     include/nek_interface.h
     include/openmc_interface.h
+    include/openmc_nek_driver.h
     include/comm.h
+    include/stream_const.h
     include/stream_geom.h)
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
 target_link_libraries(libstream PUBLIC libnek5000 libopenmc)

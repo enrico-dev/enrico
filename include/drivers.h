@@ -12,8 +12,6 @@
 
 namespace stream {
 
-constexpr double JOULE_PER_EV = 1.6021766208e-19;
-
 // ============================================================================
 // Base Classes
 // ============================================================================
@@ -54,7 +52,7 @@ public:
   HeatFluidsDriver heat_fluids_driver_;
 
   explicit CoupledDriver(MPI_Comm coupled_comm, MPI_Comm neutron_comm, MPI_Comm heat_fluids_comm);
-  CoupledDriver(){};
+  CoupledDriver() {};
   virtual ~CoupledDriver() {};
 };
 
@@ -65,7 +63,7 @@ public:
 class OpenmcDriver : public TransportDriver {
 public:
   // Constructors and destructors
-  OpenmcDriver(int argc, char* argv[], MPI_Comm comm);
+  OpenmcDriver(int argc, char *argv[], MPI_Comm comm);
   ~OpenmcDriver();
 
   // Methods
@@ -96,43 +94,6 @@ public:
   int lx1_; //!< polynomial order of the solution
   int nelgt_; //!< total number of mesh elements
   int nelt_; //!< number of local mesh elements
-};
-
-// This is not actually derived from CoupledDriver.  Currently, it is unclear
-// how or if the base class will be implemented.  The issue will be revisited
-class OpenmcNekDriver {
-public:
-  OpenmcNekDriver(int argc, char *argv[], MPI_Comm coupled_comm, MPI_Comm openmc_comm,
-                  MPI_Comm nek_comm, MPI_Comm intranode_comm);
-  ~OpenmcNekDriver() {};
-
-  void update_heat_source();
-  void update_temperature();
-
-  Comm comm_;
-  Comm intranode_comm_;
-  OpenmcDriver openmc_driver_;
-  NekDriver nek_driver_;
-private:
-  void init_mappings();
-  void init_tallies();
-
-  int get_heat_index(int32_t mat_index) const {
-    return heat_index_.at(mat_index - 1);
-  }
-
-  // Map that gives a list of Nek element global indices for a given OpenMC
-  // material index
-  std::unordered_map<int32_t,std::vector<int>> mat_to_elems_;
-
-  // Map that gives the OpenMC material index for a given Nek global element index
-  std::unordered_map<int,int32_t> elem_to_mat_;
-
-  // Mapping of material indices (minus 1) to positions in array of heat sources that
-  // is used during update_heat_source
-  std::vector<int> heat_index_;
-
-  int32_t n_materials_;
 };
 
 } // namespace stream
