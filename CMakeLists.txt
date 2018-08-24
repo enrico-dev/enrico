@@ -36,17 +36,17 @@ add_subdirectory(src/openmc)
 # =============================================================================
 # Discover and set necessary flags for building fixed-format Fortran components
 # of libstream.
-if(CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
+if (CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
   set(FIXEDFORMAT_FLAGS "-fdefault-real-8 -fdefault-double-8 -cpp")
-elseif(CMAKE_Fortran_COMPILER_ID STREQUAL PGI)
+elseif (CMAKE_Fortran_COMPILER_ID STREQUAL PGI)
   set(FIXEDFORMAT_FLAGS "-r8 -Mpreprocess")
-elseif(CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
+elseif (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
   set(FIXEDFORMAT_FLAGS "-r8 -fpconstant -fpp")
-elseif(CMAKE_Fortran_COMPILER_ID STREQUAL XL)
+elseif (CMAKE_Fortran_COMPILER_ID STREQUAL XL)
   set(FIXEDFORMAT_FLAGS "-qrealsize=8 -qdpc=e -qsuffix=cpp=f -qsuppress=cmpmsg")
-else()
+else ()
   message(FATAL_ERROR "Specified compiler (${CMAKE_Fortran_COMPILER_ID}) is not supported by Nek5000")
-endif()
+endif ()
 set(FIXEDFORMAT_SOURCES
     src/stream/nek_parallel.F
     src/stream/nek_geom.F
@@ -59,6 +59,7 @@ set_source_files_properties(${FIXEDFORMAT_SOURCES} PROPERTIES
 add_library(libstream
     src/stream/drivers.cpp
     src/stream/message_passing.cpp
+    src/stream/openmc_driver.cpp
     src/stream/openmc_interface.cpp
     src/stream/openmc_nek_driver.cpp
     src/stream/nek_driver.cpp
@@ -72,6 +73,7 @@ add_library(libstream
     include/message_passing.h
     include/nek_interface.h
     include/nek_driver.h
+    include/openmc_driver.h
     include/openmc_interface.h
     include/openmc_nek_driver.h
     include/comm.h

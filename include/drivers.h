@@ -12,10 +12,6 @@
 
 namespace stream {
 
-// ============================================================================
-// Base Classes
-// ============================================================================
-
 class HeatFluidsDriver {
 public:
   Comm comm_;
@@ -54,28 +50,6 @@ public:
   explicit CoupledDriver(MPI_Comm coupled_comm, MPI_Comm neutron_comm, MPI_Comm heat_fluids_comm);
   CoupledDriver() {};
   virtual ~CoupledDriver() {};
-};
-
-// ============================================================================
-// Implementations
-// ============================================================================
-
-class OpenmcDriver : public TransportDriver {
-public:
-  // Constructors and destructors
-  OpenmcDriver(int argc, char *argv[], MPI_Comm comm);
-  ~OpenmcDriver();
-
-  // Methods
-  void init_step();
-  void solve_step();
-  void finalize_step();
-  Position get_mat_centroid(int32_t mat_id) const;
-
-  // Data
-  int32_t index_tally_;   //!< Index in tallies array for fission tally
-  int32_t index_filter_;  //!< Index in filters arrays for material filter
-  std::vector<CellInstance> cells_;
 };
 
 } // namespace stream
