@@ -78,6 +78,9 @@ module constants
        MASS_NEUTRON     = 1.00866491588_8,   & ! mass of a neutron in amu
        MASS_NEUTRON_EV  = 939.5654133e6_8,   & ! mass of a neutron in eV/c^2
        MASS_PROTON      = 1.007276466879_8,  & ! mass of a proton in amu
+       MASS_ELECTRON_EV = 0.5109989461e6_8,  & ! electron mass energy equivalent in eV/c^2
+       FINE_STRUCTURE   = 137.035999139_8,   & ! inverse fine structure constant
+       PLANCK_C         = 1.2398419739062977e4_8,& ! Planck's constant times c in eV-Angstroms
        AMU              = 1.660539040e-27_8, & ! 1 amu in kg
        C_LIGHT          = 2.99792458e8_8,    & ! speed of light in m/s
        N_AVOGADRO       = 0.6022140857_8,    & ! Avogadro's number in 10^24/mol
@@ -90,6 +93,14 @@ module constants
        THREE            = 3.0_8,             &
        FOUR             = 4.0_8
   complex(8), parameter :: ONEI = (ZERO, ONE)
+
+  ! Electron subshell labels
+  character(3), parameter :: SUBSHELLS(39) = [ &
+       'K  ', 'L1 ', 'L2 ', 'L3 ', 'M1 ', 'M2 ', 'M3 ', 'M4 ', 'M5 ', &
+       'N1 ', 'N2 ', 'N3 ', 'N4 ', 'N5 ', 'N6 ', 'N7 ', 'O1 ', 'O2 ', &
+       'O3 ', 'O4 ', 'O5 ', 'O6 ', 'O7 ', 'O8 ', 'O9 ', 'P1 ', 'P2 ', &
+       'P3 ', 'P4 ', 'P5 ', 'P6 ', 'P7 ', 'P8 ', 'P9 ', 'P10', 'P11', &
+       'Q1 ', 'Q2 ', 'Q3 ']
 
   ! ============================================================================
   ! GEOMETRY-RELATED CONSTANTS
@@ -113,37 +124,12 @@ module constants
        FILL_MATERIAL = 1, & ! Cell with a specified material
        FILL_UNIVERSE = 2, & ! Cell filled by a separate universe
        FILL_LATTICE  = 3    ! Cell filled with a lattice
+  integer(C_INT), bind(C, name='FILL_MATERIAL') :: FILL_MATERIAL_C = FILL_MATERIAL
+  integer(C_INT), bind(C, name='FILL_UNIVERSE') :: FILL_UNIVERSE_C = FILL_UNIVERSE
+  integer(C_INT), bind(C, name='FILL_LATTICE')  :: FILL_LATTICE_C  = FILL_LATTICE
 
   ! Void material
   integer, parameter :: MATERIAL_VOID = -1
-
-  ! Lattice types
-  integer, parameter ::  &
-       LATTICE_RECT = 1, & ! Rectangular lattice
-       LATTICE_HEX  = 2    ! Hexagonal lattice
-
-  ! Lattice boundary crossings
-  integer, parameter ::    &
-       LATTICE_LEFT   = 1, & ! Flag for crossing left (x) lattice boundary
-       LATTICE_RIGHT  = 2, & ! Flag for crossing right (x) lattice boundary
-       LATTICE_BACK   = 3, & ! Flag for crossing back (y) lattice boundary
-       LATTICE_FRONT  = 4, & ! Flag for crossing front (y) lattice boundary
-       LATTICE_BOTTOM = 5, & ! Flag for crossing bottom (z) lattice boundary
-       LATTICE_TOP    = 6    ! Flag for crossing top (z) lattice boundary
-
-  ! Surface types
-  integer, parameter ::  &
-       SURF_PX     =  1, & ! Plane parallel to x-plane
-       SURF_PY     =  2, & ! Plane parallel to y-plane
-       SURF_PZ     =  3, & ! Plane parallel to z-plane
-       SURF_PLANE  =  4, & ! Arbitrary plane
-       SURF_CYL_X  =  5, & ! Cylinder along x-axis
-       SURF_CYL_Y  =  6, & ! Cylinder along y-axis
-       SURF_CYL_Z  =  7, & ! Cylinder along z-axis
-       SURF_SPHERE =  8, & ! Sphere
-       SURF_CONE_X =  9, & ! Cone parallel to x-axis
-       SURF_CONE_Y = 10, & ! Cone parallel to y-axis
-       SURF_CONE_Z = 11    ! Cone parallel to z-axis
 
   ! Flag to say that the outside of a lattice is not defined
   integer, parameter :: NO_OUTER_UNIVERSE = -1
@@ -169,7 +155,8 @@ module constants
   integer, parameter :: &
        NEUTRON  = 1, &
        PHOTON   = 2, &
-       ELECTRON = 3
+       ELECTRON = 3, &
+       POSITRON = 4
 
   ! Angular distribution type
   integer, parameter :: &
@@ -216,16 +203,12 @@ module constants
        N_3HEA  = 193, N_4N2P  = 194, N_4N2A = 195, N_4NPA  = 196, N_3P    = 197, &
        N_N3P   = 198, N_3N2PA = 199, N_5N2P = 200, N_P0    = 600, N_PC    = 649, &
        N_D0    = 650, N_DC    = 699, N_T0   = 700, N_TC    = 749, N_3HE0  = 750, &
-       N_3HEC  = 799, N_A0    = 800, N_AC   = 849, N_2N0   = 875, N_2NC   = 891
+       N_3HEC  = 799, N_A0    = 800, N_AC   = 849, N_2N0   = 875, N_2NC   = 891, &
+       COHERENT = 502, INCOHERENT = 504, PHOTOELECTRIC = 522, &
+       PAIR_PROD_ELEC = 515, PAIR_PROD = 516, PAIR_PROD_NUC = 517
 
   ! Depletion reactions
-  integer, parameter :: DEPLETION_RX(6) = [N_2N, N_3N, N_4N, N_GAMMA, N_P, N_A]
-
-  ! ACE table types
-  integer, parameter :: &
-       ACE_NEUTRON   = 1, & ! continuous-energy neutron
-       ACE_THERMAL   = 2, & ! thermal S(a,b) scattering data
-       ACE_DOSIMETRY = 3    ! dosimetry cross sections
+  integer, parameter :: DEPLETION_RX(6) = [N_GAMMA, N_P, N_A, N_2N, N_3N, N_4N]
 
   ! MGXS Table Types
   integer, parameter :: &
@@ -247,11 +230,6 @@ module constants
        EMISSION_PROMPT = 1,  & ! Prompt emission of secondary particle
        EMISSION_DELAYED = 2, & ! Delayed emission of secondary particle
        EMISSION_TOTAL = 3      ! Yield represents total emission (prompt + delayed)
-
-  ! Cross section filetypes
-  integer, parameter :: &
-       ASCII  = 1, & ! ASCII cross section file
-       BINARY = 2    ! Binary cross section file
 
   ! Library types
   integer, parameter :: &
@@ -333,14 +311,11 @@ module constants
        SCORE_FISS_Q_RECOV       = -15, & ! recoverable fission Q-value
        SCORE_DECAY_RATE         = -16    ! delayed neutron precursor decay rate
 
-  ! Maximum scattering order supported
-  integer, parameter :: MAX_ANG_ORDER = 10
-
   ! Tally map bin finding
   integer, parameter :: NO_BIN_FOUND = -1
 
   ! Tally filter and map types
-  integer, parameter :: N_FILTER_TYPES = 20
+  integer, parameter :: N_FILTER_TYPES = 22
   integer, parameter :: &
        FILTER_UNIVERSE       = 1,  &
        FILTER_MATERIAL       = 2,  &
@@ -361,7 +336,10 @@ module constants
        FILTER_LEGENDRE       = 17, &
        FILTER_SPH_HARMONICS  = 18, &
        FILTER_SPTL_LEGENDRE  = 19, &
-       FILTER_ZERNIKE        = 20
+       FILTER_ZERNIKE        = 20, &
+       FILTER_ZERNIKE_RADIAL = 21, &
+       FILTER_PARTICLE       = 22
+
 
   ! Mesh types
   integer, parameter :: &
@@ -402,6 +380,25 @@ module constants
        DIFF_NUCLIDE_DENSITY = 2, &
        DIFF_TEMPERATURE = 3
 
+
+  ! Mgxs::get_xs enumerated types
+  integer(C_INT), parameter :: &
+       MG_GET_XS_TOTAL              = 0, &
+       MG_GET_XS_ABSORPTION         = 1, &
+       MG_GET_XS_INVERSE_VELOCITY   = 2, &
+       MG_GET_XS_DECAY_RATE         = 3, &
+       MG_GET_XS_SCATTER            = 4, &
+       MG_GET_XS_SCATTER_MULT       = 5, &
+       MG_GET_XS_SCATTER_FMU_MULT   = 6, &
+       MG_GET_XS_SCATTER_FMU        = 7, &
+       MG_GET_XS_FISSION            = 8, &
+       MG_GET_XS_KAPPA_FISSION      = 9, &
+       MG_GET_XS_PROMPT_NU_FISSION  = 10, &
+       MG_GET_XS_DELAYED_NU_FISSION = 11, &
+       MG_GET_XS_NU_FISSION         = 12, &
+       MG_GET_XS_CHI_PROMPT         = 13, &
+       MG_GET_XS_CHI_DELAYED        = 14
+
   ! ============================================================================
   ! RANDOM NUMBER STREAM CONSTANTS
 
@@ -411,6 +408,7 @@ module constants
   integer(C_INT), bind(C, name='STREAM_SOURCE') :: STREAM_SOURCE
   integer(C_INT), bind(C, name='STREAM_URR_PTABLE') :: STREAM_URR_PTABLE
   integer(C_INT), bind(C, name='STREAM_VOLUME') :: STREAM_VOLUME
+  integer(C_INT), bind(C, name='STREAM_PHOTON') :: STREAM_PHOTON
   integer(C_INT64_T), parameter :: DEFAULT_SEED = 1_8
 
   ! ============================================================================
@@ -418,6 +416,7 @@ module constants
 
   ! indicates that an array index hasn't been set
   integer, parameter :: NONE = 0
+  integer, parameter :: C_NONE = -1
 
   ! Codes for read errors -- better hope these numbers are never used in an
   ! input file!
@@ -431,6 +430,11 @@ module constants
        MODE_PLOTTING    = 3, & ! Plotting mode
        MODE_PARTICLE    = 4, & ! Particle restart mode
        MODE_VOLUME      = 5    ! Volume calculation mode
+
+  ! Electron treatments
+  integer, parameter :: &
+       ELECTRON_LED     = 1, & ! Local Energy Deposition
+       ELECTRON_TTB     = 2    ! Thick Target Bremsstrahlung
 
   !=============================================================================
   ! CMFD CONSTANTS

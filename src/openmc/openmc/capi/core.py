@@ -1,6 +1,6 @@
 from contextlib import contextmanager
-from ctypes import (CDLL, c_int, c_int32, c_int64, c_double, c_char_p, c_char,
-                    POINTER, Structure, c_void_p, create_string_buffer)
+from ctypes import (CDLL, c_bool, c_int, c_int32, c_int64, c_double, c_char_p,
+                    c_char, POINTER, Structure, c_void_p, create_string_buffer)
 from warnings import warn
 
 import numpy as np
@@ -24,10 +24,10 @@ _dll.openmc_calculate_volumes.restype = c_int
 _dll.openmc_calculate_volumes.errcheck = _error_handler
 _dll.openmc_finalize.restype = c_int
 _dll.openmc_finalize.errcheck = _error_handler
-_dll.openmc_find.argtypes = [POINTER(c_double*3), c_int, POINTER(c_int32),
-                             POINTER(c_int32)]
-_dll.openmc_find.restype = c_int
-_dll.openmc_find.errcheck = _error_handler
+_dll.openmc_find_cell.argtypes = [POINTER(c_double*3), POINTER(c_int32),
+                                  POINTER(c_int32)]
+_dll.openmc_find_cell.restype = c_int
+_dll.openmc_find_cell.errcheck = _error_handler
 _dll.openmc_hard_reset.restype = c_int
 _dll.openmc_hard_reset.errcheck = _error_handler
 _dll.openmc_init.argtypes = [c_int, POINTER(POINTER(c_char)), c_void_p]
@@ -52,7 +52,7 @@ _dll.openmc_simulation_init.restype = c_int
 _dll.openmc_simulation_init.errcheck = _error_handler
 _dll.openmc_simulation_finalize.restype = c_int
 _dll.openmc_simulation_finalize.errcheck = _error_handler
-_dll.openmc_statepoint_write.argtypes = [POINTER(c_char_p)]
+_dll.openmc_statepoint_write.argtypes = [POINTER(c_char_p), POINTER(c_bool)]
 _dll.openmc_statepoint_write.restype = c_int
 _dll.openmc_statepoint_write.errcheck = _error_handler
 
@@ -84,10 +84,10 @@ def find_cell(xyz):
         indicates which instance it is, i.e., 0 would be the first instance.
 
     """
-    uid = c_int32()
+    index = c_int32()
     instance = c_int32()
-    _dll.openmc_find((c_double*3)(*xyz), 1, uid, instance)
-    return openmc.capi.cells[uid.value], instance.value
+    _dll.openmc_find_cell((c_double*3)(*xyz), index, instance)
+    return openmc.capi.Cell(index=index.value), instance.value
 
 
 def find_material(xyz):
@@ -104,11 +104,15 @@ def find_material(xyz):
         Material containing the point, or None is no material is found
 
     """
-    uid = c_int32()
+    index = c_int32()
     instance = c_int32()
-    _dll.openmc_find((c_double*3)(*xyz), 2, uid, instance)
-    return openmc.capi.materials[uid.value] if uid != 0 else None
+    _dll.openmc_find_cell((c_double*3)(*xyz), index, instance)
 
+    mats = openmc.capi.Cell(index=index.value).fill
+    if isinstance(mats, openmc.capi.Material):
+        return mats
+    else:
+        return mats[instance]
 
 def hard_reset():
     """Reset tallies, timers, and pseudo-random number generator state."""
@@ -269,7 +273,7 @@ def source_bank():
     return as_array(ptr, (n.value,)).view(bank_dtype)
 
 
-def statepoint_write(filename=None):
+def statepoint_write(filename=None, write_source=True):
     """Write a statepoint file.
 
     Parameters
@@ -277,11 +281,13 @@ def statepoint_write(filename=None):
     filename : str or None
         Path to the statepoint to write. If None is passed, a default name that
         contains the current batch will be written.
+    write_source : bool
+        Whether or not to include the source bank in the statepoint.
 
     """
     if filename is not None:
         filename = c_char_p(filename.encode())
-    _dll.openmc_statepoint_write(filename)
+    _dll.openmc_statepoint_write(filename, c_bool(write_source))
 
 
 @contextmanager
@@ -305,7 +311,7 @@ def run_in_memory(intracomm=None):
         MPI intracommunicator
 
     """
-    init(intracomm)
+    init(intracomm=intracomm)
     try:
         yield
     finally:

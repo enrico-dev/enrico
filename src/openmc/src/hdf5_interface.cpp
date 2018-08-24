@@ -1,4 +1,4 @@
-#include "hdf5_interface.h"
+#include "openmc/hdf5_interface.h"
 
 #include <array>
 #include <cstring>
@@ -9,9 +9,9 @@
 #include "hdf5_hl.h"
 #ifdef OPENMC_MPI
 #include "mpi.h"
-#include "message_passing.h"
+#include "openmc/message_passing.h"
 #endif
-#include "error.h"
+#include "openmc/error.h"
 
 
 namespace openmc {
@@ -50,6 +50,35 @@ get_shape(hid_t obj_id, hsize_t* dims)
   H5Sclose(dspace);
 }
 
+
+std::vector<hsize_t> attribute_shape(hid_t obj_id, const char* name)
+{
+  hid_t attr = H5Aopen(obj_id, name, H5P_DEFAULT);
+  std::vector<hsize_t> shape = object_shape(attr);
+  H5Aclose(attr);
+  return shape;
+}
+
+std::vector<hsize_t> object_shape(hid_t obj_id)
+{
+  // Get number of dimensions
+  auto type = H5Iget_type(obj_id);
+  hid_t dspace;
+  if (type == H5I_DATASET) {
+    dspace = H5Dget_space(obj_id);
+  } else if (type == H5I_ATTR) {
+    dspace = H5Aget_space(obj_id);
+  }
+  int n = H5Sget_simple_extent_ndims(dspace);
+
+  // Get shape of array
+  std::vector<hsize_t> shape(n);
+  H5Sget_simple_extent_dims(dspace, shape.data(), nullptr);
+
+  // Free resources and return
+  H5Sclose(dspace);
+  return shape;
+}
 
 void
 get_shape_attr(hid_t obj_id, const char* name, hsize_t* dims)
@@ -116,6 +145,18 @@ dataset_typesize(hid_t dset)
 }
 
 
+void
+ensure_exists(hid_t group_id, const char* name)
+{
+  if (!object_exists(group_id, name)) {
+    std::stringstream err_msg;
+    err_msg << "Object \"" << name << "\" does not exist in group "
+            << object_name(group_id);
+    fatal_error(err_msg);
+  }
+}
+
+
 hid_t
 file_open(const char* filename, char mode, bool parallel)
 {
@@ -169,9 +210,9 @@ file_open(const char* filename, char mode, bool parallel)
 }
 
 hid_t
-file_open(const std::string& filename, char mode, bool parallel=false)
+file_open(const std::string& filename, char mode, bool parallel)
 {
-  file_open(filename.c_str(), mode, parallel);
+  return file_open(filename.c_str(), mode, parallel);
 }
 
 void file_close(hid_t file_id)
@@ -285,6 +326,47 @@ get_groups(hid_t group_id, char* name[])
   }
 }
 
+std::vector<std::string>
+member_names(hid_t group_id, H5O_type_t type)
+{
+  // Determine number of links in the group
+  H5G_info_t info;
+  H5Gget_info(group_id, &info);
+
+  // Iterate over links to get names
+  H5O_info_t oinfo;
+  size_t size;
+  std::vector<std::string> names;
+  for (hsize_t i = 0; i < info.nlinks; ++i) {
+    // Determine type of object (and skip non-group)
+    H5Oget_info_by_idx(group_id, ".", H5_INDEX_NAME, H5_ITER_INC, i, &oinfo,
+                       H5P_DEFAULT);
+    if (oinfo.type != type) continue;
+
+    // Get size of name
+    size = 1 + H5Lget_name_by_idx(group_id, ".", H5_INDEX_NAME, H5_ITER_INC,
+                                  i, nullptr, 0, H5P_DEFAULT);
+
+    // Read name
+    char buffer[size];
+    H5Lget_name_by_idx(group_id, ".", H5_INDEX_NAME, H5_ITER_INC, i,
+                       buffer, size, H5P_DEFAULT);
+    names.emplace_back(&buffer[0], size);
+  }
+  return names;
+}
+
+std::vector<std::string>
+group_names(hid_t group_id)
+{
+  return member_names(group_id, H5O_TYPE_GROUP);
+}
+
+std::vector<std::string>
+dataset_names(hid_t group_id)
+{
+  return member_names(group_id, H5O_TYPE_DATASET);
+}
 
 bool
 object_exists(hid_t object_id, const char* name)
@@ -299,29 +381,32 @@ object_exists(hid_t object_id, const char* name)
 }
 
 
+std::string
+object_name(hid_t obj_id)
+{
+  // Determine size and create buffer
+  size_t size = 1 + H5Iget_name(obj_id, nullptr, 0);
+  char buffer[size];
+
+  // Read and return name
+  H5Iget_name(obj_id, buffer, size);
+  return {buffer, size};
+}
+
+
 hid_t
 open_dataset(hid_t group_id, const char* name)
 {
-  if (object_exists(group_id, name)) {
-    return H5Dopen(group_id, name, H5P_DEFAULT);
-  } else {
-    std::stringstream err_msg;
-    err_msg << "Group \"" << name << "\" does not exist";
-    fatal_error(err_msg);
-  }
+  ensure_exists(group_id, name);
+  return H5Dopen(group_id, name, H5P_DEFAULT);
 }
 
 
 hid_t
 open_group(hid_t group_id, const char* name)
 {
-  if (object_exists(group_id, name)) {
-    return H5Gopen(group_id, name, H5P_DEFAULT);
-  } else {
-    std::stringstream err_msg;
-    err_msg << "Group \"" << name << "\" does not exist";
-    fatal_error(err_msg);
-  }
+  ensure_exists(group_id, name);
+  return H5Gopen(group_id, name, H5P_DEFAULT);
 }
 
 void
@@ -427,7 +512,7 @@ read_string(hid_t obj_id, const char* name, size_t slen, char* buffer, bool inde
 
 
 void
-read_complex(hid_t obj_id, const char* name, double _Complex* buffer, bool indep)
+read_complex(hid_t obj_id, const char* name, std::complex<double>* buffer, bool indep)
 {
   // Create compound datatype for complex numbers
   struct complex_t {
@@ -444,6 +529,172 @@ read_complex(hid_t obj_id, const char* name, double _Complex* buffer, bool indep
 
   // Free resources
   H5Tclose(complex_id);
+}
+
+
+void
+read_nd_vector(hid_t obj_id, const char* name, std::vector<double>& result,
+               bool must_have)
+{
+  if (object_exists(obj_id, name)) {
+    read_double(obj_id, name, result.data(), true);
+  } else if (must_have) {
+    fatal_error(std::string("Must provide " + std::string(name) + "!"));
+  }
+}
+
+
+void
+read_nd_vector(hid_t obj_id, const char* name,
+               std::vector<std::vector<double> >& result, bool must_have)
+{
+  if (object_exists(obj_id, name)) {
+    int dim1 = result.size();
+    int dim2 = result[0].size();
+    double temp_arr[dim1 * dim2];
+    read_double(obj_id, name, temp_arr, true);
+
+    int temp_idx = 0;
+    for (int i = 0; i < dim1; i++) {
+      for (int j = 0; j < dim2; j++) {
+        result[i][j] = temp_arr[temp_idx++];
+      }
+    }
+  } else if (must_have) {
+    fatal_error(std::string("Must provide " + std::string(name) + "!"));
+  }
+}
+
+
+void
+read_nd_vector(hid_t obj_id, const char* name,
+               std::vector<std::vector<int> >& result, bool must_have)
+{
+  if (object_exists(obj_id, name)) {
+    int dim1 = result.size();
+    int dim2 = result[0].size();
+    int temp_arr[dim1 * dim2];
+    read_int(obj_id, name, temp_arr, true);
+
+    int temp_idx = 0;
+    for (int i = 0; i < dim1; i++) {
+      for (int j = 0; j < dim2; j++) {
+        result[i][j] = temp_arr[temp_idx++];
+      }
+    }
+  } else if (must_have) {
+    fatal_error(std::string("Must provide " + std::string(name) + "!"));
+  }
+}
+
+
+void
+read_nd_vector(hid_t obj_id, const char* name,
+               std::vector<std::vector<std::vector<double> > >& result,
+               bool must_have)
+{
+  if (object_exists(obj_id, name)) {
+    int dim1 = result.size();
+    int dim2 = result[0].size();
+    int dim3 = result[0][0].size();
+    double temp_arr[dim1 * dim2 * dim3];
+    read_double(obj_id, name, temp_arr, true);
+
+    int temp_idx = 0;
+    for (int i = 0; i < dim1; i++) {
+      for (int j = 0; j < dim2; j++) {
+        for (int k = 0; k < dim3; k++) {
+          result[i][j][k] = temp_arr[temp_idx++];
+        }
+      }
+    }
+  } else if (must_have) {
+    fatal_error(std::string("Must provide " + std::string(name) + "!"));
+  }
+}
+
+void
+read_nd_vector(hid_t obj_id, const char* name,
+               std::vector<std::vector<std::vector<int> > >& result,
+               bool must_have)
+{
+  if (object_exists(obj_id, name)) {
+    int dim1 = result.size();
+    int dim2 = result[0].size();
+    int dim3 = result[0][0].size();
+    int temp_arr[dim1 * dim2 * dim3];
+    read_int(obj_id, name, temp_arr, true);
+
+    int temp_idx = 0;
+    for (int i = 0; i < dim1; i++) {
+      for (int j = 0; j < dim2; j++) {
+        for (int k = 0; k < dim3; k++) {
+          result[i][j][k] = temp_arr[temp_idx++];
+        }
+      }
+    }
+  } else if (must_have) {
+    fatal_error(std::string("Must provide " + std::string(name) + "!"));
+  }
+}
+
+void
+read_nd_vector(hid_t obj_id, const char* name,
+               std::vector<std::vector<std::vector<std::vector<double> > > >& result,
+               bool must_have)
+{
+  if (object_exists(obj_id, name)) {
+    int dim1 = result.size();
+    int dim2 = result[0].size();
+    int dim3 = result[0][0].size();
+    int dim4 = result[0][0][0].size();
+    double temp_arr[dim1 * dim2 * dim3 * dim4];
+    read_double(obj_id, name, temp_arr, true);
+
+    int temp_idx = 0;
+    for (int i = 0; i < dim1; i++) {
+      for (int j = 0; j < dim2; j++) {
+        for (int k = 0; k < dim3; k++) {
+          for (int l = 0; l < dim4; l++) {
+            result[i][j][k][l] = temp_arr[temp_idx++];
+          }
+        }
+      }
+    }
+  } else if (must_have) {
+    fatal_error(std::string("Must provide " + std::string(name) + "!"));
+  }
+}
+
+void
+read_nd_vector(hid_t obj_id, const char* name,
+               std::vector<std::vector<std::vector<std::vector<std::vector<double> > > > >& result,
+               bool must_have)
+{
+  if (object_exists(obj_id, name)) {
+    int dim1 = result.size();
+    int dim2 = result[0].size();
+    int dim3 = result[0][0].size();
+    int dim4 = result[0][0][0].size();
+    int dim5 = result[0][0][0][0].size();
+    double temp_arr[dim1 * dim2 * dim3 * dim4 * dim5];
+    read_double(obj_id, name, temp_arr, true);
+
+    int temp_idx = 0;
+    for (int i = 0; i < dim1; i++) {
+      for (int j = 0; j < dim2; j++) {
+        for (int k = 0; k < dim3; k++) {
+          for (int l = 0; l < dim4; l++) {
+            for (int m = 0; m < dim5; m++) {
+              result[i][j][k][l][m] = temp_arr[temp_idx++];
+            }
+          }
+        }
+      }
+    }
+  } else if (must_have) {
+    fatal_error(std::string("Must provide " + std::string(name) + "!"));
+  }
 }
 
 
@@ -654,5 +905,15 @@ using_mpio_device(hid_t obj_id)
 
   return driver == H5FD_MPIO;
 }
+
+// Specializations of the H5TypeMap template struct
+template<>
+const hid_t H5TypeMap<int>::type_id = H5T_NATIVE_INT;
+template<>
+const hid_t H5TypeMap<int64_t>::type_id = H5T_NATIVE_INT64;
+template<>
+const hid_t H5TypeMap<double>::type_id = H5T_NATIVE_DOUBLE;
+template <>
+const hid_t H5TypeMap<char>::type_id = H5T_NATIVE_CHAR;
 
 } // namespace openmc

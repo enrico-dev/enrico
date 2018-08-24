@@ -59,6 +59,7 @@ set_source_files_properties(${FIXEDFORMAT_SOURCES} PROPERTIES
 add_library(libstream
     ${CMAKE_CURRENT_LIST_DIR}/src/drivers.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/message_passing.cpp
+    ${CMAKE_CURRENT_LIST_DIR}/src/openmc_interface.cpp
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_geom.F
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_interface.F90
     ${CMAKE_CURRENT_LIST_DIR}/src/nek_interface/nek_interface_fixedform.F
@@ -68,6 +69,7 @@ add_library(libstream
     ${CMAKE_CURRENT_LIST_DIR}/include/drivers.h
     ${CMAKE_CURRENT_LIST_DIR}/include/message_passing.h
     ${CMAKE_CURRENT_LIST_DIR}/include/nek_interface.h
+    ${CMAKE_CURRENT_LIST_DIR}/include/openmc_interface.h
     ${CMAKE_CURRENT_LIST_DIR}/include/comm.h
     ${CMAKE_CURRENT_LIST_DIR}/include/stream_geom.h)
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)

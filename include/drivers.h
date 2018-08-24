@@ -5,9 +5,10 @@
 #include <unordered_map>
 #include <vector>
 #include "mpi.h"
-#include "openmc.h"
+#include "openmc/capi.h"
 #include "comm.h"
 #include "stream_geom.h"
+#include "openmc_interface.h"
 
 namespace stream {
 
@@ -63,18 +64,20 @@ public:
 
 class OpenmcDriver : public TransportDriver {
 public:
+  // Constructors and destructors
   OpenmcDriver(int argc, char* argv[], MPI_Comm comm);
   ~OpenmcDriver();
 
+  // Methods
   void init_step();
   void solve_step();
   void finalize_step();
-
   Position get_mat_centroid(int32_t mat_id) const;
-  int32_t get_mat_id(Position position) const;
 
+  // Data
   int32_t index_tally_;   //!< Index in tallies array for fission tally
   int32_t index_filter_;  //!< Index in filters arrays for material filter
+  std::vector<CellInstance> cells_;
 };
 
 class NekDriver : public HeatFluidsDriver {
@@ -86,11 +89,13 @@ public:
   void solve_step();
   void finalize_step();
 
-  Position get_global_elem_centroid(int32_t global_elem) const;
+  Position get_global_elem_centroid(int global_elem) const;
 
-  int lelg_;
-  int lelt_;
-  int lx1_;
+  int lelg_; //!< upper bound on number of mesh elements
+  int lelt_; //!< upper bound on number of mesh elements per rank
+  int lx1_; //!< polynomial order of the solution
+  int nelgt_; //!< total number of mesh elements
+  int nelt_; //!< number of local mesh elements
 };
 
 // This is not actually derived from CoupledDriver.  Currently, it is unclear
@@ -112,11 +117,21 @@ private:
   void init_mappings();
   void init_tallies();
 
+  int get_heat_index(int32_t mat_index) const {
+    return heat_index_.at(mat_index - 1);
+  }
+
   // Map that gives a list of Nek element global indices for a given OpenMC
   // material index
-  std::unordered_map<int32_t,std::vector<int32_t>> mats_to_elems_;
-  // Map that gives a list of OpenMC material indices for a given Nek global element index
-  std::map<int32_t,int32_t> elems_to_mats_;
+  std::unordered_map<int32_t,std::vector<int>> mat_to_elems_;
+
+  // Map that gives the OpenMC material index for a given Nek global element index
+  std::unordered_map<int,int32_t> elem_to_mat_;
+
+  // Mapping of material indices (minus 1) to positions in array of heat sources that
+  // is used during update_heat_source
+  std::vector<int> heat_index_;
+
   int32_t n_materials_;
 };
 

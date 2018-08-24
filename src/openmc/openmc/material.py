@@ -284,6 +284,8 @@ class Material(IDManagerMixin):
         # Create the Material
         material = cls(mat_id, name)
         material.depletable = bool(group.attrs['depletable'])
+        if 'volume' in group.attrs:
+            material.volume = group.attrs['volume']
 
         # Read the names of the S(a,b) tables for this Material and add them
         if 'sab_names' in group:
@@ -467,7 +469,7 @@ class Material(IDManagerMixin):
             raise ValueError(msg)
 
         # Generally speaking, the density for a macroscopic object will
-        # be 1.0.  Therefore, lets set density to 1.0 so that the user
+        # be 1.0. Therefore, lets set density to 1.0 so that the user
         # doesnt need to set it unless its needed.
         # Of course, if the user has already set a value of density,
         # then we will not override it.
@@ -832,6 +834,9 @@ class Material(IDManagerMixin):
 
         if self._depletable:
             element.set("depletable", "true")
+
+        if self._volume:
+            element.set("volume", str(self._volume))
 
         # Create temperature XML subelement
         if self.temperature is not None:
