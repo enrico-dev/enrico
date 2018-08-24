@@ -264,7 +264,9 @@ void OpenmcNekDriver::update_temperature() {
     int n = nek_driver_.nelt_;
     double T_local[n];
     std::fill(T_local, T_local + n, 293.6);
-    // TODO: Get temperature for each local element
+    for (int local_elem = 1; local_elem <= n; ++local_elem) {
+      // T_local[local_elem - 1] = nek_get_temperature(local_elem);
+    }
 
     // Since local elements might be out of order with respect to global element
     // ordering, we need to know what global elements the local ones correspond
@@ -290,6 +292,9 @@ void OpenmcNekDriver::update_temperature() {
     // TODO: Need volumes of all global elements
     double vol[m];
     std::fill(vol, vol + m, 1.0);
+    for (int global_elem = 1; global_elem < m; ++global_elem) {
+      // vol[global_elem - 1] = nek_get_volume(global_elem);
+    }
 
     // collect temperatures from each local element onto root process
     if (nek_driver_.comm_.rank == 0) {
