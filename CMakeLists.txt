@@ -57,7 +57,7 @@ set_source_files_properties(${FIXEDFORMAT_SOURCES} PROPERTIES
 
 # Build all compoments of libstream
 add_library(libstream
-    src/stream/drivers.cpp
+    src/stream/base_drivers.cpp
     src/stream/message_passing.cpp
     src/stream/openmc_driver.cpp
     src/stream/openmc_interface.cpp
@@ -69,7 +69,7 @@ add_library(libstream
     src/stream/nek_mass.F
     src/stream/nek_parallel.F
     src/stream/nek_size.F
-    include/drivers.h
+    include/base_drivers.h
     include/message_passing.h
     include/nek_interface.h
     include/nek_driver.h

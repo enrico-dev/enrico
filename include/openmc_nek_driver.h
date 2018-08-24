@@ -1,7 +1,7 @@
 #ifndef STREAM_OPENMC_NEK_DRIVER_H
 #define STREAM_OPENMC_NEK_DRIVER_H
 
-#include "drivers.h"
+#include "base_drivers.h"
 #include "mpi.h"
 #include "nek_driver.h"
 #include "nek_interface.h"

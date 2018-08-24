@@ -9,7 +9,7 @@
 #include "comm.h"
 #include "stream_geom.h"
 #include "openmc_interface.h"
-#include "drivers.h"
+#include "base_drivers.h"
 #include "nek_interface.h"
 
 namespace stream {
