@@ -122,6 +122,8 @@ Constructing Tallies
    openmc.SpatialLegendreFilter
    openmc.SphericalHarmonicsFilter
    openmc.ZernikeFilter
+   openmc.ZernikeRadialFilter
+   openmc.ParticleFilter
    openmc.Mesh
    openmc.Trigger
    openmc.TallyDerivative
@@ -175,6 +177,23 @@ Post-processing
    openmc.Particle
    openmc.StatePoint
    openmc.Summary
+
+The following classes and functions are used for functional expansion reconstruction.
+
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+   :template: myclass.rst 
+
+   openmc.ZernikeRadial
+
+.. autosummary::
+   :toctree: generated
+   :nosignatures:
+   :template: myfunction.rst
+
+   openmc.legendre_from_expcoef
+
 
 Various classes may be created when performing tally slicing and/or arithmetic:
 

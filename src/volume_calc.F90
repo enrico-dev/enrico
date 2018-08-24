@@ -16,7 +16,7 @@ module volume_calc
   use material_header, only: materials
   use message_passing
   use nuclide_header, only: nuclides
-  use particle_header, only: Particle
+  use particle_header
   use random_lcg,   only: prn, prn_set_stream, set_particle_seed
   use settings,     only: path_output
   use stl_vector,   only: VectorInt, VectorReal
@@ -159,7 +159,7 @@ contains
       i_end = i_start + min_samples - 1
     end if
 
-    call p % initialize()
+    call particle_initialize(p)
 
 !$omp parallel private(i, j, k, i_domain, i_material, level, found_cell, &
 !$omp&                 indices, hits, n_mat) firstprivate(p)
@@ -196,7 +196,7 @@ contains
         i_material = p % material
         if (i_material /= MATERIAL_VOID) then
           do i_domain = 1, size(this % domain_id)
-            if (materials(i_material) % id == this % domain_id(i_domain)) then
+            if (materials(i_material) % id() == this % domain_id(i_domain)) then
               call check_hit(i_domain, i_material, indices, hits, n_mat)
             end if
           end do
@@ -205,7 +205,8 @@ contains
       elseif (this % domain_type == FILTER_CELL) THEN
         do level = 1, p % n_coord
           do i_domain = 1, size(this % domain_id)
-            if (cells(p % coord(level) % cell) % id == this % domain_id(i_domain)) then
+            if (cells(p % coord(level) % cell) % id() &
+                 == this % domain_id(i_domain)) then
               i_material = p % material
               call check_hit(i_domain, i_material, indices, hits, n_mat)
             end if

@@ -22,7 +22,7 @@ module state_point
   use hdf5_interface
   use mesh_header,        only: RegularMesh, meshes, n_meshes
   use message_passing
-  use mgxs_header,        only: nuclides_MG
+  use mgxs_interface
   use nuclide_header,     only: nuclides
   use output,             only: time_stamp
   use random_lcg,         only: openmc_get_seed, openmc_set_seed
@@ -58,10 +58,12 @@ contains
 ! OPENMC_STATEPOINT_WRITE writes an HDF5 statepoint file to disk
 !===============================================================================
 
-  function openmc_statepoint_write(filename) result(err) bind(C)
-    type(C_PTR), intent(in), optional :: filename
+  function openmc_statepoint_write(filename, write_source) result(err) bind(C)
+    type(C_PTR),     intent(in), optional :: filename
+    logical(C_BOOL), intent(in), optional :: write_source
     integer(C_INT) :: err
 
+    logical :: write_source_
     integer :: i, j, k
     integer :: i_xs
     integer, allocatable :: id_array(:)
@@ -69,12 +71,17 @@ contains
     integer(HID_T) :: cmfd_group, tallies_group, tally_group, meshes_group, &
                       filters_group, filter_group, derivs_group, &
                       deriv_group, runtime_group
+    integer(C_INT) :: ignored_err
     real(C_DOUBLE) :: k_combined(2)
     character(MAX_WORD_LEN), allocatable :: str_array(:)
     character(C_CHAR), pointer :: string(:)
     character(len=:, kind=C_CHAR), allocatable :: filename_
+    character(MAX_WORD_LEN, kind=C_CHAR) :: temp_name
+    logical :: parallel
 
     err = 0
+
+    ! Set the filename
     if (present(filename)) then
       call c_f_pointer(filename, string, [MAX_FILE_LEN])
       filename_ = to_f_string(string)
@@ -83,6 +90,13 @@ contains
       filename_ = trim(path_output) // 'statepoint.' // &
            & zero_padded(current_batch, count_digits(n_max_batches))
       filename_ = trim(filename_) // '.h5'
+    end if
+
+    ! Determine whether or not to write the source bank
+    if (present(write_source)) then
+      write_source_ = write_source
+    else
+      write_source_ = .true.
     end if
 
     ! Write message
@@ -125,6 +139,11 @@ contains
       case (MODE_EIGENVALUE)
         call write_dataset(file_id, "run_mode", "eigenvalue")
       end select
+      if (photon_transport) then
+        call write_attribute(file_id, "photon_transport", 1)
+      else
+        call write_attribute(file_id, "photon_transport", 0)
+      end if
       call write_dataset(file_id, "n_particles", n_particles)
       call write_dataset(file_id, "n_batches", n_batches)
 
@@ -132,10 +151,10 @@ contains
       call write_dataset(file_id, "current_batch", current_batch)
 
       ! Indicate whether source bank is stored in statepoint
-      if (source_separate) then
-        call write_attribute(file_id, "source_present", 0)
-      else
+      if (write_source_) then
         call write_attribute(file_id, "source_present", 1)
+      else
+        call write_attribute(file_id, "source_present", 0)
       end if
 
       ! Write out information for eigenvalue run
@@ -150,7 +169,7 @@ contains
         call write_dataset(file_id, "k_col_abs", k_col_abs)
         call write_dataset(file_id, "k_col_tra", k_col_tra)
         call write_dataset(file_id, "k_abs_tra", k_abs_tra)
-        err = openmc_get_keff(k_combined)
+        ignored_err = openmc_get_keff(k_combined)
         call write_dataset(file_id, "k_combined", k_combined)
 
         ! Write out CMFD info
@@ -307,11 +326,13 @@ contains
                   str_array(j) = nuclides(tally % nuclide_bins(j)) % name
                 end if
               else
-                i_xs = index(nuclides_MG(tally % nuclide_bins(j)) % obj % name, '.')
+                call get_name_c(tally % nuclide_bins(j), len(temp_name), &
+                                temp_name)
+                i_xs = index(temp_name, '.')
                 if (i_xs > 0) then
-                  str_array(j) = nuclides_MG(tally % nuclide_bins(j)) % obj % name(1 : i_xs-1)
+                  str_array(j) = trim(temp_name(1 : i_xs-1))
                 else
-                  str_array(j) = nuclides_MG(tally % nuclide_bins(j)) % obj % name
+                  str_array(j) = trim(temp_name)
                 end if
               end if
             else
@@ -424,17 +445,33 @@ contains
 
       call file_close(file_id)
     end if
+
+#ifdef PHDF5
+    parallel = .true.
+#else
+    parallel = .false.
+#endif
+
+    ! Write the source bank if desired
+    if (write_source_) then
+      if (master .or. parallel) then
+        file_id = file_open(filename_, 'a', parallel=.true.)
+      end if
+      call write_source_bank(file_id, work_index, source_bank)
+      if (master .or. parallel) call file_close(file_id)
+    end if
   end function openmc_statepoint_write
 
 !===============================================================================
 ! WRITE_SOURCE_POINT
 !===============================================================================
 
-  subroutine write_source_point()
+  subroutine write_source_point(filename)
+    character(MAX_FILE_LEN), intent(in), optional :: filename
 
     logical :: parallel
     integer(HID_T) :: file_id
-    character(MAX_FILE_LEN) :: filename
+    character(MAX_FILE_LEN) :: filename_
 
     ! When using parallel HDF5, the file is written to collectively by all
     ! processes. With MPI-only, the file is opened and written by the master
@@ -446,47 +483,20 @@ contains
     parallel = .false.
 #endif
 
-    ! Check to write out source for a specified batch
-    if (sourcepoint_batch%contains(current_batch)) then
-      if (source_separate) then
-        filename = trim(path_output) // 'source.' // &
-             & zero_padded(current_batch, count_digits(n_max_batches))
-        filename = trim(filename) // '.h5'
-        call write_message("Creating source file " // trim(filename) &
-             // "...", 5)
-
-        ! Create separate source file
-        if (master .or. parallel) then
-          file_id = file_open(filename, 'w', parallel=.true.)
-          call write_attribute(file_id, "filetype", 'source')
-        end if
-      else
-        filename = trim(path_output) // 'statepoint.' // &
-             zero_padded(current_batch, count_digits(n_max_batches))
-        filename = trim(filename) // '.h5'
-
-        if (master .or. parallel) then
-          file_id = file_open(filename, 'a', parallel=.true.)
-        end if
-      end if
-
-      call write_source_bank(file_id, work_index, source_bank)
-      if (master .or. parallel) call file_close(file_id)
+    if (present(filename)) then
+      filename_ = filename
+    else
+      filename_ = trim(path_output) // 'source.' // &
+           & zero_padded(current_batch, count_digits(n_max_batches))
+      filename_ = trim(filename_) // '.h5'
     end if
 
-    ! Also check to write source separately in overwritten file
-    if (source_latest) then
-      filename = trim(path_output) // 'source' // '.h5'
-      call write_message("Creating source file " // trim(filename) // "...", 5)
-      if (master .or. parallel) then
-        file_id = file_open(filename, 'w', parallel=.true.)
-        call write_attribute(file_id, "filetype", 'source')
-      end if
-
-      call write_source_bank(file_id, work_index, source_bank)
-
-      if (master .or. parallel) call file_close(file_id)
+    if (master .or. parallel) then
+      file_id = file_open(filename_, 'w', parallel=.true.)
+      call write_attribute(file_id, "filetype", 'source')
     end if
+    call write_source_bank(file_id, work_index, source_bank)
+    if (master .or. parallel) call file_close(file_id)
 
   end subroutine write_source_point
 
@@ -675,6 +685,12 @@ contains
     case ('eigenvalue')
       run_mode = MODE_EIGENVALUE
     end select
+    call read_attribute(int_array(1), file_id, "photon_transport")
+    if (int_array(1) == 1) then
+      photon_transport = .true.
+    else
+      photon_transport = .false.
+    end if
     call read_dataset(n_particles, file_id, "n_particles")
     call read_dataset(int_array(1), file_id, "n_batches")
 
@@ -738,6 +754,9 @@ contains
       end if
     end if
 
+    ! Read number of realizations for global tallies
+    call read_dataset(n_realizations, file_id, "n_realizations", indep=.true.)
+
     ! Check to make sure source bank is present
     if (path_source_point == path_state_point .and. .not. source_present) then
       call fatal_error("Source bank must be contained in statepoint restart &
@@ -751,10 +770,6 @@ contains
 #else
     if (master) then
 #endif
-
-      ! Read number of realizations for global tallies
-      call read_dataset(n_realizations, file_id, "n_realizations", indep=.true.)
-
       ! Read global tally data
       call read_dataset(global_tallies, file_id, "global_tallies")
 
