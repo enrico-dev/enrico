@@ -8,13 +8,12 @@ module physics_mg
   use material_header,        only: Material, materials
   use math,                   only: rotate_angle
   use mesh_header,            only: meshes
-  use mgxs_header
+  use mgxs_interface
   use message_passing
   use nuclide_header,         only: material_xs
-  use particle_header,        only: Particle
+  use particle_header
   use physics_common
   use random_lcg,             only: prn
-  use scattdata_header
   use settings
   use simulation_header
   use string,                 only: to_str
@@ -143,15 +142,11 @@ contains
 
     type(Particle), intent(inout)  :: p
 
-    call macro_xs(p % material) % obj % sample_scatter(p % coord(1) % uvw, &
-                                                       p % last_g, p % g, &
-                                                       p % mu, p % wgt)
+    call sample_scatter_c(p % material, p % last_g, p % g, p % mu, &
+         p % wgt, p % coord(1) % uvw)
 
     ! Update energy value for downstream compatability (in tallying)
     p % E = energy_bin_avg(p % g)
-
-    ! Convert change in angle (mu) to new direction
-    p % coord(1) % uvw = rotate_angle(p % coord(1) % uvw, p % mu)
 
     ! Set event component
     p % event = EVENT_SCATTER
@@ -178,10 +173,6 @@ contains
     real(8) :: mu                       ! fission neutron angular cosine
     real(8) :: phi                      ! fission neutron azimuthal angle
     real(8) :: weight                   ! weight adjustment for ufs method
-    class(Mgxs), pointer :: xs
-
-    ! Get Pointers
-    xs => macro_xs(p % material) % obj
 
     ! TODO: Heat generation from fission
 
@@ -194,7 +185,7 @@ contains
         call m % get_bin(p % coord(1) % xyz, mesh_bin)
 
         if (mesh_bin == NO_BIN_FOUND) then
-          call p % write_restart()
+          call particle_write_restart(p)
           call fatal_error("Source site outside UFS mesh!")
         end if
 
@@ -246,6 +237,9 @@ contains
       ! Bank source neutrons by copying particle data
       bank_array(i) % xyz = p % coord(1) % xyz
 
+      ! Set particle as neutron
+      bank_array(i) % particle = NEUTRON
+
       ! Set weight of fission bank site
       bank_array(i) % wgt = ONE/weight
 
@@ -261,7 +255,7 @@ contains
 
       ! Sample secondary energy distribution for fission reaction and set energy
       ! in fission bank
-      call xs % sample_fission_energy(p % g, bank_array(i) % uvw, dg, gout)
+      call sample_fission_energy_c(p % material, p % g, dg, gout)
 
       bank_array(i) % E = real(gout, 8)
       bank_array(i) % delayed_group = dg

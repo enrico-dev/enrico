@@ -12,7 +12,7 @@ module output
   use math,            only: t_percentile
   use mesh_header,     only: RegularMesh, meshes
   use message_passing, only: master, n_procs
-  use mgxs_header,     only: nuclides_MG
+  use mgxs_interface
   use nuclide_header
   use particle_header, only: LocalCoord, Particle
   use plot_header
@@ -76,7 +76,7 @@ contains
     write(UNIT=OUTPUT_UNIT, FMT=*) &
          '                  | The OpenMC Monte Carlo Code'
     write(UNIT=OUTPUT_UNIT, FMT=*) &
-         '        Copyright | 2011-2018 Massachusetts Institute of Technology'
+         '        Copyright | 2011-2018 MIT and OpenMC contributors'
     write(UNIT=OUTPUT_UNIT, FMT=*) &
          '          License | http://openmc.readthedocs.io/en/latest/license.html'
     write(UNIT=OUTPUT_UNIT, FMT='(11X,"Version | ",I1,".",I2,".",I1)') &
@@ -171,7 +171,7 @@ contains
       write(UNIT=OUTPUT_UNIT, FMT='(1X,A,A)') "Git SHA1: ", GIT_SHA1
 #endif
       write(UNIT=OUTPUT_UNIT, FMT=*) "Copyright (c) 2011-2018 &
-           &Massachusetts Institute of Technology"
+           &Massachusetts Institute of Technology and OpenMC contributors"
       write(UNIT=OUTPUT_UNIT, FMT=*) "MIT/X license at &
            &<http://openmc.readthedocs.io/en/latest/license.html>"
     end if
@@ -234,7 +234,7 @@ contains
       ! Print cell for this level
       if (p % coord(i) % cell /= NONE) then
         c => cells(p % coord(i) % cell)
-        write(ou,*) '    Cell             = ' // trim(to_str(c % id))
+        write(ou,*) '    Cell             = ' // trim(to_str(c % id()))
       end if
 
       ! Print universe for this level
@@ -246,7 +246,7 @@ contains
       ! Print information on lattice
       if (p % coord(i) % lattice /= NONE) then
         l => lattices(p % coord(i) % lattice) % obj
-        write(ou,*) '    Lattice          = ' // trim(to_str(l % id))
+        write(ou,*) '    Lattice          = ' // trim(to_str(l % id()))
         write(ou,*) '    Lattice position = (' // trim(to_str(&
              p % coord(i) % lattice_x)) // ',' // trim(to_str(&
              p % coord(i) % lattice_y)) // ')'
@@ -258,7 +258,7 @@ contains
     end do
 
     ! Print surface
-    if (p % surface /= NONE) then
+    if (p % surface /= ERROR_INT) then
       write(ou,*) '  Surface = ' // to_str(sign(surfaces(i)%id(), p % surface))
     end if
 
@@ -324,7 +324,11 @@ contains
 
     ! Determine overall generation and number of active generations
     i = overall_generation()
-    n = i - n_inactive*gen_per_batch
+    if (current_batch > n_inactive) then
+      n = gen_per_batch*n_realizations + current_gen
+    else
+      n = 0
+    end if
 
     ! write out information about batch and generation
     write(UNIT=OUTPUT_UNIT, FMT='(2X,A9)', ADVANCE='NO') &
@@ -357,7 +361,7 @@ contains
 
     ! Determine overall generation and number of active generations
     i = current_batch*gen_per_batch
-    n = i - n_inactive*gen_per_batch
+    n = n_realizations*gen_per_batch
 
     ! write out information batch and option independent output
     write(UNIT=OUTPUT_UNIT, FMT='(2X,A9)', ADVANCE='NO') &
@@ -547,7 +551,7 @@ contains
 
     ! format for write statements
 100 format (1X,A,T36,"= ",ES11.4," seconds")
-101 format (1X,A,T36,"=  ",A," neutrons/second")
+101 format (1X,A,T36,"=  ",A," particles/second")
 
   end subroutine print_runtime
 
@@ -633,7 +637,7 @@ contains
     write(ou,100) 'Cell ID','No. Overlap Checks'
 
     do i = 1, n_cells
-      write(ou,101) cells(i) % id, overlap_check_cnt(i)
+      write(ou,101) cells(i) % id(), overlap_check_cnt(i)
       if (overlap_check_cnt(i) < 10) num_sparse = num_sparse + 1
     end do
     write(ou,*)
@@ -643,7 +647,7 @@ contains
     do i = 1, n_cells
       if (overlap_check_cnt(i) < 10) then
         j = j + 1
-        write(ou,'(1X,A8)', advance='no') trim(to_str(cells(i) % id))
+        write(ou,'(1X,A8)', advance='no') trim(to_str(cells(i) % id()))
         if (modulo(j,8) == 0) write(ou,*)
       end if
     end do
@@ -680,6 +684,7 @@ contains
     character(36)           :: score_name                  ! names of scoring function
                                                            ! to be applied at write-time
     type(TallyFilterMatch), allocatable :: matches(:)
+    character(MAX_WORD_LEN) :: temp_name
 
     ! Skip if there are no tallies
     if (n_tallies == 0) return
@@ -843,8 +848,9 @@ contains
               write(UNIT=unit_tally, FMT='(1X,2A,1X,A)') repeat(" ", indent), &
                    trim(nuclides(i_nuclide) % name)
             else
+              call get_name_c(i_nuclide, len(temp_name), temp_name)
               write(UNIT=unit_tally, FMT='(1X,2A,1X,A)') repeat(" ", indent), &
-                   trim(nuclides_MG(i_nuclide) % obj % name)
+                   trim(temp_name)
             end if
           end if
 

@@ -9,7 +9,7 @@ module settings
 
   ! ============================================================================
   ! ENERGY TREATMENT RELATED VARIABLES
-  logical :: run_CE = .true.  ! Run in CE mode?
+  logical(C_BOOL) :: run_CE = .true.  ! Run in CE mode?
 
   ! ============================================================================
   ! CONTINUOUS-ENERGY CROSS SECTION RELATED VARIABLES
@@ -18,34 +18,37 @@ module settings
   logical :: urr_ptables_on = .true.
 
   ! Default temperature and method for choosing temperatures
-  integer :: temperature_method = TEMPERATURE_NEAREST
+  integer(C_INT) :: temperature_method = TEMPERATURE_NEAREST
   logical :: temperature_multipole = .false.
-  real(8) :: temperature_tolerance = 10.0_8
+  real(C_DOUBLE) :: temperature_tolerance = 10.0_8
   real(8) :: temperature_default = 293.6_8
   real(8) :: temperature_range(2) = [ZERO, ZERO]
 
   integer :: n_log_bins  ! number of bins for logarithmic grid
 
+  logical :: photon_transport = .false.
+  integer :: electron_treatment = ELECTRON_TTB
+
   ! ============================================================================
   ! MULTI-GROUP CROSS SECTION RELATED VARIABLES
 
   ! Maximum Data Order
-  integer :: max_order
+  integer(C_INT) :: max_order
 
   ! Whether or not to convert Legendres to tabulars
   logical :: legendre_to_tabular = .true.
 
   ! Number of points to use in the Legendre to tabular conversion
-  integer :: legendre_to_tabular_points = 33
+  integer(C_INT) :: legendre_to_tabular_points = C_NONE
+
+  ! ============================================================================
+  ! SIMULATION VARIABLES
 
   ! Assume all tallies are spatially distinct
   logical :: assume_separate = .false.
 
   ! Use confidence intervals for results instead of standard deviations
   logical :: confidence_intervals = .false.
-
-  ! ============================================================================
-  ! SIMULATION VARIABLES
 
   integer(C_INT64_T), bind(C) :: n_particles = 0   ! # of particles per generation
   integer(C_INT32_T), bind(C) :: n_batches         ! # of batches
@@ -71,7 +74,7 @@ module settings
   ! Variance reduction settins
   logical :: survival_biasing = .false.
   real(8) :: weight_cutoff = 0.25_8
-  real(8) :: energy_cutoff = ZERO
+  real(8) :: energy_cutoff(4) = [ZERO, 1000.0_8, ZERO, ZERO]
   real(8) :: weight_survive = ONE
 
   ! Mode to run in (fixed source, eigenvalue, plotting, etc)

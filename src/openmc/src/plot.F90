@@ -9,7 +9,7 @@ module plot
   use hdf5_interface
   use output,          only: time_stamp
   use material_header, only: materials
-  use particle_header, only: LocalCoord, Particle
+  use particle_header
   use plot_header
   use progress_header, only: ProgressBar
   use settings,        only: check_overlaps
@@ -85,7 +85,7 @@ contains
       if (pl % color_by == PLOT_COLOR_MATS) then
         ! Assign color based on material
         associate (c => cells(p % coord(j) % cell))
-          if (c % type == FILL_UNIVERSE) then
+          if (c % type() == FILL_UNIVERSE) then
             ! If we stopped on a middle universe level, treat as if not found
             rgb = pl % not_found % rgb
             id = -1
@@ -95,13 +95,13 @@ contains
             id = -1
           else
             rgb = pl % colors(p % material) % rgb
-            id = materials(p % material) % id
+            id = materials(p % material) % id()
           end if
         end associate
       else if (pl % color_by == PLOT_COLOR_CELLS) then
         ! Assign color based on cell
         rgb = pl % colors(p % coord(j) % cell) % rgb
-        id = cells(p % coord(j) % cell) % id
+        id = cells(p % coord(j) % cell) % id()
       else
         rgb = 0
         id = -1
@@ -161,7 +161,7 @@ contains
     end if
 
     ! allocate and initialize particle
-    call p % initialize()
+    call particle_initialize(p)
     p % coord(1) % xyz = xyz
     p % coord(1) % uvw = [ HALF, HALF, HALF ]
     p % coord(1) % universe = root_universe
@@ -388,7 +388,7 @@ contains
     ll = pl % origin - pl % width / TWO
 
     ! allocate and initialize particle
-    call p % initialize()
+    call particle_initialize(p)
     p % coord(1) % xyz = ll
     p % coord(1) % uvw = [ HALF, HALF, HALF ]
     p % coord(1) % universe = root_universe

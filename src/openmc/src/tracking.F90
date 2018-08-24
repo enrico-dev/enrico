@@ -1,5 +1,7 @@
 module tracking
 
+  use, intrinsic :: ISO_C_BINDING
+
   use constants
   use error,              only: warning, write_message
   use geometry_header,    only: cells
@@ -7,12 +9,12 @@ module tracking
                                 check_cell_overlap
   use material_header,    only: materials, Material
   use message_passing
-  use mgxs_header
+  use mgxs_interface
   use nuclide_header
-  use particle_header,    only: LocalCoord, Particle
+  use particle_header
   use physics,            only: collision
   use physics_mg,         only: collision_mg
-  use random_lcg,         only: prn
+  use random_lcg,         only: prn, prn_set_stream
   use settings
   use simulation_header
   use string,             only: to_str
@@ -73,6 +75,13 @@ contains
     if (active_tallies % size() > 0) call zero_flux_derivs()
 
     EVENT_LOOP: do
+      ! Set the random number stream
+      if (p % type == NEUTRON) then
+        call prn_set_stream(STREAM_TRACKING)
+      else
+        call prn_set_stream(STREAM_PHOTON)
+      end if
+
       ! Store pre-collision particle properties
       p % last_wgt = p % wgt
       p % last_E   = p % E
@@ -85,7 +94,7 @@ contains
       if (p % coord(p % n_coord) % cell == NONE) then
         call find_cell(p, found_cell)
         if (.not. found_cell) then
-          call p % mark_as_lost("Could not find the cell containing" &
+          call particle_mark_as_lost(p, "Could not find the cell containing" &
                      // " particle " // trim(to_str(p %id)))
           return
         end if
@@ -107,13 +116,14 @@ contains
             ! If the material is the same as the last material and the
             ! temperature hasn't changed, we don't need to lookup cross
             ! sections again.
-            call materials(p % material) % calculate_xs(p % E, p % sqrtkT, &
-                 micro_xs, nuclides, material_xs)
+            call materials(p % material) % calculate_xs(p)
           end if
         else
           ! Get the MG data
-          call macro_xs(p % material) % obj % calculate_xs(p % g, p % sqrtkT, &
-               p % coord(p % n_coord) % uvw, material_xs)
+          call calculate_xs_c(p % material, p % g, p % sqrtkT, &
+               p % coord(p % n_coord) % uvw, material_xs % total, &
+               material_xs % absorption, material_xs % nu_fission)
+
 
           ! Finally, update the particle group while we have already checked
           ! for if multi-group
@@ -131,7 +141,9 @@ contains
            lattice_translation, next_level)
 
       ! Sample a distance to collision
-      if (material_xs % total == ZERO) then
+      if (p % type == ELECTRON .or. p % type == POSITRON) then
+        d_collision = ZERO
+      else if (material_xs % total == ZERO) then
         d_collision = INFINITY
       else
         d_collision = -log(prn()) / material_xs % total
@@ -151,7 +163,7 @@ contains
       end if
 
       ! Score track-length estimate of k-eff
-      if (run_mode == MODE_EIGENVALUE) then
+      if (run_mode == MODE_EIGENVALUE .and. p % type == NEUTRON) then
         global_tally_tracklength = global_tally_tracklength + p % wgt * &
              distance * material_xs % nu_fission
       end if
@@ -174,7 +186,7 @@ contains
         p % coord(p % n_coord) % cell = NONE
         if (any(lattice_translation /= 0)) then
           ! Particle crosses lattice boundary
-          p % surface = NONE
+          p % surface = ERROR_INT
           call cross_lattice(p, lattice_translation)
           p % event = EVENT_LATTICE
         else
@@ -192,7 +204,7 @@ contains
         ! PARTICLE HAS COLLISION
 
         ! Score collision estimate of keff
-        if (run_mode == MODE_EIGENVALUE) then
+        if (run_mode == MODE_EIGENVALUE .and. p % type == NEUTRON) then
           global_tally_collision = global_tally_collision + p % wgt * &
                material_xs % nu_fission / material_xs % total
         end if
@@ -205,7 +217,7 @@ contains
              call score_surface_tally(p, active_meshsurf_tallies)
 
         ! Clear surface component
-        p % surface = NONE
+        p % surface = ERROR_INT
 
         if (run_CE) then
           call collision(p)
@@ -262,8 +274,8 @@ contains
       ! Check for secondary particles if this particle is dead
       if (.not. p % alive) then
         if (p % n_secondary > 0) then
-          call p % initialize_from_source(p % secondary_bank(p % n_secondary), &
-                                          run_CE, energy_bin_avg)
+          call particle_from_source(p, p % secondary_bank(p % n_secondary), &
+                                    run_CE, energy_bin_avg)
           p % n_secondary = p % n_secondary - 1
           n_event = 0
 
@@ -343,7 +355,7 @@ contains
 
       ! Do not handle reflective boundary conditions on lower universes
       if (p % n_coord /= 1) then
-        call p % mark_as_lost("Cannot reflect particle " &
+        call particle_mark_as_lost(p, "Cannot reflect particle " &
              // trim(to_str(p % id)) // " off surface in a lower universe.")
         return
       end if
@@ -380,7 +392,7 @@ contains
       p % n_coord = 1
       call find_cell(p, found)
       if (.not. found) then
-        call p % mark_as_lost("Couldn't find particle after reflecting&
+        call particle_mark_as_lost(p, "Couldn't find particle after reflecting&
              & from surface " // trim(to_str(surf % id())) // ".")
         return
       end if
@@ -400,7 +412,7 @@ contains
 
       ! Do not handle periodic boundary conditions on lower universes
       if (p % n_coord /= 1) then
-        call p % mark_as_lost("Cannot transfer particle " &
+        call particle_mark_as_lost(p, "Cannot transfer particle " &
              // trim(to_str(p % id)) // " across surface in a lower universe.&
              & Boundary conditions must be applied to universe 0.")
         return
@@ -435,7 +447,7 @@ contains
       p % n_coord = 1
       call find_cell(p, found)
       if (.not. found) then
-        call p % mark_as_lost("Couldn't find particle after hitting &
+        call particle_mark_as_lost(p, "Couldn't find particle after hitting &
              &periodic boundary on surface " // trim(to_str(surf % id())) &
              // ".")
         return
@@ -475,7 +487,7 @@ contains
     ! COULDN'T FIND PARTICLE IN NEIGHBORING CELLS, SEARCH ALL CELLS
 
     ! Remove lower coordinate levels and assignment of surface
-    p % surface = NONE
+    p % surface = ERROR_INT
     p % n_coord = 1
     call find_cell(p, found)
 
@@ -493,7 +505,7 @@ contains
       ! undefined region in the geometry.
 
       if (.not. found) then
-        call p % mark_as_lost("After particle " // trim(to_str(p % id)) &
+        call particle_mark_as_lost(p, "After particle " // trim(to_str(p % id)) &
              // " crossed surface " // trim(to_str(surf % id())) &
              // " it could not be located in any cell and it did not leak.")
         return
