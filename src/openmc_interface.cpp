@@ -1,5 +1,8 @@
 #include "openmc_interface.h"
 
+#include <stdexcept>
+#include <sstream>
+
 #include "openmc/capi.h"
 
 namespace stream {
@@ -19,6 +22,12 @@ CellInstance::CellInstance(Position position)
   // TODO: Right now get_fill returns 0-based indices, but the tally interface
   // expects 1-based. Once tallies move to 0-based, change this.
   material_index_ = indices[instance_] + 1;
+
+  // Get volume of material
+  int err = openmc_material_get_volume(material_index_, &volume_);
+  if (err < 0) {
+    throw std::runtime_error{openmc_err_msg};
+  }
 }
 
 openmc::Material* CellInstance::material() const

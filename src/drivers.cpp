@@ -227,8 +227,8 @@ void OpenmcNekDriver::update_heat_source() {
 
     // Normalize heat source in each material and collect in an array
     for (int i = 0; i < n_materials_; ++i) {
-      // TODO: Need volumes from OpenMC
-      double V = 1.0;
+      // Get volume
+      double V = openmc_driver_.cells_.at(i).volume_;
 
       // Convert heat from J/src to W/cm^3. Dividing by total_heat gives the
       // fraction of heat deposited in each material. Multiplying by power

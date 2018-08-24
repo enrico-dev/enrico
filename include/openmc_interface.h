@@ -16,9 +16,10 @@ public:
   void set_density(double rho) const;
   void set_temperature(double T) const;
 
-  int32_t index_;
-  int32_t instance_;
-  int32_t material_index_;
+  int32_t index_; //!< Index in global cells array
+  int32_t instance_; //!< Index of cell instance
+  int32_t material_index_; //!< Index of material in this instance
+  double volume_; //!< volume of cell instance in [cm^3]
 };
 
 
