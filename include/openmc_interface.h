@@ -1,3 +1,5 @@
+//! \file openmc_interface.h
+//! Classes to access OpenMC data
 #ifndef STREAM_OPENMC_INTERFACE_H
 #define STREAM_OPENMC_INTERFACE_H
 
@@ -8,12 +10,25 @@
 
 namespace stream {
 
+//! Get/set a cell's data, including data linked to its material
 class CellInstance {
 public:
+
+  //! Given a position, find the cell and material IDs of the bounding cell
+  //!
+  //! The position should be in OpenMC's units (cm).
+  //!
+  //! \param position The coordinate for the desired cell
   explicit CellInstance(Position position);
 
+  //! Get this cell's material
+  //! \return A pointer to the Material associated with this cell
   openmc::Material* material() const;
+
+  //! Set the density of this cell's materials
   void set_density(double rho) const;
+
+  //! Set the temperature of this cell
   void set_temperature(double T) const;
 
   int32_t index_; //!< Index in global cells array
