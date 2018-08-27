@@ -1,4 +1,5 @@
 #include "nek_driver.h"
+#include "nek_interface.h"
 
 namespace stream {
 

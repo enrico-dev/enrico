@@ -1,3 +1,4 @@
+#include "openmc/capi.h"
 #include "openmc_driver.h"
 
 namespace stream {

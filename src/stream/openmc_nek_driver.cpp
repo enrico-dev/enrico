@@ -1,4 +1,7 @@
+#include "nek_interface.h"
+#include "openmc/capi.h"
 #include "openmc_nek_driver.h"
+#include "stream_const.h"
 
 namespace stream {
 

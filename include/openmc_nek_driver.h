@@ -4,14 +4,7 @@
 #include "base_drivers.h"
 #include "mpi.h"
 #include "nek_driver.h"
-#include "nek_interface.h"
 #include "openmc_driver.h"
-#include "openmc/capi.h"
-#include "stream_geom.h"
-#include "stream_const.h"
-
-#include <algorithm> // for max, fill, copy
-#include <iterator> // for back_inserter
 #include <unordered_set>
 
 namespace stream {

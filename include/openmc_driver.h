@@ -1,15 +1,11 @@
 #ifndef STREAM_OPENMC_DRIVER_H
 #define STREAM_OPENMC_DRIVER_H
 
-#include <map>
-#include <unordered_map>
-#include <vector>
-#include "mpi.h"
-#include "openmc/capi.h"
-#include "comm.h"
-#include "stream_geom.h"
-#include "openmc_interface.h"
 #include "base_drivers.h"
+#include "mpi.h"
+#include "openmc_interface.h"
+#include "stream_geom.h"
+#include <vector>
 
 namespace stream {
 
