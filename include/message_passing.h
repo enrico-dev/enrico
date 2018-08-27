@@ -30,8 +30,8 @@ namespace stream {
 //!
 //! \param[in] super_comm An existing comm that will be split into sub_comm and intranode_comm
 //! \param[in] procs_per_node The number of procs per node in the new communicator (sub_comm)
-//! \param sub_comm A new internode comm with the desired number of procs per node
-//! \param intranode_comm A new intranode comm wil procs in the same node
+//! \param sub_comm[out] A new internode comm with the desired number of procs per node
+//! \param intranode_comm[out] A new intranode comm wil procs in the same node
 void get_node_comms(MPI_Comm super_comm, int procs_per_node, MPI_Comm* sub_comm,
                     MPI_Comm* intranode_comm);
 
