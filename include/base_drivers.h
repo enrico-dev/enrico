@@ -1,3 +1,5 @@
+//! \file base_drivers.h
+//! Base classes for single- and coupled-physics drivers
 #ifndef STREAM_DRIVERS_H
 #define STREAM_DRIVERS_H
 

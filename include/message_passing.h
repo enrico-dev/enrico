@@ -1,3 +1,5 @@
+//! \file message_passing.h
+//! Utility functions for constucting MPI communicators
 #ifndef STREAM_MESSAGE_PASSING_H
 #define STREAM_MESSAGE_PASSING_H
 

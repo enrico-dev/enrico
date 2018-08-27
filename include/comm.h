@@ -1,3 +1,5 @@
+//! \file comm.h
+//! Info and function wrappers for a specified MPI communictor.
 #ifndef STREAM_COMM_H
 #define STREAM_COMM_H
 

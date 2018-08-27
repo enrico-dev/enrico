@@ -1,3 +1,5 @@
+//! \file nek_driver.h
+//! Driver to initialze and run Nek5000 in stages
 #ifndef STREAM_NEK_DRIVER_H
 #define STREAM_NEK_DRIVER_H
 
