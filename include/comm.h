@@ -13,7 +13,8 @@ public:
   int rank = MPI_PROC_NULL;
 
   Comm() {};
-  explicit Comm(MPI_Comm comm) : comm(comm) {
+  explicit Comm(MPI_Comm comm) : comm(comm)
+  {
     if (comm != MPI_COMM_NULL) {
       MPI_Comm_group(comm, &group);
       MPI_Comm_rank(comm, &rank);
@@ -21,14 +22,14 @@ public:
     }
   }
 
-  int Bcast(void* buffer, int count, MPI_Datatype datatype, int root=0)
+  int Bcast(void* buffer, int count, MPI_Datatype datatype, int root = 0)
   {
     return MPI_Bcast(buffer, count, datatype, root, comm);
   }
 
   int Gather(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
              void* recvbuf, int recvcount, MPI_Datatype recvtype,
-             int root=0)
+             int root = 0)
   {
     return MPI_Gather(sendbuf, sendcount, sendtype, recvbuf, recvcount,
                       recvtype, root, comm);
@@ -36,7 +37,7 @@ public:
 
   int Gatherv(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
               void* recvbuf, const int recvcounts[], const int displs[],
-              MPI_Datatype recvtype, int root=0)
+              MPI_Datatype recvtype, int root = 0)
   {
     return MPI_Gatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts,
                        displs, recvtype, root, comm);

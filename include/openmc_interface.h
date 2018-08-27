@@ -22,7 +22,6 @@ public:
   double volume_; //!< volume of cell instance in [cm^3]
 };
 
-
 }
 
 #endif // STREAM_OPENMC_INTERFACE_H

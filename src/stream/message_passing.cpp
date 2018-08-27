@@ -23,7 +23,8 @@ namespace stream {
  * @param intranode_comm A new communicator that consists of processes in the same shared-memory region.
  */
 void get_node_comms(MPI_Comm super_comm, int procs_per_node, MPI_Comm* sub_comm,
-                    MPI_Comm* intranode_comm) {
+                    MPI_Comm* intranode_comm)
+{
 
   // super_comm_rank is used as the "key" to retain ordering in the comm splits.
   // This can allow the sub_comm to retain some intent from the super_comm's proc layout
@@ -32,7 +33,11 @@ void get_node_comms(MPI_Comm super_comm, int procs_per_node, MPI_Comm* sub_comm,
 
   // intranode_comm is an intermediate object.  It is only used to get an intranode_comm_rank,
   // which is used as the "color" in the final comm split.
-  MPI_Comm_split_type(super_comm, MPI_COMM_TYPE_SHARED, super_comm_rank, MPI_INFO_NULL, intranode_comm);
+  MPI_Comm_split_type(super_comm,
+                      MPI_COMM_TYPE_SHARED,
+                      super_comm_rank,
+                      MPI_INFO_NULL,
+                      intranode_comm);
   int intranode_comm_rank;
   MPI_Comm_rank(*intranode_comm, &intranode_comm_rank);
 

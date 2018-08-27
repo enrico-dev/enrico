@@ -5,17 +5,19 @@
 
 namespace stream {
 
-OpenmcNekDriver::OpenmcNekDriver(int argc, char **argv, MPI_Comm coupled_comm,
+OpenmcNekDriver::OpenmcNekDriver(int argc, char** argv, MPI_Comm coupled_comm,
                                  MPI_Comm openmc_comm, MPI_Comm nek_comm, MPI_Comm intranode_comm) :
     comm_(coupled_comm),
     openmc_driver_(argc, argv, openmc_comm),
     nek_driver_(nek_comm),
-    intranode_comm_(intranode_comm) {
+    intranode_comm_(intranode_comm)
+{
   init_mappings();
   init_tallies();
 };
 
-void OpenmcNekDriver::init_mappings() {
+void OpenmcNekDriver::init_mappings()
+{
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
   if (nek_driver_.active()) {
     // Create buffer to store material IDs corresponding to each Nek global
@@ -76,21 +78,22 @@ void OpenmcNekDriver::init_mappings() {
   }
 }
 
-void OpenmcNekDriver::init_tallies() {
+void OpenmcNekDriver::init_tallies()
+{
   if (openmc_driver_.active()) {
     // Determine maximum tally/filter ID used so far
     int32_t filter_id, tally_id;
     openmc_get_filter_next_id(&filter_id);
     openmc_get_tally_next_id(&tally_id);
 
-    int32_t &index_filter = openmc_driver_.index_filter_;
+    int32_t& index_filter = openmc_driver_.index_filter_;
     openmc_extend_filters(1, &index_filter, nullptr);
     openmc_filter_set_type(index_filter, "material");
     openmc_filter_set_id(index_filter, filter_id);
 
     // Build vector of material indices
     std::vector<int32_t> mats;
-    for (const auto &c : openmc_driver_.cells_) {
+    for (const auto& c : openmc_driver_.cells_) {
       mats.push_back(c.material_index_);
     }
 
@@ -102,24 +105,25 @@ void OpenmcNekDriver::init_tallies() {
     openmc_tally_allocate(openmc_driver_.index_tally_, "generic");
     openmc_tally_set_id(openmc_driver_.index_tally_, tally_id);
     char score_array[][20]{"kappa-fission"};
-    const char *scores[]{score_array[0]}; // OpenMC expects a const char**, ugh
+    const char* scores[]{score_array[0]}; // OpenMC expects a const char**, ugh
     openmc_tally_set_scores(openmc_driver_.index_tally_, 1, scores);
     openmc_tally_set_filters(openmc_driver_.index_tally_, 1, &index_filter);
   }
 }
 
-void OpenmcNekDriver::update_heat_source() {
+void OpenmcNekDriver::update_heat_source()
+{
   // Create array to store volumetric heat deposition in each material
   double heat[n_materials_];
 
   if (openmc_driver_.active()) {
     // Get material bins
-    int32_t *mats;
+    int32_t* mats;
     int32_t n_mats;
     openmc_material_filter_get_bins(openmc_driver_.index_filter_, &mats, &n_mats);
 
     // Get tally results and number of realizations
-    double *results;
+    double* results;
     int shape[3];
     openmc_tally_results(openmc_driver_.index_tally_, &results, shape);
     int32_t m;
@@ -172,7 +176,8 @@ void OpenmcNekDriver::update_heat_source() {
   }
 }
 
-void OpenmcNekDriver::update_temperature() {
+void OpenmcNekDriver::update_temperature()
+{
   if (nek_driver_.active()) {
     // Gather local temperatures into an array
     int n = nek_driver_.nelt_;
@@ -258,9 +263,9 @@ void OpenmcNekDriver::update_temperature() {
       }
 
       // For each OpenMC material, volume average temperatures and set
-      for (const auto &c : openmc_driver_.cells_) {
+      for (const auto& c : openmc_driver_.cells_) {
         // Get corresponding global elements
-        const auto &global_elems = mat_to_elems_.at(c.material_index_);
+        const auto& global_elems = mat_to_elems_.at(c.material_index_);
 
         // Get volume-average temperature for this material
         double average_temp = 0.0;

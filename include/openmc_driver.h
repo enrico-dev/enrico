@@ -12,7 +12,7 @@ namespace stream {
 class OpenmcDriver : public TransportDriver {
 public:
   // Constructors and destructors
-  OpenmcDriver(int argc, char *argv[], MPI_Comm comm);
+  OpenmcDriver(int argc, char* argv[], MPI_Comm comm);
   ~OpenmcDriver();
 
   // Methods

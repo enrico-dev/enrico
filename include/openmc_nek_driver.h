@@ -13,7 +13,7 @@ namespace stream {
 // how or if the base class will be implemented.  The issue will be revisited
 class OpenmcNekDriver {
 public:
-  OpenmcNekDriver(int argc, char *argv[], MPI_Comm coupled_comm, MPI_Comm openmc_comm,
+  OpenmcNekDriver(int argc, char* argv[], MPI_Comm coupled_comm, MPI_Comm openmc_comm,
                   MPI_Comm nek_comm, MPI_Comm intranode_comm);
   ~OpenmcNekDriver() {};
 
@@ -28,7 +28,8 @@ private:
   void init_mappings();
   void init_tallies();
 
-  int get_heat_index(int32_t mat_index) const {
+  int get_heat_index(int32_t mat_index) const
+  {
     return heat_index_.at(mat_index - 1);
   }
 
