@@ -3,25 +3,6 @@
 
 namespace stream {
 
-/**
- * @brief Splits a given MPI comunicator into a new comm with a specified number of procs in every node.
- *
- * The new comm (*subComm*) will span **all** nodes in the original comm (*superComm*).  This will work correctly even
- * if *subComm* spans only a single node.
- *
- * Depending on the calling proc, *subComm* will be one of two values:
- *   - If the calling proc is within the new desired comm (the comm with the given number of *procsPerNode*), then
- *     *subComm* will be a valid comm.
- *   - If the calling proc is not within the new desired comm, then *subComm* will be `MPI_COMM_NULL`.
- * The caller must then make use of *subComm* with proper value checks.  For example, subsequent MPI operations on
- * *subComm* may need to check if `subComm != MPI_COMM_NULL`.
- *
- * @param super_comm An existing communicator that will be split
- * @param procs_per_node The number of MPI procs per node in the new communicator, *subComm*
- * @param sub_comm A new communicator with either the given number of procs per node *or* `MPI_COMM_NULL`, depending on
- *                whether the calling proc is in the desired comm.
- * @param intranode_comm A new communicator that consists of processes in the same shared-memory region.
- */
 void get_node_comms(MPI_Comm super_comm, int procs_per_node, MPI_Comm* sub_comm,
                     MPI_Comm* intranode_comm)
 {
