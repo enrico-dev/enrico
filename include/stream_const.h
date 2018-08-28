@@ -1,3 +1,5 @@
+//! \file stream_const.h
+//! Physical constants
 #ifndef STREAM_STREAM_CONST_H
 #define STREAM_STREAM_CONST_H
 
