@@ -7,11 +7,11 @@
 extern "C" {
 
 // From libnek5000
-void C2F_nek_init(const int *intracomm);
+void C2F_nek_init(const int* intracomm);
 void C2F_nek_end();
 void C2F_nek_solve();
 
-int nek_get_global_elem_centroid(int global_elem, stream::Position *centroid);
+int nek_get_global_elem_centroid(int global_elem, stream::Position* centroid);
 int nek_get_global_elem(int local_elem);
 int nek_get_local_elem(int global_elem);
 int nek_get_lelg();

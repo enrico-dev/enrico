@@ -1,107 +1,23 @@
-#include "drivers.h"
-#include "mpi.h"
 #include "nek_interface.h"
 #include "openmc/capi.h"
-#include "stream_geom.h"
-
-#include <algorithm> // for max, fill, copy
-#include <iterator> // for back_inserter
-#include <unordered_set>
+#include "openmc_nek_driver.h"
+#include "stream_const.h"
 
 namespace stream {
 
-// ============================================================================
-// HeatFluids Driver
-// ============================================================================
-
-bool HeatFluidsDriver::active() const {
-  return comm_.comm != MPI_COMM_NULL;
-}
-
-// ============================================================================
-// Transport Driver
-// ============================================================================
-
-bool TransportDriver::active() const {
-  return comm_.comm != MPI_COMM_NULL;
-}
-
-// ============================================================================
-// OpenMC Driver
-// ============================================================================
-
-OpenmcDriver::OpenmcDriver(int argc, char *argv[], MPI_Comm comm)
-    : TransportDriver(comm) {
-  if (active()) {
-    openmc_init(argc, argv, &comm);
-  }
-  MPI_Barrier(MPI_COMM_WORLD);
-}
-
-void OpenmcDriver::init_step() { openmc_simulation_init(); }
-
-void OpenmcDriver::solve_step() { openmc_run(); }
-
-void OpenmcDriver::finalize_step() { openmc_simulation_finalize(); }
-
-OpenmcDriver::~OpenmcDriver() {
-  if (active())
-    openmc_finalize();
-  MPI_Barrier(MPI_COMM_WORLD);
-}
-
-// ============================================================================
-// Nek5000 Driver
-// ============================================================================
-
-NekDriver::NekDriver(MPI_Comm comm) : HeatFluidsDriver(comm) {
-  lelg_ = nek_get_lelg();
-  lelt_ = nek_get_lelt();
-  lx1_ = nek_get_lx1();
-
-  if (active()) {
-    MPI_Fint int_comm = MPI_Comm_c2f(comm_.comm);
-    C2F_nek_init(static_cast<const int *>(&int_comm));
-
-    nelgt_ = nek_get_nelgt();
-    nelt_ = nek_get_nelt();
-  }
-  MPI_Barrier(MPI_COMM_WORLD);
-}
-
-void NekDriver::init_step() {}
-
-void NekDriver::solve_step() { C2F_nek_solve(); }
-
-void NekDriver::finalize_step() {}
-
-Position NekDriver::get_global_elem_centroid(int global_elem) const {
-  Position centroid;
-  int ierr = nek_get_global_elem_centroid(global_elem, &centroid);
-  return centroid;
-}
-
-NekDriver::~NekDriver() {
-  if (active())
-    C2F_nek_end();
-  MPI_Barrier(MPI_COMM_WORLD);
-}
-
-// ============================================================================
-// OpenmcNekDriver
-// ============================================================================
-
-OpenmcNekDriver::OpenmcNekDriver(int argc, char **argv, MPI_Comm coupled_comm,
+OpenmcNekDriver::OpenmcNekDriver(int argc, char** argv, MPI_Comm coupled_comm,
                                  MPI_Comm openmc_comm, MPI_Comm nek_comm, MPI_Comm intranode_comm) :
     comm_(coupled_comm),
     openmc_driver_(argc, argv, openmc_comm),
     nek_driver_(nek_comm),
-    intranode_comm_(intranode_comm) {
+    intranode_comm_(intranode_comm)
+{
   init_mappings();
   init_tallies();
 };
 
-void OpenmcNekDriver::init_mappings() {
+void OpenmcNekDriver::init_mappings()
+{
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
   if (nek_driver_.active()) {
     // Create buffer to store material IDs corresponding to each Nek global
@@ -114,7 +30,7 @@ void OpenmcNekDriver::init_mappings() {
       for (int global_elem = 1; global_elem <= nek_driver_.nelgt_; ++global_elem) {
         // Determine cell instance corresponding to global element
         Position elem_pos = nek_driver_.get_global_elem_centroid(global_elem);
-        CellInstance c {elem_pos};
+        CellInstance c{elem_pos};
         if (tracked.find(c.material_index_) == tracked.end()) {
           openmc_driver_.cells_.push_back(c);
           tracked.insert(c.material_index_);
@@ -162,7 +78,8 @@ void OpenmcNekDriver::init_mappings() {
   }
 }
 
-void OpenmcNekDriver::init_tallies() {
+void OpenmcNekDriver::init_tallies()
+{
   if (openmc_driver_.active()) {
     // Determine maximum tally/filter ID used so far
     int32_t filter_id, tally_id;
@@ -176,7 +93,7 @@ void OpenmcNekDriver::init_tallies() {
 
     // Build vector of material indices
     std::vector<int32_t> mats;
-    for (const auto &c : openmc_driver_.cells_) {
+    for (const auto& c : openmc_driver_.cells_) {
       mats.push_back(c.material_index_);
     }
 
@@ -188,13 +105,14 @@ void OpenmcNekDriver::init_tallies() {
     openmc_tally_allocate(openmc_driver_.index_tally_, "generic");
     openmc_tally_set_id(openmc_driver_.index_tally_, tally_id);
     char score_array[][20]{"kappa-fission"};
-    const char *scores[]{score_array[0]}; // OpenMC expects a const char**, ugh
+    const char* scores[]{score_array[0]}; // OpenMC expects a const char**, ugh
     openmc_tally_set_scores(openmc_driver_.index_tally_, 1, scores);
     openmc_tally_set_filters(openmc_driver_.index_tally_, 1, &index_filter);
   }
 }
 
-void OpenmcNekDriver::update_heat_source() {
+void OpenmcNekDriver::update_heat_source()
+{
   // Create array to store volumetric heat deposition in each material
   double heat[n_materials_];
 
@@ -216,7 +134,7 @@ void OpenmcNekDriver::update_heat_source() {
     for (int i = 0; i < n_materials_; ++i) {
       // Get mean value for tally result and convert units from eV to J
       // TODO: Get rid of flattened array index by using xtensor?
-      heat[i] = JOULE_PER_EV * results[3*i + 1] / m;
+      heat[i] = JOULE_PER_EV * results[3 * i + 1] / m;
 
       // Sum up heat in each material
       total_heat += heat[i];
@@ -258,7 +176,8 @@ void OpenmcNekDriver::update_heat_source() {
   }
 }
 
-void OpenmcNekDriver::update_temperature() {
+void OpenmcNekDriver::update_temperature()
+{
   if (nek_driver_.active()) {
     // Gather local temperatures into an array
     int n = nek_driver_.nelt_;
@@ -302,27 +221,27 @@ void OpenmcNekDriver::update_temperature() {
       int displs[p];
       displs[0] = 0;
       for (int i = 1; i < p; ++i) {
-        displs[i] = displs[i-1] + recvcounts[i-1];
+        displs[i] = displs[i - 1] + recvcounts[i - 1];
       }
 
       // Gather temperatures and global element indices onto root
       nek_driver_.comm_.Gatherv(
-        T_local, n, MPI_DOUBLE,
-        T, recvcounts, displs, MPI_DOUBLE
+          T_local, n, MPI_DOUBLE,
+          T, recvcounts, displs, MPI_DOUBLE
       );
       nek_driver_.comm_.Gatherv(
-        global_elems, n, MPI_INT,
-        all_global_elems, recvcounts, displs, MPI_INT
+          global_elems, n, MPI_INT,
+          all_global_elems, recvcounts, displs, MPI_INT
       );
     } else {
       // Send temperature and global element indices to root via gather
       nek_driver_.comm_.Gatherv(
-        T_local, n, MPI_DOUBLE,
-        nullptr, nullptr, nullptr, MPI_DOUBLE
+          T_local, n, MPI_DOUBLE,
+          nullptr, nullptr, nullptr, MPI_DOUBLE
       );
       nek_driver_.comm_.Gatherv(
-        global_elems, n, MPI_INT,
-        nullptr, nullptr, nullptr, MPI_INT
+          global_elems, n, MPI_INT,
+          nullptr, nullptr, nullptr, MPI_INT
       );
     }
 
@@ -337,7 +256,7 @@ void OpenmcNekDriver::update_temperature() {
       // reorder them according to the position they should be in
       // (all_global_elems)
       double T_unordered[m];
-      std::copy(T, T+m, T_unordered);
+      std::copy(T, T + m, T_unordered);
       for (int i = 0; i < m; ++i) {
         int global_index = all_global_elems[i];
         T[global_index] = T_unordered[i];

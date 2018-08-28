@@ -1,4 +1,4 @@
-#include "drivers.h"
+#include "openmc_driver.h"
 #include "mpi.h"
 
 int main(int argc, char *argv[]) {
