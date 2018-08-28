@@ -1,5 +1,5 @@
 #include "mpi.h"
-#include "base_drivers.h"
+#include "openmc_driver.h"
 
 int main(int argc, char* argv[])
 {
