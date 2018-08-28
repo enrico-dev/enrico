@@ -1,3 +1,5 @@
+c> \file nek_interface_fixedform.F
+c> Functions and data types for Nek5000 accessing data (in fixed-form)
       module nek_interface_fixedform
       use, intrinsic :: ISO_C_BINDING
       contains
@@ -45,6 +47,7 @@ C=======================================================================
       return
       end
 C=======================================================================
+      !> Run Nek5000 for one Picard iteration
       subroutine nek_step() bind(C)
 
       include 'SIZE'
@@ -60,7 +63,7 @@ C=======================================================================
       return
       end
 C=======================================================================
-      !> Teardown a Nek5000 step for one Picard iteration
+      !> Finalize Nek5000 for one Picard iteration
       subroutine nek_finalize_step() bind(C)
       include 'SIZE'
       include 'TSTEP'
@@ -92,6 +95,7 @@ C=======================================================================
       return
       end
 C=======================================================================
+      !> Functional expansion
       subroutine nek_expansion()
 
       include 'SIZE'
@@ -140,6 +144,7 @@ c     call nek_testp()
       return
       end
 C=======================================================================
+      !> Diagonalize
       subroutine nek_diag()
       include 'SIZE'
       include 'TOTAL'
@@ -323,9 +328,9 @@ c-----------------------------------------------------------------------
       !!
       !! If n > the maximum Legendre order, the function returns 0.0.
       !!
-      !! @param[in] x
-      !! @param[in] n
-      !! @return pl_leg
+      !! \param[in] x
+      !! \param[in] n
+      !! \return pl_leg
       function pl_leg(x,n)
       parameter (nl_max=100) ! should never be bigger than 100
       real*8 pl,pl_leg
@@ -354,9 +359,9 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
       !> Calculates Fourier polynomials Fn(x)
       !!
-      !! @param[in] x
-      !! @param[in] n
-      !! @return fl_four
+      !! \param[in] x
+      !! \param[in] n
+      !! \return fl_four
       function fl_four(x,n)
       real*8 fl_four,pi
       real*8 x, A
@@ -373,7 +378,7 @@ c-----------------------------------------------------------------------
 c-----------------------------------------------------------------------
       !> Solve the convection-diffusion equation for passive scalar IPSCAL
       !!
-      !! @param[in] igeom
+      !! \param[in] igeom
       subroutine cdscal_mod (igeom)
       include 'SIZE'
       include 'INPUT'
@@ -492,15 +497,15 @@ c-----------------------------------------------------------------------
       !> Driver for temperature or passive scalar.
       !!
       !! Current version:
-      !! (1) Varaiable properties.
-      !! (2) Implicit time stepping.
-      !! (3) User specified tolerance for the Helmholtz solver
-      !!     (not based on eigenvalues).
-      !! (4) A passive scalar can be defined on either the
-      !!     temperatur or the velocity mesh.
-      !! (5) A passive scalar has its own multiplicity (B.C.).
+      !! 1. Varaiable properties.
+      !! 2. Implicit time stepping.
+      !! 3. User specified tolerance for the Helmholtz solver
+      !!    (not based on eigenvalues).
+      !! 4. A passive scalar can be defined on either the
+      !!    temperatur or the velocity mesh.
+      !! 5. A passive scalar has its own multiplicity (B.C.).
       !!
-      !! @param[in] igeom
+      !! \param[in] igeom
       subroutine heat_mod (igeom)
 C
 

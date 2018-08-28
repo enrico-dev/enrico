@@ -1,3 +1,5 @@
+!> \file nek_interface.F90
+!> Functions and data types for accessing Nek5000 data
 module nek_interface
   use, intrinsic :: ISO_C_BINDING
   use nek_geom, only: xm1, ym1, zm1
@@ -10,10 +12,9 @@ module nek_interface
 
   !> Describes an (x,y,z) coordinate in 3D space
   !!
-  !! @var x
-  !! @var y
-  !! @var z
-  !! @todo Move this to its own header?
+  !! \var x
+  !! \var y
+  !! \var z
   type, bind(C) :: Position
     real(C_DOUBLE) :: x
     real(C_DOUBLE) :: y
@@ -22,7 +23,15 @@ module nek_interface
 
 contains
 
-  ! TODO: Only works for 3D
+  !> Get the coordinates of a global element's centroid
+  !!
+  !! The units of the coordinate are dimensionless and must be interpreted based on the
+  !! setup of the Nek5000
+  !!
+  !! \param[in] global_elem A global element ID
+  !! \param[out] centroid The dimensionless coordinates of the global element's centroid
+  !! \result Error code
+  !! \todo Only works for 3D
   function nek_get_global_elem_centroid(global_elem, centroid) result(ierr) bind(C)
     integer(C_INT), intent(in), value :: global_elem
     type(Position), intent(out) :: centroid
@@ -56,40 +65,51 @@ contains
     ierr = 0
   end function nek_get_global_elem_centroid
 
+  !> Get the global element ID for a given local element
+  !>
+  !> \param[in] local_elem A local element ID
+  !> \result The corresponding global element ID
   function nek_get_global_elem(local_elem) result(global_elem) bind(C)
     integer(C_INT), value :: local_elem
     integer(C_INT) :: global_elem
     global_elem = lglel(local_elem)
   end function
 
+  !> Get the local element ID for a given global element
+  !>
+  !> \param[in] global_elem A global element ID
+  !> \result The corresponding local element ID
   function nek_get_local_elem(global_elem) result(local_elem) bind(C)
     integer(C_INT), value :: global_elem
     integer(C_INT) :: local_elem
     local_elem = gllel(global_elem)
   end function
 
+  !> Get value of lelg (max number of global elements)
   function nek_get_lelg() result(c_lelg) bind(C)
     integer(C_INT) :: c_lelg
     c_lelg = lelg
   end function nek_get_lelg
 
+  !> Get value of lelt (max number of local elements)
   function nek_get_lelt() result(c_lelt) bind(C)
     integer(C_INT) :: c_lelt
     c_lelt = lelt
   end function nek_get_lelt
 
+  !> Get value of lx1 (number of GLL gridpoints in x-dimension)
   function nek_get_lx1() result(c_lx1) bind(C)
     integer(C_INT) :: c_lx1
     c_lx1 = lx1
   end function nek_get_lx1
 
-  ! Number of elements in mesh
+  !> Get value of nelgt
   function nek_get_nelgt() result(c_nelgt) bind(C)
     integer(C_INT) :: c_nelgt
     c_nelgt = nelgt
   end function
 
-  ! Number of elements on process
+  !> Get value of nelt (number of local elements)
   function nek_get_nelt() result(c_nelt) bind(C)
     integer(C_INT) :: c_nelt
     c_nelt = nelt
