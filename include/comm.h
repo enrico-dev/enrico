@@ -73,10 +73,10 @@ public:
   //! \param[out] recvbuf Address of receive buffer
   //! \param[in] recvcounts Integer array (of length group size) containing the number of elements
   //!                       that are received from each process
-  //! \param displs[in] Integer array (of length group size). Entry i specifies the displacement
+  //! \param[in] displs Integer array (of length group size). Entry i specifies the displacement
   //!                   relative to recvbuf at which to place the incoming data from process i.
-  //! \param recvtype Data type of recv buffer elements
-  //! \param root Rank of receiving process
+  //! \param[in] recvtype Data type of recv buffer elements
+  //! \param[in] root Rank of receiving process
   //! \return Error value
   int Gatherv(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
               void* recvbuf, const int recvcounts[], const int displs[],

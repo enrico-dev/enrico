@@ -43,7 +43,7 @@ public:
   // Data
   int32_t index_tally_;   //!< Index in tallies array for fission tally
   int32_t index_filter_;  //!< Index in filters arrays for material filter
-  std::vector<CellInstance> cells_;  //!< Array of cells
+  std::vector<CellInstance> cells_;  //!< Array of cell instances
 };
 
 } // namespace stream
