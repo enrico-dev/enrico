@@ -32,6 +32,18 @@ Position NekDriver::get_global_elem_centroid(int global_elem) const
   return centroid;
 }
 
+Position NekDriver::get_local_elem_centroid(int local_elem) const
+{
+  Position centroid;
+  int ierr = nek_get_local_elem_centroid(local_elem, &centroid);
+  return centroid;
+}
+
+bool NekDriver::global_elem_is_in_rank(int global_elem) const
+{
+  return (nek_global_elem_is_in_rank(global_elem, comm_.rank) == 1);
+}
+
 NekDriver::~NekDriver()
 {
   if (active())

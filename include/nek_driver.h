@@ -56,6 +56,21 @@ public:
   //! \return The dimensionless coordinate of the element's centroid
   Position get_global_elem_centroid(int global_elem) const;
 
+  //! Get the coordinate of a local element's centroid.
+  //!
+  //! The coordinate is dimensionless.  Its units depend on the unit system used that was used to
+  //! setup the Nek problem. The user must handle any necessary conversions.
+  //!
+  //! \param local_elem The local index of the desired element
+  //! \return The dimensionless coordinate of the element's centroid
+  Position get_local_elem_centroid(int local_elem) const;
+
+  //! Return true if a global element is in a given MPI rank
+  //! \param A global element ID
+  //! \param An MPI rank
+  //! \return True if the global element ID is in the given rank
+  bool global_elem_is_in_rank(int global_elem) const;
+
   int lelg_; //!< upper bound on number of mesh elements
   int lelt_; //!< upper bound on number of mesh elements per rank
   int lx1_; //!< polynomial order of the solution
