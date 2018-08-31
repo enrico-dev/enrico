@@ -6,6 +6,7 @@
 #include "base_drivers.h"
 #include "mpi.h"
 #include "stream_geom.h"
+#include <vector>
 
 namespace stream {
 
@@ -71,11 +72,19 @@ public:
   //! \return True if the global element ID is in the given rank
   bool global_elem_is_in_rank(int global_elem) const;
 
+  void init_mappings();
+
   int lelg_; //!< upper bound on number of mesh elements
   int lelt_; //!< upper bound on number of mesh elements per rank
   int lx1_; //!< polynomial order of the solution
   int nelgt_; //!< total number of mesh elements
   int nelt_; //!< number of local mesh elements
+
+  std::vector<int> local_displs_;
+  std::vector<int> local_counts_;
+  std::vector<int> local_ordering_;
+
+
 };
 
 } // namespace stream

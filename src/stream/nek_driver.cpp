@@ -15,8 +15,56 @@ NekDriver::NekDriver(MPI_Comm comm) : HeatFluidsDriver(comm)
 
     nelgt_ = nek_get_nelgt();
     nelt_ = nek_get_nelt();
+
+    init_mappings();
   }
   MPI_Barrier(MPI_COMM_WORLD);
+}
+
+void NekDriver::init_mappings() {
+  if(active()) {
+
+    // These arrays are only gathered on the root process
+    if (comm_.rank == 0) {
+      local_counts_.resize(comm_.size);
+      local_displs_.resize(comm_.size);
+      local_ordering_.resize(nelgt_);
+    }
+
+    // Every proc sets a mapping from its local to global element indices.
+    // This mapping is in a Nek5000 common block, but we don't expose it to C++
+    int local_to_global[nelt_];
+    for (int i = 0; i < nelt_; ++i) {
+      local_to_global[i] = nek_get_global_elem(i+1) - 1;
+    }
+
+    // The root proc gets every proc's local element count.
+    comm_.Gather(&nelt_, 1, MPI_INT, local_counts_.data(), 1, MPI_INT);
+
+    if (comm_.rank == 0) {
+      // The root makes a list of data displacements for a Gatherv operation.
+      // Each proc's data will be displaced by the number of local elements on
+      // the previous proc.
+      local_displs_.at(0) = 0;
+      for (int i = 1; i < comm_.rank; ++i) {
+        local_displs_.at(i) = local_displs_.at(i-1) + local_counts_.at(i-1);
+      }
+
+      // The root the gets the local-to-global element mapping for all procs.
+      // This can be used to reorder the data from a Gatherv operation.
+      comm_.Gatherv(
+          local_to_global, nelt_, MPI_INT,
+          local_ordering_.data(), local_counts_.data(), local_displs_.data(), MPI_INT
+      );
+    }
+    else {
+      // Other procs send their local-to-global mapping to the root.
+      comm_.Gatherv(
+          local_to_global, nelt_, MPI_INT,
+          nullptr, nullptr, nullptr, MPI_INT
+      );
+    }
+  }
 }
 
 void NekDriver::init_step() {}
