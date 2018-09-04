@@ -46,6 +46,8 @@ public:
   OpenmcDriver openmc_driver_;  //!< The OpenMC driver
   NekDriver nek_driver_;  //!< The Nek5000 driver
 private:
+  void local_to_global();
+
   //! Create bidirectional mappings from OpenMC materials to/from Nek5000 elements
   void init_mappings();
 

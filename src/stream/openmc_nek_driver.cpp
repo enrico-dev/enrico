@@ -16,6 +16,54 @@ OpenmcNekDriver::OpenmcNekDriver(int argc, char** argv, MPI_Comm coupled_comm,
   init_tallies();
 };
 
+void OpenmcNekDriver::local_to_global()
+{
+  if (nek_driver_.active()) {
+
+    bool isroot = (nek_driver_.comm_.rank == 0);
+
+    int nlocals = nek_driver_.nelt_;
+    int nglobals = nek_driver_.nelgt_;
+
+    int ilocal_to_iglobal[nlocals];
+    for (int i = 0; i < nlocals; ++i) {
+      ilocal_to_iglobal[i] = nek_get_global_elem(i + 1) - 1;
+    }
+
+    int nranks = isroot ? nek_driver_.comm_.size : 0;
+
+    int irank_to_nlocals[nranks];
+    nek_driver_.comm_.Gather(&nlocals, 1, MPI_INT, irank_to_nlocals, 1, MPI_INT);
+
+    double all_ilocal_to_iglobal[nglobals];
+    if (isroot) {
+      int displs[nranks];
+      displs[0] = 0;
+      for (int i = 1; i < nranks; ++i) {
+        displs[i] = displs[i - 1] + irank_to_nlocals[i - 1];
+      }
+      nek_driver_.comm_.Gatherv(
+          ilocal_to_iglobal, nlocals, MPI_INT,
+          all_ilocal_to_iglobal, irank_to_nlocals, displs, MPI_INT
+      );
+    }
+    else {
+      nek_driver_.comm_.Gatherv(
+          ilocal_to_iglobal, nlocals, MPI_INT,
+          nullptr, nullptr, nullptr, MPI_INT
+      );
+    }
+
+    if (openmc_driver_.active()) {
+      openmc_driver_.comm_.Bcast(all_ilocal_to_iglobal, nglobals, MPI_INT);
+    }
+
+
+
+
+  }
+}
+
 void OpenmcNekDriver::init_mappings()
 {
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
