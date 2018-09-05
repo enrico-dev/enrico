@@ -48,6 +48,9 @@ public:
 private:
   void local_to_global();
 
+  //! Initialize MPI datatypes (currently, only position_mpi_datatype)
+  void init_mpi_datatypes();
+
   //! Create bidirectional mappings from OpenMC materials to/from Nek5000 elements
   void init_mappings();
 
@@ -61,6 +64,14 @@ private:
   {
     return heat_index_.at(mat_index - 1);
   }
+
+  //! MPI datatype for sending/receiving Position objects.
+  MPI_Datatype position_mpi_datatype;
+
+  //! Gives a Position of a global element's centroid
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
+  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  std::vector<Position> global_elem_centroids;
 
   //! Map that gives a list of Nek element global indices for a given OpenMC material index
   std::unordered_map<int32_t, std::vector<int>> mat_to_elems_;
