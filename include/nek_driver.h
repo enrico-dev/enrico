@@ -72,7 +72,8 @@ public:
   //! \return True if the global element ID is in the given rank
   bool global_elem_is_in_rank(int global_elem) const;
 
-  void init_mappings();
+  //! Initialize the counts and displacements of local elements for each MPI Rank.
+  void init_displs();
 
   int lelg_; //!< upper bound on number of mesh elements
   int lelt_; //!< upper bound on number of mesh elements per rank
@@ -80,10 +81,15 @@ public:
   int nelgt_; //!< total number of mesh elements
   int nelt_; //!< number of local mesh elements
 
+  //! The number of local elements in each rank.
   std::vector<int> local_displs_;
-  std::vector<int> local_counts_;
-  std::vector<int> local_ordering_;
 
+  //! The displacements of local elements, relative to rank 0. Used in an MPI gatherv operation.
+  std::vector<int> local_counts_;
+
+  // Intended to be the local-to-global element ordering, as ensured by a Gatherv operation.
+  // It is currently unused, as the coupling does not need to know the local-global ordering.
+  //std::vector<int> local_ordering_;
 
 };
 

@@ -46,7 +46,6 @@ public:
   OpenmcDriver openmc_driver_;  //!< The OpenMC driver
   NekDriver nek_driver_;  //!< The Nek5000 driver
 private:
-  void local_to_global();
 
   //! Initialize MPI datatypes (currently, only position_mpi_datatype)
   void init_mpi_datatypes();
