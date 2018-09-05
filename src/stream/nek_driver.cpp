@@ -71,13 +71,13 @@ NekDriver::NekDriver(MPI_Comm comm) : HeatFluidsDriver(comm)
 
 void NekDriver::init_displs() {
   if(active()) {
-    local_counts_.reserve(comm_.size);
-    local_displs_.reserve(comm_.size);
+    local_counts_.resize(comm_.size);
+    local_displs_.resize(comm_.size);
 
     comm_.Allgather(&nelt_, 1, MPI_INT, local_counts_.data(), 1, MPI_INT);
 
     local_displs_.at(0) = 0;
-    for (int i = 1; i < comm_.rank; ++i) {
+    for (int i = 1; i < comm_.size; ++i) {
       local_displs_.at(i) = local_displs_.at(i-1) + local_counts_.at(i-1);
     }
   }

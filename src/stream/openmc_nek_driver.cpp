@@ -52,7 +52,7 @@ void OpenmcNekDriver::init_mappings()
 
   // Only the OpenMC procs get the global element centroids
   int gec_size = openmc_driver_.active() ? nglobals : 0;
-  global_elem_centroids.reserve(gec_size);
+  global_elem_centroids.resize(gec_size);
 
   // Step 1: Get global element centroids on all OpenMC ranks
   if (nek_driver_.active()) {
@@ -66,7 +66,7 @@ void OpenmcNekDriver::init_mappings()
                               nek_driver_.local_displs_.data(), position_mpi_datatype);
     // Broadcast global_element_centroids onto all the OpenMC procs
     if (openmc_driver_.active()) {
-      openmc_driver_.comm_.Bcast(global_elem_centroids.data(), position_mpi_datatype);
+      openmc_driver_.comm_.Bcast(global_elem_centroids.data(), nglobals, position_mpi_datatype);
     }
   }
 
