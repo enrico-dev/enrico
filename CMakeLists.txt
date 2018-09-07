@@ -30,6 +30,7 @@ include_directories(
 # =============================================================================
 add_subdirectory(vendor/nek5000)
 add_subdirectory(vendor/openmc)
+add_subdirectory(vendor/gsl)
 
 # =============================================================================
 # Build libstream
@@ -80,7 +81,7 @@ add_library(libstream
     include/stream_const.h
     include/stream_geom.h)
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
-target_link_libraries(libstream PUBLIC libnek5000 libopenmc)
+target_link_libraries(libstream PUBLIC libnek5000 libopenmc gsl-lite)
 
 # =============================================================================
 # Build STREAM driver
