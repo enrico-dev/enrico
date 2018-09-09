@@ -44,13 +44,6 @@ water.add_nuclide('H1', 2.0)
 water.add_element('O', 1.0)
 water.add_s_alpha_beta('c_H_in_H2O')
 
-# Create z-planes
-zplanes = []
-for z in np.linspace(0.0, fuel_length, n_axial + 1):
-    zplanes.append(openmc.ZPlane(z0=z))
-zplanes[0].boundary_type = boundary
-zplanes[-1].boundary_type = boundary
-
 # Create cylinders
 fuel_rings = []
 for r in np.linspace(0., fuel_or, args.rings + 1)[1:]:
@@ -58,43 +51,54 @@ for r in np.linspace(0., fuel_or, args.rings + 1)[1:]:
 clad_inner = openmc.ZCylinder(R=clad_ir)
 clad_outer = openmc.ZCylinder(R=clad_or)
 
-# x and y boundaries
-x_min = openmc.XPlane(x0=-pitch/2, boundary_type='periodic')
-x_max = openmc.XPlane(x0=pitch/2, boundary_type='periodic')
-y_min = openmc.YPlane(y0=-pitch/2, boundary_type='periodic')
-y_max = openmc.YPlane(y0=pitch/2, boundary_type='periodic')
-
 # Division for wedges
 xplane = openmc.XPlane(x0=0.0)
 yplane = openmc.YPlane(y0=0.0)
 xy_bounds = [
-    (+xplane & +yplane, -x_max & -y_max),
-    (+xplane & -yplane, -x_max & +y_min),
-    (-xplane & -yplane, +x_min & +y_min),
-    (-xplane & +yplane, +x_min & -y_max)
+    +xplane & +yplane,
+    +xplane & -yplane,
+    -xplane & -yplane,
+    -xplane & +yplane
 ]
 
 cells = []
-for i in range(n_axial):
-    axial_slice = +zplanes[i] & -zplanes[i + 1]
-    for wedge, bounds in xy_bounds:
-        for annulus in openmc.model.subdivide(fuel_rings)[:-1]:
-            c = openmc.Cell(fill=uo2.clone(), region=annulus & wedge & axial_slice)
-            cells.append(c)
+for wedge in xy_bounds:
+    for annulus in openmc.model.subdivide(fuel_rings)[:-1]:
+        c = openmc.Cell(region=annulus & wedge)
+        c.fill = [uo2.clone() for i in range(n_axial)]
+        cells.append(c)
 
-        gap_annulus = +fuel_rings[-1] & -clad_inner
-        gap = openmc.Cell(region=gap_annulus & wedge & axial_slice)
-        cells.append(gap)
+    gap_annulus = +fuel_rings[-1] & -clad_inner
+    gap = openmc.Cell(region=gap_annulus & wedge)
+    cells.append(gap)
 
-        clad_annulus = +clad_inner & -clad_outer
-        clad = openmc.Cell(fill=zirc, region=clad_annulus & wedge & axial_slice)
-        cells.append(clad)
+    clad_annulus = +clad_inner & -clad_outer
+    clad = openmc.Cell(fill=zirc, region=clad_annulus & wedge)
+    cells.append(clad)
 
-        moderator = openmc.Cell(fill=water, region=+clad_outer & wedge & bounds & axial_slice)
-        cells.append(moderator)
+    moderator = openmc.Cell(region=+clad_outer & wedge)
+    moderator.fill = [water.clone() for i in range(n_axial)]
+    cells.append(moderator)
+slice_univ = openmc.Universe(cells=cells)
+
+lattice = openmc.RectLattice()
+lattice.lower_left = (-pitch/2, -pitch/2, 0.0)
+lattice.pitch = (pitch, pitch, 1.0)
+lattice.universes = np.full((n_axial, 1, 1), slice_univ)
+
+# model boundaries
+xmin = openmc.XPlane(x0=-pitch/2, boundary_type='periodic')
+xmax = openmc.XPlane(x0=pitch/2, boundary_type='periodic')
+ymin = openmc.YPlane(y0=-pitch/2, boundary_type='periodic')
+ymax = openmc.YPlane(y0=pitch/2, boundary_type='periodic')
+zmin = openmc.ZPlane(z0=0.0, boundary_type=boundary)
+zmax = openmc.ZPlane(z0=fuel_length, boundary_type=boundary)
+box = +xmin & -xmax & +ymin & -ymax & +zmin & -zmax
+
+main_cell = openmc.Cell(fill=lattice, region=box)
 
 model = openmc.model.Model()
-model.geometry = openmc.Geometry(cells)
+model.geometry = openmc.Geometry([main_cell])
 
 model.settings.particles = 1000
 model.settings.inactive = 10
