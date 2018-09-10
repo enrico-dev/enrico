@@ -8,7 +8,7 @@
     <nuclide ao="0.1738" name="Zr94" />
     <nuclide ao="0.028" name="Zr96" />
   </material>
-  <material depletable="true" id="4" name="UO2">
+  <material depletable="true" id="4" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -17,7 +17,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="5" name="UO2">
+  <material depletable="true" id="5" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -26,7 +26,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="6" name="UO2">
+  <material depletable="true" id="6" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -35,7 +35,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="7" name="UO2">
+  <material depletable="true" id="7" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -44,7 +44,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="8" name="UO2">
+  <material depletable="true" id="8" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -53,7 +53,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="9" name="UO2">
+  <material depletable="true" id="9" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -62,7 +62,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="10" name="UO2">
+  <material depletable="true" id="10" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -71,7 +71,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="11" name="UO2">
+  <material depletable="true" id="11" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -80,7 +80,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="12" name="UO2">
+  <material depletable="true" id="12" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -89,7 +89,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="13" name="UO2">
+  <material depletable="true" id="13" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -98,7 +98,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="14" name="UO2">
+  <material depletable="true" id="14" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -107,7 +107,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="15" name="UO2">
+  <material depletable="true" id="15" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -116,7 +116,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="16" name="UO2">
+  <material depletable="true" id="16" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -125,7 +125,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="17" name="UO2">
+  <material depletable="true" id="17" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -134,7 +134,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="18" name="UO2">
+  <material depletable="true" id="18" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -143,7 +143,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="19" name="UO2">
+  <material depletable="true" id="19" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -152,7 +152,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="20" name="UO2">
+  <material depletable="true" id="20" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -161,7 +161,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="21" name="UO2">
+  <material depletable="true" id="21" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -170,7 +170,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="22" name="UO2">
+  <material depletable="true" id="22" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -179,7 +179,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="23" name="UO2">
+  <material depletable="true" id="23" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -188,7 +188,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="24" name="UO2">
+  <material depletable="true" id="24" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -197,7 +197,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="25" name="UO2">
+  <material depletable="true" id="25" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -206,7 +206,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="26" name="UO2">
+  <material depletable="true" id="26" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -215,7 +215,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="27" name="UO2">
+  <material depletable="true" id="27" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -224,7 +224,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="28" name="UO2">
+  <material depletable="true" id="28" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -233,7 +233,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="29" name="UO2">
+  <material depletable="true" id="29" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -242,7 +242,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="30" name="UO2">
+  <material depletable="true" id="30" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -251,7 +251,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="31" name="UO2">
+  <material depletable="true" id="31" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -260,7 +260,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="32" name="UO2">
+  <material depletable="true" id="32" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -269,7 +269,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="33" name="UO2">
+  <material depletable="true" id="33" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -278,7 +278,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="34" name="UO2">
+  <material depletable="true" id="34" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -287,7 +287,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="35" name="UO2">
+  <material depletable="true" id="35" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -296,7 +296,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="36" name="UO2">
+  <material depletable="true" id="36" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -305,7 +305,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="37" name="UO2">
+  <material depletable="true" id="37" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -314,7 +314,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="38" name="UO2">
+  <material depletable="true" id="38" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -323,7 +323,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="39" name="UO2">
+  <material depletable="true" id="39" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -332,7 +332,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="40" name="UO2">
+  <material depletable="true" id="40" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -341,7 +341,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="41" name="UO2">
+  <material depletable="true" id="41" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -350,7 +350,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="42" name="UO2">
+  <material depletable="true" id="42" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -359,7 +359,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="43" name="UO2">
+  <material depletable="true" id="43" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -368,7 +368,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="44" name="UO2">
+  <material depletable="true" id="44" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -377,7 +377,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="45" name="UO2">
+  <material depletable="true" id="45" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -386,7 +386,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="46" name="UO2">
+  <material depletable="true" id="46" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -395,7 +395,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="47" name="UO2">
+  <material depletable="true" id="47" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -404,7 +404,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="48" name="UO2">
+  <material depletable="true" id="48" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -413,7 +413,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="49" name="UO2">
+  <material depletable="true" id="49" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -422,7 +422,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="50" name="UO2">
+  <material depletable="true" id="50" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -431,7 +431,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="51" name="UO2">
+  <material depletable="true" id="51" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -440,7 +440,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="52" name="UO2">
+  <material depletable="true" id="52" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -449,7 +449,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="53" name="UO2">
+  <material depletable="true" id="53" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -528,7 +528,7 @@
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
-  <material depletable="true" id="64" name="UO2">
+  <material depletable="true" id="64" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -537,7 +537,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="65" name="UO2">
+  <material depletable="true" id="65" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -546,7 +546,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="66" name="UO2">
+  <material depletable="true" id="66" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -555,7 +555,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="67" name="UO2">
+  <material depletable="true" id="67" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -564,7 +564,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="68" name="UO2">
+  <material depletable="true" id="68" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -573,7 +573,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="69" name="UO2">
+  <material depletable="true" id="69" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -582,7 +582,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="70" name="UO2">
+  <material depletable="true" id="70" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -591,7 +591,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="71" name="UO2">
+  <material depletable="true" id="71" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -600,7 +600,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="72" name="UO2">
+  <material depletable="true" id="72" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -609,7 +609,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="73" name="UO2">
+  <material depletable="true" id="73" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -618,7 +618,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="74" name="UO2">
+  <material depletable="true" id="74" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -627,7 +627,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="75" name="UO2">
+  <material depletable="true" id="75" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -636,7 +636,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="76" name="UO2">
+  <material depletable="true" id="76" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -645,7 +645,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="77" name="UO2">
+  <material depletable="true" id="77" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -654,7 +654,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="78" name="UO2">
+  <material depletable="true" id="78" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -663,7 +663,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="79" name="UO2">
+  <material depletable="true" id="79" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -672,7 +672,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="80" name="UO2">
+  <material depletable="true" id="80" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -681,7 +681,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="81" name="UO2">
+  <material depletable="true" id="81" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -690,7 +690,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="82" name="UO2">
+  <material depletable="true" id="82" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -699,7 +699,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="83" name="UO2">
+  <material depletable="true" id="83" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -708,7 +708,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="84" name="UO2">
+  <material depletable="true" id="84" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -717,7 +717,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="85" name="UO2">
+  <material depletable="true" id="85" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -726,7 +726,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="86" name="UO2">
+  <material depletable="true" id="86" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -735,7 +735,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="87" name="UO2">
+  <material depletable="true" id="87" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -744,7 +744,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="88" name="UO2">
+  <material depletable="true" id="88" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -753,7 +753,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="89" name="UO2">
+  <material depletable="true" id="89" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -762,7 +762,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="90" name="UO2">
+  <material depletable="true" id="90" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -771,7 +771,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="91" name="UO2">
+  <material depletable="true" id="91" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -780,7 +780,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="92" name="UO2">
+  <material depletable="true" id="92" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -789,7 +789,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="93" name="UO2">
+  <material depletable="true" id="93" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -798,7 +798,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="94" name="UO2">
+  <material depletable="true" id="94" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -807,7 +807,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="95" name="UO2">
+  <material depletable="true" id="95" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -816,7 +816,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="96" name="UO2">
+  <material depletable="true" id="96" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -825,7 +825,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="97" name="UO2">
+  <material depletable="true" id="97" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -834,7 +834,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="98" name="UO2">
+  <material depletable="true" id="98" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -843,7 +843,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="99" name="UO2">
+  <material depletable="true" id="99" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -852,7 +852,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="100" name="UO2">
+  <material depletable="true" id="100" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -861,7 +861,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="101" name="UO2">
+  <material depletable="true" id="101" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -870,7 +870,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="102" name="UO2">
+  <material depletable="true" id="102" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -879,7 +879,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="103" name="UO2">
+  <material depletable="true" id="103" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -888,7 +888,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="104" name="UO2">
+  <material depletable="true" id="104" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -897,7 +897,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="105" name="UO2">
+  <material depletable="true" id="105" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -906,7 +906,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="106" name="UO2">
+  <material depletable="true" id="106" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -915,7 +915,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="107" name="UO2">
+  <material depletable="true" id="107" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -924,7 +924,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="108" name="UO2">
+  <material depletable="true" id="108" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -933,7 +933,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="109" name="UO2">
+  <material depletable="true" id="109" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -942,7 +942,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="110" name="UO2">
+  <material depletable="true" id="110" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -951,7 +951,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="111" name="UO2">
+  <material depletable="true" id="111" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -960,7 +960,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="112" name="UO2">
+  <material depletable="true" id="112" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -969,7 +969,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="113" name="UO2">
+  <material depletable="true" id="113" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1048,7 +1048,7 @@
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
-  <material depletable="true" id="124" name="UO2">
+  <material depletable="true" id="124" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1057,7 +1057,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="125" name="UO2">
+  <material depletable="true" id="125" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1066,7 +1066,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="126" name="UO2">
+  <material depletable="true" id="126" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1075,7 +1075,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="127" name="UO2">
+  <material depletable="true" id="127" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1084,7 +1084,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="128" name="UO2">
+  <material depletable="true" id="128" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1093,7 +1093,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="129" name="UO2">
+  <material depletable="true" id="129" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1102,7 +1102,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="130" name="UO2">
+  <material depletable="true" id="130" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1111,7 +1111,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="131" name="UO2">
+  <material depletable="true" id="131" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1120,7 +1120,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="132" name="UO2">
+  <material depletable="true" id="132" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1129,7 +1129,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="133" name="UO2">
+  <material depletable="true" id="133" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1138,7 +1138,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="134" name="UO2">
+  <material depletable="true" id="134" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1147,7 +1147,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="135" name="UO2">
+  <material depletable="true" id="135" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1156,7 +1156,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="136" name="UO2">
+  <material depletable="true" id="136" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1165,7 +1165,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="137" name="UO2">
+  <material depletable="true" id="137" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1174,7 +1174,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="138" name="UO2">
+  <material depletable="true" id="138" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1183,7 +1183,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="139" name="UO2">
+  <material depletable="true" id="139" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1192,7 +1192,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="140" name="UO2">
+  <material depletable="true" id="140" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1201,7 +1201,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="141" name="UO2">
+  <material depletable="true" id="141" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1210,7 +1210,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="142" name="UO2">
+  <material depletable="true" id="142" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1219,7 +1219,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="143" name="UO2">
+  <material depletable="true" id="143" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1228,7 +1228,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="144" name="UO2">
+  <material depletable="true" id="144" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1237,7 +1237,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="145" name="UO2">
+  <material depletable="true" id="145" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1246,7 +1246,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="146" name="UO2">
+  <material depletable="true" id="146" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1255,7 +1255,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="147" name="UO2">
+  <material depletable="true" id="147" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1264,7 +1264,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="148" name="UO2">
+  <material depletable="true" id="148" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1273,7 +1273,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="149" name="UO2">
+  <material depletable="true" id="149" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1282,7 +1282,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="150" name="UO2">
+  <material depletable="true" id="150" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1291,7 +1291,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="151" name="UO2">
+  <material depletable="true" id="151" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1300,7 +1300,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="152" name="UO2">
+  <material depletable="true" id="152" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1309,7 +1309,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="153" name="UO2">
+  <material depletable="true" id="153" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1318,7 +1318,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="154" name="UO2">
+  <material depletable="true" id="154" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1327,7 +1327,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="155" name="UO2">
+  <material depletable="true" id="155" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1336,7 +1336,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="156" name="UO2">
+  <material depletable="true" id="156" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1345,7 +1345,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="157" name="UO2">
+  <material depletable="true" id="157" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1354,7 +1354,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="158" name="UO2">
+  <material depletable="true" id="158" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1363,7 +1363,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="159" name="UO2">
+  <material depletable="true" id="159" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1372,7 +1372,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="160" name="UO2">
+  <material depletable="true" id="160" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1381,7 +1381,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="161" name="UO2">
+  <material depletable="true" id="161" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1390,7 +1390,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="162" name="UO2">
+  <material depletable="true" id="162" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1399,7 +1399,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="163" name="UO2">
+  <material depletable="true" id="163" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1408,7 +1408,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="164" name="UO2">
+  <material depletable="true" id="164" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1417,7 +1417,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="165" name="UO2">
+  <material depletable="true" id="165" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1426,7 +1426,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="166" name="UO2">
+  <material depletable="true" id="166" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1435,7 +1435,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="167" name="UO2">
+  <material depletable="true" id="167" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1444,7 +1444,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="168" name="UO2">
+  <material depletable="true" id="168" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1453,7 +1453,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="169" name="UO2">
+  <material depletable="true" id="169" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1462,7 +1462,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="170" name="UO2">
+  <material depletable="true" id="170" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1471,7 +1471,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="171" name="UO2">
+  <material depletable="true" id="171" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1480,7 +1480,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="172" name="UO2">
+  <material depletable="true" id="172" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1489,7 +1489,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="173" name="UO2">
+  <material depletable="true" id="173" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1568,7 +1568,7 @@
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
-  <material depletable="true" id="184" name="UO2">
+  <material depletable="true" id="184" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1577,7 +1577,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="185" name="UO2">
+  <material depletable="true" id="185" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1586,7 +1586,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="186" name="UO2">
+  <material depletable="true" id="186" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1595,7 +1595,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="187" name="UO2">
+  <material depletable="true" id="187" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1604,7 +1604,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="188" name="UO2">
+  <material depletable="true" id="188" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1613,7 +1613,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="189" name="UO2">
+  <material depletable="true" id="189" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1622,7 +1622,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="190" name="UO2">
+  <material depletable="true" id="190" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1631,7 +1631,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="191" name="UO2">
+  <material depletable="true" id="191" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1640,7 +1640,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="192" name="UO2">
+  <material depletable="true" id="192" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1649,7 +1649,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="193" name="UO2">
+  <material depletable="true" id="193" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1658,7 +1658,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="194" name="UO2">
+  <material depletable="true" id="194" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1667,7 +1667,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="195" name="UO2">
+  <material depletable="true" id="195" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1676,7 +1676,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="196" name="UO2">
+  <material depletable="true" id="196" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1685,7 +1685,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="197" name="UO2">
+  <material depletable="true" id="197" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1694,7 +1694,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="198" name="UO2">
+  <material depletable="true" id="198" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1703,7 +1703,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="199" name="UO2">
+  <material depletable="true" id="199" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1712,7 +1712,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="200" name="UO2">
+  <material depletable="true" id="200" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1721,7 +1721,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="201" name="UO2">
+  <material depletable="true" id="201" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1730,7 +1730,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="202" name="UO2">
+  <material depletable="true" id="202" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1739,7 +1739,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="203" name="UO2">
+  <material depletable="true" id="203" name="UO2" volume="0.015535426999413817">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1748,7 +1748,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="204" name="UO2">
+  <material depletable="true" id="204" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1757,7 +1757,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="205" name="UO2">
+  <material depletable="true" id="205" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1766,7 +1766,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="206" name="UO2">
+  <material depletable="true" id="206" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1775,7 +1775,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="207" name="UO2">
+  <material depletable="true" id="207" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1784,7 +1784,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="208" name="UO2">
+  <material depletable="true" id="208" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1793,7 +1793,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="209" name="UO2">
+  <material depletable="true" id="209" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1802,7 +1802,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="210" name="UO2">
+  <material depletable="true" id="210" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1811,7 +1811,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="211" name="UO2">
+  <material depletable="true" id="211" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1820,7 +1820,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="212" name="UO2">
+  <material depletable="true" id="212" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1829,7 +1829,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="213" name="UO2">
+  <material depletable="true" id="213" name="UO2" volume="0.02589237833235637">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1838,7 +1838,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="214" name="UO2">
+  <material depletable="true" id="214" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1847,7 +1847,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="215" name="UO2">
+  <material depletable="true" id="215" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1856,7 +1856,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="216" name="UO2">
+  <material depletable="true" id="216" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1865,7 +1865,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="217" name="UO2">
+  <material depletable="true" id="217" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1874,7 +1874,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="218" name="UO2">
+  <material depletable="true" id="218" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1883,7 +1883,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="219" name="UO2">
+  <material depletable="true" id="219" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1892,7 +1892,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="220" name="UO2">
+  <material depletable="true" id="220" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1901,7 +1901,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="221" name="UO2">
+  <material depletable="true" id="221" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1910,7 +1910,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="222" name="UO2">
+  <material depletable="true" id="222" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1919,7 +1919,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="223" name="UO2">
+  <material depletable="true" id="223" name="UO2" volume="0.0362493296652989">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1928,7 +1928,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="224" name="UO2">
+  <material depletable="true" id="224" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1937,7 +1937,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="225" name="UO2">
+  <material depletable="true" id="225" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1946,7 +1946,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="226" name="UO2">
+  <material depletable="true" id="226" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1955,7 +1955,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="227" name="UO2">
+  <material depletable="true" id="227" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1964,7 +1964,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="228" name="UO2">
+  <material depletable="true" id="228" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1973,7 +1973,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="229" name="UO2">
+  <material depletable="true" id="229" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1982,7 +1982,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="230" name="UO2">
+  <material depletable="true" id="230" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -1991,7 +1991,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="231" name="UO2">
+  <material depletable="true" id="231" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -2000,7 +2000,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="232" name="UO2">
+  <material depletable="true" id="232" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />
@@ -2009,7 +2009,7 @@
     <nuclide ao="1.999242" name="O16" />
     <nuclide ao="0.000758" name="O17" />
   </material>
-  <material depletable="true" id="233" name="UO2">
+  <material depletable="true" id="233" name="UO2" volume="0.04660628099824143">
     <density units="g/cm3" value="10.5312" />
     <nuclide ao="0.000447810148570552" name="U234" />
     <nuclide ao="0.05010104002438676" name="U235" />

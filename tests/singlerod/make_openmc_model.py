@@ -1,4 +1,5 @@
 import argparse
+from math import pi
 
 import numpy as np
 import openmc
@@ -45,9 +46,8 @@ water.add_element('O', 1.0)
 water.add_s_alpha_beta('c_H_in_H2O')
 
 # Create cylinders
-fuel_rings = []
-for r in np.linspace(0., fuel_or, args.rings + 1)[1:]:
-    fuel_rings.append(openmc.ZCylinder(R=r))
+radii = np.linspace(0., fuel_or, args.rings + 1)
+fuel_rings = [openmc.ZCylinder(R=r) for r in radii[1:]]
 clad_inner = openmc.ZCylinder(R=clad_ir)
 clad_outer = openmc.ZCylinder(R=clad_or)
 
@@ -63,9 +63,13 @@ xy_bounds = [
 
 cells = []
 for wedge in xy_bounds:
-    for annulus in openmc.model.subdivide(fuel_rings)[:-1]:
+    for i, annulus in enumerate(openmc.model.subdivide(fuel_rings)[:-1]):
         c = openmc.Cell(region=annulus & wedge)
         c.fill = [uo2.clone() for i in range(n_axial)]
+        # Set volume for each material
+        volume = pi/4*(radii[i+1]**2 - radii[i]**2)
+        for m in c.fill:
+            m.volume = volume
         cells.append(c)
 
     gap_annulus = +fuel_rings[-1] & -clad_inner
