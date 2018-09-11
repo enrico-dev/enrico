@@ -97,7 +97,7 @@ void OpenmcNekDriver::init_mappings()
         // Get corresponding material
         mat_to_elems_[c.material_index_].push_back(i);
         // Set value for material ID in array
-        mat_idx[i - 1] = c.material_index_;
+        mat_idx[i] = c.material_index_;
       }
 
       // Determine number of unique OpenMC materials
@@ -112,7 +112,7 @@ void OpenmcNekDriver::init_mappings()
 
     // Set element -> material ID mapping on each Nek rank
     for (int i = 1; i <= nglobals; ++i) {
-      elem_to_mat_[i] = mat_idx[i - 1];
+      elem_to_mat_[i] = mat_idx[i];
     }
   }
 
