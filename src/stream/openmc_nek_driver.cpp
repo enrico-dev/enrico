@@ -17,7 +17,13 @@ OpenmcNekDriver::OpenmcNekDriver(int argc, char** argv, MPI_Comm coupled_comm,
   init_tallies();
 };
 
-void OpenmcNekDriver::init_mpi_datatypes() {
+OpenmcNekDriver::~OpenmcNekDriver()
+{
+  free_mpi_datatypes();
+}
+
+void OpenmcNekDriver::init_mpi_datatypes()
+{
   // Currently, this sets up only position_mpi_datatype
   Position p;
   int blockcounts[3] = {1, 1, 1};
@@ -336,6 +342,11 @@ void OpenmcNekDriver::update_temperature()
     }
   }
 
+}
+
+void OpenmcNekDriver::free_mpi_datatypes()
+{
+  MPI_Type_free(&position_mpi_datatype);
 }
 
 } // namespace stream

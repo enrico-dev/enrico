@@ -32,8 +32,8 @@ public:
   OpenmcNekDriver(int argc, char* argv[], MPI_Comm coupled_comm, MPI_Comm openmc_comm,
                   MPI_Comm nek_comm, MPI_Comm intranode_comm);
 
-  //! Does automatic destruction and nothing extra.
-  ~OpenmcNekDriver() {};
+  //! Frees any data structures that need manual freeing.
+  ~OpenmcNekDriver();
 
   //! Transfers heat source terms from Nek5000 to OpenMC
   void update_heat_source();
@@ -63,6 +63,9 @@ private:
   {
     return heat_index_.at(mat_index - 1);
   }
+
+  //! Frees the MPI datatypes (currently, only position_mpi_datatype)
+  void free_mpi_datatypes();
 
   //! MPI datatype for sending/receiving Position objects.
   MPI_Datatype position_mpi_datatype;
