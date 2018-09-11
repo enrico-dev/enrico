@@ -3,7 +3,7 @@
 module nek_interface
   use, intrinsic :: ISO_C_BINDING
   use nek_geom, only: xm1, ym1, zm1
-  use nek_size, only: nelt, nx1, ny1, nz1
+  use nek_size, only: nelt, nx1, ny1, nz1, nid
   use nek_parallel, only: lglel, gllel, gllnid, nelgt
   use nek_mass, only: bm1
   use nek_size, only: lelg, lelt, lx1
@@ -40,8 +40,12 @@ contains
     real(C_DOUBLE) :: mass
     integer(C_INT) :: local_elem
 
-    local_elem = gllel(global_elem)
-    ierr = nek_get_local_elem_centroid(local_elem, centroid)
+    if (nek_global_elem_is_in_rank(global_elem, nid) == 0) then
+      local_elem = gllel(global_elem)
+      ierr = nek_get_local_elem_centroid(local_elem, centroid)
+    else
+      ierr = 1
+    end if
   end function nek_get_global_elem_centroid
 
   !> Get the coordinates of a local element's centroid
@@ -60,27 +64,31 @@ contains
     integer :: i, j, k
     real(C_DOUBLE) :: mass
 
-    centroid%x = 0.
-    centroid%y = 0.
-    centroid%z = 0.
-    mass = 0.
+    if (local_elem <= nelt) then
+      centroid%x = 0.
+      centroid%y = 0.
+      centroid%z = 0.
+      mass = 0.
 
-    do k = 1, nz1
-      do j = 1, ny1
-        do i = 1, nx1
-          centroid%x = centroid%x + xm1(i,j,k,local_elem)
-          centroid%y = centroid%y + ym1(i,j,k,local_elem)
-          centroid%z = centroid%z + zm1(i,j,k,local_elem)
-          mass = mass + bm1(i,j,k,local_elem)
+      do k = 1, nz1
+        do j = 1, ny1
+          do i = 1, nx1
+            centroid%x = centroid%x + xm1(i,j,k,local_elem)
+            centroid%y = centroid%y + ym1(i,j,k,local_elem)
+            centroid%z = centroid%z + zm1(i,j,k,local_elem)
+            mass = mass + bm1(i,j,k,local_elem)
+          end do
         end do
       end do
-    end do
 
-    centroid%x = centroid%x / mass
-    centroid%y = centroid%y / mass
-    centroid%z = centroid%z / mass
+      centroid%x = centroid%x / mass
+      centroid%y = centroid%y / mass
+      centroid%z = centroid%z / mass
 
-    ierr = 0
+      ierr = 0
+    else
+      ierr = 1
+    end if
   end function nek_get_local_elem_centroid
 
   !> Get the global element ID for a given local element
