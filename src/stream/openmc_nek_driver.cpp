@@ -15,6 +15,8 @@ OpenmcNekDriver::OpenmcNekDriver(int argc, char** argv, MPI_Comm coupled_comm,
   init_mpi_datatypes();
   init_mappings();
   init_tallies();
+  init_volumes();
+  init_temperatures();
 };
 
 OpenmcNekDriver::~OpenmcNekDriver()
@@ -171,6 +173,50 @@ void OpenmcNekDriver::init_tallies()
   }
 }
 
+void OpenmcNekDriver::init_temperatures()
+{
+  // TODO: This won't work if the Nek/OpenMC communicators are disjoint
+
+  int nglobals = nek_driver_.active() ? nek_driver_.nelgt_ : 0;
+
+  // Only the OpenMC procs get the global temperatures
+  int gec_size = openmc_driver_.active() ? nglobals : 0;
+  global_elem_temperatures.resize(gec_size);
+
+  std::fill(global_elem_temperatures.begin(), global_elem_temperatures.end(), 293.6);
+}
+
+void OpenmcNekDriver::init_volumes()
+{
+  // TODO: This won't work if the Nek/OpenMC communicators are disjoint
+
+  int nlocals = nek_driver_.active() ? nek_driver_.nelt_ : 0;
+  int nglobals = nek_driver_.active() ? nek_driver_.nelgt_ : 0;
+
+  // Every Nek proc gets its local element volumes (lev)
+  int lev_size = nek_driver_.active() ? nlocals : 0;
+  double local_elem_volumes[lev_size];
+
+  // Only the OpenMC procs get the global element volumes (gev)
+  int gev_size = openmc_driver_.active() ? nglobals : 0;
+  global_elem_volumes.resize(gev_size);
+
+  if (nek_driver_.active()) {
+    // Each Nek proc finds the volumes of its local elements
+    for (int i = 0; i < nlocals; ++i) {
+      local_elem_volumes[i] = nek_driver_.get_local_elem_volume(i + 1);
+    }
+    // Gather all the local element volumes on the Nek5000/OpenMC root
+    nek_driver_.comm_.Gatherv(local_elem_volumes, nlocals, MPI_DOUBLE,
+                              global_elem_volumes.data(), nek_driver_.local_counts_.data(),
+                              nek_driver_.local_displs_.data(), MPI_DOUBLE);
+    // Broadcast global_element_volumes onto all the OpenMC procs
+    if (openmc_driver_.active()) {
+      openmc_driver_.comm_.Bcast(global_elem_volumes.data(), nglobals, MPI_DOUBLE);
+    }
+  }
+}
+
 void OpenmcNekDriver::update_heat_source()
 {
   // Create array to store volumetric heat deposition in each material
@@ -238,92 +284,34 @@ void OpenmcNekDriver::update_heat_source()
 
 void OpenmcNekDriver::update_temperature()
 {
+  int nlocals = nek_driver_.active() ? nek_driver_.nelt_ : 0;
+  int nglobals = nek_driver_.active() ? nek_driver_.nelgt_ : 0;
+
+  // Every Nek proc gets its local element temperatures (letmp)
+  int letmp_size = nek_driver_.active() ? nlocals : 0;
+  double local_elem_temperatures[letmp_size];
+
+  // Only the OpenMC procs get the global element temperatures (getmp)
+  int getmp_size = openmc_driver_.active() ? nglobals : 0;
+  global_elem_temperatures.resize(getmp_size);
+
   if (nek_driver_.active()) {
-    // Gather local temperatures into an array
-    int n = nek_driver_.nelt_;
-    double T_local[n];
-    std::fill(T_local, T_local + n, 293.6);
-    for (int local_elem = 1; local_elem <= n; ++local_elem) {
-      // T_local[local_elem - 1] = nek_get_temperature(local_elem);
+    // Each Nek proc finds the temperatures of its local elements
+    for (int i = 0; i < nlocals; ++i) {
+      local_elem_temperatures[i] = nek_driver_.get_local_elem_temperature(i + 1);
     }
-
-    // Since local elements might be out of order with respect to global element
-    // ordering, we need to know what global elements the local ones correspond
-    // to
-    int global_elems[n];
-    for (int i = 0; i < n; ++i) {
-      global_elems[i] = nek_get_global_elem(i + 1) - 1;
-    }
-
-    // Gather number of local elements into array on rank 0
-    // TODO: Move this to initialization of Nek driver?
-    int p = nek_driver_.comm_.rank == 0 ? nek_driver_.comm_.size : 0;
-    int recvcounts[p];
-    nek_driver_.comm_.Gather(&n, 1, MPI_INT, recvcounts, 1, MPI_INT);
-
-    // Create array for all temperatures (size zero on non-root processes)
-    int m = openmc_driver_.active() ? nek_driver_.nelgt_ : 0;
-    double T[m];
-
-    // Array for global element indices
-    double all_global_elems[m];
-
-    // TODO: Need volumes of all global elements
-    double vol[m];
-    std::fill(vol, vol + m, 1.0);
-    for (int global_elem = 1; global_elem < m; ++global_elem) {
-      // vol[global_elem - 1] = nek_get_volume(global_elem);
-    }
-
-    // collect temperatures from each local element onto root process
-    if (nek_driver_.comm_.rank == 0) {
-      // Create array of displacements for each process
-      int displs[p];
-      displs[0] = 0;
-      for (int i = 1; i < p; ++i) {
-        displs[i] = displs[i - 1] + recvcounts[i - 1];
-      }
-
-      // Gather temperatures and global element indices onto root
-      nek_driver_.comm_.Gatherv(
-          T_local, n, MPI_DOUBLE,
-          T, recvcounts, displs, MPI_DOUBLE
-      );
-      nek_driver_.comm_.Gatherv(
-          global_elems, n, MPI_INT,
-          all_global_elems, recvcounts, displs, MPI_INT
-      );
-    } else {
-      // Send temperature and global element indices to root via gather
-      nek_driver_.comm_.Gatherv(
-          T_local, n, MPI_DOUBLE,
-          nullptr, nullptr, nullptr, MPI_DOUBLE
-      );
-      nek_driver_.comm_.Gatherv(
-          global_elems, n, MPI_INT,
-          nullptr, nullptr, nullptr, MPI_INT
-      );
-    }
+    // Gather all the local element temperatures on the Nek5000/OpenMC root
+    nek_driver_.comm_.Gatherv(local_elem_temperatures, nlocals, MPI_DOUBLE,
+                              global_elem_temperatures.data(), nek_driver_.local_counts_.data(),
+                              nek_driver_.local_displs_.data(), MPI_DOUBLE);
 
     if (openmc_driver_.active()) {
-      // broadcast data from Nek root to all OpenMC processes
-      openmc_driver_.comm_.Bcast(T, m, MPI_DOUBLE);
-      openmc_driver_.comm_.Bcast(all_global_elems, m, MPI_INT);
-      openmc_driver_.comm_.Bcast(vol, m, MPI_DOUBLE);
-
-      // At this point, the values in T are not in the correct ordering with
-      // respect to the global element array. Here, we make a copy of T and
-      // reorder them according to the position they should be in
-      // (all_global_elems)
-      double T_unordered[m];
-      std::copy(T, T + m, T_unordered);
-      for (int i = 0; i < m; ++i) {
-        int global_index = all_global_elems[i];
-        T[global_index] = T_unordered[i];
-      }
+      // Broadcast global_element_temperatures onto all the OpenMC procs
+      openmc_driver_.comm_.Bcast(global_elem_temperatures.data(), nglobals, MPI_DOUBLE);
 
       // For each OpenMC material, volume average temperatures and set
       for (const auto& c : openmc_driver_.cells_) {
+
         // Get corresponding global elements
         const auto& global_elems = mat_to_elems_.at(c.material_index_);
 
@@ -331,8 +319,8 @@ void OpenmcNekDriver::update_temperature()
         double average_temp = 0.0;
         double total_vol = 0.0;
         for (int elem : global_elems) {
-          average_temp += T[elem - 1] * vol[elem - 1];
-          total_vol += vol[elem - 1];
+          average_temp += global_elem_temperatures[elem] * global_elem_volumes[elem];
+          total_vol += global_elem_volumes[elem];
         }
         average_temp /= total_vol;
 
@@ -341,7 +329,6 @@ void OpenmcNekDriver::update_temperature()
       }
     }
   }
-
 }
 
 void OpenmcNekDriver::free_mpi_datatypes()

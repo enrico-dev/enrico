@@ -3,10 +3,10 @@
 module nek_interface
   use, intrinsic :: ISO_C_BINDING
   use nek_geom, only: xm1, ym1, zm1
-  use nek_size, only: nelt, nx1, ny1, nz1, nid
+  use nek_size, only: lelg, lelt, lx1, nelt, nx1, ny1, nz1, nid
   use nek_parallel, only: lglel, gllel, gllnid, nelgt
   use nek_mass, only: bm1
-  use nek_size, only: lelg, lelt, lx1
+  use nek_soln, only: t
 
   implicit none
 
@@ -90,6 +90,40 @@ contains
       ierr = 1
     end if
   end function nek_get_local_elem_centroid
+
+  !> Get the volume of a local element
+  !!
+  !! The units of the volume are dimensionless and must be interpreted based on the
+  !! setup of the Nek5000
+  !!
+  !! \param[in] local_elem A local element ID
+  !! \param[out] volume The dimensionless volume of the local element
+  !! \result Error code
+  function nek_get_local_elem_volume(local_elem, volume) result(ierr) bind(C)
+    integer(C_INT), intent(in), value :: local_elem
+    real(C_DOUBLE), intent(out) :: volume
+    integer(C_INT) :: ierr
+
+    if (local_elem <= nelt) then
+      volume = sum(bm1(1:nx1, 1:ny1, 1:nz1, local_elem))
+      ierr = 0
+    else
+      ierr = 1
+    end if
+  end function nek_get_local_elem_volume
+
+  function nek_get_local_elem_temperature(local_elem, temperature) result(ierr) bind(C)
+    integer(C_INT), intent(in), value :: local_elem
+    real(C_DOUBLE), intent(out) :: temperature
+    integer(C_INT) :: ierr
+
+    if (local_elem <= nelt) then
+      temperature = sum(t(1:nx1, 1:ny1, 1:nz1, local_elem, 1))
+      ierr = 0
+    else
+      ierr = 1
+    end if
+  end function nek_get_local_elem_temperature
 
   !> Get the global element ID for a given local element
   !>

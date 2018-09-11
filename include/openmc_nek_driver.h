@@ -56,6 +56,12 @@ private:
   //! Initialize the tallies for all OpenMC materials
   void init_tallies();
 
+  //! Initialize global temperature buffers for OpenMC ranks
+  void init_temperatures();
+
+  //! Initialize global volume buffers for OpenMC ranks
+  void init_volumes();
+
   //! Get the heat index for a given OpenMC material
   //! \param mat_index An OpenMC material index
   //! \return The heat index
@@ -74,6 +80,16 @@ private:
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
   std::vector<Position> global_elem_centroids;
+
+  //! The dimensionless temperatures of Nek's global elements
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
+  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  std::vector<double> global_elem_temperatures;
+
+  //! The dimensionless volumes of Nek's global elements
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
+  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  std::vector<double> global_elem_volumes;
 
   //! Map that gives a list of Nek element global indices for a given OpenMC material index
   std::unordered_map<int32_t, std::vector<int>> mat_to_elems_;
