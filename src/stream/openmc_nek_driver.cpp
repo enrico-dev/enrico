@@ -54,7 +54,7 @@ void OpenmcNekDriver::init_mappings()
 
   // Every Nek proc gets its local element centroids
   int lec_size = nek_driver_.active() ? nlocals : 0;
-  std::vector<Position> local_element_centroids(lec_size);
+  Position local_element_centroids[lec_size];
 
   // Only the OpenMC procs get the global element centroids
   int gec_size = openmc_driver_.active() ? nglobals : 0;
@@ -64,10 +64,10 @@ void OpenmcNekDriver::init_mappings()
   if (nek_driver_.active()) {
     // Each Nek proc finds the centroids of its local elements
     for (int i = 0; i < nlocals; ++i) {
-      local_element_centroids.at(i) = nek_driver_.get_local_elem_centroid(i);
+      local_element_centroids[i] = nek_driver_.get_local_elem_centroid(i);
     }
     // Gather all the local element centroids on the Nek5000/OpenMC root
-    nek_driver_.comm_.Gatherv(local_element_centroids.data(), nlocals, position_mpi_datatype,
+    nek_driver_.comm_.Gatherv(local_element_centroids, nlocals, position_mpi_datatype,
                               global_elem_centroids.data(), nek_driver_.local_counts_.data(),
                               nek_driver_.local_displs_.data(), position_mpi_datatype);
     // Broadcast global_element_centroids onto all the OpenMC procs
