@@ -50,9 +50,9 @@ contains
     do k = 1, nz1
       do j = 1, ny1
         do i = 1, nx1
-          centroid%x = centroid%x + xm1(i,j,k,local_elem)
-          centroid%y = centroid%y + ym1(i,j,k,local_elem)
-          centroid%z = centroid%z + zm1(i,j,k,local_elem)
+          centroid%x = centroid%x + xm1(i,j,k,local_elem)*bm1(i,j,k,local_elem)
+          centroid%y = centroid%y + ym1(i,j,k,local_elem)*bm1(i,j,k,local_elem)
+          centroid%z = centroid%z + zm1(i,j,k,local_elem)*bm1(i,j,k,local_elem)
           mass = mass + bm1(i,j,k,local_elem)
         end do
       end do
