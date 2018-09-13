@@ -37,6 +37,16 @@ void C2F_nek_solve();
 //! \return Error value
 int nek_get_global_elem_centroid(int global_elem, stream::Position* centroid);
 
+//! Get the coordinates of a local element's centroid
+//!
+//! The returned coordinate is dimensionless.  Its units depend on the unit system that was
+//! used to setup the Nek5000 problem. The user must handle any necessary conversions.
+//!
+//! \param[in] local_elem A local element ID
+//! \param[out] centroid The **dimensionless* position of the local element's centroid
+//! \return Error value
+int nek_get_local_elem_centroid(int local_elem, stream::Position* centroid);
+
 //! Get the global element ID for a given local element
 //! \param local_elem  A local element ID
 //! \return The corresponding global element ID
@@ -82,6 +92,12 @@ int nek_get_nelt();
 //! Get nelgt
 //! \return  nelgt
 int nek_get_nelgt();
+
+//! Return true if a global element is in a given MPI rank
+//! \param A global element ID
+//! \param An MPI rank
+//! \return True if the global element ID is in the given rank
+int nek_global_elem_is_in_rank(int global_elem, int rank);
 
 //! Unimplemented.  C2F_nek_init is used instead.
 void nek_init_step();
