@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-    test_driver.update_heat_source();
+    //test_driver.update_heat_source();
 
     if (test_driver.nek_driver_.active()) {
       test_driver.nek_driver_.init_step();
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-    test_driver.update_temperature();
+    //test_driver.update_temperature();
   }
 
   MPI_Finalize();

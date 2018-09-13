@@ -32,8 +32,8 @@ public:
   OpenmcNekDriver(int argc, char* argv[], MPI_Comm coupled_comm, MPI_Comm openmc_comm,
                   MPI_Comm nek_comm, MPI_Comm intranode_comm);
 
-  //! Does automatic destruction and nothing extra.
-  ~OpenmcNekDriver() {};
+  //! Frees any data structures that need manual freeing.
+  ~OpenmcNekDriver();
 
   //! Transfers heat source terms from Nek5000 to OpenMC
   void update_heat_source();
@@ -46,6 +46,10 @@ public:
   OpenmcDriver openmc_driver_;  //!< The OpenMC driver
   NekDriver nek_driver_;  //!< The Nek5000 driver
 private:
+
+  //! Initialize MPI datatypes (currently, only position_mpi_datatype)
+  void init_mpi_datatypes();
+
   //! Create bidirectional mappings from OpenMC materials to/from Nek5000 elements
   void init_mappings();
 
@@ -59,6 +63,17 @@ private:
   {
     return heat_index_.at(mat_index - 1);
   }
+
+  //! Frees the MPI datatypes (currently, only position_mpi_datatype)
+  void free_mpi_datatypes();
+
+  //! MPI datatype for sending/receiving Position objects.
+  MPI_Datatype position_mpi_datatype;
+
+  //! Gives a Position of a global element's centroid
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
+  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  std::vector<Position> global_elem_centroids;
 
   //! Map that gives a list of Nek element global indices for a given OpenMC material index
   std::unordered_map<int32_t, std::vector<int>> mat_to_elems_;

@@ -6,6 +6,7 @@
 #include "base_drivers.h"
 #include "mpi.h"
 #include "stream_geom.h"
+#include <vector>
 
 namespace stream {
 
@@ -56,11 +57,40 @@ public:
   //! \return The dimensionless coordinate of the element's centroid
   Position get_global_elem_centroid(int global_elem) const;
 
+  //! Get the coordinate of a local element's centroid.
+  //!
+  //! The coordinate is dimensionless.  Its units depend on the unit system used that was used to
+  //! setup the Nek problem. The user must handle any necessary conversions.
+  //!
+  //! \param local_elem The local index of the desired element
+  //! \return The dimensionless coordinate of the element's centroid
+  Position get_local_elem_centroid(int local_elem) const;
+
+  //! Return true if a global element is in a given MPI rank
+  //! \param A global element ID
+  //! \param An MPI rank
+  //! \return True if the global element ID is in the given rank
+  bool global_elem_is_in_rank(int global_elem) const;
+
+  //! Initialize the counts and displacements of local elements for each MPI Rank.
+  void init_displs();
+
   int lelg_; //!< upper bound on number of mesh elements
   int lelt_; //!< upper bound on number of mesh elements per rank
   int lx1_; //!< polynomial order of the solution
   int nelgt_; //!< total number of mesh elements
   int nelt_; //!< number of local mesh elements
+
+  //! The number of local elements in each rank.
+  std::vector<int> local_displs_;
+
+  //! The displacements of local elements, relative to rank 0. Used in an MPI gatherv operation.
+  std::vector<int> local_counts_;
+
+  // Intended to be the local-to-global element ordering, as ensured by a Gatherv operation.
+  // It is currently unused, as the coupling does not need to know the local-global ordering.
+  //std::vector<int> local_ordering_;
+
 };
 
 } // namespace stream

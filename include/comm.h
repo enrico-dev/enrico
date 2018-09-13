@@ -85,6 +85,24 @@ public:
     return MPI_Gatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts,
                        displs, recvtype, root, comm);
   }
+
+  //! Gathers data from all tasks and distribute the combined data to all tasks.
+  //!
+  //! Currently, a wrapper for MPI_Allgather
+  //!
+  //! \param[in] sendbuf Starting address of send buffer
+  //! \param[in] sendcount Number of elements in send buffer
+  //! \param[in] sendtype Data type of send buffer elements
+  //! \param[out] recvbuf  Starting address of receive buffer
+  //! \param[in] recvcount Number of elements received from any process
+  //! \param[in] recvtype Data type of receive buffer elements
+  //! \return
+  int Allgather(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
+                void* recvbuf, int recvcount, MPI_Datatype recvtype) {
+    return MPI_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
+
+  }
+
 };
 
 } // namespace stream
