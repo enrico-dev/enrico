@@ -18,18 +18,19 @@ FortranCInterface_HEADER(${CMAKE_BINARY_DIR}/nek_mangling.h
 # Headers for all targets
 # =============================================================================
 include_directories(
-    include
-    src/openmc/include
-    src/nek5000/core
-    src/nek5000/3rd_party/gslib/gslib-1.0.1/src
-    src/stream
+    include/
+    vendor/openmc/include
+    vendor/nek5000/core
+    vendor/nek5000/3rd_party/gslib/gslib-1.0.1/src
+    src/
     ${CMAKE_BINARY_DIR})
 
 # =============================================================================
 # Recursively build libnek5000 and libopenmc
 # =============================================================================
-add_subdirectory(src/nek5000)
-add_subdirectory(src/openmc)
+add_subdirectory(vendor/nek5000)
+add_subdirectory(vendor/openmc)
+add_subdirectory(vendor/gsl)
 
 # =============================================================================
 # Build libstream
@@ -48,28 +49,27 @@ else ()
   message(FATAL_ERROR "Specified compiler (${CMAKE_Fortran_COMPILER_ID}) is not supported by Nek5000")
 endif ()
 set(FIXEDFORMAT_SOURCES
-    src/stream/nek_parallel.F
-    src/stream/nek_geom.F
-    src/stream/nek_interface_fixedform.F)
+    src/nek_parallel.F
+    src/nek_geom.F
+    src/nek_interface_fixedform.F)
 set_source_files_properties(${FIXEDFORMAT_SOURCES} PROPERTIES
     Fortran_FORMAT FIXED
     COMPILE_FLAGS ${FIXEDFORMAT_FLAGS})
 
 # Build all compoments of libstream
 add_library(libstream
-    src/stream/base_drivers.cpp
-    src/stream/message_passing.cpp
-    src/stream/openmc_driver.cpp
-    src/stream/openmc_interface.cpp
-    src/stream/openmc_nek_driver.cpp
-    src/stream/nek_driver.cpp
-    src/stream/nek_geom.F
-    src/stream/nek_interface.F90
-    src/stream/nek_interface_fixedform.F
-    src/stream/nek_mass.F
-    src/stream/nek_parallel.F
-    src/stream/nek_size.F
-    src/stream/nek_soln.F
+    src/base_drivers.cpp
+    src/message_passing.cpp
+    src/openmc_driver.cpp
+    src/openmc_interface.cpp
+    src/openmc_nek_driver.cpp
+    src/nek_driver.cpp
+    src/nek_geom.F
+    src/nek_interface.F90
+    src/nek_interface_fixedform.F
+    src/nek_mass.F
+    src/nek_parallel.F
+    src/nek_size.F
     include/base_drivers.h
     include/message_passing.h
     include/nek_interface.h
@@ -81,12 +81,12 @@ add_library(libstream
     include/stream_const.h
     include/stream_geom.h)
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
-target_link_libraries(libstream PUBLIC libnek5000 libopenmc)
+target_link_libraries(libstream PUBLIC libnek5000 libopenmc gsl-lite)
 
 # =============================================================================
 # Build STREAM driver
 # =============================================================================
-add_executable(stream src/stream/main.cpp)
+add_executable(stream src/main.cpp)
 target_link_libraries(stream PUBLIC libstream)
 
 # =============================================================================

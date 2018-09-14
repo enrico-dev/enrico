@@ -69,9 +69,8 @@ NekDriver::NekDriver(MPI_Comm comm) : HeatFluidsDriver(comm)
 //   }
 // }
 
-void NekDriver::init_displs()
-{
-  if (active()) {
+void NekDriver::init_displs() {
+  if(active()) {
     local_counts_.resize(comm_.size);
     local_displs_.resize(comm_.size);
 
@@ -79,7 +78,7 @@ void NekDriver::init_displs()
 
     local_displs_.at(0) = 0;
     for (int i = 1; i < comm_.size; ++i) {
-      local_displs_.at(i) = local_displs_.at(i - 1) + local_counts_.at(i - 1);
+      local_displs_.at(i) = local_displs_.at(i-1) + local_counts_.at(i-1);
     }
   }
 }
@@ -102,20 +101,6 @@ Position NekDriver::get_local_elem_centroid(int local_elem) const
   Position centroid;
   int ierr = nek_get_local_elem_centroid(local_elem, &centroid);
   return centroid;
-}
-
-double NekDriver::get_local_elem_volume(int local_elem) const
-{
-  double volume;
-  int ierr = nek_get_local_elem_volume(local_elem, &volume);
-  return volume;
-}
-
-double NekDriver::get_local_elem_temperature(int local_elem) const
-{
-  double temperature;
-  int ierr = nek_get_local_elem_temperature(local_elem, &temperature);
-  return temperature;
 }
 
 bool NekDriver::global_elem_is_in_rank(int global_elem) const

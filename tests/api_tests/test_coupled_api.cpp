@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
     }
     MPI_Barrier(MPI_COMM_WORLD);
 
-    test_driver.update_temperature();
+    //test_driver.update_temperature();
   }
 
   MPI_Finalize();

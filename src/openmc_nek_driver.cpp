@@ -336,4 +336,9 @@ void OpenmcNekDriver::free_mpi_datatypes()
   MPI_Type_free(&position_mpi_datatype);
 }
 
+void OpenmcNekDriver::free_mpi_datatypes()
+{
+  MPI_Type_free(&position_mpi_datatype);
+}
+
 } // namespace stream
