@@ -104,13 +104,13 @@ private:
   //! Number of materials in OpenMC model
   int32_t n_materials_;
 
-  //! Size of vector for local element data on this MPI rank.
-  //! If nek_driver_ is inactive, this is 0.  If active, this is nelt
-  int local_vector_size_;
+  //! Number of Nek local elements on this MPI rank.
+  //! If nek_driver_ is active, this equals nek_driver.nelt_.  If not, it equals 0.
+  int n_local_elem_;
 
-  //! Size of vector for global element data on this rank.
-  //! If openmc_driver_ is inactive, this is 0.  If active, this is nelgt
-  int global_vector_size_;
+  //! Number of Nek global elements across all ranks.
+  //! Always equals nek_driver_.nelgt_.
+  int n_global_elem_;
 
 };
 
