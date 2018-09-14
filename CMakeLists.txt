@@ -70,6 +70,7 @@ add_library(libstream
     src/nek_mass.F
     src/nek_parallel.F
     src/nek_size.F
+    src/nek_soln.F
     include/base_drivers.h
     include/message_passing.h
     include/nek_interface.h
