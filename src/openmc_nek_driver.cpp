@@ -2,7 +2,6 @@
 #include "openmc/capi.h"
 #include "openmc_nek_driver.h"
 #include "stream_const.h"
-#include <iostream>
 
 namespace stream {
 
@@ -56,9 +55,9 @@ void OpenmcNekDriver::init_mappings()
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
 
   // Only the OpenMC procs get the global element centroids
-  if (openmc_driver_.active())
+  if (openmc_driver_.active()) {
     global_elem_centroids_.resize(n_global_elem_);
-
+  }
   // Step 1: Get global element centroids on all OpenMC ranks
   if (nek_driver_.active()) {
     // Each Nek proc finds the centroids of its local elements
@@ -187,9 +186,9 @@ void OpenmcNekDriver::init_volumes()
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
 
   // Only the OpenMC procs get the global element volumes (gev)
-  if (openmc_driver_.active())
+  if (openmc_driver_.active()) {
     global_elem_volumes_.resize(n_global_elem_);
-
+  }
   if (nek_driver_.active()) {
     // Every Nek proc gets its local element volumes (lev)
     double local_elem_volumes[n_local_elem_];
