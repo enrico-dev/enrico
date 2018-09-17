@@ -13,7 +13,7 @@ OpenmcNekDriver::OpenmcNekDriver(int argc, char** argv, MPI_Comm coupled_comm,
     intranode_comm_(intranode_comm)
 {
   n_local_elem_ = nek_driver_.active() ? nek_driver_.nelt_ : 0;
-  n_global_elem_ = nek_driver_.nelgt_;
+  n_global_elem_ = nek_driver_.active() ? nek_driver_.nelgt_ : 0;
 
   init_mpi_datatypes();
   init_mappings();
@@ -54,12 +54,12 @@ void OpenmcNekDriver::init_mappings()
 {
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
 
-  // Only the OpenMC procs get the global element centroids
-  if (openmc_driver_.active()) {
-    global_elem_centroids_.resize(n_global_elem_);
-  }
-  // Step 1: Get global element centroids on all OpenMC ranks
   if (nek_driver_.active()) {
+    // Only the OpenMC procs get the global element centroids
+    if (openmc_driver_.active()) {
+      global_elem_centroids_.resize(n_global_elem_);
+    }
+    // Step 1: Get global element centroids on all OpenMC ranks
     // Each Nek proc finds the centroids of its local elements
     Position local_element_centroids[n_local_elem_];
     for (int i = 0; i < n_local_elem_; ++i) {
@@ -74,10 +74,8 @@ void OpenmcNekDriver::init_mappings()
       openmc_driver_.comm_.Bcast(global_elem_centroids_.data(), n_global_elem_,
                                  position_mpi_datatype);
     }
-  }
 
-  // Step 2: Set element->material and material->element mappings
-  if (nek_driver_.active()) {
+    // Step 2: Set element->material and material->element mappings
     // Create buffer to store material IDs corresponding to each Nek global
     // element. This is needed because calls to OpenMC API functions can only be
     // made from processes
@@ -114,10 +112,8 @@ void OpenmcNekDriver::init_mappings()
     for (int i = 1; i <= n_global_elem_; ++i) {
       elem_to_mat_[i] = mat_idx[i];
     }
-  }
 
-  // Step 3: Map material indices to positions in heat array
-  if (nek_driver_.active()) {
+    // Step 3: Map material indices to positions in heat array
     // Each Nek rank needs to know where to find heat source values in an array.
     // This requires knowing a mapping of material indices to positions in the
     // heat array (of size n_materials_). For this mapping, we use a direct
@@ -146,14 +142,14 @@ void OpenmcNekDriver::init_tallies()
     openmc_get_filter_next_id(&filter_id);
     openmc_get_tally_next_id(&tally_id);
 
-    int32_t& index_filter = openmc_driver_.index_filter_;
+    int32_t &index_filter = openmc_driver_.index_filter_;
     openmc_extend_filters(1, &index_filter, nullptr);
     openmc_filter_set_type(index_filter, "material");
     openmc_filter_set_id(index_filter, filter_id);
 
     // Build vector of material indices
     std::vector<int32_t> mats;
-    for (const auto& c : openmc_driver_.cells_) {
+    for (const auto &c : openmc_driver_.cells_) {
       mats.push_back(c.material_index_);
     }
 
@@ -175,7 +171,7 @@ void OpenmcNekDriver::init_temperatures()
 {
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
   // Only the OpenMC procs get the global temperatures
-  if (openmc_driver_.active()) {
+  if (nek_driver_.active() and openmc_driver_.active()) {
     global_elem_temperatures_.resize(n_global_elem_);
     std::fill(global_elem_temperatures_.begin(), global_elem_temperatures_.end(), 293.6);
   }
@@ -186,10 +182,10 @@ void OpenmcNekDriver::init_volumes()
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
 
   // Only the OpenMC procs get the global element volumes (gev)
-  if (openmc_driver_.active()) {
-    global_elem_volumes_.resize(n_global_elem_);
-  }
   if (nek_driver_.active()) {
+    if (openmc_driver_.active()) {
+      global_elem_volumes_.resize(n_global_elem_);
+    }
     // Every Nek proc gets its local element volumes (lev)
     double local_elem_volumes[n_local_elem_];
     for (int i = 0; i < n_local_elem_; ++i) {
@@ -289,10 +285,10 @@ void OpenmcNekDriver::update_temperature()
       openmc_driver_.comm_.Bcast(global_elem_temperatures_.data(), n_global_elem_, MPI_DOUBLE);
 
       // For each OpenMC material, volume average temperatures and set
-      for (const auto& c : openmc_driver_.cells_) {
+      for (const auto &c : openmc_driver_.cells_) {
 
         // Get corresponding global elements
-        const auto& global_elems = mat_to_elems_.at(c.material_index_);
+        const auto &global_elems = mat_to_elems_.at(c.material_index_);
 
         // Get volume-average temperature for this material
         double average_temp = 0.0;
