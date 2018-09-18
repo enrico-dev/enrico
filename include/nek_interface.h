@@ -15,7 +15,7 @@ extern "C" {
 //!  This is the name-mangled version of nek_init from libnek5000
 //!
 //!  \param intracomm An exisiting MPI communicator used to run Nek5000
-void C2F_nek_init(const int *intracomm);
+void C2F_nek_init(const int* intracomm);
 
 //! One-time finalization of Nek5000
 //!
@@ -46,6 +46,26 @@ int nek_get_global_elem_centroid(int global_elem, stream::Position* centroid);
 //! \param[out] centroid The **dimensionless* position of the local element's centroid
 //! \return Error value
 int nek_get_local_elem_centroid(int local_elem, stream::Position* centroid);
+
+//! Get the volume of a local element
+//!
+//! The returned volume is dimensionless.  Its units depend on the unit system that was
+//! used to setup the Nek5000 problem. The user must handle any necessary conversions.
+//!
+//! \param local_elem  A local element ID
+//! \param volume  The **dimensionless** volume of the local element
+//! \return  Error value
+int nek_get_local_elem_volume(int local_elem, double* volume);
+
+//! Get the volume-averaged temperature of a local element
+//!
+//! The returned temperature is dimensionless.  Its units depend on the unit system that was
+//! used to setup the Nek5000 problem. The user must handle any necessary conversions.
+//!
+//! \param local_elem  A local element ID
+//! \param temperature  The **dimensionless** volume-averaged temperature of the local element
+//! \return  Error value
+int nek_get_local_elem_temperature(int local_elem, double* temperature);
 
 //! Get the global element ID for a given local element
 //! \param local_elem  A local element ID

@@ -56,6 +56,12 @@ private:
   //! Initialize the tallies for all OpenMC materials
   void init_tallies();
 
+  //! Initialize global temperature buffers for OpenMC ranks
+  void init_temperatures();
+
+  //! Initialize global volume buffers for OpenMC ranks
+  void init_volumes();
+
   //! Get the heat index for a given OpenMC material
   //! \param mat_index An OpenMC material index
   //! \return The heat index
@@ -73,7 +79,17 @@ private:
   //! Gives a Position of a global element's centroid
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
-  std::vector<Position> global_elem_centroids;
+  std::vector<Position> global_elem_centroids_;
+
+  //! The dimensionless temperatures of Nek's global elements
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
+  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  std::vector<double> global_elem_temperatures_;
+
+  //! The dimensionless volumes of Nek's global elements
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
+  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  std::vector<double> global_elem_volumes_;
 
   //! Map that gives a list of Nek element global indices for a given OpenMC material index
   std::unordered_map<int32_t, std::vector<int>> mat_to_elems_;
@@ -87,6 +103,15 @@ private:
 
   //! Number of materials in OpenMC model
   int32_t n_materials_;
+
+  //! Number of Nek local elements on this MPI rank.
+  //! If nek_driver_ is active, this equals nek_driver.nelt_.  If not, it equals 0.
+  int n_local_elem_;
+
+  //! Number of Nek global elements across all ranks.
+  //! Always equals nek_driver_.nelgt_.
+  int n_global_elem_;
+
 };
 
 } // namespace stream

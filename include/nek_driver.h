@@ -66,6 +66,24 @@ public:
   //! \return The dimensionless coordinate of the element's centroid
   Position get_local_elem_centroid(int local_elem) const;
 
+  //! Get the volume of a local element
+  //!
+  //! The volume is dimensionless.  Its units depend on the unit system used that was used to
+  //! setup the Nek problem. The user must handle any necessary conversions.
+  //!
+  //! \param local_elem The local index of the desired element
+  //! \return The dimensionless Volume of the element
+  double get_local_elem_volume(int local_elem) const;
+
+  //! Get the volume-averaged tempearature of a local element
+  //!
+  //! The returned temperature is dimensionless.  Its units depend on the unit system that was
+  //! used to setup the Nek5000 problem. The user must handle any necessary conversions.
+  //!
+  //! \param local_elem A local element ID
+  //! \return The volume-averaged temperature of the element
+  double get_local_elem_temperature(int local_elem) const;
+
   //! Return true if a global element is in a given MPI rank
   //! \param A global element ID
   //! \param An MPI rank
