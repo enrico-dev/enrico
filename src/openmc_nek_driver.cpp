@@ -142,14 +142,14 @@ void OpenmcNekDriver::init_tallies()
     openmc_get_filter_next_id(&filter_id);
     openmc_get_tally_next_id(&tally_id);
 
-    int32_t &index_filter = openmc_driver_.index_filter_;
+    int32_t& index_filter = openmc_driver_.index_filter_;
     openmc_extend_filters(1, &index_filter, nullptr);
     openmc_filter_set_type(index_filter, "material");
     openmc_filter_set_id(index_filter, filter_id);
 
     // Build vector of material indices
     std::vector<int32_t> mats;
-    for (const auto &c : openmc_driver_.cells_) {
+    for (const auto& c : openmc_driver_.cells_) {
       mats.push_back(c.material_index_);
     }
 
@@ -285,10 +285,10 @@ void OpenmcNekDriver::update_temperature()
       openmc_driver_.comm_.Bcast(global_elem_temperatures_.data(), n_global_elem_, MPI_DOUBLE);
 
       // For each OpenMC material, volume average temperatures and set
-      for (const auto &c : openmc_driver_.cells_) {
+      for (const auto& c : openmc_driver_.cells_) {
 
         // Get corresponding global elements
-        const auto &global_elems = mat_to_elems_.at(c.material_index_);
+        const auto& global_elems = mat_to_elems_.at(c.material_index_);
 
         // Get volume-average temperature for this material
         double average_temp = 0.0;
