@@ -1,0 +1,22 @@
+diff --git a/tests/singlerod/short/SIZE b/tests/singlerod/short/SIZE
+index 0cc4f54..8836d07 100644
+--- a/tests/singlerod/short/SIZE
++++ b/tests/singlerod/short/SIZE
+@@ -3,7 +3,7 @@ C
+ C     HCUBE array dimensions
+ C
+       parameter (ldim=3)
+-      parameter (lx1=6,ly1=lx1,lz1=lx1,lelt=500,lelv=lelt)
++      parameter (lx1=6,ly1=lx1,lz1=lx1,lelt=650,lelv=lelt)
+       parameter (lxd=10,lyd=lxd,lzd=lxd)
+       parameter (lelx=1,lely=1,lelz=1)
+  
+@@ -16,7 +16,7 @@ C
+       parameter (ly3=ly1)
+       parameter (lz3=lz1)
+ 
+-      parameter (lp = 32)
++      parameter (lp = 8)
+       parameter (lelg = 5000)
+ c
+ c     parameter (lpelv=lelv,lpelt=lelt,lpert=3)  ! perturbation
