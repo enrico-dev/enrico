@@ -1,6 +1,7 @@
 stages:
   - download
-  - test
+  - test_api
+  - test_singlerod
 
 download:cross_sections:
   stage: download
@@ -9,8 +10,8 @@ download:cross_sections:
   script:
     - wget https://anl.box.com/shared/static/a6sw2cep34wlz6b9i9jwiotaqoayxcxt.xz -O - | tar -C $CI_PROJECT_DIR -xvJ
 
-test:openmc_api:
-  stage: test
+test_api:openmc:
+  stage: test_api
   dependencies:
     - download:cross_sections
   variables:
@@ -26,8 +27,8 @@ test:openmc_api:
     - make -j -l4 test_openmc_api
     - mpirun -np 2 ./test_openmc_api
 
-test:nek5000_api:
-  stage: test
+test_api:nek5000:
+  stage: test_api
   variables:
     GIT_STRATEGY: none
     CC: mpicc
@@ -39,8 +40,8 @@ test:nek5000_api:
     - make -j -l4 test_nek5000_api
     - mpirun -np 8 ./test_nek5000_api
 
-test:coupled_driver:
-  stage: test
+test_api:coupled_driver:
+  stage: test_api
   dependencies:
     - download:cross_sections
   variables:
@@ -55,3 +56,39 @@ test:coupled_driver:
     - cmake -DCASENAME=ethier ../../
     - make -j -l4 test_coupled_api
     - mpirun -np 8 ./test_coupled_api
+
+test_singlerod:nek5000:
+  stage: test_singlerod
+  dependencies:
+    - download:cross_sections
+  variables:
+    GIT_STRATEGY: none
+    CC: mpicc
+    CXX: mpicxx
+    FC: mpif90
+  script:
+    - cd tests/singlerod/short
+    - patch -N rodcht.rea ci_config/rodcht_rea.diff || true
+    - patch -N SIZE ci_config/SIZE.diff || true
+    # - cmake -DCMAKE_Fortran_FLAGS="-mcmodel=large" ../../../
+    - cmake ../../../
+    - make -j -l4 test_nek5000_singlerod
+    - mpirun -np 8 ./test_nek5000_singlerod
+
+test_singlerod:openmc:
+  stage: test_singlerod
+  dependencies:
+    - download:cross_sections
+  variables:
+    GIT_STRATEGY: none
+    CC: mpicc
+    CXX: mpicxx
+    FC: mpif90
+    OPENMC_CROSS_SECTIONS: $CI_PROJECT_DIR/nndc_hdf5/cross_sections.xml
+    OMP_NUM_THREADS: 4
+  script:
+    - cd tests/singlerod/short
+    - patch -N rodcht.rea ci_config/rodcht_rea.diff || true
+    - patch -N SIZE ci_config/SIZE.diff || true
+    - make -j -l4 test_openmc_singlerod
+    - mpirun -np 2 ./test_openmc_singlerod

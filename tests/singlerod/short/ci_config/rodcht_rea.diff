@@ -1,0 +1,15 @@
+diff --git a/tests/singlerod/short/rodcht.rea b/tests/singlerod/short/rodcht.rea
+index 9c88901..1297033 100644
+--- a/tests/singlerod/short/rodcht.rea
++++ b/tests/singlerod/short/rodcht.rea
+@@ -11,8 +11,8 @@
+    1.00000     p007 RHOCP
+    0.01000     p008 CONDUCT
+    0.00000     p009 
+-   200.000     p010 FINTIME
+-   0.00000     p011 NSTEPS
++   0.000     p010 FINTIME
++   10.00000     p011 NSTEPS
+  -0.250000E-03 p012 DT
+    0.00000     p013 IOCOMM
+    0.00000     p014 IOTIME
