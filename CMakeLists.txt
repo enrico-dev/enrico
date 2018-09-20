@@ -2,6 +2,17 @@ cmake_minimum_required(VERSION 3.1)
 project(stream Fortran C CXX)
 
 # =============================================================================
+# Check for SCALE (optional) 
+# =============================================================================
+find_package(SCALE PATHS ${SCALE_DIR} COMPONENTS OmnibusDriver)
+
+if (SCALE_FOUND)
+    MESSAGE(" SCALE_FOUND!")
+    MESSAGE(" SCALE_DIR = ${SCALE_DIR}")
+    MESSAGE(" SCALE_VERSION = ${SCALE_VERSION}")
+endif ()
+
+# =============================================================================
 # Discover name-mangling for routines in libnek5000
 # =============================================================================
 include(FortranCInterface)
@@ -24,6 +35,11 @@ include_directories(
     vendor/nek5000/3rd_party/gslib/gslib-1.0.1/src
     src/
     ${CMAKE_BINARY_DIR})
+
+if (SCALE_FOUND)
+    include_directories(${SCALE_INCLUDE_DIRS})
+    include_directories(${SCALE_TPL_INCLUDE_DIRS})
+endif ()
 
 # =============================================================================
 # Recursively build libnek5000 and libopenmc
@@ -54,6 +70,11 @@ add_library(libstream
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
 target_link_libraries(libstream PUBLIC libnek5000 libopenmc xtensor heat_xfer pugixml gsl-lite)
 
+if (SCALE_FOUND)
+  target_link_libraries(libstream PUBLIC ${SCALE_LIBRARIES})
+  target_link_libraries(libstream PUBLIC ${SCALE_TPL_LIBRARIES})
+endif ()
+
 # =============================================================================
 # Build STREAM driver
 # =============================================================================
@@ -82,3 +103,4 @@ set_target_properties(
     test_openmc_singlerod
     test_coupled_singlerod
     PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
+
