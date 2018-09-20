@@ -17,12 +17,6 @@ OpenmcNekDriver::OpenmcNekDriver(int argc, char** argv, MPI_Comm coupled_comm,
   n_global_elem_ = nek_driver_.active() ? nek_driver_.nelgt_ : 0;
 
   init_mpi_datatypes();
-  for (int i=1; i <= n_local_elem_; ++i) {
-    std::cout << i
-              << nek_driver_.get_local_elem_centroid(i).x << " "
-              << nek_driver_.get_local_elem_centroid(i).y << " "
-              << nek_driver_.get_local_elem_centroid(i).z << std::endl;
-  }
   init_mappings();
   init_tallies();
   init_volumes();
