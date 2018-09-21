@@ -35,7 +35,7 @@ openmc::Material* CellInstance::material() const
 
 void CellInstance::set_temperature(double T) const
 {
-  openmc_cell_set_temperature(index_, T, &instance_);
+  err_chk(openmc_cell_set_temperature(index_, T, &instance_), openmc_err_msg);
 }
 
 } // namespace stream
