@@ -4,7 +4,7 @@ project(stream Fortran C CXX)
 # =============================================================================
 # Check for SCALE (optional) 
 # =============================================================================
-find_package(SCALE PATHS ${SCALE_DIR} COMPONENTS OmnibusDriver)
+find_package(SCALE PATHS ${SCALE_DIR} COMPONENTS OmnibusDriver Tpetra)
 
 if (SCALE_FOUND)
     MESSAGE(" SCALE_FOUND!")
@@ -57,8 +57,8 @@ target_include_directories(heat_xfer PUBLIC vendor/surrogates/)
 # =============================================================================
 # Build libstream
 # =============================================================================
-# Build all compoments of libstream
-add_library(libstream
+
+set(SOURCES
     src/base_drivers.cpp
     src/heat_driver.cpp
     src/message_passing.cpp
@@ -67,6 +67,46 @@ add_library(libstream
     src/openmc_nek_driver.cpp
     src/nek_driver.cpp
     src/openmc_heat_driver.cpp)
+
+set(HEADERS
+    include/base_drivers.h
+    include/error.h
+    include/message_passing.h
+    include/nek_interface.h
+    include/nek_driver.h
+    include/openmc_driver.h
+    include/openmc_interface.h
+    include/openmc_nek_driver.h
+    include/comm.h
+    include/stream_const.h
+    include/stream_geom.h)
+
+if (SCALE_FOUND)
+    list(APPEND SOURCES
+        src/smrt/Assembly_Model.cpp
+        src/smrt/Multi_Pin_Conduction.cpp
+        src/smrt/Multi_Pin_Subchannel.cpp
+        src/smrt/Single_Pin_Conduction.cpp
+        src/smrt/Single_Pin_Subchannel.cpp
+        src/smrt/Two_Group_Cross_Sections.cpp
+        src/smrt/Two_Group_Diffusion.cpp
+        src/smrt/Water_Properties.cpp)
+    list(APPEND HEADERS
+        include/smrt/Assembly_Model.h
+        include/smrt/Multi_Pin_Conduction.h
+        include/smrt/Multi_Pin_Subchannel.h
+        include/smrt/Single_Pin_Conduction.h
+        include/smrt/Single_Pin_Subchannel.h
+        include/smrt/Two_Group_Cross_Sections.h
+        include/smrt/Two_Group_Diffusion.h
+        include/smrt/Water_Properties.h)
+endif ()
+
+# Build all compoments of libstream
+add_library(libstream
+            ${SOURCES}
+            ${HEADERS})
+
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
 target_link_libraries(libstream PUBLIC libnek5000 libopenmc xtensor heat_xfer pugixml gsl-lite)
 
