@@ -1,5 +1,6 @@
 #include "nek_driver.h"
 #include "nek_interface.h"
+#include "error.h"
 
 namespace stream {
 
@@ -92,7 +93,8 @@ void NekDriver::finalize_step() {}
 Position NekDriver::get_global_elem_centroid(int global_elem) const
 {
   Position centroid;
-  int ierr = nek_get_global_elem_centroid(global_elem, &centroid);
+  err_chk(nek_get_global_elem_centroid(global_elem, &centroid),
+      "Could not find centroid of global element " + std::to_string(global_elem));
   return centroid;
 }
 
@@ -100,20 +102,24 @@ Position NekDriver::get_local_elem_centroid(int local_elem) const
 {
   Position centroid;
   int ierr = nek_get_local_elem_centroid(local_elem, &centroid);
+  err_chk(nek_get_local_elem_centroid(local_elem, &centroid),
+      "Could not find centroid of local element " + std::to_string(local_elem));
   return centroid;
 }
 
 double NekDriver::get_local_elem_volume(int local_elem) const
 {
   double volume;
-  int ierr = nek_get_local_elem_volume(local_elem, &volume);
+  err_chk(nek_get_local_elem_volume(local_elem, &volume),
+      "Could not find volume of local element " + std::to_string(local_elem));
   return volume;
 }
 
 double NekDriver::get_local_elem_temperature(int local_elem) const
 {
   double temperature;
-  int ierr = nek_get_local_elem_temperature(local_elem, &temperature);
+  err_chk(nek_get_local_elem_temperature(local_elem, &temperature),
+      "Could not find temperature of local element " + std::to_string(local_elem));
   return temperature;
 }
 

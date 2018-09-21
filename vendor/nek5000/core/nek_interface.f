@@ -9,6 +9,9 @@
       include 'PARALLEL'
       include 'SOLN'
 
+      !> This follows the OpenMC convention that an error is < 0 (rather than != 0)
+      integer, parameter :: E_SUCCESS = 0, E_ERROR = -1;
+
       contains
 
       !> Get the coordinates of a local element's centroid
@@ -55,9 +58,9 @@
 
             !print *, local_elem, mass
 
-         ierr = 0
+         ierr = E_SUCCESS
       else
-         ierr = 1
+         ierr = E_ERROR
       end if
       end function nek_get_local_elem_centroid
 
@@ -83,7 +86,7 @@
             local_elem = gllel(global_elem)
             ierr = nek_get_local_elem_centroid(local_elem, centroid)
          else
-            ierr = 1
+            ierr = E_ERROR
       end if
       end function nek_get_global_elem_centroid
 
@@ -118,9 +121,9 @@
       
          if (local_elem <= nelt) then
             volume = sum(bm1(1:nx1, 1:ny1, 1:nz1, local_elem))
-            ierr = 0
+            ierr = E_SUCCESS
          else
-            ierr = 1
+            ierr = E_ERROR
          end if
       end function nek_get_local_elem_volume
       
@@ -132,9 +135,9 @@
       
          if (local_elem <= nelt) then
             temperature = sum(t(1:nx1, 1:ny1, 1:nz1, local_elem, 1))
-            ierr = 0
+            ierr = E_SUCCESS
          else
-            ierr = 1
+            ierr = E_ERROR
          end if
       end function nek_get_local_elem_temperature
       

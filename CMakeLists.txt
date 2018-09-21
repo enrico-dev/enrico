@@ -44,6 +44,7 @@ add_library(libstream
     src/openmc_nek_driver.cpp
     src/nek_driver.cpp
     include/base_drivers.h
+    include/error.h
     include/message_passing.h
     include/nek_interface.h
     include/nek_driver.h
@@ -52,7 +53,7 @@ add_library(libstream
     include/openmc_nek_driver.h
     include/comm.h
     include/stream_const.h
-    include/stream_geom.h)
+    include/stream_geom.h )
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
 target_link_libraries(libstream PUBLIC libnek5000 libopenmc gsl-lite)
 

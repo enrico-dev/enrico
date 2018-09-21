@@ -4,6 +4,7 @@
 #include <sstream>
 
 #include "openmc/capi.h"
+#include "error.h"
 
 namespace stream {
 
@@ -11,23 +12,20 @@ CellInstance::CellInstance(Position position)
 {
   // Get cell index/instance corresponding to position
   double xyz[3] = {position.x, position.y, position.z};
-  openmc_find_cell(xyz, &index_, &instance_);
+  err_chk(openmc_find_cell(xyz, &index_, &instance_), openmc_err_msg);
 
   // Determine what material fills the cell instance
   int type;
   int32_t* indices;
   int32_t n;
-  openmc_cell_get_fill(index_, &type, &indices, &n);
+  err_chk(openmc_cell_get_fill(index_, &type, &indices, &n), openmc_err_msg);
 
   // TODO: Right now get_fill returns 0-based indices, but the tally interface
   // expects 1-based. Once tallies move to 0-based, change this.
   material_index_ = indices[instance_] + 1;
 
   // Get volume of material
-  int err = openmc_material_get_volume(material_index_, &volume_);
-  if (err < 0) {
-    throw std::runtime_error{openmc_err_msg};
-  }
+  err_chk(openmc_material_get_volume(material_index_, &volume_), openmc_err_msg);
 }
 
 openmc::Material* CellInstance::material() const
