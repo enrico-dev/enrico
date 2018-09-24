@@ -35,27 +35,6 @@ add_subdirectory(vendor/gsl)
 # =============================================================================
 # Build libstream
 # =============================================================================
-# Discover and set necessary flags for building fixed-format Fortran components
-# of libstream.
-if (CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
-  set(FIXEDFORMAT_FLAGS "-fdefault-real-8 -fdefault-double-8 -cpp")
-elseif (CMAKE_Fortran_COMPILER_ID STREQUAL PGI)
-  set(FIXEDFORMAT_FLAGS "-r8 -Mpreprocess")
-elseif (CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
-  set(FIXEDFORMAT_FLAGS "-r8 -fpconstant -fpp")
-elseif (CMAKE_Fortran_COMPILER_ID STREQUAL XL)
-  set(FIXEDFORMAT_FLAGS "-qrealsize=8 -qdpc=e -qsuffix=cpp=f -qsuppress=cmpmsg")
-else ()
-  message(FATAL_ERROR "Specified compiler (${CMAKE_Fortran_COMPILER_ID}) is not supported by Nek5000")
-endif ()
-set(FIXEDFORMAT_SOURCES
-    src/nek_parallel.F
-    src/nek_geom.F
-    src/nek_interface_fixedform.F)
-set_source_files_properties(${FIXEDFORMAT_SOURCES} PROPERTIES
-    Fortran_FORMAT FIXED
-    COMPILE_FLAGS ${FIXEDFORMAT_FLAGS})
-
 # Build all compoments of libstream
 add_library(libstream
     src/base_drivers.cpp
@@ -64,13 +43,6 @@ add_library(libstream
     src/openmc_interface.cpp
     src/openmc_nek_driver.cpp
     src/nek_driver.cpp
-    src/nek_geom.F
-    src/nek_interface.F90
-    src/nek_interface_fixedform.F
-    src/nek_mass.F
-    src/nek_parallel.F
-    src/nek_size.F
-    src/nek_soln.F
     include/base_drivers.h
     include/message_passing.h
     include/nek_interface.h
@@ -109,3 +81,6 @@ target_link_libraries(test_nek5000_singlerod PUBLIC libstream)
 
 add_executable(test_openmc_singlerod tests/singlerod/short/test_openmc.cpp)
 target_link_libraries(test_openmc_singlerod PUBLIC libstream)
+
+add_executable(test_coupled_singlerod tests/singlerod/short/test_coupled.cpp)
+target_link_libraries(test_coupled_singlerod PUBLIC libstream)
