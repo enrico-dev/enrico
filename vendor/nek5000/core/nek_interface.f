@@ -53,8 +53,6 @@
             centroid%y = centroid%y / mass
             centroid%z = centroid%z / mass
 
-            !print *, local_elem, mass
-
             ierr = 0
           else
             ierr = 1
