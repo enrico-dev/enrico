@@ -2,7 +2,6 @@
 #include "openmc/capi.h"
 #include "openmc_nek_driver.h"
 #include "stream_const.h"
-#include <iostream>
 #include "error.h"
 
 namespace stream {

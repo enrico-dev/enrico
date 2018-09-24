@@ -24,8 +24,10 @@ CellInstance::CellInstance(Position position)
   // expects 1-based. Once tallies move to 0-based, change this.
   material_index_ = indices[instance_] + 1;
 
-  // Get volume of material
-  err_chk(openmc_material_get_volume(material_index_, &volume_));
+  // Get volume of material (if non-void)
+  if (material_index_ >= 0) {
+    err_chk(openmc_material_get_volume(material_index_, &volume_));
+  }
 }
 
 openmc::Material* CellInstance::material() const

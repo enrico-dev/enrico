@@ -78,10 +78,13 @@ for wedge in xy_bounds:
 
     clad_annulus = +clad_inner & -clad_outer
     clad = openmc.Cell(fill=zirc, region=clad_annulus & wedge)
+    clad.fill.volume = pi/4*(clad_or**2 - clad_ir**2)
     cells.append(clad)
 
     moderator = openmc.Cell(region=+clad_outer & wedge)
     moderator.fill = [water.clone() for i in range(n_axial)]
+    for m in moderator.fill:
+        m.volume = (pitch**2 - pi*clad_or**2)/4
     cells.append(moderator)
 slice_univ = openmc.Universe(cells=cells)
 
