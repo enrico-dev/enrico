@@ -1,5 +1,6 @@
 #include "openmc/capi.h"
 #include "openmc_driver.h"
+#include "error.h"
 
 namespace stream {
 
@@ -7,21 +8,22 @@ OpenmcDriver::OpenmcDriver(int argc, char* argv[], MPI_Comm comm)
     : TransportDriver(comm)
 {
   if (active()) {
-    openmc_init(argc, argv, &comm);
+    err_chk(openmc_init(argc, argv, &comm));
   }
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void OpenmcDriver::init_step() { openmc_simulation_init(); }
+void OpenmcDriver::init_step() { err_chk(openmc_simulation_init()); }
 
-void OpenmcDriver::solve_step() { openmc_run(); }
+void OpenmcDriver::solve_step() { err_chk(openmc_run()); }
 
-void OpenmcDriver::finalize_step() { openmc_simulation_finalize(); }
+void OpenmcDriver::finalize_step() { err_chk(openmc_simulation_finalize()); }
 
 OpenmcDriver::~OpenmcDriver()
 {
-  if (active())
-    openmc_finalize();
+  if (active()) {
+    err_chk(openmc_finalize());
+  }
   MPI_Barrier(MPI_COMM_WORLD);
 }
 

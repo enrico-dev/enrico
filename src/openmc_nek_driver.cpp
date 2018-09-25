@@ -3,6 +3,7 @@
 #include "openmc_nek_driver.h"
 #include "stream_const.h"
 #include <iostream>
+#include "error.h"
 
 namespace stream {
 
@@ -139,14 +140,15 @@ void OpenmcNekDriver::init_tallies()
 {
   if (openmc_driver_.active()) {
     // Determine maximum tally/filter ID used so far
+    // These OpenMC API functions do not return error codes.
     int32_t filter_id, tally_id;
     openmc_get_filter_next_id(&filter_id);
     openmc_get_tally_next_id(&tally_id);
 
     int32_t& index_filter = openmc_driver_.index_filter_;
-    openmc_extend_filters(1, &index_filter, nullptr);
-    openmc_filter_set_type(index_filter, "material");
-    openmc_filter_set_id(index_filter, filter_id);
+    err_chk(openmc_extend_filters(1, &index_filter, nullptr));
+    err_chk(openmc_filter_set_type(index_filter, "material"));
+    err_chk(openmc_filter_set_id(index_filter, filter_id));
 
     // Build vector of material indices
     std::vector<int32_t> mats;
@@ -155,16 +157,16 @@ void OpenmcNekDriver::init_tallies()
     }
 
     // Set bins for filter
-    openmc_material_filter_set_bins(index_filter, mats.size(), mats.data());
+    err_chk(openmc_material_filter_set_bins(index_filter, mats.size(), mats.data()));
 
     // Create tally and assign scores/filters
-    openmc_extend_tallies(1, &openmc_driver_.index_tally_, nullptr);
-    openmc_tally_allocate(openmc_driver_.index_tally_, "generic");
-    openmc_tally_set_id(openmc_driver_.index_tally_, tally_id);
+    err_chk(openmc_extend_tallies(1, &openmc_driver_.index_tally_, nullptr));
+    err_chk(openmc_tally_allocate(openmc_driver_.index_tally_, "generic"));
+    err_chk(openmc_tally_set_id(openmc_driver_.index_tally_, tally_id));
     char score_array[][20]{"kappa-fission"};
     const char* scores[]{score_array[0]}; // OpenMC expects a const char**, ugh
-    openmc_tally_set_scores(openmc_driver_.index_tally_, 1, scores);
-    openmc_tally_set_filters(openmc_driver_.index_tally_, 1, &index_filter);
+    err_chk(openmc_tally_set_scores(openmc_driver_.index_tally_, 1, scores));
+    err_chk(openmc_tally_set_filters(openmc_driver_.index_tally_, 1, &index_filter));
   }
 }
 
