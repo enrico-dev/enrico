@@ -20,7 +20,7 @@ inline void err_chk(int err, const char* msg)
     throw std::runtime_error(msg);
 }
 
-inline void err_chk(int err, std::string msg)
+inline void err_chk(int err, const std::string& msg)
 {
   if (err < E_SUCCESS)
     throw std::runtime_error(msg);
