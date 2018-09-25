@@ -146,9 +146,9 @@ void OpenmcNekDriver::init_tallies()
     openmc_get_tally_next_id(&tally_id);
 
     int32_t& index_filter = openmc_driver_.index_filter_;
-    err_chk(openmc_extend_filters(1, &index_filter, nullptr), openmc_err_msg);
-    err_chk(openmc_filter_set_type(index_filter, "material"), openmc_err_msg);
-    err_chk(openmc_filter_set_id(index_filter, filter_id), openmc_err_msg);
+    err_chk(openmc_extend_filters(1, &index_filter, nullptr));
+    err_chk(openmc_filter_set_type(index_filter, "material"));
+    err_chk(openmc_filter_set_id(index_filter, filter_id));
 
     // Build vector of material indices
     std::vector<int32_t> mats;
@@ -157,18 +157,16 @@ void OpenmcNekDriver::init_tallies()
     }
 
     // Set bins for filter
-    err_chk(openmc_material_filter_set_bins(index_filter, mats.size(), mats.data()),
-        openmc_err_msg);
+    err_chk(openmc_material_filter_set_bins(index_filter, mats.size(), mats.data()));
 
     // Create tally and assign scores/filters
-    err_chk(openmc_extend_tallies(1, &openmc_driver_.index_tally_, nullptr), openmc_err_msg);
-    err_chk(openmc_tally_allocate(openmc_driver_.index_tally_, "generic"), openmc_err_msg);
-    err_chk(openmc_tally_set_id(openmc_driver_.index_tally_, tally_id), openmc_err_msg);
+    err_chk(openmc_extend_tallies(1, &openmc_driver_.index_tally_, nullptr));
+    err_chk(openmc_tally_allocate(openmc_driver_.index_tally_, "generic"));
+    err_chk(openmc_tally_set_id(openmc_driver_.index_tally_, tally_id));
     char score_array[][20]{"kappa-fission"};
     const char* scores[]{score_array[0]}; // OpenMC expects a const char**, ugh
-    err_chk(openmc_tally_set_scores(openmc_driver_.index_tally_, 1, scores), openmc_err_msg);
-    err_chk(openmc_tally_set_filters(openmc_driver_.index_tally_, 1, &index_filter),
-        openmc_err_msg);
+    err_chk(openmc_tally_set_scores(openmc_driver_.index_tally_, 1, scores));
+    err_chk(openmc_tally_set_filters(openmc_driver_.index_tally_, 1, &index_filter));
   }
 }
 
