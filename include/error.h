@@ -14,19 +14,19 @@ constexpr int E_SUCCESS = 0;
 //!
 //! \param err The error code returned by the called function.
 //! \param msg The message passed displayed if an error occurs.
-inline void err_chk(const int err, const char* msg)
+inline void err_chk(int err, const char* msg)
 {
   if (err < E_SUCCESS)
     throw std::runtime_error(msg);
 }
 
-inline void err_chk(const int err, const std::string msg)
+inline void err_chk(int err, std::string msg)
 {
   if (err < E_SUCCESS)
     throw std::runtime_error(msg);
 }
 
-inline void err_chk(const int err)
+inline void err_chk(int err)
 {
   if (err < E_SUCCESS)
     throw std::runtime_error(openmc_err_msg);
