@@ -65,7 +65,7 @@ void OpenmcNekDriver::init_mappings()
     // Each Nek proc finds the centroids of its local elements
     Position local_element_centroids[n_local_elem_];
     for (int i = 0; i < n_local_elem_; ++i) {
-      local_element_centroids[i] = nek_driver_.get_local_elem_centroid(i);
+      local_element_centroids[i] = nek_driver_.get_local_elem_centroid(i+1);
     }
     // Gather all the local element centroids on the Nek5000/OpenMC root
     nek_driver_.comm_.Gatherv(local_element_centroids, n_local_elem_, position_mpi_datatype,
@@ -111,7 +111,7 @@ void OpenmcNekDriver::init_mappings()
     intranode_comm_.Bcast(&n_materials_, 1, MPI_INT32_T);
 
     // Set element -> material ID mapping on each Nek rank
-    for (int i = 1; i <= n_global_elem_; ++i) {
+    for (int i = 0; i < n_global_elem_; ++i) {
       elem_to_mat_[i] = mat_idx[i];
     }
 
