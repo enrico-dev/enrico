@@ -33,18 +33,26 @@ add_subdirectory(vendor/openmc)
 add_subdirectory(vendor/gsl)
 
 # =============================================================================
+# Heat transfer surrogate
+# =============================================================================
+add_library(heat_xfer vendor/surrogates/heat_xfer_backend.cpp)
+target_include_directories(heat_xfer PUBLIC vendor/surrogates/)
+
+# =============================================================================
 # Build libstream
 # =============================================================================
 # Build all compoments of libstream
 add_library(libstream
     src/base_drivers.cpp
+    src/heat_driver.cpp
     src/message_passing.cpp
     src/openmc_driver.cpp
     src/openmc_interface.cpp
     src/openmc_nek_driver.cpp
-    src/nek_driver.cpp)
+    src/nek_driver.cpp
+    src/openmc_heat_driver.cpp)
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
-target_link_libraries(libstream PUBLIC libnek5000 libopenmc xtensor gsl-lite)
+target_link_libraries(libstream PUBLIC libnek5000 libopenmc xtensor heat_xfer pugixml gsl-lite)
 
 # =============================================================================
 # Build STREAM driver

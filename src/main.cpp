@@ -5,7 +5,7 @@
 
 #include "stream/message_passing.h"
 #include "stream/openmc_nek_driver.h"
-
+#include "stream/openmc_heat_driver.h"
 
 int main(int argc, char* argv[])
 {
@@ -61,7 +61,12 @@ int main(int argc, char* argv[])
       }
       break;
     case HeatFluids::Surrogate:
-      throw std::runtime_error{"No surrogate heat/fluids driver implemented"};
+      {
+        // Pass XML node for reading settings
+        auto node = root.child("heat_surrogate");
+        stream::OpenmcHeatDriver driver {MPI_COMM_WORLD, node};
+        driver.solve_step();
+      }
       break;
     }
     break;
