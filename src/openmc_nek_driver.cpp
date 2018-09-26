@@ -1,6 +1,7 @@
+#include "openmc_nek_driver.h"
+
 #include "nek_interface.h"
 #include "openmc/capi.h"
-#include "openmc_nek_driver.h"
 #include "stream_const.h"
 #include "error.h"
 
@@ -42,7 +43,7 @@ void OpenmcNekDriver::init_mpi_datatypes()
   MPI_Get_address(&p.z, &displs[2]);
 
   // Make the displacements relative
-  displs[2] -= displs[1];
+  displs[2] -= displs[0];
   displs[1] -= displs[0];
   displs[0] = 0;
 
@@ -88,7 +89,7 @@ void OpenmcNekDriver::init_mappings()
       for (int i = 0; i < n_global_elem_; ++i) {
         // Determine cell instance corresponding to global element
         Position elem_pos = global_elem_centroids_[i];
-        CellInstance c{elem_pos};
+        CellInstance c {elem_pos};
         if (tracked.find(c.material_index_) == tracked.end()) {
           openmc_driver_.cells_.push_back(c);
           tracked.insert(c.material_index_);
