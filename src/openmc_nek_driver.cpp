@@ -139,34 +139,12 @@ void OpenmcNekDriver::init_mappings()
 void OpenmcNekDriver::init_tallies()
 {
   if (openmc_driver_.active()) {
-    // Determine maximum tally/filter ID used so far
-    // These OpenMC API functions do not return error codes.
-    int32_t filter_id, tally_id;
-    openmc_get_filter_next_id(&filter_id);
-    openmc_get_tally_next_id(&tally_id);
-
-    int32_t& index_filter = openmc_driver_.index_filter_;
-    err_chk(openmc_extend_filters(1, &index_filter, nullptr));
-    err_chk(openmc_filter_set_type(index_filter, "material"));
-    err_chk(openmc_filter_set_id(index_filter, filter_id));
-
     // Build vector of material indices
     std::vector<int32_t> mats;
     for (const auto& c : openmc_driver_.cells_) {
       mats.push_back(c.material_index_);
     }
-
-    // Set bins for filter
-    err_chk(openmc_material_filter_set_bins(index_filter, mats.size(), mats.data()));
-
-    // Create tally and assign scores/filters
-    err_chk(openmc_extend_tallies(1, &openmc_driver_.index_tally_, nullptr));
-    err_chk(openmc_tally_allocate(openmc_driver_.index_tally_, "generic"));
-    err_chk(openmc_tally_set_id(openmc_driver_.index_tally_, tally_id));
-    char score_array[][20]{"kappa-fission"};
-    const char* scores[]{score_array[0]}; // OpenMC expects a const char**, ugh
-    err_chk(openmc_tally_set_scores(openmc_driver_.index_tally_, 1, scores));
-    err_chk(openmc_tally_set_filters(openmc_driver_.index_tally_, 1, &index_filter));
+    openmc_driver_.create_tallies(mats);
   }
 }
 
@@ -211,15 +189,8 @@ void OpenmcNekDriver::update_heat_source()
   double heat[n_materials_];
 
   if (openmc_driver_.active()) {
-    // Get material bins
-    int32_t* mats;
-    int32_t n_mats;
-    openmc_material_filter_get_bins(openmc_driver_.index_filter_, &mats, &n_mats);
+    xt::xtensor<double, 3> results = openmc_driver_.tally_results();
 
-    // Get tally results and number of realizations
-    double* results;
-    int shape[3];
-    openmc_tally_results(openmc_driver_.index_tally_, &results, shape);
     int32_t m;
     openmc_tally_get_n_realizations(openmc_driver_.index_tally_, &m);
 
@@ -228,7 +199,7 @@ void OpenmcNekDriver::update_heat_source()
     for (int i = 0; i < n_materials_; ++i) {
       // Get mean value for tally result and convert units from eV to J
       // TODO: Get rid of flattened array index by using xtensor?
-      heat[i] = JOULE_PER_EV * results[3 * i + 1] / m;
+      heat[i] = JOULE_PER_EV * results(i, 0, 1) / m;
 
       // Sum up heat in each material
       total_heat += heat[i];

@@ -55,7 +55,7 @@ add_library(libstream
     include/stream_const.h
     include/stream_geom.h )
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
-target_link_libraries(libstream PUBLIC libnek5000 libopenmc gsl-lite)
+target_link_libraries(libstream PUBLIC libnek5000 libopenmc xtensor gsl-lite)
 
 # =============================================================================
 # Build STREAM driver
