@@ -66,15 +66,6 @@ target_link_libraries(stream PUBLIC libstream)
 # =============================================================================
 # Build STREAM tests and demos
 # =============================================================================
-add_executable(test_openmc_api tests/api_tests/test_openmc_api.cpp)
-target_link_libraries(test_openmc_api PUBLIC libstream)
-
-add_executable(test_nek5000_api tests/api_tests/test_nek5000_api.cpp)
-target_link_libraries(test_nek5000_api PUBLIC libstream)
-
-add_executable(test_coupled_api tests/api_tests/test_coupled_api.cpp)
-target_link_libraries(test_coupled_api PUBLIC libstream)
-
 add_executable(comm_split_demo tests/comm_split_demo/main.cpp)
 
 add_executable(test_nek5000_singlerod tests/singlerod/short/test_nek5000.cpp)
