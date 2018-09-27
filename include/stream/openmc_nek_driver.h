@@ -7,6 +7,7 @@
 #include "mpi.h"
 #include "nek_driver.h"
 #include "openmc_driver.h"
+
 #include <unordered_set>
 
 namespace stream {

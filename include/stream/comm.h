@@ -29,6 +29,14 @@ public:
     }
   }
 
+  //! Block until all processes have reached this call
+  //!
+  //! \return Error value
+  int Barrier()
+  {
+    return MPI_Barrier(comm);
+  }
+
   //! Broadcasts a message from the process with rank "root" to all other processes in this comm.
   //!
   //! Currently, a wrapper for MPI_Bcast.

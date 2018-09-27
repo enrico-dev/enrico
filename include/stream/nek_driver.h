@@ -5,7 +5,8 @@
 
 #include "base_drivers.h"
 #include "mpi.h"
-#include "stream_geom.h"
+#include "geom.h"
+
 #include <vector>
 
 namespace stream {

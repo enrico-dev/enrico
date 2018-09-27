@@ -1,7 +1,7 @@
-#include "base_drivers.h"
-#include "message_passing.h"
-#include "mpi.h"
-#include "openmc_nek_driver.h"
+#include "stream/base_drivers.h"
+#include "stream/message_passing.h"
+#include "stream/openmc_nek_driver.h"
+#include <mpi.h>
 
 int main(int argc, char *argv[]) {
   MPI_Init(&argc, &argv);
@@ -22,16 +22,16 @@ int main(int argc, char *argv[]) {
       test_driver.openmc_driver_.solve_step();
       test_driver.openmc_driver_.finalize_step();
     }
-    MPI_Barrier(MPI_COMM_WORLD);
+    test_driver.comm_.Barrier();
 
-    //test_driver.update_heat_source();
+    test_driver.update_heat_source();
 
     if (test_driver.nek_driver_.active()) {
       test_driver.nek_driver_.init_step();
       test_driver.nek_driver_.solve_step();
       test_driver.nek_driver_.finalize_step();
     }
-    MPI_Barrier(MPI_COMM_WORLD);
+    test_driver.comm_.Barrier();
 
     test_driver.update_temperature();
   }

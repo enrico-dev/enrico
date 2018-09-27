@@ -6,7 +6,7 @@
 #include <cstdint>
 
 #include "openmc/material.h"
-#include "stream_geom.h"
+#include "geom.h"
 
 namespace stream {
 

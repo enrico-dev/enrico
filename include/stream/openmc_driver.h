@@ -4,9 +4,13 @@
 #define STREAM_OPENMC_DRIVER_H
 
 #include "base_drivers.h"
-#include "mpi.h"
 #include "openmc_interface.h"
-#include "stream_geom.h"
+#include "geom.h"
+
+#include <gsl/gsl>
+#include <mpi.h>
+#include "xtensor/xtensor.hpp"
+
 #include <vector>
 
 namespace stream {
@@ -22,6 +26,23 @@ public:
 
   //! One-time finalization of OpenMC
   ~OpenmcDriver();
+
+  //! Create energy production tallies for a list of materials
+  //! \param[in] materials  Indices into OpenMC's materials array
+  void create_tallies(gsl::span<int32_t> materials);
+
+  //! Get tally results array
+  //!
+  //! \return Internal tally results array. First dimension is filter
+  //!   combinations, second dimension is scores, third dimension is of size
+  //!   three (temporary value, sum of realizations, sum-squared)
+  xt::xtensor<double, 3> tally_results();
+
+  //! Get energy deposition in each material
+  //!
+  //! \param power User-specified power in [W]
+  //! \return Heat source in each material as [W/cm3]
+  xt::xtensor<double, 1> heat_source(double power);
 
   //! Initalization required in each Picard iteration
   void init_step();

@@ -1,9 +1,12 @@
-#include "openmc_nek_driver.h"
+#include "stream/openmc_nek_driver.h"
 
-#include "nek_interface.h"
+#include "stream/const.h"
+#include "stream/error.h"
+#include "stream/nek_interface.h"
+
 #include "openmc/capi.h"
-#include "stream_const.h"
-#include "error.h"
+#include "xtensor/xbuilder.hpp"
+#include "xtensor/xtensor.hpp"
 
 namespace stream {
 
@@ -139,34 +142,12 @@ void OpenmcNekDriver::init_mappings()
 void OpenmcNekDriver::init_tallies()
 {
   if (openmc_driver_.active()) {
-    // Determine maximum tally/filter ID used so far
-    // These OpenMC API functions do not return error codes.
-    int32_t filter_id, tally_id;
-    openmc_get_filter_next_id(&filter_id);
-    openmc_get_tally_next_id(&tally_id);
-
-    int32_t& index_filter = openmc_driver_.index_filter_;
-    err_chk(openmc_extend_filters(1, &index_filter, nullptr));
-    err_chk(openmc_filter_set_type(index_filter, "material"));
-    err_chk(openmc_filter_set_id(index_filter, filter_id));
-
     // Build vector of material indices
     std::vector<int32_t> mats;
     for (const auto& c : openmc_driver_.cells_) {
       mats.push_back(c.material_index_);
     }
-
-    // Set bins for filter
-    err_chk(openmc_material_filter_set_bins(index_filter, mats.size(), mats.data()));
-
-    // Create tally and assign scores/filters
-    err_chk(openmc_extend_tallies(1, &openmc_driver_.index_tally_, nullptr));
-    err_chk(openmc_tally_allocate(openmc_driver_.index_tally_, "generic"));
-    err_chk(openmc_tally_set_id(openmc_driver_.index_tally_, tally_id));
-    char score_array[][20]{"kappa-fission"};
-    const char* scores[]{score_array[0]}; // OpenMC expects a const char**, ugh
-    err_chk(openmc_tally_set_scores(openmc_driver_.index_tally_, 1, scores));
-    err_chk(openmc_tally_set_filters(openmc_driver_.index_tally_, 1, &index_filter));
+    openmc_driver_.create_tallies(mats);
   }
 }
 
@@ -208,57 +189,25 @@ void OpenmcNekDriver::init_volumes()
 void OpenmcNekDriver::update_heat_source()
 {
   // Create array to store volumetric heat deposition in each material
-  double heat[n_materials_];
+  xt::xtensor<double, 1> heat = xt::empty<double>({n_materials_});
 
   if (openmc_driver_.active()) {
-    // Get material bins
-    int32_t* mats;
-    int32_t n_mats;
-    openmc_material_filter_get_bins(openmc_driver_.index_filter_, &mats, &n_mats);
-
-    // Get tally results and number of realizations
-    double* results;
-    int shape[3];
-    openmc_tally_results(openmc_driver_.index_tally_, &results, shape);
-    int32_t m;
-    openmc_tally_get_n_realizations(openmc_driver_.index_tally_, &m);
-
-    // Determine energy production in each material
-    double total_heat = 0.0;
-    for (int i = 0; i < n_materials_; ++i) {
-      // Get mean value for tally result and convert units from eV to J
-      // TODO: Get rid of flattened array index by using xtensor?
-      heat[i] = JOULE_PER_EV * results[3 * i + 1] / m;
-
-      // Sum up heat in each material
-      total_heat += heat[i];
-    }
-
-    // TODO: Need to have total power in W specified by user
-    double power = 1.0;
-
-    // Normalize heat source in each material and collect in an array
-    for (int i = 0; i < n_materials_; ++i) {
-      // Get volume
-      double V = openmc_driver_.cells_.at(i).volume_;
-
-      // Convert heat from J/src to W/cm^3. Dividing by total_heat gives the
-      // fraction of heat deposited in each material. Multiplying by power
-      // givens an absolute value in W
-      double normalization = power / (total_heat * V);
-      heat[i] *= normalization;
-    }
+    // TODO: Use actual power level
+    heat = openmc_driver_.heat_source(1.0);
   }
 
   // OpenMC has heat source on each of its ranks. We need to make heat
   // source available on each Nek rank.
-  intranode_comm_.Bcast(heat, n_materials_, MPI_DOUBLE);
+  intranode_comm_.Bcast(heat.data(), n_materials_, MPI_DOUBLE);
 
   if (nek_driver_.active()) {
+    // Determine displacement for this rank
+    int displacement = nek_driver_.local_displs_[nek_driver_.comm_.rank];
+
     // Loop over local elements to set heat source
-    for (int local_elem = 1; local_elem <= n_local_elem_; ++local_elem) {
-      // get corresponding global element ID
-      int global_elem = nek_get_global_elem(local_elem);
+    for (int local_elem = 0; local_elem < n_local_elem_; ++local_elem) {
+      // get corresponding global element
+      int global_elem = local_elem + displacement;
 
       // get corresponding material
       int32_t mat_index = elem_to_mat_.at(global_elem);

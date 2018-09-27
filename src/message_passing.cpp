@@ -1,5 +1,6 @@
-#include "message_passing.h"
-#include "mpi.h"
+#include "stream/message_passing.h"
+
+#include <mpi.h>
 
 namespace stream {
 
