@@ -1,7 +1,7 @@
-#include "nek_driver.h"
+#include "stream/nek_driver.h"
 
-#include "nek_interface.h"
-#include "error.h"
+#include "stream/nek_interface.h"
+#include "stream/error.h"
 
 #include <string>
 

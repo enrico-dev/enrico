@@ -1,7 +1,7 @@
-//! \file stream_geom.h
+//! \file geom.h
 //! For describing STREAM geometries
-#ifndef STREAM_STREAM_GEOM_H
-#define STREAM_STREAM_GEOM_H
+#ifndef STREAM_GEOM_H
+#define STREAM_GEOM_H
 
 namespace stream {
 
@@ -14,4 +14,4 @@ struct Position {
 
 } // namespace stream
 
-#endif // STREAM_STREAM_GEOM_H
+#endif // STREAM_GEOM_H

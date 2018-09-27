@@ -5,7 +5,7 @@
 
 #include "base_drivers.h"
 #include "openmc_interface.h"
-#include "stream_geom.h"
+#include "geom.h"
 
 #include <gsl/gsl>
 #include <mpi.h>

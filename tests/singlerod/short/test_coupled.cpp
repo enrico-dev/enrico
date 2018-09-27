@@ -1,7 +1,7 @@
-#include "base_drivers.h"
-#include "message_passing.h"
-#include "mpi.h"
-#include "openmc_nek_driver.h"
+#include "stream/base_drivers.h"
+#include "stream/message_passing.h"
+#include "stream/openmc_nek_driver.h"
+#include <mpi.h>
 
 int main(int argc, char *argv[]) {
   MPI_Init(&argc, &argv);

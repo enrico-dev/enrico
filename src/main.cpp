@@ -1,10 +1,10 @@
 #include <stdexcept>
 
-#include "mpi.h"
+#include <mpi.h>
 #include "pugixml.hpp"
 
-#include "message_passing.h"
-#include "openmc_nek_driver.h"
+#include "stream/message_passing.h"
+#include "stream/openmc_nek_driver.h"
 
 
 int main(int argc, char* argv[])

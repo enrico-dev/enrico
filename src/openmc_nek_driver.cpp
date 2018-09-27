@@ -1,8 +1,8 @@
-#include "openmc_nek_driver.h"
+#include "stream/openmc_nek_driver.h"
 
-#include "nek_interface.h"
-#include "stream_const.h"
-#include "error.h"
+#include "stream/const.h"
+#include "stream/error.h"
+#include "stream/nek_interface.h"
 
 #include "openmc/capi.h"
 #include "xtensor/xbuilder.hpp"

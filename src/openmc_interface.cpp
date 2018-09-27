@@ -1,10 +1,11 @@
-#include "openmc_interface.h"
+#include "stream/openmc_interface.h"
+
+#include "stream/error.h"
+
+#include "openmc/capi.h"
 
 #include <stdexcept>
 #include <sstream>
-
-#include "openmc/capi.h"
-#include "error.h"
 
 namespace stream {
 

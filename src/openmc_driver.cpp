@@ -1,7 +1,7 @@
-#include "openmc_driver.h"
+#include "stream/openmc_driver.h"
 
-#include "stream_const.h"
-#include "error.h"
+#include "stream/const.h"
+#include "stream/error.h"
 
 #include "openmc/capi.h"
 #include "xtensor/xadapt.hpp"

@@ -42,18 +42,7 @@ add_library(libstream
     src/openmc_driver.cpp
     src/openmc_interface.cpp
     src/openmc_nek_driver.cpp
-    src/nek_driver.cpp
-    include/base_drivers.h
-    include/error.h
-    include/message_passing.h
-    include/nek_interface.h
-    include/nek_driver.h
-    include/openmc_driver.h
-    include/openmc_interface.h
-    include/openmc_nek_driver.h
-    include/comm.h
-    include/stream_const.h
-    include/stream_geom.h )
+    src/nek_driver.cpp)
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
 target_link_libraries(libstream PUBLIC libnek5000 libopenmc xtensor gsl-lite)
 

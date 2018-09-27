@@ -4,7 +4,7 @@
 #define STREAM_NEK_INTERFACE_H
 
 #include "nek_mangling.h"
-#include "stream_geom.h"
+#include "geom.h"
 
 // TODO: The Doxygen doesn't output these global functions
 
