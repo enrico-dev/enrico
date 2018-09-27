@@ -56,7 +56,6 @@ test_api:coupled_driver:
     - cmake -DCASENAME=ethier ../../
     - make -j -l4 test_coupled_api
     - mpirun -np 8 ./test_coupled_api
-  allow_failure: true
 
 test_singlerod:nek5000:
   stage: test_singlerod
@@ -111,4 +110,3 @@ test_singlerod:coupled:
     - patch -N SIZE ci_config/SIZE.diff || true
     - make -j -l4 test_coupled_singlerod
     - mpirun -np 8 ./test_coupled_singlerod
-  allow_failure: true
