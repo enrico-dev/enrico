@@ -1,6 +1,9 @@
 #include "nek_driver.h"
+
 #include "nek_interface.h"
 #include "error.h"
+
+#include <string>
 
 namespace stream {
 

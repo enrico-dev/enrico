@@ -1,9 +1,12 @@
 #include "openmc_nek_driver.h"
 
 #include "nek_interface.h"
-#include "openmc/capi.h"
 #include "stream_const.h"
 #include "error.h"
+
+#include "openmc/capi.h"
+#include "xtensor/xbuilder.hpp"
+#include "xtensor/xtensor.hpp"
 
 namespace stream {
 
@@ -186,50 +189,25 @@ void OpenmcNekDriver::init_volumes()
 void OpenmcNekDriver::update_heat_source()
 {
   // Create array to store volumetric heat deposition in each material
-  double heat[n_materials_];
+  xt::xtensor<double, 1> heat = xt::empty<double>({n_materials_});
 
   if (openmc_driver_.active()) {
-    xt::xtensor<double, 3> results = openmc_driver_.tally_results();
-
-    int32_t m;
-    openmc_tally_get_n_realizations(openmc_driver_.index_tally_, &m);
-
-    // Determine energy production in each material
-    double total_heat = 0.0;
-    for (int i = 0; i < n_materials_; ++i) {
-      // Get mean value for tally result and convert units from eV to J
-      // TODO: Get rid of flattened array index by using xtensor?
-      heat[i] = JOULE_PER_EV * results(i, 0, 1) / m;
-
-      // Sum up heat in each material
-      total_heat += heat[i];
-    }
-
-    // TODO: Need to have total power in W specified by user
-    double power = 1.0;
-
-    // Normalize heat source in each material and collect in an array
-    for (int i = 0; i < n_materials_; ++i) {
-      // Get volume
-      double V = openmc_driver_.cells_.at(i).volume_;
-
-      // Convert heat from J/src to W/cm^3. Dividing by total_heat gives the
-      // fraction of heat deposited in each material. Multiplying by power
-      // givens an absolute value in W
-      double normalization = power / (total_heat * V);
-      heat[i] *= normalization;
-    }
+    // TODO: Use actual power level
+    heat = openmc_driver_.heat_source(1.0);
   }
 
   // OpenMC has heat source on each of its ranks. We need to make heat
   // source available on each Nek rank.
-  intranode_comm_.Bcast(heat, n_materials_, MPI_DOUBLE);
+  intranode_comm_.Bcast(heat.data(), n_materials_, MPI_DOUBLE);
 
   if (nek_driver_.active()) {
+    // Determine displacement for this rank
+    int displacement = nek_driver_.local_displs_[nek_driver_.comm_.rank];
+
     // Loop over local elements to set heat source
-    for (int local_elem = 1; local_elem <= n_local_elem_; ++local_elem) {
-      // get corresponding global element ID
-      int global_elem = nek_get_global_elem(local_elem);
+    for (int local_elem = 0; local_elem < n_local_elem_; ++local_elem) {
+      // get corresponding global element
+      int global_elem = local_elem + displacement;
 
       // get corresponding material
       int32_t mat_index = elem_to_mat_.at(global_elem);

@@ -24,7 +24,7 @@ int main(int argc, char *argv[]) {
     }
     test_driver.comm_.Barrier();
 
-    //test_driver.update_heat_source();
+    test_driver.update_heat_source();
 
     if (test_driver.nek_driver_.active()) {
       test_driver.nek_driver_.init_step();
