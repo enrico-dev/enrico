@@ -1,6 +1,5 @@
 stages:
   - download
-  - test_api
   - test_singlerod
 
 download:cross_sections:
@@ -9,53 +8,6 @@ download:cross_sections:
     GIT_STRATEGY: clone
   script:
     - wget https://anl.box.com/shared/static/a6sw2cep34wlz6b9i9jwiotaqoayxcxt.xz -O - | tar -C $CI_PROJECT_DIR -xvJ
-
-test_api:openmc:
-  stage: test_api
-  dependencies:
-    - download:cross_sections
-  variables:
-    GIT_STRATEGY: none
-    CC: mpicc
-    CXX: mpicxx
-    FC: mpif90
-    OPENMC_CROSS_SECTIONS: $CI_PROJECT_DIR/nndc_hdf5/cross_sections.xml
-    OMP_NUM_THREADS: 4
-  script:
-    - cd tests/api_tests
-    - cmake -DCASENAME=ethier ../../
-    - make -j -l4 test_openmc_api
-    - mpirun -np 2 ./test_openmc_api
-
-test_api:nek5000:
-  stage: test_api
-  variables:
-    GIT_STRATEGY: none
-    CC: mpicc
-    CXX: mpicxx
-    FC: mpif90
-  script:
-    - cd tests/api_tests
-    - cmake -DCASENAME=ethier ../../
-    - make -j -l4 test_nek5000_api
-    - mpirun -np 8 ./test_nek5000_api
-
-test_api:coupled_driver:
-  stage: test_api
-  dependencies:
-    - download:cross_sections
-  variables:
-    GIT_STRATEGY: none
-    CC: mpicc
-    CXX: mpicxx
-    FC: mpif90
-    OPENMC_CROSS_SECTIONS: $CI_PROJECT_DIR/nndc_hdf5/cross_sections.xml
-    OMP_NUM_THREADS: 4
-  script:
-    - cd tests/api_tests
-    - cmake -DCASENAME=ethier ../../
-    - make -j -l4 test_coupled_api
-    - mpirun -np 8 ./test_coupled_api
 
 test_singlerod:nek5000:
   stage: test_singlerod
