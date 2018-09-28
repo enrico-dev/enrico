@@ -10,11 +10,10 @@
 
 namespace stream {
 
-OpenmcDriver::OpenmcDriver(int argc, char* argv[], MPI_Comm comm)
-    : TransportDriver(comm)
+OpenmcDriver::OpenmcDriver(MPI_Comm comm) : TransportDriver(comm)
 {
   if (active()) {
-    err_chk(openmc_init(argc, argv, &comm));
+    err_chk(openmc_init(0, nullptr, &comm));
   }
   MPI_Barrier(MPI_COMM_WORLD);
 }

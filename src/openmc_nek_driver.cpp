@@ -3,22 +3,33 @@
 #include "stream/const.h"
 #include "stream/error.h"
 #include "stream/nek_interface.h"
+#include "stream/message_passing.h"
 
 #include "openmc/capi.h"
+#include "pugixml.hpp"
 #include "xtensor/xbuilder.hpp"
 #include "xtensor/xtensor.hpp"
 
 namespace stream {
 
-OpenmcNekDriver::OpenmcNekDriver(int argc, char** argv, MPI_Comm coupled_comm,
-                                 MPI_Comm openmc_comm, MPI_Comm nek_comm, MPI_Comm intranode_comm) :
-    comm_(coupled_comm),
-    openmc_driver_(argc, argv, openmc_comm),
-    nek_driver_(nek_comm),
-    intranode_comm_(intranode_comm)
+OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm) :
+    comm_(coupled_comm)
 {
-  n_local_elem_ = nek_driver_.active() ? nek_driver_.nelt_ : 0;
-  n_global_elem_ = nek_driver_.active() ? nek_driver_.nelgt_ : 0;
+  // Create communicator for OpenMC with 1 process per node
+  MPI_Comm openmc_comm;
+  MPI_Comm intranode_comm;
+  stream::get_node_comms(MPI_COMM_WORLD, 1, &openmc_comm, &intranode_comm);
+
+  // Set intranode communicator
+  intranode_comm_ = Comm(intranode_comm);
+
+  // Instantiate OpenMC and Nek drivers
+  openmc_driver_ = std::make_unique<OpenmcDriver>(openmc_comm);
+  nek_driver_ = std::make_unique<NekDriver>(coupled_comm);
+
+  // Determine number of local/global elements for each rank
+  n_local_elem_ = nek_driver_->active() ? nek_driver_->nelt_ : 0;
+  n_global_elem_ = nek_driver_->active() ? nek_driver_->nelgt_ : 0;
 
   init_mpi_datatypes();
   init_mappings();
@@ -59,24 +70,24 @@ void OpenmcNekDriver::init_mappings()
 {
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
 
-  if (nek_driver_.active()) {
+  if (nek_driver_->active()) {
     // Only the OpenMC procs get the global element centroids
-    if (openmc_driver_.active()) {
+    if (openmc_driver_->active()) {
       global_elem_centroids_.resize(n_global_elem_);
     }
     // Step 1: Get global element centroids on all OpenMC ranks
     // Each Nek proc finds the centroids of its local elements
     Position local_element_centroids[n_local_elem_];
     for (int i = 0; i < n_local_elem_; ++i) {
-      local_element_centroids[i] = nek_driver_.get_local_elem_centroid(i+1);
+      local_element_centroids[i] = nek_driver_->get_local_elem_centroid(i+1);
     }
     // Gather all the local element centroids on the Nek5000/OpenMC root
-    nek_driver_.comm_.Gatherv(local_element_centroids, n_local_elem_, position_mpi_datatype,
-                              global_elem_centroids_.data(), nek_driver_.local_counts_.data(),
-                              nek_driver_.local_displs_.data(), position_mpi_datatype);
+    nek_driver_->comm_.Gatherv(local_element_centroids, n_local_elem_, position_mpi_datatype,
+                              global_elem_centroids_.data(), nek_driver_->local_counts_.data(),
+                              nek_driver_->local_displs_.data(), position_mpi_datatype);
     // Broadcast global_element_centroids onto all the OpenMC procs
-    if (openmc_driver_.active()) {
-      openmc_driver_.comm_.Bcast(global_elem_centroids_.data(), n_global_elem_,
+    if (openmc_driver_->active()) {
+      openmc_driver_->comm_.Bcast(global_elem_centroids_.data(), n_global_elem_,
                                  position_mpi_datatype);
     }
 
@@ -86,7 +97,7 @@ void OpenmcNekDriver::init_mappings()
     // made from processes
     int32_t mat_idx[n_global_elem_];
 
-    if (openmc_driver_.active()) {
+    if (openmc_driver_->active()) {
       std::unordered_set<int32_t> tracked;
 
       for (int i = 0; i < n_global_elem_; ++i) {
@@ -94,7 +105,7 @@ void OpenmcNekDriver::init_mappings()
         Position elem_pos = global_elem_centroids_[i];
         CellInstance c {elem_pos};
         if (tracked.find(c.material_index_) == tracked.end()) {
-          openmc_driver_.cells_.push_back(c);
+          openmc_driver_->cells_.push_back(c);
           tracked.insert(c.material_index_);
         }
         // Get corresponding material
@@ -104,7 +115,7 @@ void OpenmcNekDriver::init_mappings()
       }
 
       // Determine number of unique OpenMC materials
-      n_materials_ = openmc_driver_.cells_.size();
+      n_materials_ = openmc_driver_->cells_.size();
     }
 
     // Broadcast array of material IDs to each Nek rank
@@ -127,9 +138,9 @@ void OpenmcNekDriver::init_mappings()
     std::fill_n(std::back_inserter(heat_index_), n_materials_, 0);
 
     // Now, set the mapping values on the OpenMC processes...
-    if (openmc_driver_.active()) {
+    if (openmc_driver_->active()) {
       for (int i = 0; i < n_materials_; ++i) {
-        int32_t mat_index = openmc_driver_.cells_[i].material_index_ - 1;
+        int32_t mat_index = openmc_driver_->cells_[i].material_index_ - 1;
         heat_index_.at(mat_index) = i;
       }
     }
@@ -141,13 +152,13 @@ void OpenmcNekDriver::init_mappings()
 
 void OpenmcNekDriver::init_tallies()
 {
-  if (openmc_driver_.active()) {
+  if (openmc_driver_->active()) {
     // Build vector of material indices
     std::vector<int32_t> mats;
-    for (const auto& c : openmc_driver_.cells_) {
+    for (const auto& c : openmc_driver_->cells_) {
       mats.push_back(c.material_index_);
     }
-    openmc_driver_.create_tallies(mats);
+    openmc_driver_->create_tallies(mats);
   }
 }
 
@@ -155,7 +166,7 @@ void OpenmcNekDriver::init_temperatures()
 {
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
   // Only the OpenMC procs get the global temperatures
-  if (nek_driver_.active() and openmc_driver_.active()) {
+  if (nek_driver_->active() and openmc_driver_->active()) {
     global_elem_temperatures_.resize(n_global_elem_);
     std::fill(global_elem_temperatures_.begin(), global_elem_temperatures_.end(), 293.6);
   }
@@ -166,22 +177,22 @@ void OpenmcNekDriver::init_volumes()
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
 
   // Only the OpenMC procs get the global element volumes (gev)
-  if (nek_driver_.active()) {
-    if (openmc_driver_.active()) {
+  if (nek_driver_->active()) {
+    if (openmc_driver_->active()) {
       global_elem_volumes_.resize(n_global_elem_);
     }
     // Every Nek proc gets its local element volumes (lev)
     double local_elem_volumes[n_local_elem_];
     for (int i = 0; i < n_local_elem_; ++i) {
-      local_elem_volumes[i] = nek_driver_.get_local_elem_volume(i + 1);
+      local_elem_volumes[i] = nek_driver_->get_local_elem_volume(i + 1);
     }
     // Gather all the local element volumes on the Nek5000/OpenMC root
-    nek_driver_.comm_.Gatherv(local_elem_volumes, n_local_elem_, MPI_DOUBLE,
-                              global_elem_volumes_.data(), nek_driver_.local_counts_.data(),
-                              nek_driver_.local_displs_.data(), MPI_DOUBLE);
+    nek_driver_->comm_.Gatherv(local_elem_volumes, n_local_elem_, MPI_DOUBLE,
+                              global_elem_volumes_.data(), nek_driver_->local_counts_.data(),
+                              nek_driver_->local_displs_.data(), MPI_DOUBLE);
     // Broadcast global_element_volumes onto all the OpenMC procs
-    if (openmc_driver_.active()) {
-      openmc_driver_.comm_.Bcast(global_elem_volumes_.data(), n_global_elem_, MPI_DOUBLE);
+    if (openmc_driver_->active()) {
+      openmc_driver_->comm_.Bcast(global_elem_volumes_.data(), n_global_elem_, MPI_DOUBLE);
     }
   }
 }
@@ -191,18 +202,18 @@ void OpenmcNekDriver::update_heat_source()
   // Create array to store volumetric heat deposition in each material
   xt::xtensor<double, 1> heat = xt::empty<double>({n_materials_});
 
-  if (openmc_driver_.active()) {
+  if (openmc_driver_->active()) {
     // TODO: Use actual power level
-    heat = openmc_driver_.heat_source(1.0);
+    heat = openmc_driver_->heat_source(1.0);
   }
 
   // OpenMC has heat source on each of its ranks. We need to make heat
   // source available on each Nek rank.
   intranode_comm_.Bcast(heat.data(), n_materials_, MPI_DOUBLE);
 
-  if (nek_driver_.active()) {
+  if (nek_driver_->active()) {
     // Determine displacement for this rank
-    int displacement = nek_driver_.local_displs_[nek_driver_.comm_.rank];
+    int displacement = nek_driver_->local_displs_[nek_driver_->comm_.rank];
 
     // Loop over local elements to set heat source
     for (int local_elem = 0; local_elem < n_local_elem_; ++local_elem) {
@@ -221,23 +232,23 @@ void OpenmcNekDriver::update_heat_source()
 
 void OpenmcNekDriver::update_temperature()
 {
-  if (nek_driver_.active()) {
+  if (nek_driver_->active()) {
     // Each Nek proc finds the temperatures of its local elements
     double local_elem_temperatures[n_local_elem_];
     for (int i = 0; i < n_local_elem_; ++i) {
-      local_elem_temperatures[i] = nek_driver_.get_local_elem_temperature(i + 1);
+      local_elem_temperatures[i] = nek_driver_->get_local_elem_temperature(i + 1);
     }
     // Gather all the local element temperatures on the Nek5000/OpenMC root
-    nek_driver_.comm_.Gatherv(local_elem_temperatures, n_local_elem_, MPI_DOUBLE,
-                              global_elem_temperatures_.data(), nek_driver_.local_counts_.data(),
-                              nek_driver_.local_displs_.data(), MPI_DOUBLE);
+    nek_driver_->comm_.Gatherv(local_elem_temperatures, n_local_elem_, MPI_DOUBLE,
+                              global_elem_temperatures_.data(), nek_driver_->local_counts_.data(),
+                              nek_driver_->local_displs_.data(), MPI_DOUBLE);
 
-    if (openmc_driver_.active()) {
+    if (openmc_driver_->active()) {
       // Broadcast global_element_temperatures onto all the OpenMC procs
-      openmc_driver_.comm_.Bcast(global_elem_temperatures_.data(), n_global_elem_, MPI_DOUBLE);
+      openmc_driver_->comm_.Bcast(global_elem_temperatures_.data(), n_global_elem_, MPI_DOUBLE);
 
       // For each OpenMC material, volume average temperatures and set
-      for (const auto& c : openmc_driver_.cells_) {
+      for (const auto& c : openmc_driver_->cells_) {
 
         // Get corresponding global elements
         const auto& global_elems = mat_to_elems_.at(c.material_index_);
