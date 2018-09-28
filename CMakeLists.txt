@@ -65,3 +65,12 @@ target_link_libraries(test_openmc_singlerod PUBLIC libstream)
 
 add_executable(test_coupled_singlerod tests/singlerod/short/test_coupled.cpp)
 target_link_libraries(test_coupled_singlerod PUBLIC libstream)
+
+# Ensure C++14 standard is used
+set_target_properties(
+    stream libstream
+    comm_split_demo
+    test_nek5000_singlerod
+    test_openmc_singlerod
+    test_coupled_singlerod
+    PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
