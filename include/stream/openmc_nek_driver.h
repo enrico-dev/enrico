@@ -24,8 +24,9 @@ public:
   //! Currently, openmc_comm and nek_comm must be subsets of coupled_comm.  The function
   //! stream::get_node_comms() can be used to split a coupled_comm into suitable subcomms.
   //!
+  //! \param power Power in [W]
   //! \param coupled_comm An existing communicator for the coupled driver
-  OpenmcNekDriver(MPI_Comm coupled_comm);
+  OpenmcNekDriver(double power, MPI_Comm coupled_comm);
 
   //! Frees any data structures that need manual freeing.
   ~OpenmcNekDriver();
@@ -40,6 +41,7 @@ public:
   Comm intranode_comm_;  //!< The communicator reprsenting intranode ranks
   std::unique_ptr<OpenmcDriver> openmc_driver_;  //!< The OpenMC driver
   std::unique_ptr<NekDriver> nek_driver_;  //!< The Nek5000 driver
+  double power_; //!< Power in [W]
 private:
 
   //! Initialize MPI datatypes (currently, only position_mpi_datatype)

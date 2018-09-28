@@ -57,7 +57,7 @@ int main(int argc, char* argv[])
     switch (driver_heatfluids) {
     case HeatFluids::Nek5000:
       {
-        stream::OpenmcNekDriver driver {MPI_COMM_WORLD};
+        stream::OpenmcNekDriver driver {power, MPI_COMM_WORLD};
       }
       break;
     case HeatFluids::Surrogate:

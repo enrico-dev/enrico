@@ -7,7 +7,7 @@ int main(int argc, char *argv[]) {
   MPI_Init(&argc, &argv);
 
   {
-    stream::OpenmcNekDriver test_driver(MPI_COMM_WORLD);
+    stream::OpenmcNekDriver test_driver(1.0, MPI_COMM_WORLD);
 
     if (test_driver.openmc_driver_->active()) {
       test_driver.openmc_driver_->init_step();

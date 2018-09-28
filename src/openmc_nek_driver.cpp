@@ -12,8 +12,8 @@
 
 namespace stream {
 
-OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm) :
-    comm_(coupled_comm)
+OpenmcNekDriver::OpenmcNekDriver(double power, MPI_Comm coupled_comm) :
+    comm_(coupled_comm), power_(power)
 {
   // Create communicator for OpenMC with 1 process per node
   MPI_Comm openmc_comm;
@@ -203,8 +203,8 @@ void OpenmcNekDriver::update_heat_source()
   xt::xtensor<double, 1> heat = xt::empty<double>({n_materials_});
 
   if (openmc_driver_->active()) {
-    // TODO: Use actual power level
-    heat = openmc_driver_->heat_source(1.0);
+    // Get heat source normalized by user-specified power
+    heat = openmc_driver_->heat_source(power_);
   }
 
   // OpenMC has heat source on each of its ranks. We need to make heat
