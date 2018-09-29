@@ -57,17 +57,7 @@ int main(int argc, char* argv[])
     switch (driver_heatfluids) {
     case HeatFluids::Nek5000:
       {
-        // openmc_comm is split from MPI_COMM_WORLD.  It will contain 1 proc per node.
-        MPI_Comm openmc_comm;
-        MPI_Comm intranode_comm;
-        stream::get_node_comms(MPI_COMM_WORLD, 1, &openmc_comm, &intranode_comm);
-
-        MPI_Comm coupled_comm = MPI_COMM_WORLD;
-        MPI_Comm nek_comm = MPI_COMM_WORLD;
-
-        stream::OpenmcNekDriver driver {
-          argc, argv, MPI_COMM_WORLD, openmc_comm, nek_comm, intranode_comm
-        };
+        stream::OpenmcNekDriver driver {power, MPI_COMM_WORLD};
       }
       break;
     case HeatFluids::Surrogate:

@@ -19,10 +19,8 @@ namespace stream {
 class OpenmcDriver : public TransportDriver {
 public:
   //! One-time initalization of OpenMC and member variables
-  //! \param argc Number of command-line arguments
-  //! \param argv Values of command-line arguments
   //! \param comm An exiting MPI communicator used to inialize OpenMC
-  OpenmcDriver(int argc, char* argv[], MPI_Comm comm);
+  OpenmcDriver(MPI_Comm comm);
 
   //! One-time finalization of OpenMC
   ~OpenmcDriver();
