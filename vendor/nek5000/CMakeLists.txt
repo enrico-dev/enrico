@@ -58,51 +58,6 @@ else()
 endif()
 
 # =============================================================================
-# Preprocessor Symbols
-# =============================================================================
-
-if(PROFILING)
-  target_compile_definitions(libnek5000 PRIVATE -DTIMER)
-endif()
-
-if(MPI OR NOT DEFINED MPI)
-  set(MPI TRUE)
-  target_compile_definitions(libnek5000 PRIVATE -DMPI)
-endif()
-
-if(NOT MPI OR NOMPIIO)
-  target_compile_definitions(libnek5000 PRIVATE -DNOMPIIO)
-endif()
-
-if(FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")
-  target_compile_definitions(libnek5000 PRIVATE -DUNDERSCORE)
-endif()
-
-if(BGQ)
-  target_compile_definitions(libnek5000 PRIVATE -DBGQ)
-endif()
-
-if(XSMM)
-  target_compile_definitions(libnek5000 PRIVATE -DXSMM)
-endif()
-
-if(CVODE)
-  target_compile_definitions(libnek5000 PRIVATE -DCVODE)
-endif()
-
-if(VENDOR_BLAS)
-  target_compile_definitions(libnek5000 PRIVATE -DVENDOR_BLAS)
-endif()
-
-if(NEKNEK)
-  target_compile_definitions(libnek5000 PRIVATE -DNEKNEK)
-endif()
-
-if(CMTNEK)
-  target_compile_definitions(libnek5000 PRIVATE -DCMTNEK)
-endif()
-
-# =============================================================================
 # Header files
 # =============================================================================
 
@@ -291,6 +246,51 @@ set_target_properties(libnek5000 PROPERTIES OUTPUT_NAME nek5000)
 # Driver
 add_executable(nek5000 core/drive.f)
 target_link_libraries(nek5000 PUBLIC libnek5000)
+
+# =============================================================================
+# Preprocessor Symbols
+# =============================================================================
+
+if(PROFILING)
+  target_compile_definitions(libnek5000 PRIVATE -DTIMER)
+endif()
+
+if(MPI OR NOT DEFINED MPI)
+  set(MPI TRUE)
+  target_compile_definitions(libnek5000 PRIVATE -DMPI)
+endif()
+
+if(NOT MPI OR NOMPIIO)
+  target_compile_definitions(libnek5000 PRIVATE -DNOMPIIO)
+endif()
+
+if(FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")
+  target_compile_definitions(libnek5000 PRIVATE -DUNDERSCORE)
+endif()
+
+if(BGQ)
+  target_compile_definitions(libnek5000 PRIVATE -DBGQ)
+endif()
+
+if(XSMM)
+  target_compile_definitions(libnek5000 PRIVATE -DXSMM)
+endif()
+
+if(CVODE)
+  target_compile_definitions(libnek5000 PRIVATE -DCVODE)
+endif()
+
+if(VENDOR_BLAS)
+  target_compile_definitions(libnek5000 PRIVATE -DVENDOR_BLAS)
+endif()
+
+if(NEKNEK)
+  target_compile_definitions(libnek5000 PRIVATE -DNEKNEK)
+endif()
+
+if(CMTNEK)
+  target_compile_definitions(libnek5000 PRIVATE -DCMTNEK)
+endif()
 
 # =============================================================================
 # Link to 3rd-party libraries

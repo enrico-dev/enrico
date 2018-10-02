@@ -4,48 +4,6 @@ project(gslib C Fortran)
 enable_testing()
 
 # =============================================================================
-# Preprocessor Symbols
-# =============================================================================
-
-if(MPI OR NOT DEFINED MPI)
-  set(MPI TRUE)
-  target_compile_definitions(libgs PRIVATE -DMPI)
-endif()
-
-if(MPI AND NOT NOMPIIO)
-  target_compile_definitions(libgs PRIVATE -DUSEMPIIO)
-endif()
-
-include(FortranCInterface)
-FortranCInterface_VERIFY()
-if(FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")
-  target_compile_definitions(libgs PRIVATE -DUNDERSCORE)
-endif()
-# set(CMAKE_Fortran_FORMAT "FIXED")
-
-if(BLAS)
-  target_compile_definitions(libgs PRIVATE -DUSE_CBLAS)
-else()
-  target_compile_definitions(libgs PRIVATE -DUSE_NAIVE_BLAS)
-endif()
-
-if(USREXIT)
-  target_compile_definitions(libgs PRIVATE -DUSE_USR_EXIT)
-endif()
-
-if(NOT DEFINED PREFIX)
-  set(PREFIX gslib_)
-endif()
-target_compile_definitions(libgs PRIVATE -DPREFIX=${PREFIX})
-
-if(NOT DEFINED FPREFIX)
-  set(FPREFIX fgslib_)
-endif()
-target_compile_definitions(libgs PRIVATE -DFPREFIX=${FPREFIX})
-
-target_compile_definitions(libgs PRIVATE -DGLOBAL_LONG_LONG)
-
-# =============================================================================
 # Headers
 # =============================================================================
 
@@ -92,5 +50,49 @@ add_library(libgs
     src/rand_elt_test.c)
 set_target_properties(libgs PROPERTIES OUTPUT_NAME gs)
 
+# =============================================================================
+# Preprocessor Symbols
+# =============================================================================
+
+if(MPI OR NOT DEFINED MPI)
+  set(MPI TRUE)
+  target_compile_definitions(libgs PRIVATE -DMPI)
+endif()
+
+if(MPI AND NOT NOMPIIO)
+  target_compile_definitions(libgs PRIVATE -DUSEMPIIO)
+endif()
+
+include(FortranCInterface)
+FortranCInterface_VERIFY()
+if(FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")
+  target_compile_definitions(libgs PRIVATE -DUNDERSCORE)
+endif()
+# set(CMAKE_Fortran_FORMAT "FIXED")
+
+if(BLAS)
+  target_compile_definitions(libgs PRIVATE -DUSE_CBLAS)
+else()
+  target_compile_definitions(libgs PRIVATE -DUSE_NAIVE_BLAS)
+endif()
+
+if(USREXIT)
+  target_compile_definitions(libgs PRIVATE -DUSE_USR_EXIT)
+endif()
+
+if(NOT DEFINED PREFIX)
+  set(PREFIX gslib_)
+endif()
+target_compile_definitions(libgs PRIVATE -DPREFIX=${PREFIX})
+
+if(NOT DEFINED FPREFIX)
+  set(FPREFIX fgslib_)
+endif()
+target_compile_definitions(libgs PRIVATE -DFPREFIX=${FPREFIX})
+
+target_compile_definitions(libgs PRIVATE -DGLOBAL_LONG_LONG)
+
+# =============================================================================
+
 # For tests
-include(tests/CMakeLists.txt)
+# include(tests/CMakeLists.txt)
