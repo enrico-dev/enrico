@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.1)
+cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
 project(Nek5000 Fortran C)
 
 # =============================================================================
@@ -61,81 +61,77 @@ endif()
 # Preprocessor Symbols
 # =============================================================================
 
-# Nek5000
 if(PROFILING)
-  add_definitions(-DTIMER)            # Nek5000
+  target_compile_definitions(libnek5000 PRIVATE -DTIMER)
 endif()
+
 if(MPI OR NOT DEFINED MPI)
   set(MPI TRUE)
-  add_definitions(-DMPI)              # Nek5000 and gslib
+  target_compile_definitions(libnek5000 PRIVATE -DMPI)
 endif()
+
 if(NOT MPI OR NOMPIIO)
-  add_definitions(-DNOMPIIO)          # Nek5000
-else()
-  add_definitions(-DUSEMPIIO)         # gslib
+  target_compile_definitions(libnek5000 PRIVATE -DNOMPIIO)
 endif()
+
 if(FortranCInterface_GLOBAL_SUFFIX STREQUAL "_")
-  add_definitions(-DUNDERSCORE)       # Nek5000 and gslib
+  target_compile_definitions(libnek5000 PRIVATE -DUNDERSCORE)
 endif()
+
 if(BGQ)
-  add_definitions(-DBGQ)              # Nek5000
+  target_compile_definitions(libnek5000 PRIVATE -DBGQ)
 endif()
+
 if(XSMM)
-  add_definitions(-DXSMM)             # Nek5000
+  target_compile_definitions(libnek5000 PRIVATE -DXSMM)
 endif()
+
 if(CVODE)
-  add_definitions(-DCVODE)            # Nek5000
+  target_compile_definitions(libnek5000 PRIVATE -DCVODE)
 endif()
+
 if(VENDOR_BLAS)
-  add_definitions(-DVENDOR_BLAS)      # Nek5000
-  add_definitions(-DUSE_CBLAS)        # gslib
-else()
-  add_definitions(-DUSE_NAIVE_BLAS)   # gslib
+  target_compile_definitions(libnek5000 PRIVATE -DVENDOR_BLAS)
 endif()
+
 if(NEKNEK)
-  add_definitions(-DNEKNEK)           # Nek5000
+  target_compile_definitions(libnek5000 PRIVATE -DNEKNEK)
 endif()
+
 if(CMTNEK)
-  add_definitions(-DCMTNEK)           # Nek5000
+  target_compile_definitions(libnek5000 PRIVATE -DCMTNEK)
 endif()
-if(USREXIT)
-  add_definitions(-DUSE_USR_EXIT)     # gslib
-endif()
-if(NOT DEFINED PREFIX)
-  set(PREFIX gslib_)
-endif()
-add_definitions(-DPREFIX=${PREFIX})   # gslib
-if(NOT DEFINED FPREFIX)
-  set(FPREFIX fgslib_)
-endif()
-add_definitions(-DFPREFIX=${FPREFIX}) # gslib
-add_definitions(-DGLOBAL_LONG_LONG)   # gslib
 
 # =============================================================================
 # Header files
 # =============================================================================
 
 # Nek5000
-include_directories(${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR} ${CMAKE_CURRENT_LIST_DIR}
-    ${CMAKE_CURRENT_LIST_DIR}/core)
+include_directories(${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR} core)
 # TODO: Make mpif.h a proper dependency
 if(MPI)
   file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/mpif.h)
 else()
-  configure_file( ${CMAKE_CURRENT_LIST_DIR}/core/mpi_dummy.h ${CMAKE_CURRENT_BINARY_DIR}/mpif.h )
+  configure_file(core/mpi_dummy.h ${CMAKE_CURRENT_BINARY_DIR}/mpif.h)
 endif()
 if(CMT)
-  include_directories(${CMAKE_CURRENT_LIST_DIR}/core/cmt/)
+  include_directories(core/cmt/)
 endif()
 
 # gslib
-include_directories(${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src)
+include_directories(3rd_party/gslib/gslib-1.0.1/src)
 
 # =============================================================================
 # SESSION File
 # =============================================================================
 
 file(WRITE ${CMAKE_BINARY_DIR}/SESSION.NAME "${CASENAME}\n${CMAKE_BINARY_DIR}\n")
+
+# =============================================================================
+# gslib
+# =============================================================================
+
+add_subdirectory(3rd_party/gslib/gslib-1.0.1/)
 
 # =============================================================================
 # Nek5000 Sources and Targets
@@ -157,166 +153,143 @@ ADD_CUSTOM_COMMAND(
 )
 
 set(CORE_SOURCES
-    ${CMAKE_CURRENT_LIST_DIR}/core/3rd_party/dictionary.c
-    ${CMAKE_CURRENT_LIST_DIR}/core/3rd_party/finiparser.c
-    ${CMAKE_CURRENT_LIST_DIR}/core/3rd_party/iniparser.c
-    ${CMAKE_CURRENT_LIST_DIR}/core/3rd_party/nek_in_situ.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/bdry.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/byte.c
-    ${CMAKE_CURRENT_LIST_DIR}/core/byte_mpi.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/calcz.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/chelpers.c
-    ${CMAKE_CURRENT_LIST_DIR}/core/coef.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/conduct.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/connect1.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/connect2.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/convect.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/cvode_driver.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/drive1.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/drive2.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/dssum.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/edgec.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/eigsolv.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/fast3d.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/fasts.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/gauss.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/genbox.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/genxyz.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/gfdm_op.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/gfdm_par.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/gfdm_solve.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/gfldr.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/gmres.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/hmholtz.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/hpf.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/hsmg.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/ic.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/induct.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/intp_usr.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/makeq.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/makeq_aux.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/map2.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/math.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/mvmesh.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/mxm_wrapper.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/navier0.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/navier1.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/navier2.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/navier3.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/navier4.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/navier5.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/navier6.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/navier7.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/navier8.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/nek_comm.c
-    ${CMAKE_CURRENT_LIST_DIR}/core/nek_interface.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/nek_interface_types.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/papi.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/perturb.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/plan4.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/plan5.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/planx.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/postpro.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/prepost.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/reader_par.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/reader_re2.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/reader_rea.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/speclib.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/ssolv.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/subs1.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/subs2.f
-    ${CMAKE_CURRENT_LIST_DIR}/core/vprops.f)
+    core/3rd_party/dictionary.c
+    core/3rd_party/finiparser.c
+    core/3rd_party/iniparser.c
+    core/3rd_party/nek_in_situ.f
+    core/bdry.f
+    core/byte.c
+    core/byte_mpi.f
+    core/calcz.f
+    core/chelpers.c
+    core/coef.f
+    core/conduct.f
+    core/connect1.f
+    core/connect2.f
+    core/convect.f
+    core/cvode_driver.f
+    core/drive1.f
+    core/drive2.f
+    core/dssum.f
+    core/edgec.f
+    core/eigsolv.f
+    core/fast3d.f
+    core/fasts.f
+    core/gauss.f
+    core/genbox.f
+    core/genxyz.f
+    core/gfdm_op.f
+    core/gfdm_par.f
+    core/gfdm_solve.f
+    core/gfldr.f
+    core/gmres.f
+    core/hmholtz.f
+    core/hpf.f
+    core/hsmg.f
+    core/ic.f
+    core/induct.f
+    core/intp_usr.f
+    core/makeq.f
+    core/makeq_aux.f
+    core/map2.f
+    core/math.f
+    core/mvmesh.f
+    core/mxm_wrapper.f
+    core/navier0.f
+    core/navier1.f
+    core/navier2.f
+    core/navier3.f
+    core/navier4.f
+    core/navier5.f
+    core/navier6.f
+    core/navier7.f
+    core/navier8.f
+    core/nek_comm.c
+    core/nek_interface.f
+    core/nek_interface_types.f
+    core/papi.f
+    core/perturb.f
+    core/plan4.f
+    core/plan5.f
+    core/planx.f
+    core/postpro.f
+    core/prepost.f
+    core/reader_par.f
+    core/reader_re2.f
+    core/reader_rea.f
+    core/speclib.f
+    core/ssolv.f
+    core/subs1.f
+    core/subs2.f
+    core/vprops.f)
 
 if(VENDOR_BLAS)
   unset(BLAS_SOURCES)
 else()
   set(BLAS_SOURCES
-      ${CMAKE_CURRENT_LIST_DIR}/core/3rd_party/blas.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/3rd_party/dsygv.f)
+      core/3rd_party/blas.f
+      core/3rd_party/dsygv.f)
 endif()
 
 if(BGQ)
-  set(MXM_SOURCES ${CMAKE_CURRENT_LIST_DIR}/core/mxm_bgq.f)
+  set(MXM_SOURCES core/mxm_bgq.f)
 else()
-  set(MXM_SOURCES ${CMAKE_CURRENT_LIST_DIR}/core/mxm_std.f)
+  set(MXM_SOURCES core/mxm_std.f)
 endif()
 
 if(NEKNEK)
-  set(NEKNEK_SOURCES ${CMAKE_CURRENT_LIST_DIR}/core/multimesh.f)
+  set(NEKNEK_SOURCES core/multimesh.f)
 else()
-  set(NEKNEK_SOURCES ${CMAKE_CURRENT_LIST_DIR}/core/singlmesh.f)
+  set(NEKNEK_SOURCES core/singlmesh.f)
 endif()
 
 if(MPI)
-  set(COMM_MPI_SOURCES ${CMAKE_CURRENT_LIST_DIR}/core/comm_mpi.f)
+  set(COMM_MPI_SOURCES core/comm_mpi.f)
 else()
   set(COMM_MPI_SOURCES
-      ${CMAKE_CURRENT_LIST_DIR}/core/comm_mpi.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/mpi_dummy.f)
+      core/comm_mpi.f
+      core/mpi_dummy.f)
 endif()
 
 if(CMT)
   set(CMT_SOURCES
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/MixtPerf.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/artvisc.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/ausm.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/bc.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/diagnostics.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/diffusive_cmt.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/drive1_cmt.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/drive2_cmt.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/driver3_cmt.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/eqnsolver_cmt.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/face.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/filters_cmt.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/inflow_bc.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/intpdiff.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/outflow_bc.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/step.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/surface_fluxes.f
-      ${CMAKE_CURRENT_LIST_DIR}/core/cmt/wall_bc.f )
+      core/cmt/MixtPerf.f
+      core/cmt/artvisc.f
+      core/cmt/ausm.f
+      core/cmt/bc.f
+      core/cmt/diagnostics.f
+      core/cmt/diffusive_cmt.f
+      core/cmt/drive1_cmt.f
+      core/cmt/drive2_cmt.f
+      core/cmt/driver3_cmt.f
+      core/cmt/eqnsolver_cmt.f
+      core/cmt/face.f
+      core/cmt/filters_cmt.f
+      core/cmt/inflow_bc.f
+      core/cmt/intpdiff.f
+      core/cmt/outflow_bc.f
+      core/cmt/step.f
+      core/cmt/surface_fluxes.f
+      core/cmt/wall_bc.f)
 else()
   unset(CMT_SOURCES)
 endif()
 
 if(VISIT)
-  set(VISIT_SOURCES ${CMAKE_CURRENT_LIST_DIR}/core/3rd_party/visit.f)
+  set(VISIT_SOURCES core/3rd_party/visit.f)
 else()
   unset(VISIT_SOURCES)
 endif()
 
-set(GS_SOURCES
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/comm.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/crystal.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/fail.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/gs.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/gs_local.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/sarray_sort.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/sarray_transfer.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/sort.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/tensor.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/sparse_cholesky.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/xxt.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/amg.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/fcrs.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/fcrystal.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/findpts.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/findpts_el_2.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/findpts_el_3.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/findpts_local.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/lob_bnd.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/obbox.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/poly.c
-    ${CMAKE_CURRENT_LIST_DIR}/3rd_party/gslib/gslib-1.0.1/src/rand_elt_test.c)
-
 # Library
 add_library(libnek5000
     ${USR_SOURCE} ${CORE_SOURCES} ${BLAS_SOURCES} ${MXM_SOURCES}
-    ${NEKNEK_SOURCES} ${COMM_MPI_SOURCES} ${CMT_SOURCES} ${VISIT_SOURCES} ${GS_SOURCES})
+    ${NEKNEK_SOURCES} ${COMM_MPI_SOURCES} ${CMT_SOURCES} ${VISIT_SOURCES})
+target_link_libraries(libnek5000 PUBLIC libgs)
 set_target_properties(libnek5000 PROPERTIES OUTPUT_NAME nek5000)
 
 # Driver
-add_executable(nek5000 ${CMAKE_CURRENT_LIST_DIR}/core/drive.f)
+add_executable(nek5000 core/drive.f)
 target_link_libraries(nek5000 PUBLIC libnek5000)
 
 # =============================================================================
@@ -337,7 +310,7 @@ target_link_libraries(nek5000 PUBLIC libnek5000)
 # This will find and link to a prebuild CVODE library.
 # TODO: Build CVODE from scratch
 if(CVODE)
-  set(CVODE_LIBDIR ${CMAKE_CURRENT_LIST_DIR}/core/3rd_party/cvode/lib/)
+  set(CVODE_LIBDIR core/3rd_party/cvode/lib/)
   find_library(SUNDIALS_FCVODE sundials_fcvode PATHS ${CVODE_LIBDIR})
   find_library(SUNDIALS_CVODE sundials_cvode PATHS ${CVODE_LIBDIR})
   if(MPI)
@@ -362,13 +335,13 @@ endif()
 if(VISIT)
   target_include_directories(libnek5000 PUBLIC
       ${VISIT_INSTALL}/libsim/V2/include/
-      ${CMAKE_CURRENT_LIST_DIR}/core/3rd_party/)
+      core/3rd_party/)
   target_include_directories(nek5000 PUBLIC
       ${VISIT_INSTALL}/libsim/V2/include/
-      ${CMAKE_CURRENT_LIST_DIR}/core/3rd_party/)
+      core/3rd_party/)
 endif()
 
 # =============================================================================
 # Tools targets and sources
 # =============================================================================
-add_subdirectory(${CMAKE_CURRENT_LIST_DIR}/tools)
+add_subdirectory(tools)
