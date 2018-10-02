@@ -73,9 +73,6 @@ if(CMT)
   include_directories(core/cmt/)
 endif()
 
-# gslib
-include_directories(3rd_party/gslib/gslib-1.0.1/src)
-
 # =============================================================================
 # SESSION File
 # =============================================================================
