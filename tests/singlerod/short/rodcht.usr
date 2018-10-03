@@ -53,19 +53,6 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
-      subroutine userq  (ix,iy,iz,eg)
-      include 'SIZE'
-      include 'TOTAL'
-      include 'NEKUSE'
-      include 'STREAM'
-
-      integer ix, iy, iz, eg, local_elem
-
-      local_elem = gllel(eg)
-      qvol = localq(local_elem)
-      return
-      end
-c-----------------------------------------------------------------------
       subroutine userchk
       include 'SIZE'
       include 'TOTAL'

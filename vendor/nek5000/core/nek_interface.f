@@ -189,6 +189,15 @@
           c_nelt = nelt
         end function nek_get_nelt
 
+        !> Set the heat source term in local heat array
+        !!
+        !! The units of heat must match on the unit system that was used
+        !! to setup the Nek5000 problem. The caller must handle any
+        !! necessary conversions.
+        !!
+        !! \param local_elem A local element ID
+        !! \param heat The non-dimensional heat source term
+        !! \return Error code
         function nek_set_heat_source(local_elem, heat)
      &      result(ierr) bind(C)
           integer(C_INT), value :: local_elem
@@ -204,6 +213,27 @@
         end function nek_set_heat_source
 
       end module nek_interface
+
+      !> Get the heat source term for a given gridpoint
+      !!
+      !! This is called in Nek5000.  It returns the heat source term
+      !! from the local heat array, localq
+      !!
+      !! \param ix x-index of GLL gridpoint
+      !! \param iy y-index of GLL gridpoint
+      !! \param iz z-index of GLL gripoint
+      !! \param eg A global element ID
+      subroutine userq  (ix,iy,iz,eg)
+        include 'SIZE'
+        include 'TOTAL'
+        include 'NEKUSE'
+        include 'STREAM'
+
+        integer ix, iy, iz, eg, local_elem
+
+        local_elem = gllel(eg)
+        qvol = localq(local_elem)
+      end
 
       !> Depreacted: Do necessary setup at beginning of Picard iteration
       !!

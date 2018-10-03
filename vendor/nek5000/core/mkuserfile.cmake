@@ -17,6 +17,16 @@ file(READ ${INFILE_DIR}/${CASENAME}.usr usr_str)
 string(TOLOWER "${usr_str}" usr_str_lower)
 
 # =============================================================================
+# Fail if userq is defined.  It must be specifically defined for coupling
+# =============================================================================
+
+if(usr_str_lower MATCHES "subroutine.*userq")
+  message(FATAL_ERROR "userq() was defined in ${CASENAME}.usr. For coupling, userq() is \
+  predifined and you cannot redefine your own.  Remove the definition of userq() in \
+  ${CASENAME}.usr and run make again.")
+endif()
+
+# =============================================================================
 # Add standard subroutines
 # =============================================================================
 
