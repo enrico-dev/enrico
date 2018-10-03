@@ -3,51 +3,13 @@
 #include "stream/message_passing.h"
 
 #include <gsl/gsl>
-#include "openmc/xml_interface.h"
 #include "openmc/constants.h"
-#include "xtensor/xadapt.hpp"
 #include "xtensor/xio.hpp"
 
 #include <cmath>
 #include <unordered_map>
 
 namespace stream {
-
-SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
-  : HeatFluidsDriver{comm}
-{
-  // Determine heat transfer solver parameters
-  double clad_ir = node.child("clad_inner_radius").text().as_double();
-  double clad_or = node.child("clad_outer_radius").text().as_double();
-  double pellet = node.child("pellet_radius").text().as_double();
-  int fuel_rings = node.child("fuel_rings").text().as_int();
-  int clad_rings = node.child("clad_rings").text().as_int();
-
-  // Get pin locations
-  // TODO: Switch to get_node_xarray on OpenMC update
-  auto pin_locations = openmc::get_node_array<double>(node, "pin_centers");
-  if (pin_locations.size() % 2 != 0) {
-    throw std::runtime_error{"Length of <pin_centers> must be a multiple of two"};
-  }
-
-  // Convert to xtensor
-  auto npins = pin_locations.size() / 2;
-  std::vector<std::size_t> shape {npins, 2};
-  pin_centers_ = xt::adapt(pin_locations, shape);
-
-  // Get z values
-  // TODO: Switch to get_node_xarray on OpenMC update
-  auto z_values = openmc::get_node_array<double>(node, "z");
-  z_ = xt::adapt(z_values);
-
-  // Initialize heat transfer solver
-  solver_ = std::make_unique<HeatSolver>(clad_ir, clad_or, pellet, npins);
-  solver_->set_rings(fuel_rings, clad_rings);
-};
-
-void SurrogateHeatDriver::set_heat_source()
-{
-};
 
 OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
   : comm_{comm}
@@ -92,8 +54,8 @@ void OpenmcHeatDriver::init_mappings()
       double zavg = 0.5*(z(j) + z(j + 1));
 
       // Loop over radial rings
-      int nrings = heat_driver_->solver_->n_fuel_rings_;
-      const auto& radii = heat_driver_->solver_->r_grid_fuel_;
+      int nrings = heat_driver_->n_fuel_rings_;
+      const auto& radii = heat_driver_->r_grid_fuel_;
       for (int k = 0; k < nrings; ++k) {
         double ravg = 0.5*(radii(k) + radii(k + 1));
 
@@ -147,7 +109,7 @@ void OpenmcHeatDriver::solve_step()
 
   // Solve heat equation
   if (heat_driver_->active()) {
-    heat_driver_->solve_step();
+    //heat_driver_->solve_step();
   }
   comm_.Barrier();
 
@@ -167,7 +129,7 @@ void OpenmcHeatDriver::update_heat_source()
   for (int i = 0; i < npins; ++i) {
     for (int j = 0; j < nz; ++ j) {
       // Loop over radial rings
-      int nrings = heat_driver_->solver_->n_fuel_rings_;
+      int nrings = heat_driver_->n_fuel_rings_;
       for (int k = 0; k < nrings; ++k) {
         // Determine cell instances present in this ring
         const auto& cell_instances = ring_to_cell_inst_[ring_index];
@@ -181,7 +143,7 @@ void OpenmcHeatDriver::update_heat_source()
         q_avg /= n;
 
         // Set Q in appropriate (pin, ring)
-        heat_driver_->solver_->source_(pin_index, k) = q_avg;
+        heat_driver_->source_(pin_index, k) = q_avg;
         ++ring_index;
       }
       ++pin_index;

@@ -3,40 +3,18 @@
 #ifndef STREAM_OPENMC_HEAT_DRIVER_H
 #define STREAM_OPENMC_HEAT_DRIVER_H
 
+#include "comm.h"
+#include "openmc_driver.h"
+#include "heat_driver.h"
+
+#include <mpi.h>
+#include "pugixml.hpp"
+
 #include <memory>
 #include <unordered_map>
 #include <vector>
 
-#include <mpi.h>
-#include <gsl/gsl>
-#include "pugixml.hpp"
-#include "xtensor/xtensor.hpp"
-
-#include "base_drivers.h"
-#include "openmc_driver.h"
-#include "comm.h"
-#include "heat_driver.h"
-#include "geom.h"
-
 namespace stream {
-
-class SurrogateHeatDriver : public HeatFluidsDriver {
-public:
-  explicit SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node);
-  ~SurrogateHeatDriver() { };
-
-  void init_step() { };
-  void solve_step() { };
-  void finalize_step() { };
-
-  void set_heat_source();
-
-  std::unique_ptr<HeatSolver> solver_;
-
-  // Data on fuel pins
-  xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins
-  xt::xtensor<double, 1> z_; //!< Bounding z-values for axial segments
-};
 
 class OpenmcHeatDriver {
 public:
@@ -54,7 +32,7 @@ public:
   Comm intranode_comm_;
   std::unique_ptr<OpenmcDriver> openmc_driver_;
   std::unique_ptr<SurrogateHeatDriver> heat_driver_;
-  double power_;
+  double power_; //!< Power in [W]
 
   // Mapping of surrogate rings to OpenMC cell instances and vice versa
   std::unordered_map<int, std::vector<int>> ring_to_cell_inst_;

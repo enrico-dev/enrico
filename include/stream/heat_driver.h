@@ -1,43 +1,51 @@
 //! \file heat_driver.h
-//! Interface to Magnolia's heat transfer solver
+//! Driver for Magnolia's heat transfer solver
 #ifndef STREAM_HEAT_DRIVER_H
 #define STREAM_HEAT_DRIVER_H
 
-#include <cstddef> // for size_t
+#include "base_drivers.h"
 
 #include <gsl/gsl>
+#include <mpi.h>
+#include "pugixml.hpp"
 #include "xtensor/xtensor.hpp"
+
+#include <cstddef>
 
 namespace stream {
 
-class HeatSolver {
+class SurrogateHeatDriver : public HeatFluidsDriver {
 public:
-  HeatSolver(double clad_outer, double clad_inner, double pellet,
-    int n_pins);
+  explicit SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node);
+  ~SurrogateHeatDriver() { };
 
+  void init_step() { };
   void solve_step(gsl::span<double> T_co);
+  void finalize_step() { };
 
   void set_heat_source(gsl::span<double> q);
+  std::size_t n_rings() { return n_fuel_rings_ + n_clad_rings_; }
 
-  void set_radii(double clad_outer, double clad_inner, double pellet);
-  void set_rings(int n_fuel, int n_clad);
-  void set_num_pins(int n);
-  int n_rings() { return n_fuel_rings_ + n_clad_rings_; }
+  // Data on fuel pins
+  xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins
+  xt::xtensor<double, 1> z_;  //!< Bounding z-values for axial segments
+  std::size_t n_pins_;                //!< number of fuel pins
+  std::size_t n_axial_;               //!< number of axial segments
 
-  // fuel pin dimensions
-  double clad_outer_radius_;   //!< clad outer radius in [m]
-  double clad_inner_radius_;   //!< clad inner radius in [m]
-  double pellet_radius_;       //!< fuel pellet radius in [m]
-  int n_fuel_rings_ {20}; //!< number of fuel rings
-  int n_clad_rings_ {2}; //!< number of clad rings
-  int n_pins_; //!< number of fuel pins
+  // Dimensions for a single fuel pin axial segment
+  double clad_outer_radius_;  //!< clad outer radius in [m]
+  double clad_inner_radius_;  //!< clad inner radius in [m]
+  double pellet_radius_;      //!< fuel pellet radius in [m]
+  std::size_t n_fuel_rings_ {20};     //!< number of fuel rings
+  std::size_t n_clad_rings_ {2};      //!< number of clad rings
 
   // solver variables and settings
   double tol_; //!< tolerance on convergence
-  xt::xtensor<double, 2> source_; //!< heat source for each pin / ring
-  xt::xtensor<double, 2> temperature_; //!< temperature in [K] for each pin / ring
-  xt::xtensor<double, 1> r_grid_clad_;
-  xt::xtensor<double, 1> r_grid_fuel_;
+  xt::xtensor<double, 2> source_;      //!< heat source for each (axial segment, ring)
+  xt::xtensor<double, 2> temperature_; //!< temperature in [K] for each (axial segment, ring)
+  xt::xtensor<double, 1> r_grid_clad_; //!< radii of each clad ring in [cm]
+  xt::xtensor<double, 1> r_grid_fuel_; //!< radii of each fuel ring in [cm]
+
 private:
   void generate_arrays();
 };
