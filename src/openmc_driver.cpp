@@ -58,7 +58,8 @@ xt::xtensor<double, 3> OpenmcDriver::tally_results()
   err_chk(openmc_tally_get_n_realizations(index_tally_, &m));
 
   // Make shape of type size_t
-  std::vector<std::size_t> shape {shape_int[0], shape_int[1], shape_int[2]};
+  // TODO: Change the order of shape in OpenMC itself so we don't have to reverse it here
+  std::vector<std::size_t> shape {shape_int[2], shape_int[1], shape_int[0]};
   std::size_t size {shape_int[0] * shape_int[1] * shape_int[2]};
 
   // Adapt array into xtensor with no ownership
@@ -75,7 +76,7 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power)
   err_chk(openmc_tally_get_n_realizations(index_tally_, &m));
 
   // Determine energy production in each material
-  auto mean_value = xt::view(results, 0, xt::all(), 1);
+  auto mean_value = xt::view(results, xt::all(), 0, 1);
   xt::xtensor<double, 1> heat = JOULE_PER_EV * mean_value / m;
 
   // Get total heat production [J/source]
