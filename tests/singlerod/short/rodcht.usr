@@ -57,13 +57,12 @@ c-----------------------------------------------------------------------
       include 'SIZE'
       include 'TOTAL'
       include 'NEKUSE'
+      include 'STREAM'
 
-      integer e,f,eg
-c     e = gllel(eg)
+      integer ix, iy, iz, eg, local_elem
 
-      qvol=0.0 
-      if (eg.gt.nelv) qvol   = 150.0
-
+      local_elem = gllel(eg)
+      qvol = localq(local_elem)
       return
       end
 c-----------------------------------------------------------------------

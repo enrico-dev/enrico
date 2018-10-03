@@ -194,6 +194,13 @@
           integer(C_INT), value :: local_elem
           real(C_DOUBLE), value :: heat
           integer(C_INT) :: ierr
+          include 'STREAM'
+          if (local_elem <= nelt) then
+            localq(local_elem) = heat
+            ierr = 0
+          else
+            ierr = 1
+          endif
         end function nek_set_heat_source
 
       end module nek_interface

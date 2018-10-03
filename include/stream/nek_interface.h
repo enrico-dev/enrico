@@ -119,6 +119,16 @@ int nek_get_nelgt();
 //! \return True if the global element ID is in the given rank
 int nek_global_elem_is_in_rank(int global_elem, int rank);
 
+//! Set the heat source for a given local element
+//!
+//! The units of heat must match on the unit system that was
+//! used to setup the Nek5000 problem. The user must handle any necessary conversions.
+//!
+//! \param local_elem A local element ID
+//! \param heat A heat source term
+//! \return Error code
+int nek_set_heat_source(int local_elem, double heat);
+
 //! Unimplemented.  C2F_nek_init is used instead.
 void nek_init_step();
 
