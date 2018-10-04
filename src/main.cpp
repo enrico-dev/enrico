@@ -63,8 +63,7 @@ int main(int argc, char* argv[])
     case HeatFluids::Surrogate:
       {
         // Pass XML node for reading settings
-        auto node = root.child("heat_surrogate");
-        stream::OpenmcHeatDriver driver {MPI_COMM_WORLD, node};
+        stream::OpenmcHeatDriver driver {MPI_COMM_WORLD, root};
         driver.solve_step();
       }
       break;

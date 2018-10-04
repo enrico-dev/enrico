@@ -5,14 +5,15 @@
   <communication>overlapping</communication>
   <power>820</power>
   <heat_surrogate>
-    <clad_inner_radius>0.475</clad_inner_radius>
-    <clad_outer_radius>0.414</clad_outer_radius>
     <pellet_radius>0.406</pellet_radius>
-    <fuel_rings>5</fuel_rings>
-    <clad_rings>1</clad_rings>
+    <clad_inner_radius>0.414</clad_inner_radius>
+    <clad_outer_radius>0.475</clad_outer_radius>
+    <fuel_rings>20</fuel_rings>
+    <clad_rings>5</clad_rings>
     <pin_centers>
       0. 0.
     </pin_centers>
     <z>0.0 1.0 2.0 3.0 4.0 5.0 6.0 7.0 8.0 9.0 10.0</z>
+    <tolerance>1e-4</tolerance>
   </heat_surrogate>
 </stream>

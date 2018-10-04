@@ -4,7 +4,6 @@
 
 #include <gsl/gsl>
 #include "openmc/constants.h"
-#include "xtensor/xio.hpp"
 
 #include <cmath>
 #include <unordered_map>
@@ -24,7 +23,8 @@ OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
 
   // Initialize OpenMC and surrogate heat drivers
   openmc_driver_ = std::make_unique<OpenmcDriver>(crossnode);
-  heat_driver_ = std::make_unique<SurrogateHeatDriver>(comm, node);
+  pugi::xml_node surr_node = node.child("heat_surrogate");
+  heat_driver_ = std::make_unique<SurrogateHeatDriver>(comm, surr_node);
 
   // Save internode communicator
   intranode_comm_ = Comm{intranode};
@@ -109,7 +109,7 @@ void OpenmcHeatDriver::solve_step()
 
   // Solve heat equation
   if (heat_driver_->active()) {
-    //heat_driver_->solve_step();
+    heat_driver_->solve_step();
   }
   comm_.Barrier();
 
@@ -119,34 +119,32 @@ void OpenmcHeatDriver::solve_step()
 
 void OpenmcHeatDriver::update_heat_source()
 {
+  // zero out heat source
+  for (auto& val : heat_driver_->source_) {
+    val = 0.0;
+  }
+
   // Determine heat source based on OpenMC tally results
   auto Q = openmc_driver_->heat_source(power_);
 
-  auto nz = heat_driver_->z_.size() - 1;
-  auto npins = heat_driver_->pin_centers_.shape()[0];
   int ring_index = 0;
-  int pin_index = 0;
-  for (int i = 0; i < npins; ++i) {
-    for (int j = 0; j < nz; ++ j) {
+  for (int i = 0; i < heat_driver_->n_pins_; ++i) {
+    for (int j = 0; j < heat_driver_->n_axial_; ++j) {
       // Loop over radial rings
       int nrings = heat_driver_->n_fuel_rings_;
       for (int k = 0; k < nrings; ++k) {
-        // Determine cell instances present in this ring
-        const auto& cell_instances = ring_to_cell_inst_[ring_index];
-        auto n = cell_instances.size();
-
         // Get average Q value across each azimuthal segment
+        const auto& cell_instances = ring_to_cell_inst_[ring_index];
         double q_avg = 0.0;
-        for (int k = 0; k < n; ++k) {
-          q_avg += Q(cell_instances[k]);
+        for (auto idx : cell_instances) {
+          q_avg += Q(idx);
         }
-        q_avg /= n;
+        q_avg /= cell_instances.size();
 
-        // Set Q in appropriate (pin, ring)
-        heat_driver_->source_(pin_index, k) = q_avg;
+        // Set Q in appropriate (pin, axial, ring)
+        heat_driver_->source_.at(i, j, k) = q_avg;
         ++ring_index;
       }
-      ++pin_index;
     }
   }
 }

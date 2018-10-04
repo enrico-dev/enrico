@@ -20,7 +20,7 @@ public:
   ~SurrogateHeatDriver() { };
 
   void init_step() { };
-  void solve_step(gsl::span<double> T_co);
+  void solve_step();
   void finalize_step() { };
 
   void set_heat_source(gsl::span<double> q);
@@ -41,8 +41,8 @@ public:
 
   // solver variables and settings
   double tol_; //!< tolerance on convergence
-  xt::xtensor<double, 2> source_;      //!< heat source for each (axial segment, ring)
-  xt::xtensor<double, 2> temperature_; //!< temperature in [K] for each (axial segment, ring)
+  xt::xtensor<double, 3> source_;      //!< heat source for each (axial segment, ring)
+  xt::xtensor<double, 3> temperature_; //!< temperature in [K] for each (axial segment, ring)
   xt::xtensor<double, 1> r_grid_clad_; //!< radii of each clad ring in [cm]
   xt::xtensor<double, 1> r_grid_fuel_; //!< radii of each fuel ring in [cm]
 
