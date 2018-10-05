@@ -216,12 +216,12 @@ void OpenmcNekDriver::update_heat_source()
     int displacement = nek_driver_->local_displs_[nek_driver_->comm_.rank];
 
     // Loop over local elements to set heat source
-    for (int local_elem = 0; local_elem < n_local_elem_; ++local_elem) {
+    for (int local_elem = 1; local_elem <= n_local_elem_; ++local_elem) {
       // get corresponding global element
-      int global_elem = local_elem + displacement;
+      int global_index = local_elem + displacement;
 
       // get corresponding material
-      int32_t mat_index = elem_to_mat_.at(global_elem);
+      int32_t mat_index = elem_to_mat_.at(global_index);
       int i = get_heat_index(mat_index);
 
       err_chk(nek_set_heat_source(local_elem, heat[i]),
