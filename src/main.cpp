@@ -65,6 +65,9 @@ int main(int argc, char* argv[])
       break;
     }
     break;
+  case Transport::Shift:
+    throw std::runtime_error{"Shift transport driver not implemented"};
+    break;
   case Transport::Surrogate:
     throw std::runtime_error{"No surrogate particle transport driver implemented"};
     break;
