@@ -221,7 +221,7 @@
       !!
       !! \param ix x-index of GLL gridpoint
       !! \param iy y-index of GLL gridpoint
-      !! \param iz z-index of GLL gripoint
+      !! \param iz z-index of GLL gridpoint
       !! \param eg A global element ID
       subroutine userq  (ix,iy,iz,eg)
         include 'SIZE'
@@ -235,7 +235,7 @@
         qvol = localq(local_elem)
       end
 
-      !> Depreacted: Do necessary setup at beginning of Picard iteration
+      !> Deprecated: Do necessary setup at beginning of Picard iteration
       !!
       !! Currently ununsed in STREAM.  Retained from coupling scheme in
       !! MOOSE coupling project

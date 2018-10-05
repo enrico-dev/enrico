@@ -121,8 +121,8 @@ int nek_global_elem_is_in_rank(int global_elem, int rank);
 
 //! Set the heat source for a given local element
 //!
-//! The units of heat must match on the unit system that was
-//! used to setup the Nek5000 problem. The caller must handle any necessary conversions.
+//! The units of heat must match on the unit system that was used to setup the Nek5000 problem
+//! (presumably W/cm^3). The caller must handle any necessary conversions.
 //!
 //! \param local_elem A local element ID
 //! \param heat A heat source term
