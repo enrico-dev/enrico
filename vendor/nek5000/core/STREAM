@@ -1,0 +1,2 @@
+      real localq(lelt)
+      common /stream/ localq
