@@ -224,7 +224,8 @@ void OpenmcNekDriver::update_heat_source()
       int32_t mat_index = elem_to_mat_.at(global_elem);
       int i = get_heat_index(mat_index);
 
-      nek_set_heat_source(local_elem, heat[i]);
+      err_chk(nek_set_heat_source(local_elem, heat[i]),
+          "Error setting heat source for local element " + std::to_string(i));
     }
   }
 }
