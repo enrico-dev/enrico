@@ -218,7 +218,7 @@ void OpenmcNekDriver::update_heat_source()
     // Loop over local elements to set heat source
     for (int local_elem = 1; local_elem <= n_local_elem_; ++local_elem) {
       // get corresponding global element
-      int global_index = local_elem + displacement;
+      int global_index = local_elem + displacement - 1;
 
       // get corresponding material
       int32_t mat_index = elem_to_mat_.at(global_index);
