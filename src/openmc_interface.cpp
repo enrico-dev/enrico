@@ -33,7 +33,7 @@ CellInstance::CellInstance(Position position)
 
 openmc::Material* CellInstance::material() const
 {
-  return openmc::global_materials[material_index_ - 1];
+  return openmc::materials[material_index_ - 1];
 }
 
 void CellInstance::set_temperature(double T) const
