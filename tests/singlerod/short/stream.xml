@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <stream>
   <driver_transport>openmc</driver_transport>
-  <driver_heatfluids>nek5000</driver_heatfluids>
+  <driver_heatfluids>surrogate</driver_heatfluids>
   <communication>overlapping</communication>
   <power>820</power>
   <heat_surrogate>

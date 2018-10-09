@@ -13,21 +13,13 @@ namespace stream {
 OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
   : comm_{comm}
 {
-  // Get internode and cross-node communicators
-  MPI_Comm intranode;
-  MPI_Comm crossnode;
-  get_node_comms(comm_.comm, 1, &intranode, &crossnode);
-
   // Get power in [W]
   power_ = node.child("power").text().as_double();
 
   // Initialize OpenMC and surrogate heat drivers
-  openmc_driver_ = std::make_unique<OpenmcDriver>(crossnode);
+  openmc_driver_ = std::make_unique<OpenmcDriver>(comm);
   pugi::xml_node surr_node = node.child("heat_surrogate");
   heat_driver_ = std::make_unique<SurrogateHeatDriver>(comm, surr_node);
-
-  // Save internode communicator
-  intranode_comm_ = Comm{intranode};
 
   // Create mappings for fuel pins and setup tallies for OpenMC
   init_mappings();
