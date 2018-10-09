@@ -587,6 +587,10 @@ contains
           call MPI_BCAST(results, n, result_block, 0, mpi_intracomm, mpi_err)
           call MPI_TYPE_FREE(result_block, mpi_err)
         end associate
+
+        ! Broadcast number of realizations
+        call MPI_BCAST(tallies(i) % obj % n_realizations, 1, MPI_INT, 0, &
+             mpi_intracomm, mpi_err)
       end do
     end if
 
