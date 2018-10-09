@@ -63,14 +63,6 @@ void SurrogateHeatDriver::generate_arrays()
   temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
 }
 
-void SurrogateHeatDriver::set_heat_source(gsl::span<double> q)
-{
-  auto source_flat = xt::flatten(source_);
-  for (int i = 0; i < q.size(); ++i) {
-    source_flat(i) = q[i];
-  }
-}
-
 void SurrogateHeatDriver::solve_step()
 {
   std::cout << "Solving heat equation...\n";

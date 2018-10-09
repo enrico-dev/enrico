@@ -18,20 +18,32 @@ namespace stream {
 
 class OpenmcHeatDriver {
 public:
+  //! Initializes coupled OpenMC-surrogate driver with the given MPI communicator
+  //!
+  //! \param comm  The MPI communicator used for the coupled driver
+  //! \param node  XML node containing settings
   explicit OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node);
+
+  //! Destroy the coupled driver
   ~OpenmcHeatDriver() { };
 
+  //! Solve a single coupled step
+  //!
+  //! This method runs OpenMC to obtain a heat source, updates the heat source
+  //! for the surrogate heat-fluids driver, solves the heat equation, and then
+  //! updates the temperature for cell instances in OpenMC.
   void solve_step();
 
+  //! Update the heat source for the surrogate heat-fluids driver
   void update_heat_source();
 
+  //! Update the temperature in each region for OpenMC
   void update_temperature();
 
   // Data
-  Comm comm_;
-  Comm intranode_comm_;
-  std::unique_ptr<OpenmcDriver> openmc_driver_;
-  std::unique_ptr<SurrogateHeatDriver> heat_driver_;
+  Comm comm_;  //!< The communicator used to run this driver
+  std::unique_ptr<OpenmcDriver> openmc_driver_; //! The OpenMC driver
+  std::unique_ptr<SurrogateHeatDriver> heat_driver_; //! The heat surrogate driver
   double power_; //!< Power in [W]
 
   // Mapping of surrogate rings to OpenMC cell instances and vice versa
@@ -39,7 +51,10 @@ public:
   std::unordered_map<int, std::vector<int>> cell_inst_to_ring_;
 
 private:
+  //! Initialize mapping between OpenMC regions and surrogate fuel pin rings
   void init_mappings();
+
+  //! Initialize tallies in OpenMC
   void init_tallies();
 };
 
