@@ -91,7 +91,7 @@ module tally_header
     real(C_DOUBLE), allocatable :: results(:,:,:)
 
     ! Number of realizations of tally random variables
-    integer :: n_realizations = 0
+    integer(C_INT) :: n_realizations = 0
 
     ! Tally precision triggers
     integer                           :: n_triggers = 0  ! # of triggers
