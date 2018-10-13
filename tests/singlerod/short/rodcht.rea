@@ -54387,7 +54387,8 @@
  E   30404   3033.00       3.00000       0.00000       0.00000       0.00000    
  E   30405   2936.00       6.00000       0.00000       0.00000       0.00000    
  I   30406   0.00000       0.00000       0.00000       0.00000       1.00000    
-           0  PRESOLVE/RESTART OPTIONS  *****
+           1  PRESOLVE/RESTART OPTIONS  *****
+rodcht.run01 U           
            7          INITIAL CONDITIONS *****
 C Default                                                                       
 C Default                                                                       
