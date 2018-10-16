@@ -25,6 +25,7 @@ test_singlerod:nek5000:
     # - cmake -DCMAKE_Fortran_FLAGS="-mcmodel=large" ../../../
     - cmake ../../../
     - make -j -l4 test_nek5000_singlerod
+    - if [ -a rodcht.run01.gz ]; then gunzip -f rodcht.run01.gz ; fi
     - mpirun -np 8 ./test_nek5000_singlerod
 
 test_singlerod:openmc:
@@ -61,6 +62,7 @@ test_singlerod:coupled:
     - patch -N rodcht.rea ci_config/rodcht_rea.diff || true
     - patch -N SIZE ci_config/SIZE.diff || true
     - make -j -l4 test_coupled_singlerod
+    - if [ -a rodcht.run01.gz ]; then gunzip -f rodcht.run01.gz ; fi
     - mpirun -np 8 ./test_coupled_singlerod
 
 test_singlerod:surrogate:
