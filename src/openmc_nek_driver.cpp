@@ -12,8 +12,8 @@
 
 namespace stream {
 
-OpenmcNekDriver::OpenmcNekDriver(double power, MPI_Comm coupled_comm) :
-    comm_(coupled_comm), power_(power)
+OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root) :
+    comm_(coupled_comm)
 {
   // Create communicator for OpenMC with 1 process per node
   MPI_Comm openmc_comm;
@@ -22,6 +22,11 @@ OpenmcNekDriver::OpenmcNekDriver(double power, MPI_Comm coupled_comm) :
 
   // Set intranode communicator
   intranode_comm_ = Comm(intranode_comm);
+
+  // Get parameters from stream.xml
+  power_ = xml_root.child("power").text().as_double();
+  max_timesteps_ = xml_root.child("max_timesteps").text().as_int();
+  max_picard_iter_ = xml_root.child("max_picard_iter").text().as_int();
 
   // Instantiate OpenMC and Nek drivers
   openmc_driver_ = std::make_unique<OpenmcDriver>(openmc_comm);
@@ -41,6 +46,41 @@ OpenmcNekDriver::OpenmcNekDriver(double power, MPI_Comm coupled_comm) :
 OpenmcNekDriver::~OpenmcNekDriver()
 {
   free_mpi_datatypes();
+}
+
+void OpenmcNekDriver::solve_in_time()
+{
+  for (int i_timestep = 0; i_timestep < max_timesteps_; ++i_timestep) {
+    for (int i_picard = 0; i_picard < max_picard_iter_; ++i_picard) {
+
+      // debug
+      comm_.Barrier();
+
+      if (openmc_driver_->active()) {
+        openmc_driver_->init_step();
+        openmc_driver_->solve_step();
+        openmc_driver_->finalize_step();
+      }
+      comm_.Barrier();
+
+      update_heat_source();
+
+      // debug
+      comm_.Barrier();
+
+      if (nek_driver_->active()) {
+        nek_driver_->init_step();
+        nek_driver_->solve_step();
+        nek_driver_->finalize_step();
+      }
+      comm_.Barrier();
+
+      update_temperature();
+
+      // debug
+      comm_.Barrier();
+    }
+  }
 }
 
 void OpenmcNekDriver::init_mpi_datatypes()
