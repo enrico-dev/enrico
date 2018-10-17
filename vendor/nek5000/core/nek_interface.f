@@ -128,9 +128,24 @@
           integer(C_INT), intent(in), value :: local_elem
           real(C_DOUBLE), intent(out) :: temperature
           integer(C_INT) :: ierr
+          integer :: k
+
+          double precision :: ssum1, ssum2
 
           if (local_elem <= nelt) then
-            temperature = sum(t(1:nx1, 1:ny1, 1:nz1, local_elem, 1))
+
+            ssum1 = 0
+            ssum2 = 0
+
+            do k = 1, nx1 * ny1 * nz1
+              ssum1 = ssum1 + vtrans(k,1,1,local_elem,2) *
+     &             bm1(k,1,1,local_elem) * t(k,1,1,local_elem,1)
+              ssum2 = ssum2 + vtrans(k,1,1,local_elem,2) *
+     &             bm1(k,1,1,local_elem)
+            enddo
+
+            temperature = ssum1 / ssum2
+
             ierr = 0
           else
             ierr = 1
