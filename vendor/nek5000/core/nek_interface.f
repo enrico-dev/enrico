@@ -114,9 +114,13 @@
           integer(C_INT), intent(in), value :: local_elem
           real(C_DOUBLE), intent(out) :: volume
           integer(C_INT) :: ierr
+          integer :: k
 
           if (local_elem <= nelt) then
-            volume = sum(bm1(1:nx1, 1:ny1, 1:nz1, local_elem))
+            volume = 0
+            do k = 1, nx1 * ny1 * nz1
+              volume = volume + bm1(k, 1, 1, local_elem)
+            enddo
             ierr = 0
           else
             ierr = 1
