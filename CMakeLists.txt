@@ -123,3 +123,13 @@ set_target_properties(
     test_coupled_singlerod
     PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
 
+if (SCALE_FOUND)
+  add_executable(test_shift_singlerod tests/singlerod/short/test_shift_coupled.cpp)
+  target_link_libraries(test_shift_singlerod PUBLIC libstream)
+
+  # Ensure C++14 standard is used
+  set_target_properties(
+    test_shift_singlerod
+    PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
+endif ()
+

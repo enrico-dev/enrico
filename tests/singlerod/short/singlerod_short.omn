@@ -1,0 +1,69 @@
+!##############################################################################
+! File  : singlerod_short.omn
+! Author: Steven Hamilton
+! Date  : Wed Jul 11 2018
+!##############################################################################
+
+[PROBLEM]
+name "Single pin for multiphysics testing"
+mode kcode
+
+!################################## MODEL #####################################
+
+[MODEL=rtk]
+input "singlerod_short.rtk.xml"
+
+!################################# PHYSICS ####################################
+
+[PHYSICS=ce ce]
+ce_lib ce_v71
+ce_pole_lib_path "/data/pole_data/pole.h5"
+mode n
+dbrc true
+
+!################################## COMP ######################################
+
+[COMP]
+input "singlerod_comps.h5"
+
+!################################## SOURCE ####################################
+
+[SOURCE=separable fission]
+
+[SOURCE][SHAPE=box]
+box 0.0 1.26 0.0 1.26 0.0 10.0
+
+[SOURCE][ENERGY=watt]
+
+!################################## TALLY #####################################
+
+[TALLY]
+
+[TALLY][MESH fissrc]
+x 0.0 1.26
+y 0.0 1.26
+z 0.0 9i 10.0
+reactions fission
+
+!################################## SHIFT #####################################
+
+[SHIFT]
+physics ce
+
+[SHIFT][KCODE]
+npk 1000
+nk  20
+nik 10
+entropy_mesh manual
+x_entropy 0.0 1.26
+y_entropy 0.0 1.26
+z_entropy 0.0 9i 10.0
+
+!################################### POST ######################################
+
+[RUN=mpi]
+np 1
+
+!##############################################################################
+! end of singlerod_short.omn
+!##############################################################################

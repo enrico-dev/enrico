@@ -1,0 +1,58 @@
+<ParameterList name='Single pin geometry'>
+  <ParameterList name='CORE'>
+    <Parameter name='level_0' type='TwoDArray(int)' value='1x1:{0}'/>
+    <Parameter name='level_1' type='TwoDArray(int)' value='1x1:{1}'/>
+    <Parameter name='level_2' type='TwoDArray(int)' value='1x1:{2}'/>
+    <Parameter name='level_3' type='TwoDArray(int)' value='1x1:{3}'/>
+    <Parameter name='level_4' type='TwoDArray(int)' value='1x1:{4}'/>
+    <Parameter name='axial list' type='Array(string)' value='{level_0, level_1, level_2, level_3, level_4}'/>
+    <Parameter name='axial height' type='Array(double)' value='{2.0, 2.0, 2.0, 2.0, 2.0}'/>
+    <Parameter name='corner' type='Array(double)' value='{0.0, 0.0, 0.0}'/>
+    <Parameter name='boundary' type='string' value='reflect'/>"
+    <ParameterList name='boundary_db'>
+      <Parameter name='reflect' type='Array(int)' value='{1, 1, 1, 1, 1, 1}'/>"
+    </ParameterList>
+  </ParameterList>
+  <ParameterList name='ASSEMBLIES'>
+    <Parameter name='assembly_0' type='TwoDArray(int)' value='1x1:{0}'/>
+    <Parameter name='assembly_1' type='TwoDArray(int)' value='1x1:{1}'/>
+    <Parameter name='assembly_2' type='TwoDArray(int)' value='1x1:{2}'/>
+    <Parameter name='assembly_3' type='TwoDArray(int)' value='1x1:{3}'/>
+    <Parameter name='assembly_4' type='TwoDArray(int)' value='1x1:{4}'/>
+    <Parameter name='assembly list' type='Array(string)' value='{assembly_0, assembly_1, assembly_2, assembly_3, assembly_4}'/>
+  </ParameterList>
+  <ParameterList name='PINS'>
+    <Parameter name='pin list' type='Array(string)' value='{
+      pin_0,  pin_1,  pin_2,  pin_3,  pin_4}'/>
+    <ParameterList name='pin_0'>
+      <Parameter name='pitch' type='double' value='1.26'/>
+      <Parameter name='radii' type='Array(double)' value='{0.4096,0.4180,0.4750}'/>
+      <Parameter name='radial matids' type='Array(int)' value='{5,1,2}'/>
+      <Parameter name='matid' type='int' value='6'/>
+    </ParameterList>
+    <ParameterList name='pin_1'>
+      <Parameter name='pitch' type='double' value='1.26'/>
+      <Parameter name='radii' type='Array(double)' value='{0.4096,0.4180,0.4750}'/>
+      <Parameter name='radial matids' type='Array(int)' value='{7,1,2}'/>
+      <Parameter name='matid' type='int' value='8'/>
+    </ParameterList>
+    <ParameterList name='pin_2'>
+      <Parameter name='pitch' type='double' value='1.26'/>
+      <Parameter name='radii' type='Array(double)' value='{0.4096,0.4180,0.4750}'/>
+      <Parameter name='radial matids' type='Array(int)' value='{9,1,2}'/>
+      <Parameter name='matid' type='int' value='10'/>
+    </ParameterList>
+    <ParameterList name='pin_3'>
+      <Parameter name='pitch' type='double' value='1.26'/>
+      <Parameter name='radii' type='Array(double)' value='{0.4096,0.4180,0.4750}'/>
+      <Parameter name='radial matids' type='Array(int)' value='{11,1,2}'/>
+      <Parameter name='matid' type='int' value='12'/>
+    </ParameterList>
+    <ParameterList name='pin_4'>
+      <Parameter name='pitch' type='double' value='1.26'/>
+      <Parameter name='radii' type='Array(double)' value='{0.4096,0.4180,0.4750}'/>
+      <Parameter name='radial matids' type='Array(int)' value='{13,1,2}'/>
+      <Parameter name='matid' type='int' value='14'/>
+    </ParameterList>
+  </ParameterList>
+</ParameterList>
