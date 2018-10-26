@@ -129,7 +129,6 @@
           integer(C_INT), intent(in), value :: local_elem
           real(C_DOUBLE), intent(out) :: temperature
           integer(C_INT) :: ierr
-          integer :: k
 
           if (local_elem <= nelt) then
             temperature = sum(vtrans(1:nx1,1:ny1,1:nz1,local_elem,2)
@@ -142,6 +141,30 @@
             ierr = 1
           end if
         end function nek_get_local_elem_temperature
+
+        !> Get the density of a local element
+        !!
+        !! The units of the density are dimensionless and must be interpreted based on the
+        !! setup of the Nek5000
+        !!
+        !! \param[in] local_elem A local element ID
+        !! \param[out] density The dimensionless density of the local element
+        !! \result Error code
+        function nek_get_local_elem_density(local_elem, density)
+     &      result(ierr) bind(C)
+          integer(C_INT), intent(in), value :: local_elem
+          real(C_DOUBLE), intent(out) :: density
+          integer(C_INT) :: ierr
+
+          if (local_elem <= nelt) then
+            density = sum(vtrans(1:nx1,1:ny1,1:nz1,local_elem,1)
+     &                    * bm1(1:nx1,1:ny1,1:nz1,local_elem))
+     &                / sum(bm1(1:nx1,1:ny1,1:nz1,local_elem))
+            ierr = 0
+          else
+            ierr = 1
+          end if
+        end function
 
         !> Get the global element ID for a given local element
         !>
