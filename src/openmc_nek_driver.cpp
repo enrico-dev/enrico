@@ -70,6 +70,10 @@ void OpenmcNekDriver::solve_in_time()
       comm_.Barrier();
 
       update_temperature();
+      update_density();
+
+      // debug
+      comm_.Barrier();
     }
   }
 }
@@ -295,6 +299,45 @@ void OpenmcNekDriver::update_temperature()
 
         // Set temperature for cell instance
         c.set_temperature(average_temp);
+      }
+    }
+  }
+}
+
+void OpenmcNekDriver::update_density()
+{
+  if (nek_driver_->active()) {
+    // Each Nek proc finds the densities of its local elements
+    double local_elem_densities[n_local_elem_];
+    for (int i = 0; i < n_local_elem_; ++i) {
+      local_elem_densities[i] = nek_driver_->get_local_elem_density(i + 1);
+    }
+    // Gather all the local element densities on the Nek5000/OpenMC root
+    nek_driver_->comm_.Gatherv(local_elem_densities, n_local_elem_, MPI_DOUBLE,
+                               global_elem_densities_.data(), nek_driver_->local_counts_.data(),
+                               nek_driver_->local_displs_.data(), MPI_DOUBLE);
+
+    if (openmc_driver_->active()) {
+      // Broadcast global_element_densities onto all the OpenMC procs
+      openmc_driver_->comm_.Bcast(global_elem_densities_.data(), n_global_elem_, MPI_DOUBLE);
+
+      // For each OpenMC material, volume average densities and set
+      for (const auto& c : openmc_driver_->cells_) {
+
+        // Get corresponding global elements
+        const auto& global_elems = mat_to_elems_.at(c.material_index_);
+
+        // Get volume-average densities for this material
+        double average_density = 0.0;
+        double total_vol = 0.0;
+        for (int elem : global_elems) {
+          average_density += global_elem_densities_[elem] * global_elem_volumes_[elem];
+          total_vol += global_elem_volumes_[elem];
+        }
+        average_density /= total_vol;
+
+        // Set densities for cell instance
+        c.set_density(average_density);
       }
     }
   }
