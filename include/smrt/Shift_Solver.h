@@ -6,10 +6,11 @@
 
 #include "Geometria/rtk/RTK_Geometry.hh"
 #include "Shift/mc_physics/SCE_Physics.hh"
-
 #include "Omnibus/driver/Multiphysics_Driver.hh"
+
 #include "Assembly_Model.h"
 #include "Neutronics_Solver.h"
+#include "stream/geom.h"
 
 namespace stream
 {
@@ -51,6 +52,17 @@ class Shift_Solver : public Neutronics_Solver
     double      d_power_norm;
     std::string d_power_tally_name;
 
+    // Matids corresponding to T/H mesh elements
+    int d_num_materials;
+    std::vector<int> d_matids;
+
+    // Map from Shift geometric cells to T/H elements
+    int d_num_shift_cells;
+    std::vector<std::vector<int>> d_power_map;
+
+    // Volume fraction for each T/H element for normalization
+    std::vector<double> d_vfracs;
+
   public:
 
     // Constructor
@@ -58,7 +70,12 @@ class Shift_Solver : public Neutronics_Solver
                  std::string                shift_input,
                  const std::vector<double>& z_edges);
 
-    void solve(const std::vector<double>& fuel_temperature,
+    // Locate centroids from fluids problem
+    void set_centroids_and_volumes(
+        const std::vector<stream::Position>& centroids,
+        const std::vector<double>&           volumes);
+
+    void solve(const std::vector<double>& th_temperature,
                const std::vector<double>& coolant_density,
                      std::vector<double>& power) override;
 private:

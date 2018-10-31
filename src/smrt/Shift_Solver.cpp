@@ -8,12 +8,15 @@
  */
 //---------------------------------------------------------------------------//
 
+#include <map>
+
 #include "smrt/Shift_Solver.h"
 
 #include "Teuchos_DefaultComm.hpp"
 #include "Teuchos_XMLParameterListHelpers.hpp"
 
-#include "Shift/mc_tallies/Cartesian_Mesh_Tally.hh"
+#include "Nemesis/comm/global.hh"
+#include "Shift/mc_tallies/Cell_Union_Tally.hh"
 #include "Omnibus/driver/Sequence_Shift.hh"
 #include "Omnibus/shift_managers/Shift_Tallies.hh"
 
@@ -42,8 +45,6 @@ Shift_Solver::Shift_Solver(SP_Assembly_Model          assembly,
     Teuchos::updateParametersFromXmlFileAndBroadcast(
             shift_input, plist.ptr(), *comm);
 
-    add_power_tally(plist, z_edges);
-
     // Build Problem
     auto problem = std::make_shared<omnibus::Problem>(plist);
 
@@ -55,77 +56,34 @@ Shift_Solver::Shift_Solver(SP_Assembly_Model          assembly,
     Check(problem_geom);
     d_geometry = std::dynamic_pointer_cast<Geometry>(problem_geom);
     Check(d_geometry);
+
+    // Create or validate power tally
+    add_power_tally(plist, z_edges);
 }
 
 //---------------------------------------------------------------------------//
 // Solve
 //---------------------------------------------------------------------------//
 void Shift_Solver::solve(
-        const std::vector<double>& fuel_temperature,
+        const std::vector<double>& th_temperature,
         const std::vector<double>& coolant_density,
               std::vector<double>& power)
 {
+    Require(th_temperature.size() == d_matids.size());
     auto& comps = d_driver->compositions();
 
-    // Loop through geometry and update fuel temperature and moderator density
-    const auto& core_array = d_geometry->array();
-    for (int k = 0; k < core_array.size(def::K); ++k)
+    // Average T/H mesh temperatures onto Shift materials
+    std::vector<double> material_temperatures(d_num_materials, 0.0);
+    for (int elem = 0; elem < th_temperature.size(); ++elem)
     {
-        for (int j = 0; j < core_array.size(def::J); ++j)
-        {
-            for (int i = 0; i < core_array.size(def::I); ++i)
-            {
-                const auto& assbly_array = core_array.object(i,j,k);
-                for (int kk = 0; kk < assbly_array.size(def::K); ++kk)
-                {
-                    for (int jj = 0; jj < assbly_array.size(def::J); ++jj)
-                    {
-                        for (int ii = 0; ii < assbly_array.size(def::I); ++ii)
-                        {
-                            auto type = d_assembly->pin_type(ii,jj);
+        material_temperatures[d_matids[elem]] +=
+            d_vfracs[elem] * th_temperature[elem];
+    }
 
-                            // NOTE: By convention, RTK assemblies are built as
-                            // 2-D objects (1 axial level) with axial variation
-                            // handled at the core level.  Therefore, the RTK
-                            // object using the assembly axial index while the
-                            // SMRT model uses the core-level index.
-                            const auto& pin = assbly_array.object(ii, jj, kk);
-                            int region_id = d_assembly->index(ii, jj, k);
-
-                            if (type == Assembly_Model::FUEL)
-                            {
-                                // Change fuel temperature
-                                int fuel_mat = pin.matid(0);
-                                Check(fuel_mat < comps.size());
-                                comps[fuel_mat]->set_temperature(
-                                    fuel_temperature[region_id]);
-
-                                // Change coolant density
-                                int mod_mat  = pin.matid(pin.num_regions()-1);
-                                Check(mod_mat < comps.size());
-                                comps[mod_mat]->set_density(
-                                    coolant_density[region_id]);
-                            }
-                            else
-                            {
-                                // Change coolant density inside guide tube
-                                int inner_mod_mat  = pin.matid(0);
-                                Check(inner_mod_mat < comps.size());
-                                comps[inner_mod_mat]->set_density(
-                                    coolant_density[region_id]);
-
-                                // Change coolant density outside guide tube
-                                int outer_mod_mat  = pin.matid(
-                                    pin.num_regions()-1);
-                                Check(outer_mod_mat < comps.size());
-                                comps[outer_mod_mat]->set_density(
-                                    coolant_density[region_id]);
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    for (int matid = 0; matid < d_num_materials; ++matid)
+    {
+        if (material_temperatures[matid] > 0.0)
+            comps[matid]->set_temperature(material_temperatures[matid]);
     }
 
     // Rebuild problem (loading any new data needed and run transport
@@ -138,19 +96,81 @@ void Shift_Solver::solve(
         std::dynamic_pointer_cast<omnibus::Sequence_Shift>(sequence);
     const auto& tallies = shift_seq->tallies();
 
-    const auto& mesh_tallies = tallies.mesh_tallies();
-    for (const auto& tally : mesh_tallies)
+    const auto& cell_tallies = tallies.cell_tallies();
+    for (const auto& tally : cell_tallies)
     {
         if (tally->name() == d_power_tally_name)
         {
             // Tally results are volume-integrated,
-            // no need to weight with volume
+            // divide by volume to get specific power
             const auto& result = tally->result();
             auto mean = result.mean(0);
             Check(result.num_multipliers() == 1);
-            Check(mean.size() == power.size());
-            std::copy(mean.begin(), mean.end(), power.begin());
+
+            // Compute global sum for normalization
+            double total_power =
+                std::accumulate(mean.begin(), mean.end(), 0.0);
+
+            for (int cellid = 0; cellid < mean.size(); ++cellid)
+            {
+                Check(cellid < d_power_map.size());
+                const auto& elem_list = d_power_map[cellid];
+                double tally_volume = d_geometry->cell_volume(cellid);
+
+                for (const auto& elem : elem_list)
+                {
+                    Check(elem < power.size());
+                    power[elem] = mean[cellid] / tally_volume / total_power;
+                }
+            }
         }
+    }
+}
+//---------------------------------------------------------------------------//
+// Solve
+//---------------------------------------------------------------------------//
+void Shift_Solver::set_centroids_and_volumes(
+        const std::vector<stream::Position>& centroids,
+        const std::vector<double>&           volumes)
+{
+    d_matids.resize(centroids.size());
+    std::vector<int> cells(centroids.size());
+    for (int elem = 0; elem < centroids.size(); ++elem)
+    {
+        const auto&c = centroids[elem];
+        // Find geometric cell and corresponding material
+        cells[elem] = d_geometry->find_cell({c.x, c.y, c.z});
+        d_matids[elem] = d_geometry->matid(cells[elem]);
+    }
+
+    // Compute per-material volume
+    d_num_materials = d_driver->compositions().size();
+    d_num_shift_cells = d_geometry->num_cells();
+    d_power_map.resize(d_num_shift_cells);
+    std::vector<double> mat_volumes(d_num_materials, 0.0);
+    for (int elem = 0; elem < volumes.size(); ++elem)
+    {
+        int matid = d_matids[elem];
+        assert(matid < d_num_materials);
+        mat_volumes[matid] += volumes[elem];
+        d_power_map[cells[elem]].push_back(elem);
+    }
+
+    // Convert volumes to volume fractions
+    d_vfracs.resize(volumes.size());
+    for (int elem = 0; elem < volumes.size(); ++elem)
+    {
+        int matid = d_matids[elem];
+        d_vfracs[elem] = volumes[elem] / mat_volumes[matid];
+    }
+
+    int num_cells = d_geometry->num_cells();
+    std::vector<double> cell_volumes(num_cells, 0.0);
+    for (int elem = 0; elem < centroids.size(); ++elem)
+    {
+        const auto&c = centroids[elem];
+        int cell = d_geometry->find_cell({c.x, c.y, c.z});
+        cell_volumes[cell] += volumes[elem];
     }
 }
 
@@ -163,35 +183,33 @@ void Shift_Solver::add_power_tally(
 {
     Require(d_assembly);
     auto tally_pl = Teuchos::sublist(pl, "TALLY");
-    auto mesh_pl = Teuchos::sublist(tally_pl, "MESH");
+    auto cell_pl = Teuchos::sublist(tally_pl, "CELL");
 
+    using Array_Int = Teuchos::Array<int>;
     using Array_Dbl = Teuchos::Array<double>;
     using Array_Str = Teuchos::Array<std::string>;
 
-    if (!mesh_pl->isSublist("power"))
+    if (!cell_pl->isSublist("power"))
     {
         // If "power" tally doesn't exist, create it
-        auto power_pl = Teuchos::sublist(mesh_pl, "power");
+        auto power_pl = Teuchos::sublist(cell_pl, "power");
         power_pl->set("name", d_power_tally_name);
         power_pl->set("normalization", 1.0);
         power_pl->set("description", std::string("power tally"));
         Teuchos::Array<std::string> rxns(1, "fission");
         power_pl->set("reactions", rxns);
         power_pl->set("cycles", std::string("active"));
-        power_pl->set("type", std::string("grid"));
-        Array_Dbl x(d_assembly->x_edges().begin(),
-                    d_assembly->x_edges().end());
-        power_pl->set("x", x);
-        Array_Dbl y(d_assembly->y_edges().begin(),
-                    d_assembly->y_edges().end());
-        power_pl->set("y", y);
-        Array_Dbl z(z_edges.begin(), z_edges.end());
-        power_pl->set("z", z);
+        Array_Str cells(d_geometry->num_cells());
+        for (int cellid = 0; cellid < d_geometry->num_cells(); ++cellid)
+            cells[cellid] = std::to_string(cellid);
+        Array_Int counts(d_geometry->num_cells(), 1);
+        power_pl->set("union_cells",   cells);
+        power_pl->set("union_lengths", counts);
     }
     else
     {
         // If it exists, make sure it aligns with assembly
-        auto power_pl = Teuchos::sublist(mesh_pl, "power");
+        auto power_pl = Teuchos::sublist(cell_pl, "power");
         Validate(d_power_tally_name == power_pl->get<std::string>("name"),
                  "Incorrect power tally name");
         auto rxns = power_pl->get<Array_Str>("reactions");
