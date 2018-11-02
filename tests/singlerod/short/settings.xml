@@ -1,5 +1,6 @@
 <?xml version='1.0' encoding='utf-8'?>
 <settings>
+  <temperature_tolerance>300</temperature_tolerance>
   <run_mode>eigenvalue</run_mode>
   <particles>1000</particles>
   <batches>50</batches>
