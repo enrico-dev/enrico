@@ -29,9 +29,9 @@ Coupled_Solver::Coupled_Solver(std::shared_ptr<Assembly_Model> assembly,
     this->init_mpi_datatypes();
 
     // Allocate fields (on global T/H mesh for now)
-    d_temperatures.resize(d_th_num_global, 565.0);
-    d_densities.resize(d_th_num_global, 0.75);
-    d_powers.resize(d_th_num_global, 0.0);
+    d_temperatures.resize(d_th_num_local, 565.0);
+    d_densities.resize(d_th_num_local, 0.75);
+    d_powers.resize(d_th_num_local, 0.0);
 
     std::vector<Position> local_centroids(d_th_num_local);
     std::vector<double> local_volumes(d_th_num_local);
@@ -59,8 +59,8 @@ Coupled_Solver::Coupled_Solver(std::shared_ptr<Assembly_Model> assembly,
 
     // Register centroids and volumes with Shift
     d_shift_solver->set_centroids_and_volumes(
-        global_centroids,
-        global_volumes);
+        local_centroids,
+        local_volumes);
 }
 
 // Destructor

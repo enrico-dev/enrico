@@ -102,7 +102,7 @@ void Shift_Solver::solve(
         if (tally->name() == d_power_tally_name)
         {
             // Tally results are volume-integrated,
-            // divide by volume to get specific power
+            // divide by volume to get volumetric power
             const auto& result = tally->result();
             auto mean = result.mean(0);
             Check(result.num_multipliers() == 1);
@@ -125,19 +125,33 @@ void Shift_Solver::solve(
             }
         }
     }
+    for (int rank = 0; rank < nemesis::nodes(); ++rank)
+    {
+        if (rank == nemesis::node())
+        {
+            std::cout << "Power on " << rank << ": ";
+            for (auto val : power)
+                std::cout << val << " ";
+            std::cout << std::endl;
+        }
+        nemesis::global_barrier();
+    }
 }
 //---------------------------------------------------------------------------//
-// Solve
+// Register list of centroids and cell volumes from T/H solver
 //---------------------------------------------------------------------------//
 void Shift_Solver::set_centroids_and_volumes(
         const std::vector<stream::Position>& centroids,
         const std::vector<double>&           volumes)
 {
+    assert(centroids.size() == volumes.size());
+
     d_matids.resize(centroids.size());
     std::vector<int> cells(centroids.size());
     for (int elem = 0; elem < centroids.size(); ++elem)
     {
         const auto&c = centroids[elem];
+
         // Find geometric cell and corresponding material
         cells[elem] = d_geometry->find_cell({c.x, c.y, c.z});
         d_matids[elem] = d_geometry->matid(cells[elem]);
@@ -155,6 +169,9 @@ void Shift_Solver::set_centroids_and_volumes(
         mat_volumes[matid] += volumes[elem];
         d_power_map[cells[elem]].push_back(elem);
     }
+
+    // Perform global reduction of material volumes
+    //nemesis::global_sum(mat_volumes.data(), mat_volumes.size());
 
     // Convert volumes to volume fractions
     d_vfracs.resize(volumes.size());
