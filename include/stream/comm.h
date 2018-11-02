@@ -32,7 +32,7 @@ public:
   //! Block until all processes have reached this call
   //!
   //! \return Error value
-  int Barrier()
+  int Barrier() const
   {
     return MPI_Barrier(comm);
   }
@@ -46,7 +46,7 @@ public:
   //! \param[in] datatype Data type of buffer
   //! \param[in] root Rank of broadcast root
   //! \return Error value
-  int Bcast(void* buffer, int count, MPI_Datatype datatype, int root = 0)
+  int Bcast(void* buffer, int count, MPI_Datatype datatype, int root = 0) const
   {
     return MPI_Bcast(buffer, count, datatype, root, comm);
   }
@@ -65,7 +65,7 @@ public:
   //! \return Error value
   int Gather(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
              void* recvbuf, int recvcount, MPI_Datatype recvtype,
-             int root = 0)
+             int root = 0) const
   {
     return MPI_Gather(sendbuf, sendcount, sendtype, recvbuf, recvcount,
                       recvtype, root, comm);
@@ -88,7 +88,7 @@ public:
   //! \return Error value
   int Gatherv(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
               void* recvbuf, const int recvcounts[], const int displs[],
-              MPI_Datatype recvtype, int root = 0)
+              MPI_Datatype recvtype, int root = 0) const
   {
     return MPI_Gatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts,
                        displs, recvtype, root, comm);
@@ -106,7 +106,7 @@ public:
   //! \param[in] recvtype Data type of receive buffer elements
   //! \return
   int Allgather(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
-                void* recvbuf, int recvcount, MPI_Datatype recvtype) {
+                void* recvbuf, int recvcount, MPI_Datatype recvtype) const {
     return MPI_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
 
   }
