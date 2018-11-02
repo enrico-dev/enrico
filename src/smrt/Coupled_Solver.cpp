@@ -3,6 +3,8 @@
 
 #include "smrt/Coupled_Solver.h"
 #include "stream/nek_driver.h"
+#include "stream/error.h"
+#include "stream/nek_interface.h"
 
 namespace stream
 {
@@ -31,7 +33,7 @@ Coupled_Solver::Coupled_Solver(std::shared_ptr<Assembly_Model> assembly,
     // Allocate fields (on global T/H mesh for now)
     d_temperatures.resize(d_th_num_local, 565.0);
     d_densities.resize(d_th_num_local, 0.75);
-    d_powers.resize(d_th_num_local, 0.0);
+    d_powers.resize(d_th_num_local, power_norm);
 
     std::vector<Position> local_centroids(d_th_num_local);
     std::vector<double> local_volumes(d_th_num_local);
@@ -61,6 +63,23 @@ Coupled_Solver::Coupled_Solver(std::shared_ptr<Assembly_Model> assembly,
     d_shift_solver->set_centroids_and_volumes(
         local_centroids,
         local_volumes);
+
+    for (int rank = 0; rank < nemesis::nodes(); ++rank)
+    {
+        if (rank == nemesis::node())
+        {
+            std::cout << "Element counts on " << rank << ": ";
+            for (auto val : d_nek_solver->local_counts_)
+                std::cout << val << " ";
+            std::cout << std::endl;
+            std::cout << "Displacements on " << rank << ": ";
+            for (auto val : d_nek_solver->local_displs_)
+                std::cout << val << " ";
+            std::cout << std::endl;
+        }
+        nemesis::global_barrier();
+    }
+
 }
 
 // Destructor
@@ -71,9 +90,61 @@ Coupled_Solver::~Coupled_Solver()
 // Solve coupled problem by iterating between neutronics and T/H
 void Coupled_Solver::solve()
 {
-    d_nek_solver->solve_step();
+    // Loop to convergence or fixed iteration count
+    for (int iteration = 0; iteration < 3; ++iteration)
+    {
+        // Set heat source in Nek
+        for (int elem = 0; elem < d_th_num_local; ++elem)
+        {
+          err_chk(nek_set_heat_source(elem+1, d_powers[elem]),
+              "Error setting heat source for local element " +
+                  std::to_string(elem+1));
+        }
 
-    d_shift_solver->solve(d_temperatures, d_densities, d_powers);
+        // Solve Nek problem
+        d_nek_solver->solve_step();
+
+        // Get temperatures from Nek
+        for (int elem = 0; elem < d_th_num_local; ++elem)
+        {
+            // Normalization for incorrect Gauss point averaging
+            constexpr double nek_normalization = 1.0 / 200.0;
+            d_temperatures[elem] =
+                d_nek_solver->get_local_elem_temperature(elem+1) *
+                    nek_normalization;
+        }
+
+        for (int rank = 0; rank < nemesis::nodes(); ++rank)
+        {
+            if (rank == nemesis::node())
+            {
+                std::cout << "Temperature on " << rank << ": ";
+                for (auto val : d_temperatures)
+                    std::cout << val << " ";
+                std::cout << std::endl;
+            }
+            nemesis::global_barrier();
+        }
+
+        // Solve Shift problem
+        d_shift_solver->solve(d_temperatures, d_densities, d_powers);
+
+        // Normalize power (need to make this do full integration over mesh)
+        for (auto& val : d_powers)
+            val *= d_power_norm;
+
+        for (int rank = 0; rank < nemesis::nodes(); ++rank)
+        {
+            if (rank == nemesis::node())
+            {
+                std::cout << "Power on " << rank << ": ";
+                for (auto val : d_powers)
+                    std::cout << val << " ";
+                std::cout << std::endl;
+            }
+            nemesis::global_barrier();
+        }
+    }
 
     this->free_mpi_datatypes();
 }

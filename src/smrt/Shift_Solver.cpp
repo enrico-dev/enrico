@@ -80,6 +80,8 @@ void Shift_Solver::solve(
             d_vfracs[elem] * th_temperature[elem];
     }
 
+    nemesis::global_sum(material_temperatures.data(), d_num_materials);
+
     for (int matid = 0; matid < d_num_materials; ++matid)
     {
         if (material_temperatures[matid] > 0.0)
@@ -125,17 +127,6 @@ void Shift_Solver::solve(
             }
         }
     }
-    for (int rank = 0; rank < nemesis::nodes(); ++rank)
-    {
-        if (rank == nemesis::node())
-        {
-            std::cout << "Power on " << rank << ": ";
-            for (auto val : power)
-                std::cout << val << " ";
-            std::cout << std::endl;
-        }
-        nemesis::global_barrier();
-    }
 }
 //---------------------------------------------------------------------------//
 // Register list of centroids and cell volumes from T/H solver
@@ -171,7 +162,7 @@ void Shift_Solver::set_centroids_and_volumes(
     }
 
     // Perform global reduction of material volumes
-    //nemesis::global_sum(mat_volumes.data(), mat_volumes.size());
+    nemesis::global_sum(mat_volumes.data(), d_num_materials);
 
     // Convert volumes to volume fractions
     d_vfracs.resize(volumes.size());
