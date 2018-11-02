@@ -12,6 +12,7 @@ int main(int argc, char *argv[]) {
 
   MPI_Init(&argc, &argv);
 
+  {
   std::string shift_filename = "singlerod_short.inp.xml";
 
   // Build assembly model
@@ -30,7 +31,7 @@ int main(int argc, char *argv[]) {
   assembly->set_clad_radius(0.475);
   assembly->set_guide_radius(0.61214);
 
-  double power_norm = 350.0;
+  double power_norm = 1800.0;
   auto coupled_solver = std::make_shared<stream::Coupled_Solver>(
       assembly,
       z_edges,
@@ -40,6 +41,7 @@ int main(int argc, char *argv[]) {
       MPI_COMM_WORLD);
 
   coupled_solver->solve();
+  }
 
   MPI_Finalize();
 

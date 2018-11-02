@@ -129,9 +129,8 @@ void Coupled_Solver::solve()
         // Solve Shift problem
         d_shift_solver->solve(d_temperatures, d_densities, d_powers);
 
-        // Normalize power (need to make this do full integration over mesh)
-        for (auto& val : d_powers)
-            val *= d_power_norm;
+        // Apply power normalization
+        normalize_power();
 
         for (int rank = 0; rank < nemesis::nodes(); ++rank)
         {
@@ -152,6 +151,23 @@ void Coupled_Solver::solve()
 //
 // Private Implementation
 //
+
+// Apply power normalization
+void Coupled_Solver::normalize_power()
+{
+    double total_power = 0.0;
+    for (int elem = 0; elem < d_th_num_local; ++elem)
+    {
+        total_power += d_powers[elem] *
+            d_nek_solver->get_local_elem_volume(elem+1);
+    }
+    nemesis::global_sum(total_power);
+
+    // Apply normalization factor
+    double norm_factor = d_power_norm / total_power;
+    for (auto& val : d_powers)
+        val *= norm_factor;
+}
 
 // Set up MPI datatype
 // Currently, this sets up only position_mpi_datatype
