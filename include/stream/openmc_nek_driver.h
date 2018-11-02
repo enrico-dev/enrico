@@ -26,7 +26,7 @@ public:
   //!
   //! \param power Power in [W]
   //! \param coupled_comm An existing communicator for the coupled driver
-  OpenmcNekDriver(double power, MPI_Comm coupled_comm);
+  OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root);
 
   //! Frees any data structures that need manual freeing.
   ~OpenmcNekDriver();
@@ -37,11 +37,16 @@ public:
   //! Tranfsers temperatures from OpenMC to Nek5000
   void update_temperature();
 
+  //! Run one timstep
+  void solve_in_time();
+
   Comm comm_; //!< The communicator used to run this driver
   Comm intranode_comm_;  //!< The communicator reprsenting intranode ranks
   std::unique_ptr<OpenmcDriver> openmc_driver_;  //!< The OpenMC driver
   std::unique_ptr<NekDriver> nek_driver_;  //!< The Nek5000 driver
   double power_; //!< Power in [W]
+  int max_timesteps_; //! Maximum of timesteps
+  int max_picard_iter_; //! Maximum number of Picard iterations per timestep
 private:
 
   //! Initialize MPI datatypes (currently, only position_mpi_datatype)
