@@ -53,9 +53,6 @@ void OpenmcNekDriver::solve_in_time()
   for (int i_timestep = 0; i_timestep < max_timesteps_; ++i_timestep) {
     for (int i_picard = 0; i_picard < max_picard_iter_; ++i_picard) {
 
-      // debug
-      comm_.Barrier();
-
       if (openmc_driver_->active()) {
         openmc_driver_->init_step();
         openmc_driver_->solve_step();
@@ -65,9 +62,6 @@ void OpenmcNekDriver::solve_in_time()
 
       update_heat_source();
 
-      // debug
-      comm_.Barrier();
-
       if (nek_driver_->active()) {
         nek_driver_->init_step();
         nek_driver_->solve_step();
@@ -76,9 +70,6 @@ void OpenmcNekDriver::solve_in_time()
       comm_.Barrier();
 
       update_temperature();
-
-      // debug
-      comm_.Barrier();
     }
   }
 }
