@@ -7,7 +7,7 @@
     <Parameter name='level_4' type='TwoDArray(int)' value='1x1:{4}'/>
     <Parameter name='axial list' type='Array(string)' value='{level_0, level_1, level_2, level_3, level_4}'/>
     <Parameter name='axial height' type='Array(double)' value='{2.0, 2.0, 2.0, 2.0, 2.0}'/>
-    <Parameter name='corner' type='Array(double)' value='{0.0, 0.0, 0.0}'/>
+    <Parameter name='corner' type='Array(double)' value='{-0.63, -0.63, 0.0}'/>
     <Parameter name='boundary' type='string' value='reflect'/>"
     <ParameterList name='boundary_db'>
       <Parameter name='reflect' type='Array(int)' value='{1, 1, 1, 1, 1, 1}'/>"

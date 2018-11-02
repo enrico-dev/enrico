@@ -31,7 +31,7 @@ input "singlerod_comps.h5"
 [SOURCE=separable fission]
 
 [SOURCE][SHAPE=box]
-box 0.0 1.26 0.0 1.26 0.0 10.0
+box -0.63 0.63 -0.63 0.63 0.0 10.0
 
 [SOURCE][ENERGY=watt]
 
@@ -40,8 +40,8 @@ box 0.0 1.26 0.0 1.26 0.0 10.0
 [TALLY]
 
 [TALLY][MESH fissrc]
-x 0.0 1.26
-y 0.0 1.26
+x -0.63 0.63
+y -0.63 0.63
 z 0.0 9i 10.0
 reactions fission
 
@@ -55,8 +55,8 @@ npk 1000
 nk  20
 nik 10
 entropy_mesh manual
-x_entropy 0.0 1.26
-y_entropy 0.0 1.26
+x_entropy -0.63 0.63
+y_entropy -0.63 0.63
 z_entropy 0.0 9i 10.0
 
 !################################### POST ######################################
