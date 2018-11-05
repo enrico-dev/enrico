@@ -71,9 +71,6 @@ void OpenmcNekDriver::solve_in_time()
 
       update_temperature();
       update_density();
-
-      // debug
-      comm_.Barrier();
     }
   }
 }
