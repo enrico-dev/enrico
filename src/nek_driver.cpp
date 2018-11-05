@@ -139,6 +139,11 @@ bool NekDriver::global_elem_is_in_rank(int global_elem) const
   return (nek_global_elem_is_in_rank(global_elem, comm_.rank) == 1);
 }
 
+bool NekDriver::global_elem_is_in_fluid(int global_elem) const
+{
+  return (nek_global_elem_is_in_fluid(global_elem) == 1);
+}
+
 NekDriver::~NekDriver()
 {
   if (active())

@@ -100,6 +100,11 @@ public:
   //! \return True if the global element ID is in the given rank
   bool global_elem_is_in_rank(int global_elem) const;
 
+  //! Return true if a global element is in the fluid region
+  //! \param global_elem  A global element ID
+  //! \return 1 if the global element is in fluid; 0 otherwise
+  bool global_elem_is_in_fluid(int global_elem) const;
+
   //! Initialize the counts and displacements of local elements for each MPI Rank.
   void init_displs();
 
@@ -108,6 +113,7 @@ public:
   int lx1_; //!< polynomial order of the solution
   int nelgt_; //!< total number of mesh elements
   int nelt_; //!< number of local mesh elements
+  int nelgv; //!< number of fluid elements
 
   //! The number of local elements in each rank.
   std::vector<int> local_displs_;

@@ -87,9 +87,9 @@
         end function nek_get_global_elem_centroid
 
         !> Return true if a global element is in a given MPI rank
-        !> \param A global element ID
-        !> \param An MPI rank
-        !> \return True if the global element ID is in the given rank
+        !> \param global_elem A global element ID
+        !> \param rank An MPI rank
+        !> \return 1 if the global element ID is in the given rank; 0 otherwise
         function nek_global_elem_is_in_rank(global_elem, rank)
      $      result(result) bind(C)
           integer (C_INT), value :: global_elem, rank
@@ -100,6 +100,20 @@
             result = 0
           end if
         end function nek_global_elem_is_in_rank
+
+        !> Return true if a global element is in the fluid region
+        !> \param global_elem  A global element ID
+        !> \return 1 if the global element is in fluid; 0 otherwise
+        function nek_global_elem_is_in_fluid(global_elem)
+     &      result(result) bind(C)
+          integer (C_INT), value :: global_elem
+          integer (C_INT) :: result
+          if (global_elem <= nelgv) then
+            result = 1
+          else
+            result = 0
+          end if
+        end function nek_global_elem_is_in_fluid
 
         !> Get the volume of a local element
         !!
@@ -206,7 +220,7 @@
           c_lx1 = lx1
         end function nek_get_lx1
 
-        !> Get value of nelgt
+        !> Get value of nelgt (number of global elements)
         function nek_get_nelgt() result(c_nelgt) bind(C)
           integer(C_INT) :: c_nelgt
           c_nelgt = nelgt
