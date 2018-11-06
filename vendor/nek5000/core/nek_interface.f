@@ -101,6 +101,17 @@
           end if
         end function nek_global_elem_is_in_rank
 
+        !> Return true if a local element is in the fluid region
+        !> \param local_elem  A local element ID
+        !> \return 1 if the local element is in fluid; 0 otherwise
+        function nek_local_elem_is_in_fluid(local_elem)
+     &      result(result) bind(C)
+          integer(C_INT), value :: local_elem
+          integer(C_INT) :: result, global_elem
+          global_elem = lglel(local_elem)
+          result = nek_global_elem_is_in_fluid(global_elem)
+        end function nek_local_elem_is_in_fluid
+
         !> Return true if a global element is in the fluid region
         !> \param global_elem  A global element ID
         !> \return 1 if the global element is in fluid; 0 otherwise

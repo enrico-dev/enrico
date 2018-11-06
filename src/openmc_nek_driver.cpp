@@ -104,24 +104,31 @@ void OpenmcNekDriver::init_mappings()
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
 
   if (nek_driver_->active()) {
-    // Only the OpenMC procs get the global element centroids
+    // Only the OpenMC procs get the global element centroids/fluid-identities
     if (openmc_driver_->active()) {
       global_elem_centroids_.resize(n_global_elem_);
+      global_elem_is_in_fluid_.resize(n_global_elem_);
     }
-    // Step 1: Get global element centroids on all OpenMC ranks
-    // Each Nek proc finds the centroids of its local elements
+    // Step 1: Get global element centroids/fluid-identities on all OpenMC ranks
+    // Each Nek proc finds the centroids/fluid-identities of its local elements
     Position local_element_centroids[n_local_elem_];
+    int local_element_is_in_fluid[n_local_elem_];
     for (int i = 0; i < n_local_elem_; ++i) {
       local_element_centroids[i] = nek_driver_->get_local_elem_centroid(i+1);
+      local_element_is_in_fluid[i] = nek_driver_->local_elem_is_in_fluid(i+1);
     }
-    // Gather all the local element centroids on the Nek5000/OpenMC root
+    // Gather all the local element centroids/fluid-identities on the Nek5000/OpenMC root
     nek_driver_->comm_.Gatherv(local_element_centroids, n_local_elem_, position_mpi_datatype,
                               global_elem_centroids_.data(), nek_driver_->local_counts_.data(),
                               nek_driver_->local_displs_.data(), position_mpi_datatype);
-    // Broadcast global_element_centroids onto all the OpenMC procs
+    nek_driver_->comm_.Gatherv(local_element_is_in_fluid, n_local_elem_, MPI_INT,
+                               global_elem_is_in_fluid_.data(), nek_driver_->local_counts_.data(),
+                               nek_driver_->local_displs_.data(), MPI_INT);
+    // Broadcast global_element_centroids/fluid-identities onto all the OpenMC procs
     if (openmc_driver_->active()) {
       openmc_driver_->comm_.Bcast(global_elem_centroids_.data(), n_global_elem_,
                                  position_mpi_datatype);
+      openmc_driver_->comm_.Bcast(global_elem_is_in_fluid_.data(), n_global_elem_, MPI_INT);
     }
 
     // Step 2: Set element->material and material->element mappings
@@ -336,17 +343,27 @@ void OpenmcNekDriver::update_density()
         // Get corresponding global elements
         const auto& global_elems = mat_to_elems_.at(c.material_index_);
 
-        // Get volume-average densities for this material
-        double average_density = 0.0;
-        double total_vol = 0.0;
+        bool any_in_fluid = false;
         for (int elem : global_elems) {
-          average_density += global_elem_densities_[elem] * global_elem_volumes_[elem];
-          total_vol += global_elem_volumes_[elem];
+          if (global_elem_is_in_fluid_[elem] == 1) {
+            any_in_fluid = true;
+            break;
+          }
         }
-        average_density /= total_vol;
 
-        // Set densities for cell instance
-        c.set_density(average_density);
+        if (any_in_fluid) {
+          // Get volume-average densities for this material
+          double average_density = 0.0;
+          double total_vol = 0.0;
+          for (int elem : global_elems) {
+            average_density += global_elem_densities_[elem] * global_elem_volumes_[elem];
+            total_vol += global_elem_volumes_[elem];
+          }
+          average_density /= total_vol;
+
+          // Set densities for cell instance
+          c.set_density(average_density);
+        }
       }
     }
   }

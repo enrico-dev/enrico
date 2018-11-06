@@ -90,6 +90,11 @@ private:
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
   std::vector<Position> global_elem_centroids_;
 
+  //! States whether a global element is in the fluid region
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
+  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  std::vector<int> global_elem_is_in_fluid_;
+
   //! The dimensionless temperatures of Nek's global elements
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.

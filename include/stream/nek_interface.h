@@ -129,6 +129,11 @@ int nek_get_nelgt();
 //! \return True if the global element ID is in the given rank
 int nek_global_elem_is_in_rank(int global_elem, int rank);
 
+//! Return true if a local element is in the fluid region
+//! \param local_elem  A local element ID
+//! \return 1 if the local element is in fluid; 0 otherwise
+int nek_local_elem_is_in_fluid(int local_elem);
+
 //! Return true if a global element is in the fluid region
 //! \param global_elem  A global element ID
 //! \return 1 if the global element is in fluid; 0 otherwise
