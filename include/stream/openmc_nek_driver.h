@@ -67,6 +67,10 @@ private:
   //! Initialize global volume buffers for OpenMC ranks
   void init_volumes();
 
+  //! Allocate space for the global volume buffers in OpenMC ranks
+  //! Currently, the density values are uninitialized.
+  void init_densities();
+
   //! Get the heat index for a given OpenMC material
   //! \param mat_index An OpenMC material index
   //! \return The heat index
@@ -121,6 +125,10 @@ private:
   //! Number of Nek global elements across all ranks.
   //! Always equals nek_driver_.nelgt_.
   int n_global_elem_;
+
+  //! Number of fluid elements in Nek across all ranks
+  //! Always equals nek_driver_.nelgv_
+  int n_fluid_elem;
 
 };
 

@@ -35,12 +35,14 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root)
   // Determine number of local/global elements for each rank
   n_local_elem_ = nek_driver_->active() ? nek_driver_->nelt_ : 0;
   n_global_elem_ = nek_driver_->active() ? nek_driver_->nelgt_ : 0;
+  n_fluid_elem = nek_driver_->active() ? nek_driver_->nelgv : 0;
 
   init_mpi_datatypes();
   init_mappings();
   init_tallies();
   init_volumes();
   init_temperatures();
+  init_densities();
 };
 
 OpenmcNekDriver::~OpenmcNekDriver()
@@ -226,6 +228,17 @@ void OpenmcNekDriver::init_volumes()
     if (openmc_driver_->active()) {
       openmc_driver_->comm_.Bcast(global_elem_volumes_.data(), n_global_elem_, MPI_DOUBLE);
     }
+  }
+}
+
+void OpenmcNekDriver::init_densities()
+{
+  // TODO: This won't work if the Nek/OpenMC communicators are disjoint
+
+  // Only the OpenMC procs get space for the global densities
+  // Note that the values of the densities are not initialized!
+  if (nek_driver_->active() and openmc_driver_->active()) {
+    global_elem_densities_.resize(n_global_elem_);
   }
 }
 
