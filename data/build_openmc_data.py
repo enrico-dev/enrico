@@ -4,6 +4,7 @@ import glob
 from multiprocessing import Pool
 import os
 from pathlib import Path
+import tarfile
 import tempfile
 from urllib.parse import urljoin
 import warnings
@@ -36,6 +37,9 @@ files = [
     (base_endf, 'ENDF-B-VII.1-atomic_relax.zip', 'fddb6035e7f2b6931e51a58fc754bd10'),
     (base_endf, 'ENDF-B-VII.1-thermal_scatt.zip', 'fe590109dde63b2ec5dc228c7b8cab02')
 ]
+wmp_version = '1.1'
+wmp_base = f'https://github.com/mit-crpg/WMP_Library/releases/download/v{wmp_version}/'
+wmp_filename = f'WMP_Library_v{wmp_version}.tar.gz'
 
 temperatures = [293.6, 500.0, 750.0, 1000.0, 1250.0]
 pwd = Path.cwd()
@@ -105,6 +109,19 @@ with tempfile.TemporaryDirectory() as tmpdir:
         outfile = output_dir / 'photon' / f'{element}.h5'
         data.export_to_hdf5(outfile, 'w')
         library.register_file(outfile)
+
+    # =========================================================================
+    # WINDOWED MULTIPOLE DATA
+
+    # Download and extract data
+    download(urljoin(wmp_base, wmp_filename))
+    with tarfile.open(wmp_filename, 'r') as tgz:
+        tgz.extractall(output_dir)
+    os.rename(output_dir / 'WMP_Library', output_dir / 'wmp')
+
+    # Add multipole data to library
+    for f in sorted(glob.glob(f'{output_dir}/wmp/*.h5')):
+        library.register_file(f)
 
     library.export_to_xml(output_dir / 'cross_sections.xml')
 
