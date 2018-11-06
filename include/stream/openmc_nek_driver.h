@@ -126,10 +126,6 @@ private:
   //! Always equals nek_driver_.nelgt_.
   int n_global_elem_;
 
-  //! Number of fluid elements in Nek across all ranks
-  //! Always equals nek_driver_.nelgv_
-  int n_fluid_elem;
-
 };
 
 } // namespace stream

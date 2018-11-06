@@ -35,7 +35,6 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root)
   // Determine number of local/global elements for each rank
   n_local_elem_ = nek_driver_->active() ? nek_driver_->nelt_ : 0;
   n_global_elem_ = nek_driver_->active() ? nek_driver_->nelgt_ : 0;
-  n_fluid_elem = nek_driver_->active() ? nek_driver_->nelgv : 0;
 
   init_mpi_datatypes();
   init_mappings();
