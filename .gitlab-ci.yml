@@ -45,7 +45,6 @@ test_singlerod:nek5000:
   script:
     - cd tests/singlerod/short/openmc_nek5000
     - if [ -a rodcht.run01.gz ]; then gunzip -f rodcht.run01.gz ; fi
-    - echo -e "rodcht\n$(pwd)" > SESSION.NAME
     - mpirun -np 8 ../test_nek5000_singlerod
 
 test_singlerod:openmc:
@@ -74,7 +73,6 @@ test_singlerod:openmc_nek5000:
   script:
     - cd tests/singlerod/short/openmc_nek5000
     - if [ -a rodcht.run01.gz ]; then gunzip -f rodcht.run01.gz ; fi
-    - echo -e "rodcht\n$(pwd)" > SESSION.NAME
     - mpirun -np 8 ../stream
 
 test_singlerod:openmc_heat_surrogate:
