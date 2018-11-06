@@ -127,5 +127,11 @@ model.settings.source = openmc.Source(
         True
     )
 )
+model.settings.temperature = {
+    'default': 523.15,
+    'method': 'interpolation',
+    'range': (300.0, 1500.0),
+    'multipole': True
+}
 
 model.export_to_xml()

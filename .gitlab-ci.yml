@@ -1,3 +1,6 @@
+variables:
+  OPENMC_CROSS_SECTIONS: $CI_PROJECT_DIR/endf71_multitemp/cross_sections.xml
+
 stages:
   - setup
   - build_singlerod
@@ -8,7 +11,7 @@ download:cross_sections:
   variables:
     GIT_STRATEGY: clone
   script:
-    - wget https://anl.box.com/shared/static/a6sw2cep34wlz6b9i9jwiotaqoayxcxt.xz -O - | tar -C $CI_PROJECT_DIR -xvJ
+    - wget https://anl.box.com/shared/static/46osfq56h4bd68r6e6pbhupsk4gbnvj2.xz -O - | tar -C $CI_PROJECT_DIR -xvJ
 
 input_patch:nek5000:
   stage: setup
@@ -55,7 +58,6 @@ test_singlerod:openmc:
     - build_singlerod:stream
   variables:
     GIT_STRATEGY: none
-    OPENMC_CROSS_SECTIONS: $CI_PROJECT_DIR/nndc_hdf5/cross_sections.xml
     OMP_NUM_THREADS: 4
   script:
     - cd tests/singlerod/short/openmc_nek5000
@@ -69,7 +71,6 @@ test_singlerod:openmc_nek5000:
     - build_singlerod:stream
   variables:
     GIT_STRATEGY: none
-    OPENMC_CROSS_SECTIONS: $CI_PROJECT_DIR/nndc_hdf5/cross_sections.xml
     OMP_NUM_THREADS: 4
   script:
     - cd tests/singlerod/short/openmc_nek5000
@@ -83,7 +84,6 @@ test_singlerod:openmc_heat_surrogate:
     - build_singlerod:stream
   variables:
     GIT_STRATEGY: none
-    OPENMC_CROSS_SECTIONS: $CI_PROJECT_DIR/nndc_hdf5/cross_sections.xml
     OMP_NUM_THREADS: 4
   script:
     - cd tests/singlerod/short/openmc_heat_surrogate
