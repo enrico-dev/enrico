@@ -24,13 +24,14 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root)
   intranode_comm_ = Comm(intranode_comm);
 
   // Get parameters from stream.xml
+  pugi::xml_node nek_node = xml_root.child("nek5000");
   power_ = xml_root.child("power").text().as_double();
   max_timesteps_ = xml_root.child("max_timesteps").text().as_int();
   max_picard_iter_ = xml_root.child("max_picard_iter").text().as_int();
 
   // Instantiate OpenMC and Nek drivers
   openmc_driver_ = std::make_unique<OpenmcDriver>(openmc_comm);
-  nek_driver_ = std::make_unique<NekDriver>(coupled_comm);
+  nek_driver_ = std::make_unique<NekDriver>(coupled_comm, nek_node);
 
   // Determine number of local/global elements for each rank
   n_local_elem_ = nek_driver_->active() ? nek_driver_->nelt_ : 0;
