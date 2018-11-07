@@ -31,11 +31,14 @@ public:
   //! Frees any data structures that need manual freeing.
   ~OpenmcNekDriver();
 
-  //! Transfers heat source terms from Nek5000 to OpenMC
+  //! Transfers heat source terms from OpenMC to Nek5000
   void update_heat_source();
 
-  //! Tranfsers temperatures from OpenMC to Nek5000
+  //! Transfers temperatures from Nek5000 to OpenMC
   void update_temperature();
+
+  //! Transfers densities from Nek5000 to OpenMC
+  void update_density();
 
   //! Run one timstep
   void solve_in_time();
@@ -64,6 +67,10 @@ private:
   //! Initialize global volume buffers for OpenMC ranks
   void init_volumes();
 
+  //! Allocate space for the global volume buffers in OpenMC ranks
+  //! Currently, the density values are uninitialized.
+  void init_densities();
+
   //! Get the heat index for a given OpenMC material
   //! \param mat_index An OpenMC material index
   //! \return The heat index
@@ -83,6 +90,11 @@ private:
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
   std::vector<Position> global_elem_centroids_;
 
+  //! States whether a global element is in the fluid region
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
+  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  std::vector<int> global_elem_is_in_fluid_;
+
   //! The dimensionless temperatures of Nek's global elements
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
@@ -92,6 +104,11 @@ private:
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
   std::vector<double> global_elem_volumes_;
+
+  //! The dimensionless densities of Nek's global elements
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
+  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  std::vector<double> global_elem_densities_;
 
   //! Map that gives a list of Nek element global indices for a given OpenMC material index
   std::unordered_map<int32_t, std::vector<int>> mat_to_elems_;

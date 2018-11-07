@@ -87,9 +87,9 @@
         end function nek_get_global_elem_centroid
 
         !> Return true if a global element is in a given MPI rank
-        !> \param A global element ID
-        !> \param An MPI rank
-        !> \return True if the global element ID is in the given rank
+        !> \param global_elem A global element ID
+        !> \param rank An MPI rank
+        !> \return 1 if the global element ID is in the given rank; 0 otherwise
         function nek_global_elem_is_in_rank(global_elem, rank)
      $      result(result) bind(C)
           integer (C_INT), value :: global_elem, rank
@@ -100,6 +100,31 @@
             result = 0
           end if
         end function nek_global_elem_is_in_rank
+
+        !> Return true if a local element is in the fluid region
+        !> \param local_elem  A local element ID
+        !> \return 1 if the local element is in fluid; 0 otherwise
+        function nek_local_elem_is_in_fluid(local_elem)
+     &      result(result) bind(C)
+          integer(C_INT), value :: local_elem
+          integer(C_INT) :: result, global_elem
+          global_elem = lglel(local_elem)
+          result = nek_global_elem_is_in_fluid(global_elem)
+        end function nek_local_elem_is_in_fluid
+
+        !> Return true if a global element is in the fluid region
+        !> \param global_elem  A global element ID
+        !> \return 1 if the global element is in fluid; 0 otherwise
+        function nek_global_elem_is_in_fluid(global_elem)
+     &      result(result) bind(C)
+          integer (C_INT), value :: global_elem
+          integer (C_INT) :: result
+          if (global_elem <= nelgv) then
+            result = 1
+          else
+            result = 0
+          end if
+        end function nek_global_elem_is_in_fluid
 
         !> Get the volume of a local element
         !!
@@ -129,7 +154,6 @@
           integer(C_INT), intent(in), value :: local_elem
           real(C_DOUBLE), intent(out) :: temperature
           integer(C_INT) :: ierr
-          integer :: k
 
           if (local_elem <= nelt) then
             temperature = sum(vtrans(1:nx1,1:ny1,1:nz1,local_elem,2)
@@ -142,6 +166,30 @@
             ierr = 1
           end if
         end function nek_get_local_elem_temperature
+
+        !> Get the density of a local element
+        !!
+        !! The units of the density are dimensionless and must be interpreted based on the
+        !! setup of the Nek5000
+        !!
+        !! \param[in] local_elem A local element ID
+        !! \param[out] density The dimensionless density of the local element
+        !! \result Error code
+        function nek_get_local_elem_density(local_elem, density)
+     &      result(ierr) bind(C)
+          integer(C_INT), intent(in), value :: local_elem
+          real(C_DOUBLE), intent(out) :: density
+          integer(C_INT) :: ierr
+
+          if (local_elem <= nelt) then
+            density = sum(vtrans(1:nx1,1:ny1,1:nz1,local_elem,1)
+     &                    * bm1(1:nx1,1:ny1,1:nz1,local_elem))
+     &                / sum(bm1(1:nx1,1:ny1,1:nz1,local_elem))
+            ierr = 0
+          else
+            ierr = 1
+          end if
+        end function
 
         !> Get the global element ID for a given local element
         !>
@@ -183,7 +231,7 @@
           c_lx1 = lx1
         end function nek_get_lx1
 
-        !> Get value of nelgt
+        !> Get value of nelgt (number of global elements)
         function nek_get_nelgt() result(c_nelgt) bind(C)
           integer(C_INT) :: c_nelgt
           c_nelgt = nelgt

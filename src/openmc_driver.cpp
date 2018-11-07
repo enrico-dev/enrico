@@ -96,7 +96,13 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power)
   return heat;
 }
 
-void OpenmcDriver::init_step() { err_chk(openmc_simulation_init()); }
+void OpenmcDriver::init_step()
+{
+  err_chk(openmc_simulation_init());
+  // TODO: OpenMC should properly reset tallies/realizations when initializing a
+  // simulation
+  err_chk(openmc_reset());
+}
 
 void OpenmcDriver::solve_step() { err_chk(openmc_run()); }
 

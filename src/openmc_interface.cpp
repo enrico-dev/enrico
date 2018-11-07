@@ -41,4 +41,9 @@ void CellInstance::set_temperature(double T) const
   err_chk(openmc_cell_set_temperature(index_, T, &instance_));
 }
 
+void CellInstance::set_density(double rho) const
+{
+  err_chk(openmc_material_set_density(material_index_, rho));
+}
+
 } // namespace stream
