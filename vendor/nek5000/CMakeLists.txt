@@ -5,7 +5,7 @@ project(Nek5000 Fortran C)
 # Configure options
 # =============================================================================
 
-option(CASENAME    "Name of problem case (.usr and .rea files)")
+option(USR_LOC     "Name of problem case (.usr and .rea files)")
 option(MPI         "Use MPI (default: ON)"                          ON)
 option(PROFILING   "Use internal profiling (default: ON)"           ON)
 option(NOMPIIO     "Deactivate MPI-IO support (default: OFF)"       OFF)
@@ -18,20 +18,32 @@ option(NEKNEK      "Add underscore to exit() (default: OFF)"        OFF)
 option(NEKNEK      "USE overlapping mesh solver (default: OFF)"     OFF)
 option(CMTNEK      "Use DG compressible-flow solver (default: OFF)" OFF)
 
-if(NOT CASENAME)
-  # If no CASENAME was specified, try to find one in working directory by
-  # checking whether there are any .usr files
-  file(GLOB usr_files "${CMAKE_BINARY_DIR}/*.usr")
+if (NOT USR_LOC)
+  set(USR_LOC "${CMAKE_BINARY_DIR}")
+  message(STATUS "Nek5000 was not provided with -DUSR_LOC.  Attempting to find .usr files in ${USR_LOC}")
+endif()
+
+if (USR_LOC MATCHES ".*\.usr")
+  message(STATUS "USR_LOC is ${USR_LOC}")
+  get_filename_component(CASENAME "${USR_LOC}" NAME_WE)
+  get_filename_component(CASEDIR "${USR_LOC}" DIRECTORY)
+else()
+  message(STATUS "USR_LOC is ${USR_LOC}")
+  file(GLOB usr_files "${USR_LOC}/*.usr")
   if (usr_files)
     list(GET usr_files 0 first_usr_file)
     get_filename_component(CASENAME "${first_usr_file}" NAME_WE)
-    message(STATUS "A Nek5000 case was not specified, but the '${CASENAME}' case was found.")
+	  set(CASEDIR "${USR_LOC}")
     unset(first_usr_file)
   else ()
     set(CASENAME zero)
-    message(WARNING "A Nek5000 case was *NOT* provided with '-DCASENAME=<casename>'.  Nek5000 will be configured with a generic input deck.'")
+    set(CASEDIR "${CMAKE_CURRENT_LIST_DIR}")
+    message(WARNING "A Nek5000 case was *NOT* provided with '-DUSR_LOC'.  Nek5000 will be configured with a generic input deck.'")
   endif()
 endif()
+
+get_filename_component(CASEDIR ABSOLUTE "${CASEDIR}")
+message(STATUS "Nek5000 configured with '${CASENAME}.usr' found in ${CASEDIR}")
 
 # =============================================================================
 # Compiler Options
@@ -90,17 +102,13 @@ add_subdirectory(3rd_party/gslib/gslib-1.0.1/)
 # =============================================================================
 
 # Create <casename>.f from <casename>.usr
-if (CASENAME STREQUAL "zero")
-  set(USR_SOURCE ${CMAKE_CURRENT_LIST_DIR}/zero.f)
-else()
-  set(USR_SOURCE ${CMAKE_CURRENT_BINARY_DIR}/${CASENAME}.f)
-endif()
+set(USR_SOURCE ${CMAKE_CURRENT_BINARY_DIR}/${CASENAME}.f)
 ADD_CUSTOM_COMMAND(
     OUTPUT ${USR_SOURCE}
     COMMAND ${CMAKE_COMMAND}
-    -DCASENAME=${CASENAME} -DINFILE_DIR=${CMAKE_BINARY_DIR} -DOUTFILE_DIR=${CMAKE_CURRENT_BINARY_DIR}
+    -DCASENAME=${CASENAME} -DINFILE_DIR=${CASEDIR} -DOUTFILE_DIR=${CMAKE_CURRENT_BINARY_DIR}
     -P ${CMAKE_CURRENT_LIST_DIR}/core/mkuserfile.cmake
-    DEPENDS ${CMAKE_BINARY_DIR}/${CASENAME}.usr
+    DEPENDS ${CASEDIR}/${CASENAME}.usr
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
 )
 
