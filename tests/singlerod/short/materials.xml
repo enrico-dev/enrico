@@ -1,12 +1,15 @@
 <?xml version='1.0' encoding='utf-8'?>
 <materials>
-  <material id="2" name="Zircaloy" volume="0.04259135700288022">
-    <density units="g/cm3" value="4.5" />
-    <nuclide ao="0.5145" name="Zr90" />
-    <nuclide ao="0.1122" name="Zr91" />
-    <nuclide ao="0.1715" name="Zr92" />
-    <nuclide ao="0.1738" name="Zr94" />
-    <nuclide ao="0.028" name="Zr96" />
+  <material id="2" name="M5" volume="0.04259135700288022">
+    <density units="g/cm3" value="6.494" />
+    <nuclide ao="0.508660425" name="Zr90" />
+    <nuclide ao="0.11092653" name="Zr91" />
+    <nuclide ao="0.169553475" name="Zr92" />
+    <nuclide ao="0.17182737" name="Zr94" />
+    <nuclide ao="0.0276822" name="Zr96" />
+    <nuclide ao="0.01" name="Nb93" />
+    <nuclide ao="0.0013494883500000002" name="O16" />
+    <nuclide ao="5.1165e-07" name="O17" />
   </material>
   <material depletable="true" id="4" name="UO2" volume="0.005178475666471272">
     <density units="g/cm3" value="10.5312" />
@@ -459,70 +462,70 @@
     <nuclide ao="0.000758" name="O17" />
   </material>
   <material id="54" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="55" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="56" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="57" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="58" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="59" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="60" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="61" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="62" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="63" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
@@ -979,70 +982,70 @@
     <nuclide ao="0.000758" name="O17" />
   </material>
   <material id="114" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="115" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="116" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="117" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="118" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="119" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="120" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="121" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="122" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="123" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
@@ -1499,70 +1502,70 @@
     <nuclide ao="0.000758" name="O17" />
   </material>
   <material id="174" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="175" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="176" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="177" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="178" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="179" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="180" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="181" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="182" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="183" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
@@ -2019,70 +2022,70 @@
     <nuclide ao="0.000758" name="O17" />
   </material>
   <material id="234" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="235" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="236" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="237" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="238" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="239" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="240" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="241" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="242" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />
     <sab name="c_H_in_H2O" />
   </material>
   <material id="243" name="Water" volume="0.21969453938345077">
-    <density units="sum" />
+    <density units="g/cm3" value="0.7531966089109314" />
     <nuclide ao="2.0" name="H1" />
     <nuclide ao="0.999621" name="O16" />
     <nuclide ao="0.000379" name="O17" />

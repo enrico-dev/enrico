@@ -30,20 +30,30 @@ else:
 # Create materials
 uo2_density = 10.97
 percent_td = 0.96
-
 uo2 = openmc.Material(name='UO2')
 uo2.add_element('U', 1.0, enrichment=4.95)
 uo2.add_element('O', 2.0)
 uo2.set_density('g/cm3', uo2_density*percent_td)
 
-zirc = openmc.Material(name='Zircaloy')
-zirc.add_element('Zr', 1.0)
-zirc.set_density('g/cm3', 4.5)
+m5_niobium = 0.01    # http://publications.jrc.ec.europa.eu/repository/bitstream/JRC100644/lcna28366enn.pdf
+m5_oxygen = 0.00135  # http://publications.jrc.ec.europa.eu/repository/bitstream/JRC100644/lcna28366enn.pdf
+m5_density = 6.494   # 10.1039/C5DT03403E
+m5 = openmc.Material(name='M5')
+m5.add_element('Zr', 1.0 - m5_niobium - m5_oxygen)
+m5.add_element('Nb', m5_niobium)
+m5.add_element('O', m5_oxygen)
+m5.set_density('g/cm3', m5_density)
 
+# NuScale DCA, Ch. 4, Table 4.1-1
+psia = 0.0068947572931683625  # MPa
+system_pressure = 1850*psia
+core_avg_temperature = (543 - 32)*5/9 + 273.15  # K
+water_density = openmc.data.water_density(core_avg_temperature, system_pressure)
 water = openmc.Material(name='Water')
 water.add_nuclide('H1', 2.0)
 water.add_element('O', 1.0)
 water.add_s_alpha_beta('c_H_in_H2O')
+water.set_density('g/cm3', water_density)
 
 # Create cylinders
 radii = np.linspace(0., fuel_or, args.rings + 1)
@@ -77,7 +87,7 @@ for wedge in xy_bounds:
     cells.append(gap)
 
     clad_annulus = +clad_inner & -clad_outer
-    clad = openmc.Cell(fill=zirc, region=clad_annulus & wedge)
+    clad = openmc.Cell(fill=m5, region=clad_annulus & wedge)
     clad.fill.volume = pi/4*(clad_or**2 - clad_ir**2)
     cells.append(clad)
 
