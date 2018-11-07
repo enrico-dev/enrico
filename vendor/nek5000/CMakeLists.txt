@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.3 FATAL_ERROR)
+cmake_minimum_required(VERSION 3.4 FATAL_ERROR)
 project(Nek5000 Fortran C)
 
 # =============================================================================
@@ -24,7 +24,11 @@ if (NOT USR_LOC)
 endif()
 
 if (USR_LOC MATCHES ".*\.usr")
+  get_filename_component(USR_LOC "${USR_LOC}" ABSOLUTE BASE_DIR "${CMAKE_BINARY_DIR}")
   message(STATUS "USR_LOC is ${USR_LOC}")
+  if (NOT EXISTS "${USR_LOC}")
+    message(FATAL_ERROR "Could not locate Nek5000 .usr file at -DUSR_LOC='${USR_LOC}'")
+  endif()
   get_filename_component(CASENAME "${USR_LOC}" NAME_WE)
   get_filename_component(CASEDIR "${USR_LOC}" DIRECTORY)
 else()
@@ -42,7 +46,7 @@ else()
   endif()
 endif()
 
-get_filename_component(CASEDIR ABSOLUTE "${CASEDIR}")
+#get_filename_component(CASEDIR ABSOLUTE "${CASEDIR}")
 message(STATUS "Nek5000 configured with '${CASENAME}.usr' found in ${CASEDIR}")
 
 # =============================================================================
@@ -74,7 +78,7 @@ endif()
 # =============================================================================
 
 # Nek5000
-include_directories(${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR} core)
+include_directories(${CASEDIR} ${CMAKE_BINARY_DIR} ${CMAKE_CURRENT_BINARY_DIR} core)
 # TODO: Make mpif.h a proper dependency
 if(MPI)
   file(REMOVE ${CMAKE_CURRENT_BINARY_DIR}/mpif.h)
