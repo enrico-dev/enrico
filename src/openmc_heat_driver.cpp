@@ -4,6 +4,7 @@
 
 #include <gsl/gsl>
 #include "openmc/constants.h"
+#include "xtensor/xstrided_view.hpp"
 
 #include <cmath>
 #include <unordered_map>
@@ -13,8 +14,10 @@ namespace stream {
 OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
   : comm_{comm}
 {
-  // Get power in [W]
+  // Get coupling parameters
   power_ = node.child("power").text().as_double();
+  max_timesteps_ = node.child("max_timesteps").text().as_int();
+  max_picard_iter_ = node.child("max_picard_iter").text().as_int();
 
   // Initialize OpenMC and surrogate heat drivers
   openmc_driver_ = std::make_unique<OpenmcDriver>(comm);
@@ -31,9 +34,11 @@ void OpenmcHeatDriver::init_mappings()
 {
   using openmc::PI;
 
+  int nrings = heat_driver_->n_fuel_rings_;
+  const auto& radii = heat_driver_->r_grid_fuel_;
   const auto& centers = heat_driver_->pin_centers_;
   const auto& z = heat_driver_->z_;
-  auto nz = z.size() - 1;
+  auto nz = heat_driver_->n_axial_;
   auto npins = centers.shape()[0];
 
   std::unordered_map<int32_t, int> tracked;
@@ -46,8 +51,6 @@ void OpenmcHeatDriver::init_mappings()
       double zavg = 0.5*(z(j) + z(j + 1));
 
       // Loop over radial rings
-      int nrings = heat_driver_->n_fuel_rings_;
-      const auto& radii = heat_driver_->r_grid_fuel_;
       for (int k = 0; k < nrings; ++k) {
         double ravg = 0.5*(radii(k) + radii(k + 1));
 
@@ -70,7 +73,7 @@ void OpenmcHeatDriver::init_mappings()
           ring_to_cell_inst_[ring_index].push_back(array_index);
         }
 
-      ++ring_index;
+        ++ring_index;
       }
     }
   }
@@ -90,23 +93,30 @@ void OpenmcHeatDriver::init_tallies()
 
 void OpenmcHeatDriver::solve_step()
 {
-  // Solve neutron transport
-  if (openmc_driver_->active()) {
-    openmc_driver_->solve_step();
+  for (int i_timestep = 0; i_timestep < max_timesteps_; ++i_timestep) {
+    for (int i_picard = 0; i_picard < max_picard_iter_; ++i_picard) {
+
+      // Solve neutron transport
+      if (openmc_driver_->active()) {
+        openmc_driver_->init_step();
+        openmc_driver_->solve_step();
+        openmc_driver_->finalize_step();
+      }
+      comm_.Barrier();
+
+      // Update heat source
+      update_heat_source();
+
+      // Solve heat equation
+      if (heat_driver_->active()) {
+        heat_driver_->solve_step();
+      }
+      comm_.Barrier();
+
+      // Update temperature in OpenMC
+      update_temperature();
+    }
   }
-  comm_.Barrier();
-
-  // Update heat source
-  update_heat_source();
-
-  // Solve heat equation
-  if (heat_driver_->active()) {
-    heat_driver_->solve_step();
-  }
-  comm_.Barrier();
-
-  // Update temperature in OpenMC
-  update_temperature();
 }
 
 void OpenmcHeatDriver::update_heat_source()
@@ -143,7 +153,39 @@ void OpenmcHeatDriver::update_heat_source()
 
 void OpenmcHeatDriver::update_temperature()
 {
+  int nrings = heat_driver_->n_fuel_rings_;
+  const auto& radii = heat_driver_->r_grid_fuel_;
 
+  // The temperatures array normally has three dimensions, but the mapping we
+  // have gives a flattened index, so we need to get a flattened view of the
+  // temperature array
+  auto temperature = xt::flatten(heat_driver_->temperature_);
+
+  // For each OpenMC material, volume average temperatures and set
+  for (int i = 0; i < openmc_driver_->cells_.size(); ++i) {
+    // Get cell instance
+    const auto& c = openmc_driver_->cells_[i];
+
+    // Get rings corresponding to this cell instance
+    const auto& rings = cell_inst_to_ring_[i];
+
+    // Get volume-average temperature for this material
+    double average_temp = 0.0;
+    double total_vol = 0.0;
+    for (int ring_index : rings) {
+      // Use difference in r**2 as a proxy for volume. This is only used for
+      // averaging, so the absolute value doesn't matter
+      int i = ring_index % nrings;
+      double vol = radii(i+1)*radii(i+1) - radii(i)*radii(i);
+
+      average_temp += temperature(ring_index) * vol;
+      total_vol += vol;
+    }
+    average_temp /= total_vol;
+
+    // Set temperature for cell instance
+    c.set_temperature(average_temp);
+  }
 }
 
 } // namespace stream
