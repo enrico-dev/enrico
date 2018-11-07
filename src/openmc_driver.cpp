@@ -52,15 +52,13 @@ xt::xtensor<double, 3> OpenmcDriver::tally_results()
 
   // Get tally results and number of realizations
   double* results;
-  int shape_int[3];
-  err_chk(openmc_tally_results(index_tally_, &results, shape_int));
+  std::array<std::size_t, 3> shape;
+  err_chk(openmc_tally_results(index_tally_, &results, shape.data()));
   int32_t m;
   err_chk(openmc_tally_get_n_realizations(index_tally_, &m));
 
-  // Determine shape and size
-  // TODO: Change the order of shape in OpenMC itself so we don't have to reverse it here
-  std::vector<int> shape {shape_int[2], shape_int[1], shape_int[0]};
-  int size {shape_int[0] * shape_int[1] * shape_int[2]};
+  // Determine size
+  std::size_t size {shape[0] * shape[1] * shape[2]};
 
   // Adapt array into xtensor with no ownership
   return xt::adapt(results, size, xt::no_ownership(), shape);
