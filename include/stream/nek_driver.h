@@ -118,7 +118,6 @@ public:
   int lx1_; //!< polynomial order of the solution
   int nelgt_; //!< total number of mesh elements
   int nelt_; //!< number of local mesh elements
-  int nelgv; //!< number of fluid elements
 
   //! The number of local elements in each rank.
   std::vector<int> local_displs_;
