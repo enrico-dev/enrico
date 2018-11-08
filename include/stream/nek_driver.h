@@ -7,6 +7,7 @@
 #include "mpi.h"
 #include "geom.h"
 
+#include <string>
 #include <vector>
 #include <pugixml.hpp>
 

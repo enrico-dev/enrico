@@ -6,7 +6,7 @@
 #include <string>
 #include <fstream>
 #include <climits>
-#include "unistd.h"
+#include <unistd.h>
 
 namespace stream {
 
@@ -17,7 +17,7 @@ NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node) : HeatFluidsDriver(comm
   lx1_ = nek_get_lx1();
 
   if (active()) {
-    casename_= std::string{node.child_value("casename")};
+    casename_= node.child_value("casename");
     if (comm_.rank == 0) {
       init_session_name();
     }
