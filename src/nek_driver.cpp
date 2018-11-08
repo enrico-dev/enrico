@@ -4,16 +4,24 @@
 #include "stream/error.h"
 
 #include <string>
+#include <fstream>
+#include <climits>
+#include <unistd.h>
 
 namespace stream {
 
-NekDriver::NekDriver(MPI_Comm comm) : HeatFluidsDriver(comm)
+NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node) : HeatFluidsDriver(comm)
 {
   lelg_ = nek_get_lelg();
   lelt_ = nek_get_lelt();
   lx1_ = nek_get_lx1();
 
   if (active()) {
+    casename_ = node.child_value("casename");
+    if (comm_.rank == 0) {
+      init_session_name();
+    }
+
     MPI_Fint int_comm = MPI_Comm_c2f(comm_.comm);
     C2F_nek_init(static_cast<const int*>(&int_comm));
 
@@ -72,6 +80,16 @@ NekDriver::NekDriver(MPI_Comm comm) : HeatFluidsDriver(comm)
 //     }
 //   }
 // }
+
+void NekDriver::init_session_name() {
+  char path_buffer[PATH_MAX];
+  err_chk(getcwd(path_buffer, PATH_MAX) == path_buffer ? 0 : -1,
+      "Error writing SESSION.NAME in NekDriver");
+
+  std::ofstream session_name("SESSION.NAME");
+  session_name << casename_ << std::endl << path_buffer << std::endl;
+  session_name.close();
+}
 
 void NekDriver::init_displs() {
   if(active()) {

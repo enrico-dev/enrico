@@ -7,7 +7,9 @@
 #include "mpi.h"
 #include "geom.h"
 
+#include <string>
 #include <vector>
+#include <pugixml.hpp>
 
 namespace stream {
 
@@ -21,12 +23,14 @@ public:
   //! from Nek5000 and uses them to set the corresponding attributes in NekDriver.
   //!
   //! \param comm  The MPI communicator used to initialze Nek5000
-  explicit NekDriver(MPI_Comm comm);
+  explicit NekDriver(MPI_Comm comm, pugi::xml_node xml_root);
 
   //! Finalizes Nek5000.
   //!
   //! A wrapper for the nek_end() routine in Nek5000.
   ~NekDriver();
+
+  void init_session_name();
 
   //! Does nothing; its functionality is not necessary for NekDriver.
   //!
@@ -113,6 +117,7 @@ public:
   //! Initialize the counts and displacements of local elements for each MPI Rank.
   void init_displs();
 
+  std::string casename_; //!< Nek5000 casename (name of .rea file)
   int lelg_; //!< upper bound on number of mesh elements
   int lelt_; //!< upper bound on number of mesh elements per rank
   int lx1_; //!< polynomial order of the solution

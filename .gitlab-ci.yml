@@ -29,8 +29,9 @@ build_singlerod:stream:
     CXX: mpicxx
     FC: mpif90
   script:
-    - cd tests/singlerod/short
-    - cmake ../../../
+    - mkdir -p tests/singlerod/short/build
+    - cd tests/singlerod/short/build
+    - cmake -DUSR_LOC=../ ../../../..
     - make -j -l4 stream
     - make -j -l4 test_nek5000_singlerod
     - make -j -l4 test_openmc_singlerod
@@ -45,8 +46,7 @@ test_singlerod:nek5000:
   script:
     - cd tests/singlerod/short/openmc_nek5000
     - if [ -a rodcht.run01.gz ]; then gunzip -f rodcht.run01.gz ; fi
-    - echo -e "rodcht\n$(pwd)" > SESSION.NAME
-    - mpirun -np 8 ../test_nek5000_singlerod
+    - mpirun -np 8 ../build/test_nek5000_singlerod
 
 test_singlerod:openmc:
   stage: test_singlerod
@@ -59,7 +59,7 @@ test_singlerod:openmc:
     OMP_NUM_THREADS: 4
   script:
     - cd tests/singlerod/short/openmc_nek5000
-    - mpirun -np 2 ../test_openmc_singlerod
+    - mpirun -np 2 ../build/test_openmc_singlerod
 
 test_singlerod:openmc_nek5000:
   stage: test_singlerod
@@ -74,8 +74,7 @@ test_singlerod:openmc_nek5000:
   script:
     - cd tests/singlerod/short/openmc_nek5000
     - if [ -a rodcht.run01.gz ]; then gunzip -f rodcht.run01.gz ; fi
-    - echo -e "rodcht\n$(pwd)" > SESSION.NAME
-    - mpirun -np 8 ../stream
+    - mpirun -np 8 ../build/stream
 
 test_singlerod:openmc_heat_surrogate:
   stage: test_singlerod
@@ -88,4 +87,4 @@ test_singlerod:openmc_heat_surrogate:
     OMP_NUM_THREADS: 4
   script:
     - cd tests/singlerod/short/openmc_heat_surrogate
-    - mpirun -np 2 ../stream
+    - mpirun -np 2 ../build/stream
