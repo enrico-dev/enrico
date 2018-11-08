@@ -22,11 +22,12 @@ CellInstance::CellInstance(Position position)
   err_chk(openmc_cell_get_fill(index_, &type, &indices, &n));
 
   // TODO: Right now get_fill returns 0-based indices, but the tally interface
-  // expects 1-based. Once tallies move to 0-based, change this.
+  // and material API calls expects 1-based. Once those move to 0-based, change
+  // this.
   material_index_ = indices[instance_] + 1;
 
   // Get volume of material (if non-void)
-  if (material_index_ >= 0) {
+  if (material_index_ > 0) {
     err_chk(openmc_material_get_volume(material_index_, &volume_));
   }
 }
@@ -44,6 +45,11 @@ void CellInstance::set_temperature(double T) const
 void CellInstance::set_density(double rho) const
 {
   err_chk(openmc_material_set_density(material_index_, rho, "g/cm3"));
+}
+
+bool CellInstance::operator==(const CellInstance& other) const
+{
+  return index_ == other.index_ && instance_ == other.instance_;
 }
 
 } // namespace stream
