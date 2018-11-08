@@ -35,13 +35,14 @@ void OpenmcHeatDriver::init_mappings()
   using openmc::PI;
 
   int nrings = heat_driver_->n_fuel_rings_;
-  const auto& radii = heat_driver_->r_grid_fuel_;
+  const auto& r_fuel = heat_driver_->r_grid_fuel_;
+  const auto& r_clad = heat_driver_->r_grid_clad_;
   const auto& centers = heat_driver_->pin_centers_;
   const auto& z = heat_driver_->z_;
   auto nz = heat_driver_->n_axial_;
   auto npins = centers.shape()[0];
 
-  std::unordered_map<int32_t, int> tracked;
+  std::unordered_map<CellInstance, int> tracked;
   int ring_index = 0;
   // TODO: Don't hardcode number of azimuthal segments
   int n_azimuthal = 4;
@@ -51,8 +52,14 @@ void OpenmcHeatDriver::init_mappings()
       double zavg = 0.5*(z(j) + z(j + 1));
 
       // Loop over radial rings
-      for (int k = 0; k < nrings; ++k) {
-        double ravg = 0.5*(radii(k) + radii(k + 1));
+      for (int k = 0; k < heat_driver_->n_rings(); ++k) {
+        double ravg;
+        if (k < heat_driver_->n_fuel_rings_) {
+          ravg = 0.5*(r_fuel(k) + r_fuel(k + 1));
+        } else {
+          int m = k - heat_driver_->n_fuel_rings_;
+          ravg = 0.5*(r_clad(m) + r_clad(m + 1));
+        }
 
         for (int m = 0; m < n_azimuthal; ++m) {
           double theta = 2.0*m*PI/n_azimuthal + 0.01;
@@ -62,13 +69,13 @@ void OpenmcHeatDriver::init_mappings()
           // Determine cell instance corresponding to given pin location
           Position r {x, y, zavg};
           CellInstance c {r};
-          if (tracked.find(c.material_index_) == tracked.end()) {
+          if (tracked.find(c) == tracked.end()) {
             openmc_driver_->cells_.push_back(c);
-            tracked[c.material_index_] = openmc_driver_->cells_.size() - 1;
+            tracked[c] = openmc_driver_->cells_.size() - 1;
           }
 
           // Map OpenMC material to ring and vice versa
-          int32_t array_index = tracked[c.material_index_];
+          int32_t array_index = tracked[c];
           cell_inst_to_ring_[array_index].push_back(ring_index);
           ring_to_cell_inst_[ring_index].push_back(array_index);
         }
@@ -133,18 +140,20 @@ void OpenmcHeatDriver::update_heat_source()
   for (int i = 0; i < heat_driver_->n_pins_; ++i) {
     for (int j = 0; j < heat_driver_->n_axial_; ++j) {
       // Loop over radial rings
-      int nrings = heat_driver_->n_fuel_rings_;
-      for (int k = 0; k < nrings; ++k) {
-        // Get average Q value across each azimuthal segment
-        const auto& cell_instances = ring_to_cell_inst_[ring_index];
-        double q_avg = 0.0;
-        for (auto idx : cell_instances) {
-          q_avg += Q(idx);
-        }
-        q_avg /= cell_instances.size();
+      for (int k = 0; k < heat_driver_->n_rings(); ++k) {
+        // Only update heat source in fuel
+        if (k < heat_driver_->n_fuel_rings_) {
+          // Get average Q value across each azimuthal segment
+          const auto& cell_instances = ring_to_cell_inst_[ring_index];
+          double q_avg = 0.0;
+          for (auto idx : cell_instances) {
+            q_avg += Q(idx);
+          }
+          q_avg /= cell_instances.size();
 
-        // Set Q in appropriate (pin, axial, ring)
-        heat_driver_->source_.at(i, j, k) = q_avg;
+          // Set Q in appropriate (pin, axial, ring)
+          heat_driver_->source_.at(i, j, k) = q_avg;
+        }
         ++ring_index;
       }
     }
@@ -154,7 +163,8 @@ void OpenmcHeatDriver::update_heat_source()
 void OpenmcHeatDriver::update_temperature()
 {
   int nrings = heat_driver_->n_fuel_rings_;
-  const auto& radii = heat_driver_->r_grid_fuel_;
+  const auto& r_fuel = heat_driver_->r_grid_fuel_;
+  const auto& r_clad = heat_driver_->r_grid_clad_;
 
   // The temperatures array normally has three dimensions, but the mapping we
   // have gives a flattened index, so we need to get a flattened view of the
@@ -175,8 +185,14 @@ void OpenmcHeatDriver::update_temperature()
     for (int ring_index : rings) {
       // Use difference in r**2 as a proxy for volume. This is only used for
       // averaging, so the absolute value doesn't matter
-      int i = ring_index % nrings;
-      double vol = radii(i+1)*radii(i+1) - radii(i)*radii(i);
+      int i = ring_index % heat_driver_->n_rings();
+      double vol;
+      if (i < heat_driver_->n_fuel_rings_) {
+        vol = r_fuel(i+1)*r_fuel(i+1) - r_fuel(i)*r_fuel(i);
+      } else {
+        int j = i - heat_driver_->n_fuel_rings_;
+        vol = r_clad(j+1)*r_clad(j+1) - r_clad(j)*r_clad(j);
+      }
 
       average_temp += temperature(ring_index) * vol;
       total_vol += vol;
