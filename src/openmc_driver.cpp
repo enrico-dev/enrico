@@ -73,6 +73,10 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power)
   int32_t m;
   err_chk(openmc_tally_get_n_realizations(index_tally_, &m));
 
+  // Broadcast number of realizations
+  // TODO: Change OpenMC so that it's correct on all ranks
+  comm_.Bcast(&m, 1, MPI_INT32_T);
+
   // Determine energy production in each material
   auto mean_value = xt::view(results, xt::all(), 0, 1);
   xt::xtensor<double, 1> heat = JOULE_PER_EV * mean_value / m;
