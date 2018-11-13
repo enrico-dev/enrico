@@ -88,27 +88,27 @@ private:
   //! Gives a Position of a global element's centroid
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
-  std::vector<Position> global_elem_centroids_;
+  std::vector<Position> elem_centroids_;
 
   //! States whether a global element is in the fluid region
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
-  std::vector<int> global_elem_is_in_fluid_;
+  std::vector<int> elem_is_in_fluid_;
 
   //! The dimensionless temperatures of Nek's global elements
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
-  std::vector<double> global_elem_temperatures_;
+  std::vector<double> elem_temperatures_;
 
   //! The dimensionless volumes of Nek's global elements
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
-  std::vector<double> global_elem_volumes_;
+  std::vector<double> elem_volumes_;
 
   //! The dimensionless densities of Nek's global elements
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
-  std::vector<double> global_elem_densities_;
+  std::vector<double> elem_densities_;
 
   //! Map that gives a list of Nek element global indices for a given OpenMC material index
   std::unordered_map<int32_t, std::vector<int>> mat_to_elems_;
