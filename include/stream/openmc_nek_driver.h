@@ -50,6 +50,7 @@ public:
   double power_; //!< Power in [W]
   int max_timesteps_; //! Maximum of timesteps
   int max_picard_iter_; //! Maximum number of Picard iterations per timestep
+  int openmc_procs_per_node_; //! Number of MPI ranks per (shared-memory) node in OpenMC comm
 private:
 
   //! Initialize MPI datatypes (currently, only position_mpi_datatype)

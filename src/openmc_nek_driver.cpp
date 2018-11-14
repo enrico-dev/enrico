@@ -15,19 +15,20 @@ namespace stream {
 OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root) :
     comm_(coupled_comm)
 {
-  // Create communicator for OpenMC with 1 process per node
-  MPI_Comm openmc_comm;
-  MPI_Comm intranode_comm;
-  stream::get_node_comms(MPI_COMM_WORLD, 1, &openmc_comm, &intranode_comm);
-
-  // Set intranode communicator
-  intranode_comm_ = Comm(intranode_comm);
-
   // Get parameters from stream.xml
   pugi::xml_node nek_node = xml_root.child("nek5000");
   power_ = xml_root.child("power").text().as_double();
   max_timesteps_ = xml_root.child("max_timesteps").text().as_int();
   max_picard_iter_ = xml_root.child("max_picard_iter").text().as_int();
+  openmc_procs_per_node_ = xml_root.child("openmc_procs_per_node").text().as_int();
+
+  // Create communicator for OpenMC with 1 process per node
+  MPI_Comm openmc_comm;
+  MPI_Comm intranode_comm;
+  stream::get_node_comms(MPI_COMM_WORLD, openmc_procs_per_node_, &openmc_comm, &intranode_comm);
+
+  // Set intranode communicator
+  intranode_comm_ = Comm(intranode_comm);
 
   // Instantiate OpenMC and Nek drivers
   openmc_driver_ = std::make_unique<OpenmcDriver>(openmc_comm);
