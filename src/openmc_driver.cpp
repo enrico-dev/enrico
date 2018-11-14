@@ -8,6 +8,8 @@
 #include "xtensor/xarray.hpp"
 #include "xtensor/xview.hpp"
 
+#include <string>
+
 namespace stream {
 
 OpenmcDriver::OpenmcDriver(MPI_Comm comm) : TransportDriver(comm)
@@ -106,7 +108,14 @@ void OpenmcDriver::init_step()
   err_chk(openmc_reset());
 }
 
-void OpenmcDriver::solve_step() { err_chk(openmc_run()); }
+void OpenmcDriver::solve_step(int i){
+  err_chk(openmc_run());
+
+  // TODO: Change statepoint_write to not expect a pointer to a const char*
+  std::string filename {"openmc_step" + std::to_string(i) + ".h5"};
+  const char* fp = filename.c_str();
+  err_chk(openmc_statepoint_write(&fp, nullptr));
+}
 
 void OpenmcDriver::finalize_step() { err_chk(openmc_simulation_finalize()); }
 
