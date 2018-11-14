@@ -13,9 +13,6 @@ module hdf5_interface
   use, intrinsic :: ISO_C_BINDING
 
   use error, only: fatal_error
-#ifdef PHDF5
-  use message_passing, only: mpi_intracomm, MPI_INFO_NULL
-#endif
   use string, only: to_c_string, to_f_string
 
   implicit none
@@ -675,6 +672,7 @@ contains
     ! If 'name' argument is passed, obj_id is interpreted to be a group and
     ! 'name' is the name of the dataset we should read from
     if (present(name)) then
+      allocate(name_(len_trim(name) + 1))
       name_ = to_c_string(name)
       call read_double_c(obj_id, c_loc(name_), buffer_, indep_)
     else
@@ -698,6 +696,7 @@ contains
     ! If 'name' argument is passed, obj_id is interpreted to be a group and
     ! 'name' is the name of the dataset we should read from
     if (present(name)) then
+      allocate(name_(len_trim(name) + 1))
       name_ = to_c_string(name)
       call read_double_c(obj_id, c_loc(name_), buffer, indep_)
     else
@@ -720,6 +719,7 @@ contains
     ! If 'name' argument is passed, obj_id is interpreted to be a group and
     ! 'name' is the name of the dataset we should read from
     if (present(name)) then
+      allocate(name_(len_trim(name) + 1))
       name_ = to_c_string(name)
       call read_double_c(obj_id, c_loc(name_), buffer, indep_)
     else
@@ -742,6 +742,7 @@ contains
     ! If 'name' argument is passed, obj_id is interpreted to be a group and
     ! 'name' is the name of the dataset we should read from
     if (present(name)) then
+      allocate(name_(len_trim(name) + 1))
       name_ = to_c_string(name)
       call read_double_c(obj_id, c_loc(name_), buffer, indep_)
     else
@@ -764,6 +765,7 @@ contains
     ! If 'name' argument is passed, obj_id is interpreted to be a group and
     ! 'name' is the name of the dataset we should read from
     if (present(name)) then
+      allocate(name_(len_trim(name) + 1))
       name_ = to_c_string(name)
       call read_double_c(obj_id, c_loc(name_), buffer, indep_)
     else
@@ -888,6 +890,7 @@ contains
     ! If 'name' argument is passed, obj_id is interpreted to be a group and
     ! 'name' is the name of the dataset we should read from
     if (present(name)) then
+      allocate(name_(len_trim(name) + 1))
       name_ = to_c_string(name)
       call read_int_c(obj_id, c_loc(name_), buffer_, indep_)
     else
@@ -911,6 +914,7 @@ contains
     ! If 'name' argument is passed, obj_id is interpreted to be a group and
     ! 'name' is the name of the dataset we should read from
     if (present(name)) then
+      allocate(name_(len_trim(name) + 1))
       name_ = to_c_string(name)
       call read_int_c(obj_id, c_loc(name_), buffer, indep_)
     else
@@ -933,6 +937,7 @@ contains
     ! If 'name' argument is passed, obj_id is interpreted to be a group and
     ! 'name' is the name of the dataset we should read from
     if (present(name)) then
+      allocate(name_(len_trim(name) + 1))
       name_ = to_c_string(name)
       call read_int_c(obj_id, c_loc(name_), buffer, indep_)
     else
@@ -955,6 +960,7 @@ contains
     ! If 'name' argument is passed, obj_id is interpreted to be a group and
     ! 'name' is the name of the dataset we should read from
     if (present(name)) then
+      allocate(name_(len_trim(name) + 1))
       name_ = to_c_string(name)
       call read_int_c(obj_id, c_loc(name_), buffer, indep_)
     else
@@ -977,6 +983,7 @@ contains
     ! If 'name' argument is passed, obj_id is interpreted to be a group and
     ! 'name' is the name of the dataset we should read from
     if (present(name)) then
+      allocate(name_(len_trim(name) + 1))
       name_ = to_c_string(name)
       call read_int_c(obj_id, c_loc(name_), buffer, indep_)
     else
@@ -1025,6 +1032,7 @@ contains
     ! If 'name' argument is passed, obj_id is interpreted to be a group and
     ! 'name' is the name of the dataset we should read from
     if (present(name)) then
+      allocate(name_(len_trim(name) + 1))
       name_ = to_c_string(name)
       call read_llong_c(obj_id, c_loc(name_), buffer_, indep_)
     else
@@ -1120,6 +1128,7 @@ contains
     do i = 0, dims(1) - 1
       n = len_trim(buffer(i+1)) + 1
       buffer_(i*m+1 : i*m+n) = to_c_string(buffer(i+1))
+      if (n < m) buffer_(i*m+n : i*m+m) = C_NULL_CHAR
     end do
 
     call write_string_c(group_id, 1, dims, m, to_c_string(name), &
@@ -1350,7 +1359,7 @@ contains
     ! Allocate a C char array to get strings
     n = attribute_typesize(obj_id, to_c_string(name))
     m = size(buffer)
-    allocate(buffer_((n+1)*m))
+    allocate(buffer_(n*m))
 
     ! Read attribute
     call read_attr_string_c(obj_id, to_c_string(name), n, buffer_)
@@ -1359,7 +1368,7 @@ contains
     do i = 1, m
       buffer(i) = ''
       do j = 1, n
-        k = (i-1)*(n+1) + j
+        k = (i-1)*n + j
         if (buffer_(k) == C_NULL_CHAR) exit
         buffer(i)(j:j) = buffer_(k)
       end do
@@ -1425,6 +1434,7 @@ contains
     ! If 'name' argument is passed, obj_id is interpreted to be a group and
     ! 'name' is the name of the dataset we should read from
     if (present(name)) then
+      allocate(name_(len_trim(name) + 1))
       name_ = to_c_string(name)
       call read_complex_c(obj_id, c_loc(name_), buffer, indep_)
     else

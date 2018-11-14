@@ -180,7 +180,6 @@ class Settings(object):
         self._confidence_intervals = None
         self._cross_sections = None
         self._electron_treatment = None
-        self._multipole_library = None
         self._photon_transport = None
         self._ptables = None
         self._run_cmfd = None
@@ -226,8 +225,8 @@ class Settings(object):
         self._create_fission_neutrons = None
         self._log_grid_bins = None
 
-        self._dagmc = None
-        
+        self._dagmc = False
+
     @property
     def run_mode(self):
         return self._run_mode
@@ -375,7 +374,7 @@ class Settings(object):
     @property
     def dagmc(self):
         return self._dagmc
-    
+
     @run_mode.setter
     def run_mode(self, run_mode):
         cv.check_value('run mode', run_mode, _RUN_MODES)
@@ -523,7 +522,7 @@ class Settings(object):
     def dagmc(self, dagmc):
         cv.check_type('dagmc geometry', dagmc, bool)
         self._dagmc = dagmc
-        
+
     @ptables.setter
     def ptables(self, ptables):
         cv.check_type('probability tables', ptables, bool)
@@ -959,10 +958,10 @@ class Settings(object):
             elem.text = str(self._log_grid_bins)
 
     def _create_dagmc_subelement(self, root):
-        if self._dagmc is not None:
+        if self._dagmc:
             elem = ET.SubElement(root, "dagmc")
-            element.text = str(self._dagmc).lower()
-        
+            elem.text = str(self._dagmc).lower()
+
     def export_to_xml(self, path='settings.xml'):
         """Export simulation settings to an XML file.
 
@@ -1011,7 +1010,7 @@ class Settings(object):
         self._create_create_fission_neutrons_subelement(root_element)
         self._create_log_grid_bins_subelement(root_element)
         self._create_dagmc_subelement(root_element)
-        
+
         # Clean the indentation in the file to be user-readable
         clean_indentation(root_element)
 

@@ -15,7 +15,10 @@ module constants
        VERSION(3) = [VERSION_MAJOR, VERSION_MINOR, VERSION_RELEASE]
 
   ! HDF5 data format
-  integer, parameter :: HDF5_VERSION(2) = [1, 0]
+  integer, parameter :: HDF5_VERSION(2) = [2, 0]
+
+  ! WMP data format
+  integer, parameter :: WMP_VERSION(2) = [1, 1]
 
   ! Version numbers for binary files
   integer, parameter :: VERSION_STATEPOINT(2)       = [17, 0]
@@ -25,7 +28,6 @@ module constants
   integer, parameter :: VERSION_VOLUME(2)           = [1, 0]
   integer, parameter :: VERSION_VOXEL(2)            = [1, 0]
   integer, parameter :: VERSION_MGXS_LIBRARY(2)     = [1, 0]
-  character(10), parameter :: VERSION_MULTIPOLE     = "v1.0"
 
   ! ============================================================================
   ! ADJUSTABLE PARAMETERS
@@ -236,7 +238,8 @@ module constants
        LIBRARY_NEUTRON = 1, &
        LIBRARY_THERMAL = 2, &
        LIBRARY_PHOTON = 3, &
-       LIBRARY_MULTIGROUP = 4
+       LIBRARY_MULTIGROUP = 4, &
+       LIBRARY_WMP = 5
 
   ! Probability table parameters
   integer, parameter :: &
