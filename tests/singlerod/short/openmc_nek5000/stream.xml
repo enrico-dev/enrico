@@ -10,4 +10,5 @@
   <max_timesteps>4</max_timesteps>
   <max_picard_iter>2</max_picard_iter>
   <openmc_procs_per_node>1</openmc_procs_per_node>
+  <epsilon>0.5</epsilon>
 </stream>

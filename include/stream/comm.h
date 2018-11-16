@@ -4,6 +4,8 @@
 #define STREAM_COMM_H
 
 #include "mpi.h"
+#include <string>
+#include <iostream>
 
 namespace stream {
 
@@ -111,6 +113,19 @@ public:
 
   }
 
+  //! Displays a message from rank 0
+  //! \param A message to display
+  void message(std::string& msg)
+  {
+    if (rank == 0) std::cout << "[STREAM]: " << msg << std::endl;
+  }
+
+  //! Displays a message from rank 0
+  //! \param A message to display
+  void message(const char* msg)
+  {
+    if (rank == 0) std::cout << "[STREAM]: " << msg << std::endl;
+  }
 };
 
 } // namespace stream
