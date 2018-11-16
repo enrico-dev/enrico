@@ -1,11 +1,14 @@
 #ifndef OPENMC_HDF5_INTERFACE_H
 #define OPENMC_HDF5_INTERFACE_H
 
+#include <algorithm> // for min
 #include <array>
 #include <complex>
 #include <cstddef>
+#include <cstring> // for strlen
 #include <string>
 #include <sstream>
+#include <type_traits>
 #include <vector>
 
 #include "hdf5.h"
@@ -49,7 +52,7 @@ void write_string(hid_t group_id, const char* name, const std::string& buffer,
 
 std::vector<hsize_t> attribute_shape(hid_t obj_id, const char* name);
 std::vector<std::string> dataset_names(hid_t group_id);
-void ensure_exists(hid_t group_id, const char* name);
+void ensure_exists(hid_t obj_id, const char* name, bool attribute=false);
 std::vector<std::string> group_names(hid_t group_id);
 std::vector<hsize_t> object_shape(hid_t obj_id);
 std::string object_name(hid_t obj_id);
@@ -162,13 +165,13 @@ void read_attribute(hid_t obj_id, const char* name, xt::xarray<T>& arr)
   std::size_t size = 1;
   for (const auto x : shape)
     size *= x;
-  T* buffer = new T[size];
+  std::vector<T> buffer(size);
 
   // Read data from attribute
-  read_attr(obj_id, name, H5TypeMap<T>::type_id, buffer);
+  read_attr(obj_id, name, H5TypeMap<T>::type_id, buffer.data());
 
   // Adapt array into xarray
-  arr = xt::adapt(buffer, size, xt::acquire_ownership(), shape);
+  arr = xt::adapt(buffer, shape);
 }
 
 // overload for std::string
@@ -193,13 +196,19 @@ read_attribute(hid_t obj_id, const char* name, std::vector<std::string>& vec)
 
   // Allocate a C char array to get strings
   auto n = attribute_typesize(obj_id, name);
-  char buffer[m][n+1];
+  char buffer[m][n];
 
   // Read char data in attribute
   read_attr_string(obj_id, name, n, buffer[0]);
 
   for (int i = 0; i < m; ++i) {
-    vec.emplace_back(&buffer[i][0]);
+    // Determine proper length of string -- strlen doesn't work because
+    // buffer[i] might not have any null characters
+    std::size_t k = 0;
+    for (; k < n; ++k) if (buffer[i][k] == '\0') break;
+
+    // Create string based on (char*, size_t) constructor
+    vec.emplace_back(&buffer[i][0], k);
   }
 }
 
@@ -244,13 +253,13 @@ void read_dataset(hid_t dset, xt::xarray<T>& arr, bool indep=false)
   std::size_t size = 1;
   for (const auto x : shape)
     size *= x;
-  T* buffer = new T[size];
+  std::vector<T> buffer(size);
 
   // Read data from attribute
-  read_dataset(dset, nullptr, H5TypeMap<T>::type_id, buffer, indep);
+  read_dataset(dset, nullptr, H5TypeMap<T>::type_id, buffer.data(), indep);
 
   // Adapt into xarray
-  arr = xt::adapt(buffer, size, xt::acquire_ownership(), shape);
+  arr = xt::adapt(buffer, shape);
 }
 
 template <typename T>
@@ -273,13 +282,13 @@ void read_dataset_as_shape(hid_t obj_id, const char* name,
   std::size_t size = 1;
   for (const auto x : arr.shape())
     size *= x;
-  T* buffer = new T[size];
+  std::vector<T> buffer(size);
 
   // Read data from attribute
-  read_dataset(dset, nullptr, H5TypeMap<T>::type_id, buffer, indep);
+  read_dataset(dset, nullptr, H5TypeMap<T>::type_id, buffer.data(), indep);
 
   // Adapt into xarray
-  arr = xt::adapt(buffer, size, xt::acquire_ownership(), arr.shape());
+  arr = xt::adapt(buffer, arr.shape());
 
   close_dataset(dset);
 }
@@ -331,7 +340,9 @@ write_attribute(hid_t obj_id, const char* name, const std::vector<T>& buffer)
 // Templates/overloads for write_dataset
 //==============================================================================
 
-template<typename T> inline void
+// Template for scalars (ensured by SFINAE)
+template<typename T> inline
+std::enable_if_t<std::is_scalar<std::decay_t<T>>::value>
 write_dataset(hid_t obj_id, const char* name, T buffer)
 {
   write_dataset(obj_id, 0, nullptr, name, H5TypeMap<T>::type_id, &buffer, false);
@@ -357,9 +368,11 @@ write_dataset(hid_t obj_id, const char* name, const std::vector<T>& buffer)
   write_dataset(obj_id, 1, dims, name, H5TypeMap<T>::type_id, buffer.data(), false);
 }
 
-template<typename T> inline void
-write_dataset(hid_t obj_id, const char* name, const xt::xarray<T>& arr)
+// Template for xarray, xtensor, etc.
+template<typename D> inline void
+write_dataset(hid_t obj_id, const char* name, const xt::xcontainer<D>& arr)
 {
+  using T = typename D::value_type;
   auto s = arr.shape();
   std::vector<hsize_t> dims {s.cbegin(), s.cend()};
   write_dataset(obj_id, dims.size(), dims.data(), name, H5TypeMap<T>::type_id,
@@ -371,6 +384,12 @@ write_dataset(hid_t obj_id, const char* name, Position r)
 {
   std::array<double, 3> buffer {r.x, r.y, r.z};
   write_dataset(obj_id, name, buffer);
+}
+
+inline void
+write_dataset(hid_t obj_id, const char* name, std::string buffer)
+{
+  write_string(obj_id, name, buffer.c_str(), false);
 }
 
 } // namespace openmc
