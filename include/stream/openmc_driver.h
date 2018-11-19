@@ -46,7 +46,9 @@ public:
   void init_step();
 
   //! Runs OpenMC for one Picard iteration
-  void solve_step();
+  //!
+  //! \param i Iteration number
+  void solve_step(int i);
 
   //! Finaliztion required in each Picard iteration
   void finalize_step();
