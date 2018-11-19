@@ -21,8 +21,8 @@ c-----------------------------------------------------------------------
 
       e  = gllel(eg)
       xx = xm1(ix,iy,iz,e)
-      zz = zm1(ix,iy,iz,e)
-      rr = sqrt(xx**2+zz**2)
+      yy = ym1(ix,iy,iz,e)
+      rr = sqrt(xx**2+yy**2)
 
       if (ifield.eq.2) then
       if (rr.lt.0.475) then
