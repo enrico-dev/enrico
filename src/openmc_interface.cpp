@@ -21,9 +21,8 @@ CellInstance::CellInstance(Position position)
   int32_t n;
   err_chk(openmc_cell_get_fill(index_, &type, &indices, &n));
 
-  // TODO: Right now get_fill returns 0-based indices, but the tally interface
-  // and material API calls expects 1-based. Once those move to 0-based, change
-  // this.
+  // TODO: Right now get_fill returns 0-based indices, but the material API
+  // calls expects 1-based. Once those move to 0-based, change this.
   material_index_ = indices[instance_] + 1;
 
   // Get volume of material (if non-void)

@@ -186,12 +186,12 @@ void OpenmcHeatDriver::update_temperature()
     for (int ring_index : rings) {
       // Use difference in r**2 as a proxy for volume. This is only used for
       // averaging, so the absolute value doesn't matter
-      int i = ring_index % heat_driver_->n_rings();
+      int j = ring_index % heat_driver_->n_rings();
       double vol;
-      if (i < heat_driver_->n_fuel_rings_) {
-        vol = r_fuel(i+1)*r_fuel(i+1) - r_fuel(i)*r_fuel(i);
+      if (j < heat_driver_->n_fuel_rings_) {
+        vol = r_fuel(j+1)*r_fuel(j+1) - r_fuel(j)*r_fuel(j);
       } else {
-        int j = i - heat_driver_->n_fuel_rings_;
+        j -= heat_driver_->n_fuel_rings_;
         vol = r_clad(j+1)*r_clad(j+1) - r_clad(j)*r_clad(j);
       }
 
