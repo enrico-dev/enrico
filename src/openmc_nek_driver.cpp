@@ -398,19 +398,18 @@ void OpenmcNekDriver::update_density()
 
 bool OpenmcNekDriver::is_converged_()
 {
-  // Using int, not bool, b/c send/recvs with bools are ill-defined
-  int converged;
+  bool converged;
   // WARNING: Assumes that OpenmcNekDriver rank 0 is in openmc_driver_->comm
   if (comm_.rank == 0) {
     auto n_expr = xt::norm_linf(elem_temperatures_ - elem_temperatures_prev_);
     auto n_scalar = n_expr();
-    converged = n_scalar < epsilon_ ? 1 : 0;
+    converged = (n_scalar < epsilon_);
 
     std::string msg = "temperature norm_linf: " + std::to_string(n_scalar);
     comm_.message(msg);
   }
-  err_chk(comm_.Bcast(&converged, 1, MPI_INT));
-  return converged == 1;
+  err_chk(comm_.Bcast(&converged, 1, MPI_CXX_BOOL));
+  return converged;
 }
 
 void OpenmcNekDriver::free_mpi_datatypes()

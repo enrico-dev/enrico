@@ -139,11 +139,11 @@ private:
 
   //! Number of Nek local elements on this MPI rank.
   //! If nek_driver_ is active, this equals nek_driver.nelt_.  If not, it equals 0.
-  unsigned n_local_elem_;
+  size_t n_local_elem_;
 
   //! Number of Nek global elements across all ranks.
   //! Always equals nek_driver_.nelgt_.
-  unsigned n_global_elem_;
+  size_t n_global_elem_;
 
 };
 
