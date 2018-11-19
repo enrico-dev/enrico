@@ -9,6 +9,9 @@
 #include "pugixml.hpp"
 #include "xtensor/xbuilder.hpp"
 #include "xtensor/xtensor.hpp"
+#include "xtensor/xnorm.hpp"
+
+#include <string>
 
 namespace stream {
 
@@ -21,6 +24,7 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root)
   max_timesteps_ = xml_root.child("max_timesteps").text().as_int();
   max_picard_iter_ = xml_root.child("max_picard_iter").text().as_int();
   openmc_procs_per_node_ = xml_root.child("openmc_procs_per_node").text().as_int();
+  epsilon_ = xml_root.child("epsilon").text().as_double();
 
   // Create communicator for OpenMC with 1 process per node
   MPI_Comm openmc_comm;
@@ -54,7 +58,14 @@ OpenmcNekDriver::~OpenmcNekDriver()
 void OpenmcNekDriver::solve_in_time()
 {
   for (int i_timestep = 0; i_timestep < max_timesteps_; ++i_timestep) {
+
+    std::string msg = "i_timestep: " + std::to_string(i_timestep);
+    comm_.message(msg);
+
     for (int i_picard = 0; i_picard < max_picard_iter_; ++i_picard) {
+
+      std::string msg = "i_picard: " + std::to_string(i_picard);
+      comm_.message(msg);
 
       if (openmc_driver_->active()) {
         openmc_driver_->init_step();
@@ -75,7 +86,14 @@ void OpenmcNekDriver::solve_in_time()
 
       update_temperature();
       update_density();
+
+      if (is_converged_()) {
+        std::string msg = "converged at i_picard = " + std::to_string(i_picard);
+        comm_.message(msg);
+        break;
+      }
     }
+    comm_.Barrier();
   }
 }
 
@@ -210,8 +228,11 @@ void OpenmcNekDriver::init_temperatures()
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
   // Only the OpenMC procs get the global temperatures
   if (nek_driver_->active() and openmc_driver_->active()) {
-    elem_temperatures_.resize(n_global_elem_);
+    elem_temperatures_.resize({n_global_elem_});
+    elem_temperatures_prev_.resize({n_global_elem_});
+
     std::fill(elem_temperatures_.begin(), elem_temperatures_.end(), 293.6);
+    std::fill(elem_temperatures_prev_.begin(), elem_temperatures_prev_.end(), 293.6);
   }
 }
 
@@ -222,7 +243,7 @@ void OpenmcNekDriver::init_volumes()
   // Only the OpenMC procs get the global element volumes (gev)
   if (nek_driver_->active()) {
     if (openmc_driver_->active()) {
-      elem_volumes_.resize(n_global_elem_);
+      elem_volumes_.resize({n_global_elem_});
     }
     // Every Nek proc gets its local element volumes (lev)
     double local_elem_volumes[n_local_elem_];
@@ -247,7 +268,7 @@ void OpenmcNekDriver::init_densities()
   // Only the OpenMC procs get space for the global densities
   // Note that the values of the densities are not initialized!
   if (nek_driver_->active() and openmc_driver_->active()) {
-    elem_densities_.resize(n_global_elem_);
+    elem_densities_.resize({n_global_elem_});
   }
 }
 
@@ -287,6 +308,10 @@ void OpenmcNekDriver::update_heat_source()
 void OpenmcNekDriver::update_temperature()
 {
   if (nek_driver_->active()) {
+    if (openmc_driver_->active()) {
+      std::copy(elem_temperatures_.begin(), elem_temperatures_.end(),
+          elem_temperatures_prev_.begin());
+    }
     // Each Nek proc finds the temperatures of its local elements
     double local_elem_temperatures[n_local_elem_];
     for (int i = 0; i < n_local_elem_; ++i) {
@@ -322,7 +347,7 @@ void OpenmcNekDriver::update_temperature()
     }
   }
 }
-
+  //! \param A message to display
 void OpenmcNekDriver::update_density()
 {
   if (nek_driver_->active()) {
@@ -370,6 +395,22 @@ void OpenmcNekDriver::update_density()
       }
     }
   }
+}
+
+bool OpenmcNekDriver::is_converged_()
+{
+  bool converged;
+  // WARNING: Assumes that OpenmcNekDriver rank 0 is in openmc_driver_->comm
+  if (comm_.rank == 0) {
+    auto n_expr = xt::norm_linf(elem_temperatures_ - elem_temperatures_prev_);
+    auto n_scalar = n_expr();
+    converged = (n_scalar < epsilon_);
+
+    std::string msg = "temperature norm_linf: " + std::to_string(n_scalar);
+    comm_.message(msg);
+  }
+  err_chk(comm_.Bcast(&converged, 1, MPI_CXX_BOOL));
+  return converged;
 }
 
 void OpenmcNekDriver::free_mpi_datatypes()

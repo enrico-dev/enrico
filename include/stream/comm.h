@@ -4,6 +4,8 @@
 #define STREAM_COMM_H
 
 #include "mpi.h"
+#include <string>
+#include <iostream>
 
 namespace stream {
 
@@ -106,11 +108,17 @@ public:
   //! \param[in] recvtype Data type of receive buffer elements
   //! \return
   int Allgather(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
-                void* recvbuf, int recvcount, MPI_Datatype recvtype) {
+                void* recvbuf, int recvcount, MPI_Datatype recvtype) 
+  {
     return MPI_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
-
   }
 
+  //! Displays a message from rank 0
+  //! \param A message to display
+  void message(const std::string& msg)
+  {
+    if (rank == 0) std::cout << "[STREAM]: " << msg << std::endl;
+  }
 };
 
 } // namespace stream

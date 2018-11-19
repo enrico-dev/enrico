@@ -43,6 +43,13 @@ public:
   //! Run one timstep
   void solve_in_time();
 
+  //! Check convergence based on temperature field and specified epsilon
+  //!
+  //! Curreuntly compares L_inf norm of temperature data between iterations
+  //!
+  //! \return true if L_inf norm of temperature data is less than epsilon
+  bool is_converged_();
+
   Comm comm_; //!< The communicator used to run this driver
   Comm intranode_comm_;  //!< The communicator reprsenting intranode ranks
   std::unique_ptr<OpenmcDriver> openmc_driver_;  //!< The OpenMC driver
@@ -51,6 +58,7 @@ public:
   int max_timesteps_; //! Maximum of timesteps
   int max_picard_iter_; //! Maximum number of Picard iterations per timestep
   int openmc_procs_per_node_; //! Number of MPI ranks per (shared-memory) node in OpenMC comm
+  double epsilon_; //! The tolerance for convergence
 private:
 
   //! Initialize MPI datatypes (currently, only position_mpi_datatype)
@@ -99,17 +107,22 @@ private:
   //! The dimensionless temperatures of Nek's global elements
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
-  std::vector<double> elem_temperatures_;
+  xt::xtensor<double, 1> elem_temperatures_;
+
+  //! From the previous Picard iter, the dimensionless temperatures of Nek's global elements
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
+  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  xt::xtensor<double, 1> elem_temperatures_prev_;
 
   //! The dimensionless volumes of Nek's global elements
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
-  std::vector<double> elem_volumes_;
+  xt::xtensor<double, 1> elem_volumes_;
 
   //! The dimensionless densities of Nek's global elements
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
-  std::vector<double> elem_densities_;
+  xt::xtensor<double, 1> elem_densities_;
 
   //! Map that gives a list of Nek element global indices for a given OpenMC material index
   std::unordered_map<int32_t, std::vector<int>> mat_to_elems_;
@@ -126,11 +139,11 @@ private:
 
   //! Number of Nek local elements on this MPI rank.
   //! If nek_driver_ is active, this equals nek_driver.nelt_.  If not, it equals 0.
-  int n_local_elem_;
+  size_t n_local_elem_;
 
   //! Number of Nek global elements across all ranks.
   //! Always equals nek_driver_.nelgt_.
-  int n_global_elem_;
+  size_t n_global_elem_;
 
 };
 
