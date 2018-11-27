@@ -27,6 +27,9 @@ void C2F_nek_end();
 //! This is the name-mangled version of nek_solve from libnek5000
 void C2F_nek_solve();
 
+//! Reset the counters necessary to resume timestepping at the next Picard iteration
+void nek_reset_counters();
+
 //! Get the coordinates of a global element's centroid
 //!
 //! The returned coordinate is dimensionless.  Its units depend on the unit system that was

@@ -107,7 +107,11 @@ void NekDriver::init_displs() {
 
 void NekDriver::init_step() {}
 
-void NekDriver::solve_step() { C2F_nek_solve(); }
+void NekDriver::solve_step()
+{
+  nek_reset_counters();
+  C2F_nek_solve();
+}
 
 void NekDriver::finalize_step() {}
 
