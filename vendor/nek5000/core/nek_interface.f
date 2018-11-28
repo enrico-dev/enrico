@@ -9,8 +9,15 @@
         include 'GEOM'
         include 'PARALLEL'
         include 'SOLN'
+        include 'TSTEP'
 
       contains
+
+        !> Reset the counters necessary to resume timestepping at the next Picard iteration
+        subroutine nek_reset_counters() bind(C)
+          time = 0
+          lastep = 0
+        end subroutine nek_reset_counters
 
         !> Get the coordinates of a local element's centroid
         !!
