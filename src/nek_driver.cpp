@@ -148,14 +148,6 @@ double NekDriver::get_local_elem_temperature(int local_elem) const
   return temperature;
 }
 
-double NekDriver::get_local_elem_density(int local_elem) const
-{
-  double density;
-  err_chk(nek_get_local_elem_density(local_elem, &density),
-          "Could not find density of local element " + std::to_string(local_elem));
-  return density;
-}
-
 bool NekDriver::global_elem_is_in_rank(int global_elem) const
 {
   return (nek_global_elem_is_in_rank(global_elem, comm_.rank) == 1);
