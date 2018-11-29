@@ -59,7 +59,11 @@ FortranCInterface_VERIFY()
 
 # Use preprocessor and 8-byte reals
 if(CMAKE_Fortran_COMPILER_ID STREQUAL GNU)
-  set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-real-8 -fdefault-double-8 -cpp -mcmodel=large")
+  if(${CMAKE_SYSTEM_NAME} MATCHES "Darwin")
+      set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-real-8 -fdefault-double-8 -cpp")
+  else()
+      set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fdefault-real-8 -fdefault-double-8 -cpp -mcmodel=large")
+  endif()
 elseif(CMAKE_Fortran_COMPILER_ID STREQUAL PGI)
   set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -r8 -Mpreprocess -mcmodel=medium")
 elseif(CMAKE_Fortran_COMPILER_ID STREQUAL Intel)
