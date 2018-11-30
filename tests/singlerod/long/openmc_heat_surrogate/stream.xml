@@ -1,15 +1,18 @@
 <?xml version="1.0"?>
 <stream>
   <driver_transport>openmc</driver_transport>
-  <driver_heatfluids>nek5000</driver_heatfluids>
+  <driver_heatfluids>surrogate</driver_heatfluids>
   <communication>overlapping</communication>
   <power>16.4e3</power>
+  <max_timesteps>1</max_timesteps>
+  <max_picard_iter>4</max_picard_iter>
+  <epsilon>0.5</epsilon>
   <heat_surrogate>
     <pellet_radius>0.406</pellet_radius>
     <clad_inner_radius>0.414</clad_inner_radius>
     <clad_outer_radius>0.475</clad_outer_radius>
-    <fuel_rings>5</fuel_rings>
-    <clad_rings>1</clad_rings>
+    <fuel_rings>20</fuel_rings>
+    <clad_rings>5</clad_rings>
     <pin_centers>
       0. 0.
     </pin_centers>

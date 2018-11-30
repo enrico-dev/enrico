@@ -1,0 +1,14 @@
+<?xml version="1.0"?>
+<stream>
+  <driver_transport>openmc</driver_transport>
+  <driver_heatfluids>nek5000</driver_heatfluids>
+  <nek5000>
+    <casename>rod_l</casename>
+  </nek5000>
+  <communication>overlapping</communication>
+  <power>16.4e3</power>
+  <max_timesteps>1</max_timesteps>
+  <max_picard_iter>4</max_picard_iter>
+  <openmc_procs_per_node>1</openmc_procs_per_node>
+  <epsilon>0.5</epsilon>
+</stream>
