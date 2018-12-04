@@ -25,7 +25,7 @@ k_fuel(double T)
   double B = 2.46e-2;  // cm / W
   double E = 3.5e7;  // W K / cm
   double F = 16361;  // K
-  double k = 1 / (A + B*T) + E / (T * T) * exp(-F / T);  // W / cm / K
+  double k = 1 / (A + B*T) + E / (T * T) * std::exp(-F / T);  // W / cm / K
   return k * 100;  // Converted to W / m / K
 }
 
@@ -72,7 +72,8 @@ emiss_fuel(double T)
   }
 }
 
-//==============================================================================// gap_rad_htc
+//==============================================================================
+// gap_rad_htc
 //==============================================================================
 
 double
@@ -83,7 +84,7 @@ gap_rad_htc(double T_fo, double T_ci, double r_fo, double r_ci)
   double e_fuel = emiss_fuel(T_fo);
   double e_clad = 0.5;  // TODO: verify this
 
-  double F = 1.0 / (e_fuel + (r_fo / r_ci) * (1.0 / e_clad - 1));
+  double F = 1.0 / (1.0/e_fuel + (r_fo / r_ci) * (1.0 / e_clad - 1));
 
   return stefan_boltzmann * F * (T_fo*T_fo + T_ci*T_ci) * (T_fo + T_ci);
 }
@@ -95,7 +96,7 @@ gap_rad_htc(double T_fo, double T_ci, double r_fo, double r_ci)
 double
 gap_gas_htc(double T, double gap_thick)
 {
-  double k = 3.366e-3 * pow(T, 0.668);  // Assuming only He gas, from MATPRO-11
+  double k = 3.366e-3 * std::pow(T, 0.668);  // Assuming only He gas, from MATPRO-11
   double eff_thick = 10.0e-6 + gap_thick;  // T&K pg 419
   return k / eff_thick;
 }
@@ -120,7 +121,7 @@ double
 chen_htc_nb_const(double Re, double P, double T_b)
 {
   double T_sat = sat_temp(P);
-  double S = 1.0 / (1.0 + 2.53e-6 * pow(Re, 1.17));
+  double S = 1.0 / (1.0 + 2.53e-6 * std::pow(Re, 1.17));
   double rho_f = 1.0 / nu1(P, T_sat);
   double k_f = k(T_sat, rho_f);
   double cp_f = cp1(P, T_sat) * 1e3;
@@ -128,9 +129,9 @@ chen_htc_nb_const(double Re, double P, double T_b)
   double h_fg = (h2(P, T_sat) - h1(P, T_sat)) *1e3;
   double rho_g = 1.0 / nu2(P, T_sat);
   double sigma = surf_tens(T_b);
-  return (S * 0.00122 * pow(k_f, 0.79) * pow(cp_f, 0.45) * pow(rho_f, 0.49)
-          / (pow(sigma, 0.5) * pow(mu_f, 0.29) * pow(h_fg, 0.25)
-             * pow(rho_g, 0.24)));
+  return (S * 0.00122 * std::pow(k_f, 0.79) * std::pow(cp_f, 0.45) * std::pow(rho_f, 0.49)
+          / (std::pow(sigma, 0.5) * std::pow(mu_f, 0.29) * std::pow(h_fg, 0.25)
+             * std::pow(rho_g, 0.24)));
 }
 
 //==============================================================================
@@ -149,7 +150,7 @@ find_chen_nb_htc(double heat_flux, double htc_conv, double chen_const,
     T_co_rhs += 1.0;
     double deltaT_sat = T_co_rhs - T_sat;
     double deltaP = (sat_press(T_co_rhs) - P) * 1e6;
-    htc_nb = chen_const * pow(deltaP, 0.75) * pow(deltaT_sat, 0.24);
+    htc_nb = chen_const * std::pow(deltaP, 0.75) * std::pow(deltaT_sat, 0.24);
     T_co_lhs = ((htc_conv * T_b + htc_nb * T_sat + heat_flux)
                 / (htc_conv + htc_nb));
   }
@@ -162,7 +163,7 @@ find_chen_nb_htc(double heat_flux, double htc_conv, double chen_const,
     double T_mid = 0.5 * (T_lo + T_hi);
     double deltaT_sat = T_mid - T_sat;
     double deltaP = (sat_press(T_mid) - P) * 1e6;
-    htc_nb = chen_const * pow(deltaP, 0.75) * pow(deltaT_sat, 0.24);
+    htc_nb = chen_const * std::pow(deltaP, 0.75) * std::pow(deltaT_sat, 0.24);
     double T_co = ((htc_conv * T_b + htc_nb * T_sat + heat_flux)
                    / (htc_conv + htc_nb));
     if (std::abs((htc_nb - last_htc) / last_htc) < tol) {
