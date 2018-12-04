@@ -35,7 +35,7 @@ public:
   void update_heat_source();
 
   //! Transfers temperatures from Nek5000 to OpenMC
-  void update_temperature();
+  void update_temperature_and_density();
 
   //! Transfers densities from Nek5000 to OpenMC
   void update_density();
@@ -55,6 +55,7 @@ public:
   std::unique_ptr<OpenmcDriver> openmc_driver_;  //!< The OpenMC driver
   std::unique_ptr<NekDriver> nek_driver_;  //!< The Nek5000 driver
   double power_; //!< Power in [W]
+  double pressure_; //!< System pressure in [MPa]
   int max_timesteps_; //! Maximum of timesteps
   int max_picard_iter_; //! Maximum number of Picard iterations per timestep
   int openmc_procs_per_node_; //! Number of MPI ranks per (shared-memory) node in OpenMC comm

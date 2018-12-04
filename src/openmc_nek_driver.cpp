@@ -5,6 +5,7 @@
 #include "stream/nek_interface.h"
 #include "stream/message_passing.h"
 
+#include "heat_xfer_backend.h"
 #include "openmc/capi.h"
 #include "pugixml.hpp"
 #include "xtensor/xbuilder.hpp"
@@ -21,6 +22,7 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root)
   // Get parameters from stream.xml
   pugi::xml_node nek_node = xml_root.child("nek5000");
   power_ = xml_root.child("power").text().as_double();
+  pressure_ = xml_root.child("pressure").text().as_double();
   max_timesteps_ = xml_root.child("max_timesteps").text().as_int();
   max_picard_iter_ = xml_root.child("max_picard_iter").text().as_int();
   openmc_procs_per_node_ = xml_root.child("openmc_procs_per_node").text().as_int();
@@ -84,8 +86,7 @@ void OpenmcNekDriver::solve_in_time()
       }
       comm_.Barrier();
 
-      update_temperature();
-      update_density();
+      update_temperature_and_density();
 
       if (is_converged_()) {
         std::string msg = "converged at i_picard = " + std::to_string(i_picard);
@@ -305,7 +306,7 @@ void OpenmcNekDriver::update_heat_source()
   }
 }
 
-void OpenmcNekDriver::update_temperature()
+void OpenmcNekDriver::update_temperature_and_density()
 {
   if (nek_driver_->active()) {
     if (openmc_driver_->active()) {
@@ -332,45 +333,6 @@ void OpenmcNekDriver::update_temperature()
         // Get corresponding global elements
         const auto& global_elems = mat_to_elems_.at(c.material_index_);
 
-        // Get volume-average temperature for this material
-        double average_temp = 0.0;
-        double total_vol = 0.0;
-        for (int elem : global_elems) {
-          average_temp += elem_temperatures_[elem] * elem_volumes_[elem];
-          total_vol += elem_volumes_[elem];
-        }
-        average_temp /= total_vol;
-
-        // Set temperature for cell instance
-        c.set_temperature(average_temp);
-      }
-    }
-  }
-}
-  //! \param A message to display
-void OpenmcNekDriver::update_density()
-{
-  if (nek_driver_->active()) {
-    // Each Nek proc finds the densities of its local elements
-    double local_elem_densities[n_local_elem_];
-    for (int i = 0; i < n_local_elem_; ++i) {
-      local_elem_densities[i] = nek_driver_->get_local_elem_density(i + 1);
-    }
-    // Gather all the local element densities on the Nek5000/OpenMC root
-    nek_driver_->comm_.Gatherv(local_elem_densities, n_local_elem_, MPI_DOUBLE,
-                               elem_densities_.data(), nek_driver_->local_counts_.data(),
-                               nek_driver_->local_displs_.data(), MPI_DOUBLE);
-
-    if (openmc_driver_->active()) {
-      // Broadcast global_element_densities onto all the OpenMC procs
-      openmc_driver_->comm_.Bcast(elem_densities_.data(), n_global_elem_, MPI_DOUBLE);
-
-      // For each OpenMC material, volume average densities and set
-      for (const auto& c : openmc_driver_->cells_) {
-
-        // Get corresponding global elements
-        const auto& global_elems = mat_to_elems_.at(c.material_index_);
-
         bool any_in_fluid = false;
         for (int elem : global_elems) {
           if (elem_is_in_fluid_[elem] == 1) {
@@ -379,17 +341,32 @@ void OpenmcNekDriver::update_density()
           }
         }
 
-        if (any_in_fluid) {
-          // Get volume-average densities for this material
-          double average_density = 0.0;
-          double total_vol = 0.0;
-          for (int elem : global_elems) {
-            average_density += elem_densities_[elem] * elem_volumes_[elem];
-            total_vol += elem_volumes_[elem];
-          }
-          average_density /= total_vol;
+        // Get volume-average temperature for this material
+        double average_temp = 0.0;
+        double total_vol = 0.0;
+        double average_density = 0.0;
+        double total_vol_density = 0.0;
+        for (int elem : global_elems) {
+          double T = elem_temperatures_[elem];
+          double V = elem_volumes_[elem];
+          average_temp += T*V;
+          total_vol += V;
 
-          // Set densities for cell instance
+          if (any_in_fluid) {
+            // nu1 returns specific volume in [m^3/kg]
+            double density = 1.0e-3/nu1(pressure_, T);
+            average_density += density*V;
+            total_vol_density += V;
+          }
+        }
+
+        // Set temperature for cell instance
+        average_temp /= total_vol;
+        c.set_temperature(average_temp);
+
+        // Set density for cell instance
+        if (any_in_fluid) {
+          average_density /= total_vol_density;
           c.set_density(average_density);
         }
       }
