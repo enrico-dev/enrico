@@ -89,4 +89,10 @@ void SurrogateHeatDriver::solve_step()
   }
 }
 
+void SurrogateHeatDriver::to_vtk(std::string filename,
+                                 VTKData output_data)
+{
+    return;
+}
+
 } // namespace stream

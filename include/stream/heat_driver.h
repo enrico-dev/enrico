@@ -15,6 +15,9 @@
 namespace stream {
 
 class SurrogateHeatDriver : public HeatFluidsDriver {
+
+enum class VTKData {heat = 0, neutronics, all};
+
 public:
   //! Initializes heat-fluids surrogate with the given MPI communicator.
   //!
@@ -61,6 +64,9 @@ public:
 private:
   //! Create internal arrays used for heat equation solver
   void generate_arrays();
+
+  void to_vtk(std::string filename = "magnolia.vtk",
+              VTKData output_data = VTKData::all);
 };
 
 } // namespace stream
