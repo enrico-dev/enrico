@@ -13,6 +13,7 @@ namespace stream
 Coupled_Solver::Coupled_Solver(std::shared_ptr<Assembly_Model> assembly,
                                const std::vector<double>&      z_edges,
                                const std::string&              shift_filename,
+                               const std::string&              stream_filename,
                                double                          power_norm,
                                MPI_Comm                        neutronics_comm,
                                MPI_Comm                        th_comm)
@@ -23,7 +24,21 @@ Coupled_Solver::Coupled_Solver(std::shared_ptr<Assembly_Model> assembly,
         shift_filename,
         z_edges);
 
-    d_nek_solver = std::make_shared<NekDriver>(th_comm);
+    // Build Nek driver
+    {
+        // Parse stream xml file
+        pugi::xml_document doc;
+        auto result = doc.load_file(stream_filename.c_str());
+        if (!result) {
+            throw std::runtime_error{"Unable to load stream.xml file"};
+        }
+
+        // Get root element
+        auto root = doc.document_element();
+
+        d_nek_solver = std::make_shared<NekDriver>(th_comm,
+                                                   root.child("nek5000"));
+    }
 
     d_th_num_local  = d_nek_solver->nelt_;
     d_th_num_global = d_nek_solver->nelgt_;

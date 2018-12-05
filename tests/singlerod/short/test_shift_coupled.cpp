@@ -13,7 +13,8 @@ int main(int argc, char *argv[]) {
   MPI_Init(&argc, &argv);
 
   {
-  std::string shift_filename = "singlerod_short.inp.xml";
+  std::string shift_filename  = "singlerod_short.inp.xml";
+  std::string stream_filename = "stream.xml";
 
   // Build assembly model
   std::vector<double> x_edges = {-0.63, 0.63};
@@ -36,6 +37,7 @@ int main(int argc, char *argv[]) {
       assembly,
       z_edges,
       shift_filename,
+      stream_filename,
       power_norm,
       MPI_COMM_WORLD,
       MPI_COMM_WORLD);

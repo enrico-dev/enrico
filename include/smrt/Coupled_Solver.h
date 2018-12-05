@@ -59,6 +59,7 @@ class Coupled_Solver
     Coupled_Solver(std::shared_ptr<Assembly_Model> assembly,
                    const std::vector<double>&      z_edges,
                    const std::string&              shift_filename,
+                   const std::string&              stream_filename,
                    double                          power_norm,
                    MPI_Comm                        neutronics_comm,
                    MPI_Comm                        th_comm);
