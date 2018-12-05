@@ -5,18 +5,23 @@
 #include <sstream>
 #include <string>
 
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 #include "openmc/capi.h"
 #include "openmc/constants.h"
+#include "openmc/container_util.h"
 #include "openmc/distribution.h"
 #include "openmc/distribution_multi.h"
 #include "openmc/distribution_spatial.h"
+#include "openmc/eigenvalue.h"
 #include "openmc/error.h"
 #include "openmc/file_utils.h"
 #include "openmc/mesh.h"
 #include "openmc/output.h"
 #include "openmc/random_lcg.h"
+#include "openmc/simulation.h"
 #include "openmc/source.h"
 #include "openmc/string_utils.h"
 #include "openmc/xml_interface.h"
@@ -57,10 +62,9 @@ bool urr_ptables_on          {true};
 bool write_all_tracks        {false};
 bool write_initial_source    {false};
 bool dagmc                   {false};
-  
+
 std::string path_cross_sections;
 std::string path_input;
-std::string path_multipole;
 std::string path_output;
 std::string path_particle_restart;
 std::string path_source;
@@ -69,6 +73,7 @@ std::string path_statepoint;
 
 int32_t index_entropy_mesh {-1};
 int32_t index_ufs_mesh {-1};
+int32_t index_cmfd_mesh {-1};
 
 int32_t n_batches;
 int32_t n_inactive {0};
@@ -76,7 +81,7 @@ int32_t gen_per_batch {1};
 int64_t n_particles {-1};
 
 int electron_treatment {ELECTRON_TTB};
-double energy_cutoff[4] {0.0, 1000.0, 0.0, 0.0};
+std::array<double, 4> energy_cutoff {0.0, 1000.0, 0.0, 0.0};
 int legendre_to_tabular_points {C_NONE};
 int max_order {0};
 int n_log_bins {8000};
@@ -84,14 +89,18 @@ int n_max_batches;
 int res_scat_method {RES_SCAT_ARES};
 double res_scat_energy_min {0.01};
 double res_scat_energy_max {1000.0};
+std::vector<std::string> res_scat_nuclides;
 int run_mode {-1};
+std::unordered_set<int> sourcepoint_batch;
+std::unordered_set<int> statepoint_batch;
 int temperature_method {TEMPERATURE_NEAREST};
 double temperature_tolerance {10.0};
 double temperature_default {293.6};
-double temperature_range[2] {0.0, 0.0};
+std::array<double, 2> temperature_range {0.0, 0.0};
 int trace_batch;
 int trace_gen;
 int64_t trace_particle;
+std::vector<std::array<int, 3>> track_identifiers;
 int trigger_batch_interval {1};
 int verbosity {7};
 double weight_cutoff {0.25};
@@ -140,7 +149,10 @@ void get_run_parameters(pugi::xml_node node_base)
       gen_per_batch = std::stoi(get_node_value(node_base, "generations_per_batch"));
     }
 
-    // TODO: Preallocate space for keff and entropy by generation
+    // Preallocate space for keff and entropy by generation
+    int m = settings::n_max_batches * settings::gen_per_batch;
+    simulation::k_generation.reserve(m);
+    entropy.reserve(m);
 
     // Get the trigger information for keff
     if (check_for_node(node_base, "keff_trigger")) {
@@ -177,7 +189,7 @@ void read_settings_xml()
   using namespace pugi;
 
   // Check if settings.xml exists
-  std::string filename = std::string(path_input) + "settings.xml";
+  std::string filename = path_input + "settings.xml";
   if (!file_exists(filename)) {
     if (run_mode != RUN_MODE_PLOTTING) {
       std::stringstream msg;
@@ -195,7 +207,7 @@ void read_settings_xml()
 
   // Parse settings.xml file
   xml_document doc;
-  auto result = doc.load_file("settings.xml");
+  auto result = doc.load_file(filename.c_str());
   if (!result) {
     fatal_error("Error processing settings.xml file.");
   }
@@ -218,7 +230,7 @@ void read_settings_xml()
     fatal_error("DAGMC mode unsupported for this build of OpenMC");
   }
 #endif
-  
+
   // To this point, we haven't displayed any output since we didn't know what
   // the verbosity is. Now that we checked for it, show the title if necessary
   if (openmc_master) {
@@ -244,21 +256,6 @@ void read_settings_xml()
         " environment variable will take precendent over setting "
         "cross_sections in settings.xml.");
     path_cross_sections = get_node_value(root, "cross_sections");
-  }
-
-  // Look for deprecated windowed_multipole file in settings.xml
-  if (run_mode != RUN_MODE_PLOTTING) {
-    if (check_for_node(root, "multipole_library")) {
-      warning("Setting multipole_library in settings.xml has been "
-          "deprecated. The multipole_library is now set in materials.xml and"
-          " the multipole_library input to materials.xml and the "
-          "OPENMC_MULTIPOLE_LIBRARY environment variable will take "
-          "precendent over setting multipole_library in settings.xml.");
-      path_multipole = get_node_value(root, "multipole_library");
-    }
-    if (!ends_with(path_multipole, "/")) {
-      path_multipole += "/";
-    }
   }
 
   if (!run_CE) {
@@ -393,14 +390,14 @@ void read_settings_xml()
   // Number of OpenMP threads
   if (check_for_node(root, "threads")) {
 #ifdef _OPENMP
-    if (openmc_n_threads == 0) {
-      openmc_n_threads = std::stoi(get_node_value(root, "threads"));
-      if (openmc_n_threads < 1) {
+    if (simulation::n_threads == 0) {
+      simulation::n_threads = std::stoi(get_node_value(root, "threads"));
+      if (simulation::n_threads < 1) {
         std::stringstream msg;
-        msg << "Invalid number of threads: " << openmc_n_threads;
+        msg << "Invalid number of threads: " << simulation::n_threads;
         fatal_error(msg);
       }
-      omp_set_num_threads(openmc_n_threads);
+      omp_set_num_threads(simulation::n_threads);
     }
 #else
     if (openmc_master) warning("OpenMC was not compiled with OpenMP support; "
@@ -414,7 +411,7 @@ void read_settings_xml()
     omp_set_num_threads(1);
   }
 #endif
-  
+
   // ==========================================================================
   // EXTERNAL SOURCE
 
@@ -490,7 +487,7 @@ void read_settings_xml()
   // Particle tracks
   if (check_for_node(root, "track")) {
     // Get values and make sure there are three per particle
-    auto temp = get_node_array<int64_t>(root, "track");
+    auto temp = get_node_array<int>(root, "track");
     if (temp.size() % 3 != 0) {
       fatal_error("Number of integers specified in 'track' is not "
         "divisible by 3.  Please provide 3 integers per particle to be "
@@ -498,8 +495,11 @@ void read_settings_xml()
     }
 
     // Reshape into track_identifiers
-    //allocate(track_identifiers(3, n_tracks/3))
-    //track_identifiers = reshape(temp_int_array, [3, n_tracks/3])
+    int n_tracks = temp.size() / 3;
+    for (int i = 0; i < n_tracks; ++i) {
+      track_identifiers.push_back({temp[3*i], temp[3*i + 1],
+        temp[3*i + 2]});
+    }
   }
 
   // Read meshes
@@ -538,7 +538,7 @@ void read_settings_xml()
       // If the user did not specify how many mesh cells are to be used in
       // each direction, we automatically determine an appropriate number of
       // cells
-      int n = std::ceil(std::pow(settings::n_particles / 20.0, 1.0/3.0));
+      int n = std::ceil(std::pow(n_particles / 20.0, 1.0/3.0));
       m.shape_ = {n, n, n};
       m.n_dimension_ = 3;
 
@@ -547,7 +547,7 @@ void read_settings_xml()
     }
 
     // Turn on Shannon entropy calculation
-    settings::entropy_on = true;
+    entropy_on = true;
   }
 
   // Uniform fission source weighting mesh
@@ -580,18 +580,48 @@ void read_settings_xml()
 
   if (index_ufs_mesh >= 0) {
     // Turn on uniform fission source weighting
-    settings::ufs_on = true;
+    ufs_on = true;
   }
 
-  // TODO: Read <state_point>
+  // Check if the user has specified to write state points
+  if (check_for_node(root, "state_point")) {
 
+    // Get pointer to state_point node
+    auto node_sp = root.child("state_point");
+
+    // Determine number of batches at which to store state points
+    if (check_for_node(node_sp, "batches")) {
+      // User gave specific batches to write state points
+      auto temp = get_node_array<int>(node_sp, "batches");
+      for (const auto& b : temp) {
+        statepoint_batch.insert(b);
+      }
+    } else {
+      // If neither were specified, write state point at last batch
+      statepoint_batch.insert(n_batches);
+    }
+  } else {
+    // If no <state_point> tag was present, by default write state point at
+    // last batch only
+    statepoint_batch.insert(n_batches);
+  }
 
   // Check if the user has specified to write source points
   if (check_for_node(root, "source_point")) {
     // Get source_point node
     xml_node node_sp = root.child("source_point");
 
-    // TODO: Read source point batches
+    // Determine batches at which to store source points
+    if (check_for_node(node_sp, "batches")) {
+      // User gave specific batches to write source points
+      auto temp = get_node_array<int>(node_sp, "batches");
+      for (const auto& b : temp) {
+        sourcepoint_batch.insert(b);
+      }
+    } else {
+      // If neither were specified, write source points with state points
+      sourcepoint_batch = statepoint_batch;
+    }
 
     // Check if the user has specified to write binary source file
     if (check_for_node(node_sp, "separate")) {
@@ -608,10 +638,19 @@ void read_settings_xml()
     // If no <source_point> tag was present, by default we keep source bank in
     // statepoint file and write it out at statepoints intervals
     source_separate = false;
-    // TODO: add defaults
+    sourcepoint_batch = statepoint_batch;
   }
 
-  // TODO: Check source points are subset
+  // If source is not seperate and is to be written out in the statepoint file,
+  // make sure that the sourcepoint batch numbers are contained in the
+  // statepoint list
+  if (!source_separate) {
+    for (const auto& b : sourcepoint_batch) {
+      if (!contains(statepoint_batch, b)) {
+        fatal_error("Sourcepoint batches are not a subset of statepoint batches.");
+      }
+    }
+  }
 
   // Check if the user has specified to not reduce tallies at the end of every
   // batch
@@ -697,7 +736,10 @@ void read_settings_xml()
         "lower resonance scattering energy bound.");
     }
 
-    // TODO: Get resonance scattering nuclides
+    // Get resonance scattering nuclides
+    if (check_for_node(node_res_scat, "nuclides")) {
+      res_scat_nuclides = get_node_array<std::string>(node_res_scat, "nuclides");
+    }
   }
 
   // TODO: Get volume calculations
@@ -765,17 +807,38 @@ void read_settings_xml()
 //==============================================================================
 
 extern "C" {
-  const char* openmc_path_input() {
+  bool res_scat_nuclides_empty() {
+    return settings::res_scat_nuclides.empty();
+  }
+
+  int res_scat_nuclides_size() {
+    return settings::res_scat_nuclides.size();
+  }
+
+  bool res_scat_nuclides_cmp(int i, const char* name) {
+    return settings::res_scat_nuclides[i - 1] == name;
+  }
+
+  const char* path_cross_sections_c() {
+    return settings::path_cross_sections.c_str();
+  }
+  const char* path_input_c() {
     return settings::path_input.c_str();
   }
-  const char* openmc_path_statepoint() {
+  const char* path_statepoint_c() {
     return settings::path_statepoint.c_str();
   }
-  const char* openmc_path_sourcepoint() {
+  const char* path_sourcepoint_c() {
     return settings::path_sourcepoint.c_str();
   }
-  const char* openmc_path_particle_restart() {
+  const char* path_particle_restart_c() {
     return settings::path_particle_restart.c_str();
+  }
+
+  void free_memory_settings() {
+    settings::statepoint_batch.clear();
+    settings::sourcepoint_batch.clear();
+    settings::res_scat_nuclides.clear();
   }
 }
 

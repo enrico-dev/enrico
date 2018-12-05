@@ -26,22 +26,39 @@ public:
   //!
   //! \param power Power in [W]
   //! \param coupled_comm An existing communicator for the coupled driver
-  OpenmcNekDriver(double power, MPI_Comm coupled_comm);
+  OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root);
 
   //! Frees any data structures that need manual freeing.
   ~OpenmcNekDriver();
 
-  //! Transfers heat source terms from Nek5000 to OpenMC
+  //! Transfers heat source terms from OpenMC to Nek5000
   void update_heat_source();
 
-  //! Tranfsers temperatures from OpenMC to Nek5000
+  //! Transfers temperatures from Nek5000 to OpenMC
   void update_temperature();
+
+  //! Transfers densities from Nek5000 to OpenMC
+  void update_density();
+
+  //! Run one timstep
+  void solve_in_time();
+
+  //! Check convergence based on temperature field and specified epsilon
+  //!
+  //! Curreuntly compares L_inf norm of temperature data between iterations
+  //!
+  //! \return true if L_inf norm of temperature data is less than epsilon
+  bool is_converged_();
 
   Comm comm_; //!< The communicator used to run this driver
   Comm intranode_comm_;  //!< The communicator reprsenting intranode ranks
   std::unique_ptr<OpenmcDriver> openmc_driver_;  //!< The OpenMC driver
   std::unique_ptr<NekDriver> nek_driver_;  //!< The Nek5000 driver
   double power_; //!< Power in [W]
+  int max_timesteps_; //! Maximum of timesteps
+  int max_picard_iter_; //! Maximum number of Picard iterations per timestep
+  int openmc_procs_per_node_; //! Number of MPI ranks per (shared-memory) node in OpenMC comm
+  double epsilon_; //! The tolerance for convergence
 private:
 
   //! Initialize MPI datatypes (currently, only position_mpi_datatype)
@@ -58,6 +75,10 @@ private:
 
   //! Initialize global volume buffers for OpenMC ranks
   void init_volumes();
+
+  //! Allocate space for the global volume buffers in OpenMC ranks
+  //! Currently, the density values are uninitialized.
+  void init_densities();
 
   //! Get the heat index for a given OpenMC material
   //! \param mat_index An OpenMC material index
@@ -76,17 +97,32 @@ private:
   //! Gives a Position of a global element's centroid
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
-  std::vector<Position> global_elem_centroids_;
+  std::vector<Position> elem_centroids_;
+
+  //! States whether a global element is in the fluid region
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
+  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  std::vector<int> elem_is_in_fluid_;
 
   //! The dimensionless temperatures of Nek's global elements
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
-  std::vector<double> global_elem_temperatures_;
+  xt::xtensor<double, 1> elem_temperatures_;
+
+  //! From the previous Picard iter, the dimensionless temperatures of Nek's global elements
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
+  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  xt::xtensor<double, 1> elem_temperatures_prev_;
 
   //! The dimensionless volumes of Nek's global elements
   //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
   //! according to an MPI_Gatherv operation on Nek5000's local elements.
-  std::vector<double> global_elem_volumes_;
+  xt::xtensor<double, 1> elem_volumes_;
+
+  //! The dimensionless densities of Nek's global elements
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
+  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  xt::xtensor<double, 1> elem_densities_;
 
   //! Map that gives a list of Nek element global indices for a given OpenMC material index
   std::unordered_map<int32_t, std::vector<int>> mat_to_elems_;
@@ -103,11 +139,11 @@ private:
 
   //! Number of Nek local elements on this MPI rank.
   //! If nek_driver_ is active, this equals nek_driver.nelt_.  If not, it equals 0.
-  int n_local_elem_;
+  size_t n_local_elem_;
 
   //! Number of Nek global elements across all ranks.
   //! Always equals nek_driver_.nelgt_.
-  int n_global_elem_;
+  size_t n_global_elem_;
 
 };
 

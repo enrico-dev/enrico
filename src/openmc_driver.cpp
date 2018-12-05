@@ -8,6 +8,8 @@
 #include "xtensor/xarray.hpp"
 #include "xtensor/xview.hpp"
 
+#include <string>
+
 namespace stream {
 
 OpenmcDriver::OpenmcDriver(MPI_Comm comm) : TransportDriver(comm)
@@ -52,15 +54,13 @@ xt::xtensor<double, 3> OpenmcDriver::tally_results()
 
   // Get tally results and number of realizations
   double* results;
-  int shape_int[3];
-  err_chk(openmc_tally_results(index_tally_, &results, shape_int));
+  std::array<std::size_t, 3> shape;
+  err_chk(openmc_tally_results(index_tally_, &results, shape.data()));
   int32_t m;
   err_chk(openmc_tally_get_n_realizations(index_tally_, &m));
 
-  // Determine shape and size
-  // TODO: Change the order of shape in OpenMC itself so we don't have to reverse it here
-  std::vector<int> shape {shape_int[2], shape_int[1], shape_int[0]};
-  int size {shape_int[0] * shape_int[1] * shape_int[2]};
+  // Determine size
+  std::size_t size {shape[0] * shape[1] * shape[2]};
 
   // Adapt array into xtensor with no ownership
   return xt::adapt(results, size, xt::no_ownership(), shape);
@@ -74,6 +74,10 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power)
   // Determine number of realizatoins for normalizing tallies
   int32_t m;
   err_chk(openmc_tally_get_n_realizations(index_tally_, &m));
+
+  // Broadcast number of realizations
+  // TODO: Change OpenMC so that it's correct on all ranks
+  comm_.Bcast(&m, 1, MPI_INT32_T);
 
   // Determine energy production in each material
   auto mean_value = xt::view(results, xt::all(), 0, 1);
@@ -96,9 +100,22 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power)
   return heat;
 }
 
-void OpenmcDriver::init_step() { err_chk(openmc_simulation_init()); }
+void OpenmcDriver::init_step()
+{
+  err_chk(openmc_simulation_init());
+  // TODO: OpenMC should properly reset tallies/realizations when initializing a
+  // simulation
+  err_chk(openmc_reset());
+}
 
-void OpenmcDriver::solve_step() { err_chk(openmc_run()); }
+void OpenmcDriver::solve_step(int i){
+  err_chk(openmc_run());
+
+  // TODO: Change statepoint_write to not expect a pointer to a const char*
+  std::string filename {"openmc_step" + std::to_string(i) + ".h5"};
+  const char* fp = filename.c_str();
+  err_chk(openmc_statepoint_write(&fp, nullptr));
+}
 
 void OpenmcDriver::finalize_step() { err_chk(openmc_simulation_finalize()); }
 

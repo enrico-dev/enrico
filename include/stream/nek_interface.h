@@ -27,6 +27,9 @@ void C2F_nek_end();
 //! This is the name-mangled version of nek_solve from libnek5000
 void C2F_nek_solve();
 
+//! Reset the counters necessary to resume timestepping at the next Picard iteration
+void nek_reset_counters();
+
 //! Get the coordinates of a global element's centroid
 //!
 //! The returned coordinate is dimensionless.  Its units depend on the unit system that was
@@ -67,6 +70,16 @@ int nek_get_local_elem_volume(int local_elem, double* volume);
 //! \return  Error value
 int nek_get_local_elem_temperature(int local_elem, double* temperature);
 
+//! Get the density-averaged temperature of a local element
+//!
+//! The returned temperature is dimensionless.  Its units depend on the unit system that was
+//! used to setup the Nek5000 problem. The user must handle any necessary conversions.
+//!
+//! \param local_elem  A local element ID
+//! \param temperature  The **dimensionless** density-averaged temperature of the local element
+//! \return  Error value
+int nek_get_local_elem_density(int local_elem, double* density);
+
 //! Get the global element ID for a given local element
 //! \param local_elem  A local element ID
 //! \return The corresponding global element ID
@@ -106,11 +119,11 @@ int nek_get_lx1();
 
 //! Get lelt, the number of local elements
 //!
-//! \return  The number of local elements for this problem
+//! \return  The number of local elements
 int nek_get_nelt();
 
-//! Get nelgt
-//! \return  nelgt
+//! Get nelgt, the number of global elements
+//! \return  nelgt The number of global elements
 int nek_get_nelgt();
 
 //! Return true if a global element is in a given MPI rank
@@ -118,6 +131,16 @@ int nek_get_nelgt();
 //! \param An MPI rank
 //! \return True if the global element ID is in the given rank
 int nek_global_elem_is_in_rank(int global_elem, int rank);
+
+//! Return true if a local element is in the fluid region
+//! \param local_elem  A local element ID
+//! \return 1 if the local element is in fluid; 0 otherwise
+int nek_local_elem_is_in_fluid(int local_elem);
+
+//! Return true if a global element is in the fluid region
+//! \param global_elem  A global element ID
+//! \return 1 if the global element is in fluid; 0 otherwise
+int nek_global_elem_is_in_fluid(int global_elem);
 
 //! Set the heat source for a given local element
 //!

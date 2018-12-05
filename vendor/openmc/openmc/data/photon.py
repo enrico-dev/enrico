@@ -1,4 +1,5 @@
-from collections import OrderedDict, Mapping, Callable
+from collections import OrderedDict
+from collections.abc import Mapping, Callable
 from copy import deepcopy
 from io import StringIO
 from numbers import Integral, Real
@@ -372,9 +373,6 @@ class IncidentPhoton(EqualityMixin):
         excitation energy), 's_collision' (collision stopping power in
         [eV cm\ :sup:`2`/g]), and 's_radiative' (radiative stopping power in
         [eV cm\ :sup:`2`/g])
-    redundant_reactions : collections.OrderedDict
-        Contains redundant cross sections. The keys are MT values and the values
-        are instances of :class:`PhotonReaction`.
 
     """
 
@@ -382,19 +380,16 @@ class IncidentPhoton(EqualityMixin):
         self.atomic_number = atomic_number
         self._atomic_relaxation = None
         self.reactions = OrderedDict()
-        self.redundant_reactions = OrderedDict()
         self.compton_profiles = {}
         self.stopping_powers = {}
         self.bremsstrahlung = {}
 
     def __contains__(self, mt):
-        return mt in self.reactions or mt in self.redundant_reactions
+        return mt in self.reactions
 
     def __getitem__(self, mt):
         if mt in self.reactions:
             return self.reactions[mt]
-        elif mt in self.redundant_reactions:
-            return self.redundant_reactions[mt]
         else:
             raise KeyError('No reaction with MT={}.'.format(mt))
 
@@ -667,7 +662,7 @@ class IncidentPhoton(EqualityMixin):
 
         """
         # Open file and write version
-        f = h5py.File(path, mode, libver=libver)
+        f = h5py.File(str(path), mode, libver=libver)
         f.attrs['filetype'] = np.string_('data_photon')
         if 'version' not in f.attrs:
             f.attrs['version'] = np.array(HDF5_VERSION)
@@ -740,7 +735,7 @@ class IncidentPhoton(EqualityMixin):
                         shell_values.insert(0, None)
                         df = relax.transitions[shell].replace(
                             shell_values, range(len(shell_values)))
-                        sub_group.create_dataset('transitions', data=df.as_matrix())
+                        sub_group.create_dataset('transitions', data=df.values)
 
                 # Determine threshold
                 threshold = rx.xs.x[0]

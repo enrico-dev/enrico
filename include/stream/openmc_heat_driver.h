@@ -40,11 +40,16 @@ public:
   //! Update the temperature in each region for OpenMC
   void update_temperature();
 
+  //! Run one timstep
+  void solve_in_time();
+
   // Data
   Comm comm_;  //!< The communicator used to run this driver
   std::unique_ptr<OpenmcDriver> openmc_driver_; //! The OpenMC driver
   std::unique_ptr<SurrogateHeatDriver> heat_driver_; //! The heat surrogate driver
   double power_; //!< Power in [W]
+  int max_timesteps_; //! Maximum of timesteps
+  int max_picard_iter_; //! Maximum number of Picard iterations per timestep
 
   // Mapping of surrogate rings to OpenMC cell instances and vice versa
   std::unordered_map<int, std::vector<int>> ring_to_cell_inst_;

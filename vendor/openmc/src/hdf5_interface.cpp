@@ -148,13 +148,22 @@ dataset_typesize(hid_t dset)
 
 
 void
-ensure_exists(hid_t group_id, const char* name)
+ensure_exists(hid_t obj_id, const char* name, bool attribute)
 {
-  if (!object_exists(group_id, name)) {
-    std::stringstream err_msg;
-    err_msg << "Object \"" << name << "\" does not exist in group "
-            << object_name(group_id);
-    fatal_error(err_msg);
+  if (attribute) {
+    if (!attribute_exists(obj_id, name)) {
+      std::stringstream err_msg;
+      err_msg << "Attribute \"" << name << "\" does not exist in object "
+              << object_name(obj_id);
+      fatal_error(err_msg);
+    }
+  } else {
+    if (!object_exists(obj_id, name)) {
+      std::stringstream err_msg;
+      err_msg << "Object \"" << name << "\" does not exist in object "
+              << object_name(obj_id);
+      fatal_error(err_msg);
+    }
   }
 }
 
@@ -353,7 +362,7 @@ member_names(hid_t group_id, H5O_type_t type)
     char buffer[size];
     H5Lget_name_by_idx(group_id, ".", H5_INDEX_NAME, H5_ITER_INC, i,
                        buffer, size, H5P_DEFAULT);
-    names.emplace_back(&buffer[0], size);
+    names.emplace_back(&buffer[0]);
   }
   return names;
 }
@@ -392,7 +401,7 @@ object_name(hid_t obj_id)
 
   // Read and return name
   H5Iget_name(obj_id, buffer, size);
-  return {buffer, size};
+  return buffer;
 }
 
 
@@ -439,7 +448,9 @@ read_attr_string(hid_t obj_id, const char* name, size_t slen, char* buffer)
 {
   // Create datatype for a string
   hid_t datatype = H5Tcopy(H5T_C_S1);
-  H5Tset_size(datatype, slen + 1);
+  H5Tset_size(datatype, slen);
+  // numpy uses null-padding when writing fixed-length strings
+  H5Tset_strpad(datatype, H5T_STR_NULLPAD);
 
   // Read data into buffer
   read_attr(obj_id, name, datatype, buffer);
@@ -503,7 +514,9 @@ read_string(hid_t obj_id, const char* name, size_t slen, char* buffer, bool inde
 {
   // Create datatype for a string
   hid_t datatype = H5Tcopy(H5T_C_S1);
-  H5Tset_size(datatype, slen + 1);
+  H5Tset_size(datatype, slen);
+  // numpy uses null-padding when writing fixed-length strings
+  H5Tset_strpad(datatype, H5T_STR_NULLPAD);
 
   // Read data into buffer
   read_dataset(obj_id, name, datatype, buffer, indep);

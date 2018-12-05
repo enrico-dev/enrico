@@ -31,7 +31,7 @@
    2.00000     p027 TORDER
    0.00000     p028 TORDER: mesh velocity (0: p28=p27)
    0.00000     p029 = magnetic visc if > 0, = -1/Rm if < 0
-   0.00000     p030 > 0 ==> properties set in uservp()
+   1.00000     p030 > 0 ==> properties set in uservp()
    0.00000     p031 NPERT: #perturbation modes
    0.00000     p032 #BCs in re2 file, if > 0
    100.000     p033 : : : MXGEOM

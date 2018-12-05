@@ -105,6 +105,9 @@ def test_material(capi_init):
     m.volume = 10.0
     assert m.volume == 10.0
 
+    with pytest.raises(exc.InvalidArgumentError):
+        m.set_density(1.0, 'goblins')
+
     rho = 2.25e-2
     m.set_density(rho)
     assert sum(m.densities) == pytest.approx(rho)
@@ -168,6 +171,8 @@ def test_tally(capi_init):
         openmc.capi.MaterialFilter(uid=1)
     mats = openmc.capi.materials
     f = openmc.capi.MaterialFilter([mats[2], mats[1]])
+    assert f.bins[0] == mats[2]
+    assert f.bins[1] == mats[1]
     t.filters = [f]
     assert t.filters == [f]
 
@@ -375,13 +380,13 @@ def test_restart(capi_init):
         openmc.capi.next_batch()
     keff0 = openmc.capi.keff()
 
-    # Restart the simulation from the statepoint and the 5 active batches.
+    # Restart the simulation from the statepoint and the 3 remaining active batches.
     openmc.capi.simulation_finalize()
     openmc.capi.hard_reset()
     openmc.capi.finalize()
     openmc.capi.init(args=('-r', 'restart_test.h5'))
     openmc.capi.simulation_init()
-    for i in range(5):
+    for i in range(3):
         openmc.capi.next_batch()
     keff1 = openmc.capi.keff()
     openmc.capi.simulation_finalize()

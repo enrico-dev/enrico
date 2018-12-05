@@ -4,6 +4,7 @@
 #define STREAM_OPENMC_INTERFACE_H
 
 #include <cstdint>
+#include <functional> // for hash
 
 #include "openmc/material.h"
 #include "geom.h"
@@ -31,12 +32,31 @@ public:
   //! Set the temperature of this cell
   void set_temperature(double T) const;
 
+  //! Check for equality
+  bool operator==(const CellInstance& other) const;
+
   int32_t index_; //!< Index in global cells array
   int32_t instance_; //!< Index of cell instance
   int32_t material_index_; //!< Index of material in this instance
   double volume_ {0.0}; //!< volume of cell instance in [cm^3]
 };
 
-}
+} // namespace stream
+
+namespace std {
+
+template<>
+struct hash<stream::CellInstance> {
+  // Taken from https://stackoverflow.com/a/17017281
+  std::size_t operator()(const stream::CellInstance& k) const
+  {
+    std::size_t res = 17;
+    res = 31*res + std::hash<int32_t>()(k.index_);
+    res = 31*res + std::hash<int32_t>()(k.instance_);
+    return res;
+  }
+};
+
+} // namespace std
 
 #endif // STREAM_OPENMC_INTERFACE_H
