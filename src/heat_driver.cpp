@@ -5,8 +5,10 @@
 #include "xtensor/xview.hpp"
 #include "heat_xfer_backend.h"
 #include "openmc/xml_interface.h"
+#include "openmc/constants.h"
 
 #include <iostream>
+#include <fstream>
 
 namespace stream {
 
@@ -92,7 +94,55 @@ void SurrogateHeatDriver::solve_step()
 void SurrogateHeatDriver::to_vtk(std::string filename,
                                  VTKData output_data)
 {
-    return;
+  std::vector<double> zs = {0.0, 1.0};
+  VisualizationPin vpin(10.0, 10.0, 5.0, zs, 10);
+  xt::xtensor<double, 3> pin_points = vpin.points();
+
+  // open vtk file
+  std::ofstream fh(filename);
+
+
+  // write header
+  fh << "# vtk DataFile Version 2.0\n";
+  fh << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
+  fh << "POINTS " << pin_points.size()/3 << " float\n";
+
+  return;
+}
+
+xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
+  int points_per_plane = t_resolution + 1;
+
+  xt::xtensor<double, 3> pnts_out = xt::zeros<double>({axial_divs, points_per_plane, 3});
+
+  xt::xtensor<double, 1> x = xt::zeros<double>({points_per_plane});
+  xt::xtensor<double, 1> y = xt::zeros<double>({points_per_plane});
+
+  xt::xtensor<double, 1> theta;
+  theta = xt::linspace<double>(0., 2.*openmc::PI, t_resolution);
+  // populate x and y values
+  for (int i = 0; i < points_per_plane; i++) {
+    x[i] = std::cos(theta[i]);
+    y[i] = std::sin(theta[i]);
+  }
+  // scale
+  x *= pin_radius;
+  y *= pin_radius;
+  // translate
+  x += x_;
+  y += y_;
+
+  for (int i = 0; i < z_grid.size() ; i ++) {
+    double z = z_grid[i];
+    auto x_slice = xt::view(pnts_out, 0, xt::all(), 0);
+    x_slice = x;
+    auto y_slice = xt::view(pnts_out, 0, xt::all(), 1);
+    y_slice = y;
+    auto z_slice = xt::view(pnts_out, 0, xt::all(), 2);
+    z_slice = z;
+  }
+
+  return pnts_out;
 }
 
 } // namespace stream

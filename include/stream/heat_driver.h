@@ -67,7 +67,26 @@ private:
 
   void to_vtk(std::string filename = "magnolia.vtk",
               VTKData output_data = VTKData::all);
-};
+
+  class VisualizationPin {
+  public:
+    VisualizationPin(double x, double y, double r, std::vector<double> grid, int t_res) :
+    x_(x), y_(y), pin_radius(r), z_grid(grid), t_resolution(t_res) {}
+
+
+    // methods
+    xt::xtensor<double, 3> points();
+
+  private:
+    // members
+    double x_, y_;
+    std::vector<double> z_grid;
+    double pin_radius;
+
+    int t_resolution;
+    int axial_divs;
+  };
+}; // end SurrogateHeatDriver
 
 } // namespace stream
 
