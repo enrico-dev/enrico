@@ -43,6 +43,9 @@ public:
   //! Run one timstep
   void solve_in_time();
 
+  //! Write driver data to VTK file
+  inline void to_vtk() { heat_driver_->to_vtk(); }
+
   // Data
   Comm comm_;  //!< The communicator used to run this driver
   std::unique_ptr<OpenmcDriver> openmc_driver_; //! The OpenMC driver

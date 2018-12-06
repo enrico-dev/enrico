@@ -41,6 +41,10 @@ public:
   //! \return Number of rings
   std::size_t n_rings() { return n_fuel_rings_ + n_clad_rings_; }
 
+  //! Write data to VTK
+  void to_vtk(std::string filename = "magnolia.vtk",
+              VTKData output_data = VTKData::all);
+
   // Data on fuel pins
   xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins
   xt::xtensor<double, 1> z_;           //!< Bounding z-values for axial segments
@@ -65,18 +69,17 @@ private:
   //! Create internal arrays used for heat equation solver
   void generate_arrays();
 
-  void to_vtk(std::string filename = "magnolia.vtk",
-              VTKData output_data = VTKData::all);
-
   class VisualizationPin {
   public:
-    VisualizationPin(double x, double y, double r, std::vector<double> grid, int t_res) :
-    x_(x), y_(y), pin_radius(r), z_grid(grid), t_resolution(t_res) {}
+    VisualizationPin(double x, double y, double r, std::vector<double> grid, int t_res, int axial_divs) :
+    x_(x), y_(y), pin_radius(r), z_grid(grid), t_resolution(t_res), axial_divs(axial_divs) {}
 
 
     // methods
     xt::xtensor<double, 3> points();
 
+    xt::xtensor<int, 7> cells();
+    
   private:
     // members
     double x_, y_;
