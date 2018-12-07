@@ -155,9 +155,13 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
   xt::xtensor<double, 1> y = xt::zeros<double>({points_per_plane});
 
   xt::xtensor<double, 1> theta;
-  theta = xt::linspace<double>(0., 2.*openmc::PI, t_resolution);
+  theta = xt::linspace<double>(0., 2.*openmc::PI, t_resolution + 1);
+  
   // populate x and y values
-  for (int i = 0; i < points_per_plane; i++) {
+  x(0, 0, 0) = 0;
+  y(0, 0, 0) = 0;
+  
+  for (int i = 1; i < points_per_plane; i++) {
     x[i] = std::cos(theta[i]);
     y[i] = std::sin(theta[i]);
   }
@@ -196,7 +200,9 @@ xt::xtensor<int, 2> SurrogateHeatDriver::VisualizationPin::cells() {
   xt::view(base, xt::all(), 3) = t_resolution + 1;
   xt::view(base, xt::all(), 4) = xt::view(base, xt::all(), 1) + t_resolution + 1;
   xt::view(base, xt::all(), 5) = xt::view(base, xt::all(), 2) + t_resolution + 1;
-
+  base(t_resolution-1, 2) += 1;
+  base(t_resolution-1, 5) += 1;
+  
   for (int i_ax = 0; i_ax < axial_divs-1; i_ax++) {
     int i0 = t_resolution * i_ax;
     int i1 = t_resolution * (i_ax + 1);
