@@ -174,12 +174,9 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
 
   for (int i = 0; i < z_grid.size() ; i ++) {
     double z = z_grid[i];
-    auto x_slice = xt::view(pnts_out, i, xt::all(), 0);
-    x_slice = x;
-    auto y_slice = xt::view(pnts_out, i, xt::all(), 1);
-    y_slice = y;
-    auto z_slice = xt::view(pnts_out, i, xt::all(), 2);
-    z_slice = z;
+    xt::view(pnts_out, i, xt::all(), 0) = x;
+    xt::view(pnts_out, i, xt::all(), 1) = y;
+    xt::view(pnts_out, i, xt::all(), 2) = z;
   }
 
   return pnts_out;
