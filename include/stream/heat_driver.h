@@ -77,10 +77,8 @@ private:
       axial_divs_ = grid.size() - 1;
     }
 
-
     // methods
     xt::xtensor<double, 3> points();
-
     xt::xtensor<int, 3> cells();
 
   private:
@@ -88,7 +86,6 @@ private:
     double x_, y_;
     xt::xtensor<double, 1> z_grid_;
     double pin_radius_;
-
     int cells_per_plane_;
     int points_per_plane_;
     int axial_divs_;

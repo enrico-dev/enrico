@@ -156,10 +156,7 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
   xt::xtensor<double, 1> theta;
   theta = xt::linspace<double>(0., 2.*openmc::PI, cells_per_plane_ + 1);
 
-  // populate x and y values
-  x(0, 0, 0) = 0;
-  y(0, 0, 0) = 0;
-
+  // first point is the pin center, start at one
   for (int i = 1; i < points_per_plane_; i++) {
     x[i] = std::cos(theta[i]);
     y[i] = std::sin(theta[i]);
