@@ -71,10 +71,10 @@ private:
 
   class VisualizationPin {
   public:
-    VisualizationPin(double x, double y, double r, std::vector<double>& grid, int t_res) :
+    VisualizationPin(double x, double y, double r, xt::xtensor<double, 1> grid, int t_res) :
     x_(x), y_(y), pin_radius(r), z_grid(grid), cells_per_plane_(t_res) {
       points_per_plane_ = cells_per_plane_ + 1;
-      axial_divs_ = grid.size() -1;
+      axial_divs_ = grid.size() - 1;
     }
 
 
@@ -86,7 +86,7 @@ private:
   private:
     // members
     double x_, y_;
-    std::vector<double> z_grid;
+    xt::xtensor<double, 1> z_grid;
     double pin_radius;
 
     int cells_per_plane_;

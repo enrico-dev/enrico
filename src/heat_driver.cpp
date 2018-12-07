@@ -98,7 +98,8 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
   std::cout << "Writing VTK file: " << filename << "...\n";
 
   std::vector<double> zs = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0};
-  VisualizationPin vpin(10.0, 10.0, 5.0, zs, 20);
+  VisualizationPin vpin(pin_centers_(0,0), pin_centers_(0,1),
+                        pellet_radius_, z_, 20);
   xt::xtensor<double, 3> pin_points = vpin.points();
 
   // open vtk file
