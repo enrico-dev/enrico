@@ -146,22 +146,20 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
 }
 
 xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
-  int n_divs = z_grid.size() - 1;
-  int points_per_plane = t_resolution + 1;
 
-  xt::xtensor<double, 3> pnts_out = xt::zeros<double>({n_divs + 1, points_per_plane, 3});
+  xt::xtensor<double, 3> pnts_out = xt::zeros<double>({axial_divs_ + 1, points_per_plane_, 3});
 
-  xt::xtensor<double, 1> x = xt::zeros<double>({points_per_plane});
-  xt::xtensor<double, 1> y = xt::zeros<double>({points_per_plane});
+  xt::xtensor<double, 1> x = xt::zeros<double>({points_per_plane_});
+  xt::xtensor<double, 1> y = xt::zeros<double>({points_per_plane_});
 
   xt::xtensor<double, 1> theta;
-  theta = xt::linspace<double>(0., 2.*openmc::PI, t_resolution + 1);
+  theta = xt::linspace<double>(0., 2.*openmc::PI, cells_per_plane_ + 1);
 
   // populate x and y values
   x(0, 0, 0) = 0;
   y(0, 0, 0) = 0;
 
-  for (int i = 1; i < points_per_plane; i++) {
+  for (int i = 1; i < points_per_plane_; i++) {
     x[i] = std::cos(theta[i]);
     y[i] = std::sin(theta[i]);
   }
@@ -172,7 +170,7 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
   x += x_;
   y += y_;
 
-  for (int i = 0; i < z_grid.size() ; i ++) {
+  for (int i = 0; i < z_grid.size(); i ++) {
     double z = z_grid[i];
     xt::view(pnts_out, i, xt::all(), 0) = x;
     xt::view(pnts_out, i, xt::all(), 1) = y;
@@ -184,24 +182,24 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
 
 xt::xtensor<int, 3> SurrogateHeatDriver::VisualizationPin::cells() {
   int n_divs = z_grid.size() - 1;
-  int n_points = t_resolution + 1;
-  xt::xtensor<int, 3> cells_out({n_divs, t_resolution, 7});
+  int n_points = cells_per_plane_ + 1;
+  xt::xtensor<int, 3> cells_out({axial_divs_, cells_per_plane_, 7});
 
   xt::view(cells_out, xt::all(), xt::all(), 0) = 6;
 
-  xt::xtensor<int, 2> base = xt::zeros<int>({t_resolution, 6});
+  xt::xtensor<int, 2> base = xt::zeros<int>({cells_per_plane_, 6});
 
   // cell connectivity for the first z level
-  xt::view(base, xt::all(), 1) = xt::arange(1, n_points);
-  xt::view(base, xt::all(), 2) = xt::arange(2, n_points + 1);
+  xt::view(base, xt::all(), 1) = xt::arange(1, points_per_plane_);
+  xt::view(base, xt::all(), 2) = xt::arange(2, points_per_plane_ + 1);
   // adjust last cell
-  xt::view(base, t_resolution-1, 2) = 1;
+  xt::view(base, cells_per_plane_-1, 2) = 1;
   xt::view(base, xt::all(), 3) = n_points;
-  xt::view(base, xt::all(), 4) = xt::view(base, xt::all(), 1) + n_points;
-  xt::view(base, xt::all(), 5) = xt::view(base, xt::all(), 2) + n_points;
+  xt::view(base, xt::all(), 4) = xt::view(base, xt::all(), 1) + points_per_plane_;
+  xt::view(base, xt::all(), 5) = xt::view(base, xt::all(), 2) + points_per_plane_;
 
   for(int i = 0; i < z_grid.size() - 1; i++) {
-    base += n_points * i;
+    base += i * points_per_plane_;
     xt::view(cells_out, i, xt::all(), xt::range(1, 7)) = base;
   }
 
