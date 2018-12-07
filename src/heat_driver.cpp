@@ -98,7 +98,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
   std::cout << "Writing VTK file: " << filename << "...\n";
 
   std::vector<double> zs = {0.0, 1.0};
-  VisualizationPin vpin(10.0, 10.0, 5.0, zs, 10, 2);
+  VisualizationPin vpin(10.0, 10.0, 5.0, zs, 10);
   xt::xtensor<double, 3> pin_points = vpin.points();
 
   // open vtk file
@@ -139,7 +139,6 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
   for (int j = 0; j < num_cells; j++) {
     fh << 13 << "\n";
   }
-
 
   fh.close();
 
@@ -183,24 +182,26 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
 }
 
 xt::xtensor<int, 3> SurrogateHeatDriver::VisualizationPin::cells() {
-  int n_cells = t_resolution * (axial_divs - 1);
+  int n_divs = z_grid.size() - 1;
   int n_points = t_resolution + 1;
-  xt::xtensor<int, 3> cells_out({(axial_divs -  1), t_resolution, 7});
+  xt::xtensor<int, 3> cells_out({n_divs, t_resolution, 7});
 
   xt::view(cells_out, xt::all(), xt::all(), 0) = 6;
 
   xt::xtensor<int, 2> base = xt::zeros<int>({t_resolution, 6});
 
+  // cell connectivity for the first z level
   xt::view(base, xt::all(), 1) = xt::arange(1, n_points);
   xt::view(base, xt::all(), 2) = xt::arange(2, n_points + 1);
-  xt::view(base, t_resolution-1, 2) = 1; // adjust last cell
-
+  // adjust last cell
+  xt::view(base, t_resolution-1, 2) = 1;
   xt::view(base, xt::all(), 3) = n_points;
   xt::view(base, xt::all(), 4) = xt::view(base, xt::all(), 1) + n_points;
   xt::view(base, xt::all(), 5) = xt::view(base, xt::all(), 2) + n_points;
 
-  for(int i = 0; i < axial_divs - 1; i++) {
-    xt::view(cells_out, i, xt::all(), xt::range(1, 7)) = base + (n_points * i);
+  for(int i = 0; i < z_grid.size() - 1; i++) {
+    base += n_points * i;
+    xt::view(cells_out, i, xt::all(), xt::range(1, 7)) = base;
   }
 
   return cells_out;

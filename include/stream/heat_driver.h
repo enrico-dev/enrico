@@ -71,8 +71,8 @@ private:
 
   class VisualizationPin {
   public:
-    VisualizationPin(double x, double y, double r, std::vector<double> grid, int t_res, int axial_divs) :
-    x_(x), y_(y), pin_radius(r), z_grid(grid), t_resolution(t_res), axial_divs(axial_divs) {}
+    VisualizationPin(double x, double y, double r, std::vector<double> grid, int t_res) :
+    x_(x), y_(y), pin_radius(r), z_grid(grid), t_resolution(t_res) { }
 
 
     // methods
@@ -87,7 +87,6 @@ private:
     double pin_radius;
 
     int t_resolution;
-    int axial_divs;
   };
 }; // end SurrogateHeatDriver
 
