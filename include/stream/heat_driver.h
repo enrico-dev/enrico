@@ -72,7 +72,7 @@ private:
   class VisualizationPin {
   public:
     VisualizationPin(double x, double y, double r, xt::xtensor<double, 1> grid, int t_res) :
-    x_(x), y_(y), pin_radius(r), z_grid(grid), cells_per_plane_(t_res) {
+    x_(x), y_(y), pin_radius_(r), z_grid_(grid), cells_per_plane_(t_res) {
       points_per_plane_ = cells_per_plane_ + 1;
       axial_divs_ = grid.size() - 1;
     }
@@ -86,8 +86,8 @@ private:
   private:
     // members
     double x_, y_;
-    xt::xtensor<double, 1> z_grid;
-    double pin_radius;
+    xt::xtensor<double, 1> z_grid_;
+    double pin_radius_;
 
     int cells_per_plane_;
     int points_per_plane_;

@@ -165,14 +165,14 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
     y[i] = std::sin(theta[i]);
   }
   // scale
-  x *= pin_radius;
-  y *= pin_radius;
+  x *= pin_radius_;
+  y *= pin_radius_;
   // translate
   x += x_;
   y += y_;
 
-  for (int i = 0; i < z_grid.size(); i ++) {
-    double z = z_grid[i];
+  for (int i = 0; i < z_grid_.size(); i ++) {
+    double z = z_grid_[i];
     xt::view(pnts_out, i, xt::all(), 0) = x;
     xt::view(pnts_out, i, xt::all(), 1) = y;
     xt::view(pnts_out, i, xt::all(), 2) = z;
@@ -182,7 +182,7 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
 }
 
 xt::xtensor<int, 3> SurrogateHeatDriver::VisualizationPin::cells() {
-  int n_divs = z_grid.size() - 1;
+  int n_divs = z_grid_.size() - 1;
   int n_points = cells_per_plane_ + 1;
   xt::xtensor<int, 3> cells_out({axial_divs_, cells_per_plane_, 7});
 
@@ -199,7 +199,7 @@ xt::xtensor<int, 3> SurrogateHeatDriver::VisualizationPin::cells() {
   xt::view(base, xt::all(), 4) = xt::view(base, xt::all(), 1) + points_per_plane_;
   xt::view(base, xt::all(), 5) = xt::view(base, xt::all(), 2) + points_per_plane_;
 
-  for(int i = 0; i < z_grid.size() - 1; i++) {
+  for(int i = 0; i < z_grid_.size() - 1; i++) {
     xt::view(cells_out, i, xt::all(), xt::range(1, 7)) = base;
     // increment connectivity
     base += points_per_plane_;
