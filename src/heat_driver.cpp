@@ -107,7 +107,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
   // write header
   fh << "# vtk DataFile Version 2.0\n";
   fh << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
-  fh << "POINTS " << pin_points.shape()[0] << " float\n";
+  fh << "POINTS " << pin_points.shape()[0] * pin_points.shape()[1] << " float\n";
 
   int i = 0;
   for (auto p : pin_points) {
@@ -120,9 +120,9 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
     }
   }
 
-  xt::xtensor<int, 7> cells = vpin.cells();
+  xt::xtensor<int, 2> cells = vpin.cells();
   int num_cells = cells.shape()[0];
-  fh << "CELLS " << num_cells << " " << num_cells * cells.shape()[1];
+  fh << "CELLS " << num_cells << " " << num_cells * 7 << "\n";
 
   i = 0;
   for (auto c : cells) {
@@ -181,17 +181,17 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
   return pnts_out;
 }
 
-xt::xtensor<int, 7> SurrogateHeatDriver::VisualizationPin::cells() {
-  int n_cells = t_resolution * axial_divs;
-  xt::xtensor<int, 7> cells_out = xt::empty<int>({n_cells, 7});
+xt::xtensor<int, 2> SurrogateHeatDriver::VisualizationPin::cells() {
+  int n_cells = t_resolution * (axial_divs - 1);
+  xt::xtensor<int, 2> cells_out({n_cells, 7});
 
   xt::view(cells_out, xt::all(), 0) = 6;
 
-  xt::xtensor<int, 6> base = xt::zeros<int>({t_resolution, 6});
+  xt::xtensor<int, 2> base = xt::zeros<int>({t_resolution, 6});
 
   xt::view(base, xt::all(), 0) = 0;
-  xt::view(base, xt::all(), 0) = xt::arange(1, t_resolution + 1);
-  xt::view(base, xt::range(xt::placeholders::_, -1), 1) = xt::arange(2, t_resolution + 1);
+  xt::view(base, xt::all(), 1) = xt::arange(1, t_resolution + 1);
+  xt::view(base, xt::range(xt::placeholders::_, -1), 2) = xt::arange(2, t_resolution + 1);
   xt::view(base, -1, 2) = 1;
   xt::view(base, xt::all(), 3) = t_resolution + 1;
   xt::view(base, xt::all(), 4) = xt::view(base, xt::all(), 1) + t_resolution + 1;
