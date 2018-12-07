@@ -71,7 +71,7 @@ private:
 
   class VisualizationPin {
   public:
-    VisualizationPin(double x, double y, double r, std::vector<double> grid, int t_res) :
+    VisualizationPin(double x, double y, double r, std::vector<double>& grid, int t_res) :
     x_(x), y_(y), pin_radius(r), z_grid(grid), t_resolution(t_res) { }
 
 

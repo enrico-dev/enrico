@@ -97,7 +97,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
 
   std::cout << "Writing VTK file: " << filename << "...\n";
 
-  std::vector<double> zs = {0.0, 1.0};
+  std::vector<double> zs = {0.0, 1.0, 2.0};
   VisualizationPin vpin(10.0, 10.0, 5.0, zs, 10);
   xt::xtensor<double, 3> pin_points = vpin.points();
 
@@ -146,9 +146,10 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
 }
 
 xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
+  int n_divs = z_grid.size() - 1;
   int points_per_plane = t_resolution + 1;
 
-  xt::xtensor<double, 3> pnts_out = xt::zeros<double>({2, points_per_plane, 3});
+  xt::xtensor<double, 3> pnts_out = xt::zeros<double>({n_divs + 1, points_per_plane, 3});
 
   xt::xtensor<double, 1> x = xt::zeros<double>({points_per_plane});
   xt::xtensor<double, 1> y = xt::zeros<double>({points_per_plane});
