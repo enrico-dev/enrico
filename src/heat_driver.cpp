@@ -120,8 +120,8 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
     }
   }
 
-  xt::xtensor<int, 2> cells = vpin.cells();
-  int num_cells = cells.shape()[0];
+  xt::xtensor<int, 3> cells = vpin.cells();
+  int num_cells = cells.shape()[0]*cells.shape()[1];
   fh << "CELLS " << num_cells << " " << num_cells * 7 << "\n";
 
   i = 0;
@@ -156,11 +156,11 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
 
   xt::xtensor<double, 1> theta;
   theta = xt::linspace<double>(0., 2.*openmc::PI, t_resolution + 1);
-  
+
   // populate x and y values
   x(0, 0, 0) = 0;
   y(0, 0, 0) = 0;
-  
+
   for (int i = 1; i < points_per_plane; i++) {
     x[i] = std::cos(theta[i]);
     y[i] = std::sin(theta[i]);
@@ -185,29 +185,25 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
   return pnts_out;
 }
 
-xt::xtensor<int, 2> SurrogateHeatDriver::VisualizationPin::cells() {
+xt::xtensor<int, 3> SurrogateHeatDriver::VisualizationPin::cells() {
   int n_cells = t_resolution * (axial_divs - 1);
-  xt::xtensor<int, 2> cells_out({n_cells, 7});
+  int n_points = t_resolution + 1;
+  xt::xtensor<int, 3> cells_out({(axial_divs -  1), t_resolution, 7});
 
-  xt::view(cells_out, xt::all(), 0) = 6;
+  xt::view(cells_out, xt::all(), xt::all(), 0) = 6;
 
   xt::xtensor<int, 2> base = xt::zeros<int>({t_resolution, 6});
 
-  xt::view(base, xt::all(), 0) = 0;
-  xt::view(base, xt::all(), 1) = xt::arange(1, t_resolution + 1);
-  xt::view(base, xt::range(xt::placeholders::_, -1), 2) = xt::arange(2, t_resolution + 1);
-  xt::view(base, -1, 2) = 1;
-  xt::view(base, xt::all(), 3) = t_resolution + 1;
-  xt::view(base, xt::all(), 4) = xt::view(base, xt::all(), 1) + t_resolution + 1;
-  xt::view(base, xt::all(), 5) = xt::view(base, xt::all(), 2) + t_resolution + 1;
-  base(t_resolution-1, 2) += 1;
-  base(t_resolution-1, 5) += 1;
-  
-  for (int i_ax = 0; i_ax < axial_divs-1; i_ax++) {
-    int i0 = t_resolution * i_ax;
-    int i1 = t_resolution * (i_ax + 1);
-    xt::view(cells_out, xt::range(i0, i1), xt::range(1,xt::placeholders::_)) =
-      base + (t_resolution + 1) * i_ax;
+  xt::view(base, xt::all(), 1) = xt::arange(1, n_points);
+  xt::view(base, xt::all(), 2) = xt::arange(2, n_points + 1);
+  xt::view(base, t_resolution-1, 2) = 1; // adjust last cell
+
+  xt::view(base, xt::all(), 3) = n_points;
+  xt::view(base, xt::all(), 4) = xt::view(base, xt::all(), 1) + n_points;
+  xt::view(base, xt::all(), 5) = xt::view(base, xt::all(), 2) + n_points;
+
+  for(int i = 0; i < axial_divs - 1; i++) {
+    xt::view(cells_out, i, xt::all(), xt::range(1, 7)) = base + (n_points * i);
   }
 
   return cells_out;
