@@ -97,8 +97,8 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
 
   std::cout << "Writing VTK file: " << filename << "...\n";
 
-  std::vector<double> zs = {0.0, 1.0, 2.0};
-  VisualizationPin vpin(10.0, 10.0, 5.0, zs, 10);
+  std::vector<double> zs = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0};
+  VisualizationPin vpin(10.0, 10.0, 5.0, zs, 20);
   xt::xtensor<double, 3> pin_points = vpin.points();
 
   // open vtk file
@@ -199,8 +199,9 @@ xt::xtensor<int, 3> SurrogateHeatDriver::VisualizationPin::cells() {
   xt::view(base, xt::all(), 5) = xt::view(base, xt::all(), 2) + points_per_plane_;
 
   for(int i = 0; i < z_grid.size() - 1; i++) {
-    base += i * points_per_plane_;
     xt::view(cells_out, i, xt::all(), xt::range(1, 7)) = base;
+    // increment connectivity
+    base += points_per_plane_;
   }
 
   return cells_out;
