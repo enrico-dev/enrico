@@ -85,7 +85,7 @@ private:
 
     // methods
     xt::xtensor<double, 3> points();
-    xt::xtensor<int, 3> cells();
+    xt::xtensor<int, 4> cells();
 
   private:
     // members

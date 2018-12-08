@@ -122,13 +122,12 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
     }
   }
 
-  xt::xtensor<int, 3> cells = vpin.cells();
-  int num_cells = cells.shape()[0]*cells.shape()[1];
+  xt::xtensor<int, 4> cells = vpin.cells();
+  int num_cells = cells.shape()[0]*cells.shape()[1]*cells.shape()[2];
   int num_entries = xt::where(cells >= 0).size();
   fh << "CELLS " << num_cells << " " << num_entries << "\n";
 
-  int conn_size = cells.shape()[2];
-  std::cout << conn_size << std::endl;
+  int conn_size = cells.shape()[3];
   i = 0;
   for (auto c : cells) {
     i++;
@@ -189,33 +188,49 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
   return pnts_out;
 }
 
-xt::xtensor<int, 3> SurrogateHeatDriver::VisualizationPin::cells() {
+xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::cells() {
   int n_divs = z_grid_.size() - 1;
   int n_points = cells_per_plane_ + 1;
-  xt::xtensor<int, 3> cells_out({axial_divs_, points_per_plane_ - 1, 9});
+  xt::xtensor<int, 4> cells_out({axial_divs_, radial_divs_, cells_per_plane_, 9});
 
-  xt::view(cells_out, xt::all(), xt::all(), 0) = 6;
+  // first ring is wedges
+  xt::view(cells_out, xt::all(), 0, xt::all(), 0) = 6;
+  // the rest are hexes
+  xt::view(cells_out, xt::all(), xt::range(1, xt::placeholders::_), xt::all(), 0) = 6;
 
-  xt::xtensor<int, 2> base = xt::zeros<int>({points_per_plane_ - 1, 8});
+  xt::xtensor<int, 3> base = xt::zeros<int>({radial_divs_, cells_per_plane_, 8});
 
+  // inner ring
   // cell connectivity for the first z level
-  xt::view(base, xt::all(), 1) = xt::arange(1, points_per_plane_);
-  xt::view(base, xt::all(), 2) = xt::arange(2, points_per_plane_ + 1);
+  xt::view(base, 0, xt::all(), 1) = xt::arange(1, t_res_ + 1);
+  xt::view(base, 0, xt::all(), 2) = xt::arange(2, t_res_ + 2);
   // adjust last cell
-  xt::view(base, cells_per_plane_-1, 2) = 1;
-  xt::view(base, xt::all(), 3) = n_points;
-  xt::view(base, xt::all(), 4) = xt::view(base, xt::all(), 1) + points_per_plane_;
-  xt::view(base, xt::all(), 5) = xt::view(base, xt::all(), 2) + points_per_plane_;
+  xt::view(base, 0, cells_per_plane_-1, 2) = 1;
+  xt::view(base, 0, xt::all(), 3) = n_points;
+  xt::view(base, 0, xt::all(), 4) = xt::view(base, 0, xt::all(), 1) + points_per_plane_;
+  xt::view(base, 0, xt::all(), 5) = xt::view(base, 0, xt::all(), 2) + points_per_plane_;
+
+
+  // other rings
+  // xt::view(base, 1, xt::all(), 0) = xt::arange(1, t_res_ + 1);
+  // xt::view(base, 1, xt::all(), 1) = xt::arange(2, t_res_ + 2);
+  // xt::view(base, 1, xt::all(), 2) = xt::view(base, 1, xt::all(), 0) + t_res_;
+  // xt::view(base, 1, xt::all(), 3) = xt::view(base, 1, xt::all(), 1) + t_res_;
+  // //
+  // xt::view(base, 1, xt::all(), 4) = xt::view(base, 1, xt::all(), 0) + points_per_plane_;
+  // xt::view(base, 1, xt::all(), 5) = xt::view(base, 1, xt::all(), 1) + points_per_plane_;
+  // xt::view(base, 1, xt::all(), 6) = xt::view(base, 1, xt::all(), 3) + points_per_plane_;
+  // xt::view(base, 1, xt::all(), 7) = xt::view(base, 1, xt::all(), 4) + points_per_plane_;
 
 
   for(int i = 0; i < z_grid_.size() - 1; i++) {
-    xt::view(cells_out, i, xt::all(), xt::range(1, 9)) = base;
+    xt::view(cells_out, i, xt::all(), xt::all(), xt::range(1, 9)) = base;
     // increment connectivity
     base += points_per_plane_;
   }
 
   // first ring should be wedges only, invalidate last two entries
-  xt::view(cells_out, xt::all(), xt::range(0, t_res_ + 1), xt::range(7,9)) = -1;
+  xt::view(cells_out, xt::all(), 0, xt::all(), xt::range(7,9)) = -1;
 
   return cells_out;
 }
