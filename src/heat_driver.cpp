@@ -122,15 +122,18 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
   }
 
   xt::xtensor<int, 4> cells = vpin.cells();
+  xt::xtensor<int, 4> cell_types = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(0,1));
+  cells = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, xt::placeholders::_));
+
   int num_cells = cells.shape()[0]*cells.shape()[1]*cells.shape()[2];
-  // REPLACE WITH ACCUMULATOR
-  int num_entries = xt::where(xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, xt::placeholders::_)) >= 0).size();
+
+  int num_entries = xt::where(cells >= 0).size();
 
   fh << "CELLS " << num_cells << " " << num_entries << "\n";
 
   int conn_size = cells.shape()[3] - 1;
   i = 0;
-  for (auto c : xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, xt::placeholders::_))) {
+  for (auto c : cells) {
     i++;
 
     // write cell value
@@ -145,7 +148,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
   }
 
   fh << "CELL_TYPES " << num_cells << "\n";
-  for (auto v : xt::view(cells, xt::all(), xt::all(), xt::all(), 0)) {
+  for (auto v : cell_types) {
     fh << v << "\n";
   }
 
