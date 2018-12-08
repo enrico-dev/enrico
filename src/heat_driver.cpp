@@ -97,9 +97,10 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
 
   std::cout << "Writing VTK file: " << filename << "...\n";
 
-  std::vector<double> zs = {0.0, 1.0, 2.0, 3.0, 4.0, 5.0};
-  VisualizationPin vpin(pin_centers_(0,0), pin_centers_(0,1),
-                        pellet_radius_, z_, 20);
+  xt::xtensor<double, 1> zs = xt::linspace(1, 5, 5);
+  xt::xtensor<double, 1> rs = xt::linspace(5, 15, 1);
+  rs(0) = 5.;
+  VisualizationPin vpin(0.0, 0.0, zs, rs, 10);
   xt::xtensor<double, 3> pin_points = vpin.points();
 
   // open vtk file
@@ -128,8 +129,15 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
   i = 0;
   for (auto c : cells) {
     i++;
+
+    // skip invalid entries
+    if ( c < 0 ) { continue; }
+
+    // write cell value
     fh << c;
-    if (i % 7 == 0) {
+
+    // start new row if starting a new element
+    if (i % 9 == 0) {
       fh << "\n";
     } else {
       fh << " ";
@@ -154,21 +162,24 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
   xt::xtensor<double, 1> y = xt::zeros<double>({points_per_plane_});
 
   xt::xtensor<double, 1> theta;
-  theta = xt::linspace<double>(0., 2.*openmc::PI, cells_per_plane_ + 1);
+  theta = xt::linspace<double>(0., 2.*openmc::PI, t_res_ + 1);
 
   // first point is the pin center, start at one
-  for (int i = 1; i < points_per_plane_; i++) {
-    x[i] = std::cos(theta[i]);
-    y[i] = std::sin(theta[i]);
+  for(int i = 0; i < radial_divs_; i++) {
+    double ring_rad = r_grid_(i);
+    std::cout << "Ring radius: " << ring_rad << std::endl;
+    for (int j = 1; j <= t_res_; j++) {
+      int idx = i * t_res_ + j;
+      x(idx) = ring_rad * std::cos(theta[j]);
+      y(idx) = ring_rad * std::sin(theta[j]);
+    }
   }
-  // scale
-  x *= pin_radius_;
-  y *= pin_radius_;
+
   // translate
   x += x_;
   y += y_;
 
-  for (int i = 0; i < z_grid_.size(); i ++) {
+  for (int i = 0; i < z_grid_.size(); i++) {
     double z = z_grid_[i];
     xt::view(pnts_out, i, xt::all(), 0) = x;
     xt::view(pnts_out, i, xt::all(), 1) = y;
@@ -181,11 +192,11 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
 xt::xtensor<int, 3> SurrogateHeatDriver::VisualizationPin::cells() {
   int n_divs = z_grid_.size() - 1;
   int n_points = cells_per_plane_ + 1;
-  xt::xtensor<int, 3> cells_out({axial_divs_, cells_per_plane_, 7});
+  xt::xtensor<int, 3> cells_out({axial_divs_, points_per_plane_ - 1, 9});
 
   xt::view(cells_out, xt::all(), xt::all(), 0) = 6;
 
-  xt::xtensor<int, 2> base = xt::zeros<int>({cells_per_plane_, 6});
+  xt::xtensor<int, 2> base = xt::zeros<int>({points_per_plane_ - 1, 8});
 
   // cell connectivity for the first z level
   xt::view(base, xt::all(), 1) = xt::arange(1, points_per_plane_);
@@ -196,11 +207,15 @@ xt::xtensor<int, 3> SurrogateHeatDriver::VisualizationPin::cells() {
   xt::view(base, xt::all(), 4) = xt::view(base, xt::all(), 1) + points_per_plane_;
   xt::view(base, xt::all(), 5) = xt::view(base, xt::all(), 2) + points_per_plane_;
 
+
   for(int i = 0; i < z_grid_.size() - 1; i++) {
-    xt::view(cells_out, i, xt::all(), xt::range(1, 7)) = base;
+    xt::view(cells_out, i, xt::all(), xt::range(1, 9)) = base;
     // increment connectivity
     base += points_per_plane_;
   }
+
+  // first ring should be wedges only, invalidate last two entries
+  xt::view(cells_out, xt::all(), xt::range(0, t_res_ + 1), xt::range(7,9)) = -1;
 
   return cells_out;
 }

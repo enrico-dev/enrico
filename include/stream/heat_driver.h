@@ -71,10 +71,16 @@ private:
 
   class VisualizationPin {
   public:
-    VisualizationPin(double x, double y, double r, xt::xtensor<double, 1> grid, int t_res) :
-    x_(x), y_(y), pin_radius_(r), z_grid_(grid), cells_per_plane_(t_res) {
-      points_per_plane_ = cells_per_plane_ + 1;
-      axial_divs_ = grid.size() - 1;
+    VisualizationPin(double x, double y,
+                     xt::xtensor<double, 1> z_grid,
+                     xt::xtensor<double, 1> r_grid,
+                     int t_res)
+    : x_(x), y_(y), z_grid_(z_grid), r_grid_(r_grid), t_res_(t_res) {
+      points_per_plane_ = r_grid_.size() * t_res_ + 1;
+      cells_per_plane_ = points_per_plane_ - 1;
+      axial_divs_ = z_grid_.size() - 1;
+      radial_divs_ = r_grid_.size();
+      std::cout << "Radial sections: " << radial_divs_ << std::endl;
     }
 
     // methods
@@ -84,11 +90,15 @@ private:
   private:
     // members
     double x_, y_;
-    xt::xtensor<double, 1> z_grid_;
-    double pin_radius_;
+    int t_res_;
     int cells_per_plane_;
     int points_per_plane_;
+    int radial_divs_;
     int axial_divs_;
+    xt::xtensor<double, 1> z_grid_;
+    xt::xtensor<double, 1> r_grid_;
+    xt::xtensor<double, 1> data_;
+
   };
 }; // end SurrogateHeatDriver
 
