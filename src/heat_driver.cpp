@@ -125,6 +125,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
   int num_cells = cells.shape()[0]*cells.shape()[1]*cells.shape()[2];
   // REPLACE WITH ACCUMULATOR
   int num_entries = xt::where(xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, xt::placeholders::_)) >= 0).size();
+
   fh << "CELLS " << num_cells << " " << num_entries << "\n";
 
   int conn_size = cells.shape()[3] - 1;
@@ -217,10 +218,10 @@ xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::cells() {
   xt::xtensor<int, 3> radial_base = xt::zeros<int>({1, t_res_, 8});
   xt::view(radial_base, xt::all(), xt::all(), 0) = xt::arange(1, t_res_ + 1);
   xt::view(radial_base, xt::all(), xt::all(), 1) = xt::arange(2, t_res_ + 2);
-  xt::view(radial_base, xt::all(), xt::all(), 2) = xt::view(radial_base, xt::all(), xt::all(), 0) + t_res_;
-  xt::view(radial_base, xt::all(), xt::all(), 3) = xt::view(radial_base, xt::all(), xt::all(), 1) + t_res_;
+  xt::view(radial_base, xt::all(), xt::all(), 2) = xt::view(radial_base, xt::all(), xt::all(), 1) + t_res_;
+  xt::view(radial_base, xt::all(), xt::all(), 3) = xt::view(radial_base, xt::all(), xt::all(), 0) + t_res_;
   xt::view(radial_base, xt::all(), t_res_ - 1, 1) = 1;
-  xt::view(radial_base, xt::all(), t_res_ - 1, 3) = t_res_ + 1;
+  xt::view(radial_base, xt::all(), t_res_ - 1, 2) = t_res_ + 1;
 
   xt::view(radial_base, xt::all(), xt::all(), 4) = xt::view(radial_base, xt::all(), xt::all(), 0) + points_per_plane_;
   xt::view(radial_base, xt::all(), xt::all(), 5) = xt::view(radial_base, xt::all(), xt::all(), 1) + points_per_plane_;
