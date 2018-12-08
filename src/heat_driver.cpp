@@ -97,9 +97,8 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
 
   std::cout << "Writing VTK file: " << filename << "...\n";
 
-  xt::xtensor<double, 1> zs = xt::linspace(1, 5, 5);
-  xt::xtensor<double, 1> rs = xt::linspace(5, 15, 1);
-  rs(0) = 5.;
+  xt::xtensor<double, 1> zs = xt::linspace(1, 5, 2);
+  xt::xtensor<double, 1> rs = xt::linspace(5, 15, 2);
   VisualizationPin vpin(0.0, 0.0, zs, rs, 10);
   xt::xtensor<double, 3> pin_points = vpin.points();
 
@@ -124,12 +123,13 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
 
   xt::xtensor<int, 4> cells = vpin.cells();
   int num_cells = cells.shape()[0]*cells.shape()[1]*cells.shape()[2];
-  int num_entries = xt::where(cells >= 0).size();
+  // REPLACE WITH ACCUMULATOR
+  int num_entries = xt::where(xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, xt::placeholders::_)) >= 0).size();
   fh << "CELLS " << num_cells << " " << num_entries << "\n";
 
-  int conn_size = cells.shape()[3];
+  int conn_size = cells.shape()[3] - 1;
   i = 0;
-  for (auto c : cells) {
+  for (auto c : xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, xt::placeholders::_))) {
     i++;
 
     // write cell value
@@ -144,8 +144,8 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
   }
 
   fh << "CELL_TYPES " << num_cells << "\n";
-  for (int j = 0; j < num_cells; j++) {
-    fh << 13 << "\n";
+  for (auto v : xt::view(cells, xt::all(), xt::all(), xt::all(), 0)) {
+    fh << v << "\n";
   }
 
   fh.close();
@@ -191,46 +191,58 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
 xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::cells() {
   int n_divs = z_grid_.size() - 1;
   int n_points = cells_per_plane_ + 1;
-  xt::xtensor<int, 4> cells_out({axial_divs_, radial_divs_, cells_per_plane_, 9});
+  xt::xtensor<int, 4> cells_out({axial_divs_, radial_divs_, t_res_, 10});
 
   // first ring is wedges
-  xt::view(cells_out, xt::all(), 0, xt::all(), 0) = 6;
-  // the rest are hexes
-  xt::view(cells_out, xt::all(), xt::range(1, xt::placeholders::_), xt::all(), 0) = 6;
+  xt::view(cells_out, xt::all(), 0, xt::all(), 0) = 13;
+  xt::view(cells_out, xt::all(), 0, xt::all(), 1) = 6;
 
-  xt::xtensor<int, 3> base = xt::zeros<int>({radial_divs_, cells_per_plane_, 8});
+  // the rest are hexes
+  xt::view(cells_out, xt::all(), xt::range(1, xt::placeholders::_), xt::all(), 0) = 12;
+  xt::view(cells_out, xt::all(), xt::range(1, xt::placeholders::_), xt::all(), 1) = 8;
+
+  xt::xtensor<int, 3> base = xt::zeros<int>({radial_divs_, t_res_, 8});
 
   // inner ring
   // cell connectivity for the first z level
   xt::view(base, 0, xt::all(), 1) = xt::arange(1, t_res_ + 1);
   xt::view(base, 0, xt::all(), 2) = xt::arange(2, t_res_ + 2);
   // adjust last cell
-  xt::view(base, 0, cells_per_plane_-1, 2) = 1;
+  xt::view(base, 0, t_res_ - 1, 2) = 1;
   xt::view(base, 0, xt::all(), 3) = n_points;
   xt::view(base, 0, xt::all(), 4) = xt::view(base, 0, xt::all(), 1) + points_per_plane_;
   xt::view(base, 0, xt::all(), 5) = xt::view(base, 0, xt::all(), 2) + points_per_plane_;
 
 
+  xt::xtensor<int, 3> radial_base = xt::zeros<int>({1, t_res_, 8});
+  xt::view(radial_base, xt::all(), xt::all(), 0) = xt::arange(1, t_res_ + 1);
+  xt::view(radial_base, xt::all(), xt::all(), 1) = xt::arange(2, t_res_ + 2);
+  xt::view(radial_base, xt::all(), xt::all(), 2) = xt::view(radial_base, xt::all(), xt::all(), 0) + t_res_;
+  xt::view(radial_base, xt::all(), xt::all(), 3) = xt::view(radial_base, xt::all(), xt::all(), 1) + t_res_;
+  xt::view(radial_base, xt::all(), t_res_ - 1, 1) = 1;
+  xt::view(radial_base, xt::all(), t_res_ - 1, 3) = t_res_ + 1;
+
+  xt::view(radial_base, xt::all(), xt::all(), 4) = xt::view(radial_base, xt::all(), xt::all(), 0) + points_per_plane_;
+  xt::view(radial_base, xt::all(), xt::all(), 5) = xt::view(radial_base, xt::all(), xt::all(), 1) + points_per_plane_;
+  xt::view(radial_base, xt::all(), xt::all(), 6) = xt::view(radial_base, xt::all(), xt::all(), 2) + points_per_plane_;
+  xt::view(radial_base, xt::all(), xt::all(), 7) = xt::view(radial_base, xt::all(), xt::all(), 3) + points_per_plane_;
+
   // other rings
-  // xt::view(base, 1, xt::all(), 0) = xt::arange(1, t_res_ + 1);
-  // xt::view(base, 1, xt::all(), 1) = xt::arange(2, t_res_ + 2);
-  // xt::view(base, 1, xt::all(), 2) = xt::view(base, 1, xt::all(), 0) + t_res_;
-  // xt::view(base, 1, xt::all(), 3) = xt::view(base, 1, xt::all(), 1) + t_res_;
-  // //
-  // xt::view(base, 1, xt::all(), 4) = xt::view(base, 1, xt::all(), 0) + points_per_plane_;
-  // xt::view(base, 1, xt::all(), 5) = xt::view(base, 1, xt::all(), 1) + points_per_plane_;
-  // xt::view(base, 1, xt::all(), 6) = xt::view(base, 1, xt::all(), 3) + points_per_plane_;
-  // xt::view(base, 1, xt::all(), 7) = xt::view(base, 1, xt::all(), 4) + points_per_plane_;
+  xt::view(base, xt::range(1, xt::placeholders::_), xt::all(), xt::all()) = radial_base;
+  for (int i = 1; i < radial_divs_; i++) {
+    int start_idx = (i-1) * t_res_;
+    xt::view(base, i, xt::all(), xt::all()) += start_idx;
+  }
 
 
   for(int i = 0; i < z_grid_.size() - 1; i++) {
-    xt::view(cells_out, i, xt::all(), xt::all(), xt::range(1, 9)) = base;
+    xt::view(cells_out, i, xt::all(), xt::all(), xt::range(2, 10)) = base;
     // increment connectivity
     base += points_per_plane_;
   }
 
   // first ring should be wedges only, invalidate last two entries
-  xt::view(cells_out, xt::all(), 0, xt::all(), xt::range(7,9)) = -1;
+  xt::view(cells_out, xt::all(), 0, xt::all(), xt::range(8,10)) = -1;
 
   return cells_out;
 }
