@@ -124,23 +124,23 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
 
   xt::xtensor<int, 3> cells = vpin.cells();
   int num_cells = cells.shape()[0]*cells.shape()[1];
-  fh << "CELLS " << num_cells << " " << num_cells * 7 << "\n";
+  int num_entries = xt::where(cells >= 0).size();
+  fh << "CELLS " << num_cells << " " << num_entries << "\n";
 
+  int conn_size = cells.shape()[2];
+  std::cout << conn_size << std::endl;
   i = 0;
   for (auto c : cells) {
     i++;
 
-    // skip invalid entries
-    if ( c < 0 ) { continue; }
-
     // write cell value
-    fh << c;
+    if ( c >= 0 ) { fh << c; }
 
     // start new row if starting a new element
-    if (i % 9 == 0) {
+    if (i % conn_size == 0) {
       fh << "\n";
     } else {
-      fh << " ";
+      if ( c >= 0) { fh << " "; }
     }
   }
 
