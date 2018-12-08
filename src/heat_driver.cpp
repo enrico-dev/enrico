@@ -97,9 +97,9 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
 
   std::cout << "Writing VTK file: " << filename << "...\n";
 
-  xt::xtensor<double, 1> zs = xt::linspace(1, 5, 2);
-  xt::xtensor<double, 1> rs = xt::linspace(5, 15, 2);
-  VisualizationPin vpin(0.0, 0.0, zs, rs, 10);
+  xt::xtensor<double, 1> zs = xt::linspace(1, 5, 4);
+  xt::xtensor<double, 1> rs = xt::linspace(5, 15, 3);
+  VisualizationPin vpin(pin_centers_(0,0), pin_centers_(0,1), z_, r_grid_fuel_, 50);
   xt::xtensor<double, 3> pin_points = vpin.points();
 
   // open vtk file
@@ -167,7 +167,6 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
   // first point is the pin center, start at one
   for(int i = 0; i < radial_divs_; i++) {
     double ring_rad = r_grid_(i);
-    std::cout << "Ring radius: " << ring_rad << std::endl;
     for (int j = 1; j <= t_res_; j++) {
       int idx = i * t_res_ + j;
       x(idx) = ring_rad * std::cos(theta[j]);

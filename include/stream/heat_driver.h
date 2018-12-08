@@ -80,7 +80,6 @@ private:
       cells_per_plane_ = points_per_plane_ - 1;
       axial_divs_ = z_grid_.size() - 1;
       radial_divs_ = r_grid_.size();
-      std::cout << "Radial sections: " << radial_divs_ << std::endl;
     }
 
     // methods
