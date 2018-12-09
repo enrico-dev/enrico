@@ -174,7 +174,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
   fh << "LOOKUP_TABLE default\n";
   std::cout << temperature_.shape()[1] << std::endl;
   for (int i = 0; i < temperature_.shape()[1]; i++) {
-    for (int j = 0; j < n_fuel_rings_ + 1; j++) {
+    for (int j = 0; j < vpin.radial_divs_; j++) {
       for (int k = 0; k < t_resolution; k++) {
         fh << temperature_(0, i, j) << "\n";
       }
@@ -186,7 +186,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
   fh << "LOOKUP_TABLE default\n";
 
   for (int i = 0; i < source_.shape()[1]; i++) {
-    for (int j = 0; j < n_fuel_rings_ + 1; j++) {
+    for (int j = 0; j < vpin.radial_divs_; j++) {
       for (int k = 0; k < t_resolution; k++) {
         fh << source_(0, i, j) << "\n";
       }
@@ -197,6 +197,22 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
 
   return;
 }
+
+SurrogateHeatDriver::VisualizationPin::VisualizationPin(double x, double y,
+                                   xt::xtensor<double, 1> z_grid,
+                                   xt::xtensor<double, 1> r_grid,
+                                   int t_res)
+    : x_(x), y_(y), z_grid_(z_grid), r_grid_(r_grid), t_res_(t_res)
+    {
+      // adjust to remove extra radial ring if needed
+      if (r_grid[0] == 0) {
+        r_grid_ = xt::view(r_grid_, xt::range(1,_));
+      }
+      axial_divs_ = z_grid_.size() - 1;
+      radial_divs_ = r_grid_.size();
+      points_per_plane_ = radial_divs_ * t_res_ + 1;
+      cells_per_plane_ = points_per_plane_ - 1;
+    }
 
 xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
 

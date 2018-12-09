@@ -12,6 +12,8 @@
 
 #include <cstddef>
 
+using namespace xt::placeholders;
+
 namespace stream {
 
 class SurrogateHeatDriver : public HeatFluidsDriver {
@@ -76,17 +78,12 @@ private:
     const int HEX_TYPE_ = 12;
     const int HEX_SIZE_ = 8;
     const int INVALID_CONN_ = -1;
+
   public:
     VisualizationPin(double x, double y,
                      xt::xtensor<double, 1> z_grid,
                      xt::xtensor<double, 1> r_grid,
-                     int t_res)
-    : x_(x), y_(y), z_grid_(z_grid), r_grid_(r_grid), t_res_(t_res) {
-      points_per_plane_ = r_grid_.size() * t_res_ + 1;
-      cells_per_plane_ = points_per_plane_ - 1;
-      axial_divs_ = z_grid_.size() - 1;
-      radial_divs_ = r_grid_.size();
-    }
+                     int t_res);
 
     // methods
     xt::xtensor<double, 3> points();
@@ -98,7 +95,6 @@ private:
     inline int num_cells() { return axial_divs_ * radial_divs_ * t_res_; }
     inline int conn_entry_size() { return HEX_SIZE_ + 1; }
 
-  private:
     // members
     double x_, y_;
     int t_res_;
