@@ -99,21 +99,26 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
 
   std::cout << "Writing VTK file: " << filename << "...\n";
 
-  xt::xtensor<double, 1> zs = xt::linspace(1, 5, 4);
-  xt::xtensor<double, 1> rs = xt::linspace(5, 15, 3);
+  xt::xtensor<double, 1> zs = xt::linspace(1, 5, 5);
+  xt::xtensor<double, 1> rs = xt::linspace(5, 15, 5);
 
-  int t_resolution = 4;
-  VisualizationPin vpin(5.0,
-                        5.0,
-                        zs,
-                        rs,
-                        t_resolution);
-
-  // VisualizationPin vpin(pin_centers_(0,0),
-  //                       pin_centers_(0,1),
-  //                       z_,
-  //                       r_grid_fuel_,
+  int t_resolution = 10;
+  // VisualizationPin vpin(5.0,
+  //                       5.0,
+  //                       zs,
+  //                       rs,
   //                       t_resolution);
+  std::cout << "Pin Center: " <<  pin_centers_(0,0) << " "
+            << pin_centers_(0, 1) << std::endl;
+  std::cout << "Axial values: " << z_.size() << std::endl;
+  std::cout << "Radial Values: " << r_grid_fuel_.size() << std::endl;
+  std::cout << "Mesh resolution: " << t_resolution << std::endl;
+
+  VisualizationPin vpin(pin_centers_(0,0),
+                        pin_centers_(0,1),
+                        z_,
+                        r_grid_fuel_,
+                        t_resolution);
   xt::xtensor<double, 3> pin_points = vpin.points();
 
   // open vtk file
@@ -161,6 +166,31 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
   fh << "CELL_TYPES " << vpin.num_cells() << "\n";
   for (auto v : cell_types) {
     fh << v << "\n";
+  }
+
+  fh << "CELL_DATA " << vpin.num_cells() << "\n";
+
+  fh << "SCALARS TEMPERATURE double 1\n";
+  fh << "LOOKUP_TABLE default\n";
+  std::cout << temperature_.shape()[1] << std::endl;
+  for (int i = 0; i < temperature_.shape()[1]; i++) {
+    for (int j = 0; j < n_fuel_rings_ + 1; j++) {
+      for (int k = 0; k < t_resolution; k++) {
+        fh << temperature_(0, i, j) << "\n";
+      }
+    }
+  }
+
+
+  fh << "SCALARS SOURCE double 1\n";
+  fh << "LOOKUP_TABLE default\n";
+
+  for (int i = 0; i < source_.shape()[1]; i++) {
+    for (int j = 0; j < n_fuel_rings_ + 1; j++) {
+      for (int k = 0; k < t_resolution; k++) {
+        fh << source_(0, i, j) << "\n";
+      }
+    }
   }
 
   fh.close();
