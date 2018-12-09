@@ -243,10 +243,13 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
 
 xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::cells() {
   // size output array
-  xt::xtensor<int, 4> cells_out({axial_divs_, radial_divs_, t_res_, 10});
+  xt::xtensor<int, 4> cells_out = xt::zeros<int>({axial_divs_,
+                                                  radial_divs_,
+                                                  t_res_,
+                                                  HEX_SIZE_ + 2});
 
   // generate a base layer to be extended in Z
-  xt::xtensor<int, 3> base = xt::zeros<int>({radial_divs_, t_res_, 8});
+  xt::xtensor<int, 3> base = xt::zeros<int>({radial_divs_, t_res_, HEX_SIZE_});
 
   /// INNER RING \\\
 
