@@ -93,32 +93,21 @@ void SurrogateHeatDriver::solve_step()
   }
 }
 
-void SurrogateHeatDriver::to_vtk(std::string filename,
-                                 VTKData output_data)
+void SurrogateHeatDriver::to_vtk(std::string filename)
 {
-
   std::cout << "Writing VTK file: " << filename << "...\n";
 
   xt::xtensor<double, 1> zs = xt::linspace(1, 5, 5);
   xt::xtensor<double, 1> rs = xt::linspace(5, 15, 5);
 
-  int t_resolution = 10;
-  // VisualizationPin vpin(5.0,
-  //                       5.0,
-  //                       zs,
-  //                       rs,
-  //                       t_resolution);
-  std::cout << "Pin Center: " <<  pin_centers_(0,0) << " "
-            << pin_centers_(0, 1) << std::endl;
-  std::cout << "Axial values: " << z_.size() << std::endl;
-  std::cout << "Radial Values: " << r_grid_fuel_.size() << std::endl;
-  std::cout << "Mesh resolution: " << t_resolution << std::endl;
 
+  // create a pin
+  int radial_resolution = 50;
   VisualizationPin vpin(pin_centers_(0,0),
                         pin_centers_(0,1),
                         z_,
                         r_grid_fuel_,
-                        t_resolution);
+                        radial_resolution);
   xt::xtensor<double, 3> pin_points = vpin.points();
 
   // open vtk file
@@ -128,7 +117,6 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
   fh << "# vtk DataFile Version 2.0\n";
   fh << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
   fh << "POINTS " << vpin.num_points() << " float\n";
-
   int i = 0;
   for (auto p : pin_points) {
     i++;
@@ -140,14 +128,17 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
     }
   }
 
+  // generate cell connectivity
   xt::xtensor<int, 4> cells = vpin.cells();
+
+  // separate cell types and cell entries
   xt::xtensor<int, 4> cell_types = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(0,1));
   cells = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, _));
 
   fh << "CELLS " << vpin.num_cells() << " " << vpin.num_entries() << "\n";
 
+  // write points to file
   int conn_size = vpin.conn_entry_size();
-  std::cout << "CONN SIZE: " << conn_size << std::endl;
   i = 0;
   for (auto c : cells) {
     i++;
@@ -163,31 +154,32 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
     }
   }
 
+  // write cell types
   fh << "CELL_TYPES " << vpin.num_cells() << "\n";
   for (auto v : cell_types) {
     fh << v << "\n";
   }
 
+  // data header
   fh << "CELL_DATA " << vpin.num_cells() << "\n";
 
+  // temperature data
   fh << "SCALARS TEMPERATURE double 1\n";
   fh << "LOOKUP_TABLE default\n";
-  std::cout << temperature_.shape()[1] << std::endl;
   for (int i = 0; i < temperature_.shape()[1]; i++) {
     for (int j = 0; j < vpin.radial_divs_; j++) {
-      for (int k = 0; k < t_resolution; k++) {
+      for (int k = 0; k < radial_resolution; k++) {
         fh << temperature_(0, i, j) << "\n";
       }
     }
   }
 
-
+  // fission source data
   fh << "SCALARS SOURCE double 1\n";
   fh << "LOOKUP_TABLE default\n";
-
   for (int i = 0; i < source_.shape()[1]; i++) {
     for (int j = 0; j < vpin.radial_divs_; j++) {
-      for (int k = 0; k < t_resolution; k++) {
+      for (int k = 0; k < radial_resolution; k++) {
         fh << source_(0, i, j) << "\n";
       }
     }

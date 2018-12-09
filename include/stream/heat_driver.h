@@ -44,8 +44,7 @@ public:
   std::size_t n_rings() { return n_fuel_rings_ + n_clad_rings_; }
 
   //! Write data to VTK
-  void to_vtk(std::string filename = "magnolia.vtk",
-              VTKData output_data = VTKData::all);
+  void to_vtk(std::string filename = "magnolia.vtk");
 
   // Data on fuel pins
   xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins
