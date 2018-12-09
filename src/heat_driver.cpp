@@ -100,7 +100,6 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   xt::xtensor<double, 1> zs = xt::linspace(1, 5, 5);
   xt::xtensor<double, 1> rs = xt::linspace(5, 15, 5);
 
-
   // create a pin
   int radial_resolution = 50;
   VisualizationPin vpin(pin_centers_(0,0),
@@ -117,15 +116,9 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   fh << "# vtk DataFile Version 2.0\n";
   fh << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
   fh << "POINTS " << vpin.num_points() << " float\n";
-  int i = 0;
-  for (auto p : pin_points) {
-    i++;
-    fh << p;
-    if (i % 3 == 0) {
-      fh << "\n";
-    } else {
-      fh <<  " ";
-    }
+  xt::xtensor<double, 1> points_flat = xt::flatten(pin_points);
+  for (auto p = points_flat.begin(); p != points_flat.end(); p+=3) {
+    fh << *p << " " << *(p+1) << " " << *(p+2) << "\n";
   }
 
   // generate cell connectivity
@@ -135,27 +128,21 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   xt::xtensor<int, 4> cell_types = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(0,1));
   cells = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, _));
 
-  fh << "CELLS " << vpin.num_cells() << " " << vpin.num_entries() << "\n";
+  fh << "\nCELLS " << vpin.num_cells() << " " << vpin.num_entries() << "\n";
 
   // write points to file
+  xt::xtensor<int, 1> cells_flat = xt::flatten(cells);
   int conn_size = vpin.conn_entry_size();
-  i = 0;
-  for (auto c : cells) {
-    i++;
-
-    // write cell value
-    if ( c >= 0 ) { fh << c; }
-
-    // start new row if starting a new element
-    if (i % conn_size == 0) {
-      fh << "\n";
-    } else {
-    if ( c >= 0) { fh << " "; }
+  for (auto c = cells_flat.begin(); c != cells_flat.end(); c += conn_size) {
+    for (int i = 0; i < conn_size; i++) {
+      auto val = *(c+i);
+      if (val >= 0) { fh << val << " "; }
     }
+    fh << "\n";
   }
 
   // write cell types
-  fh << "CELL_TYPES " << vpin.num_cells() << "\n";
+  fh << "\nCELL_TYPES " << vpin.num_cells() << "\n";
   for (auto v : cell_types) {
     fh << v << "\n";
   }
