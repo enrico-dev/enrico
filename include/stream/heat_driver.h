@@ -92,6 +92,12 @@ private:
     xt::xtensor<double, 3> points();
     xt::xtensor<int, 4> cells();
 
+    inline int num_points() { return points_per_plane_ * (axial_divs_ + 1); }
+    inline int num_entries() { return (WEDGE_SIZE_ + 1) * (axial_divs_ * t_res_) +
+        (HEX_SIZE_ + 1) * t_res_ * (radial_divs_ - 1) * axial_divs_; }
+    inline int num_cells() { return axial_divs_ * radial_divs_ * t_res_; }
+    inline int conn_entry_size() { return HEX_SIZE_ + 1; }
+
   private:
     // members
     double x_, y_;

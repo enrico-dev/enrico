@@ -101,7 +101,19 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
 
   xt::xtensor<double, 1> zs = xt::linspace(1, 5, 4);
   xt::xtensor<double, 1> rs = xt::linspace(5, 15, 3);
-  VisualizationPin vpin(pin_centers_(0,0), pin_centers_(0,1), z_, r_grid_fuel_, 50);
+
+  int t_resolution = 4;
+  VisualizationPin vpin(5.0,
+                        5.0,
+                        zs,
+                        rs,
+                        t_resolution);
+
+  // VisualizationPin vpin(pin_centers_(0,0),
+  //                       pin_centers_(0,1),
+  //                       z_,
+  //                       r_grid_fuel_,
+  //                       t_resolution);
   xt::xtensor<double, 3> pin_points = vpin.points();
 
   // open vtk file
@@ -110,7 +122,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
   // write header
   fh << "# vtk DataFile Version 2.0\n";
   fh << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
-  fh << "POINTS " << pin_points.shape()[0] * pin_points.shape()[1] << " float\n";
+  fh << "POINTS " << vpin.num_points() << " float\n";
 
   int i = 0;
   for (auto p : pin_points) {
@@ -127,13 +139,10 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
   xt::xtensor<int, 4> cell_types = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(0,1));
   cells = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, _));
 
-  int num_cells = cells.shape()[0]*cells.shape()[1]*cells.shape()[2];
+  fh << "CELLS " << vpin.num_cells() << " " << vpin.num_entries() << "\n";
 
-  int num_entries = xt::where(cells >= 0).size();
-
-  fh << "CELLS " << num_cells << " " << num_entries << "\n";
-
-  int conn_size = cells.shape()[3] - 1;
+  int conn_size = vpin.conn_entry_size();
+  std::cout << "CONN SIZE: " << conn_size << std::endl;
   i = 0;
   for (auto c : cells) {
     i++;
@@ -145,11 +154,11 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
     if (i % conn_size == 0) {
       fh << "\n";
     } else {
-      if ( c >= 0) { fh << " "; }
+    if ( c >= 0) { fh << " "; }
     }
   }
 
-  fh << "CELL_TYPES " << num_cells << "\n";
+  fh << "CELL_TYPES " << vpin.num_cells() << "\n";
   for (auto v : cell_types) {
     fh << v << "\n";
   }
