@@ -12,6 +12,8 @@
 
 namespace stream {
 
+  using namespace xt::placeholders;
+
 SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   : HeatFluidsDriver{comm}
 {
@@ -123,7 +125,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
 
   xt::xtensor<int, 4> cells = vpin.cells();
   xt::xtensor<int, 4> cell_types = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(0,1));
-  cells = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, xt::placeholders::_));
+  cells = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, _));
 
   int num_cells = cells.shape()[0]*cells.shape()[1]*cells.shape()[2];
 
@@ -159,7 +161,9 @@ void SurrogateHeatDriver::to_vtk(std::string filename,
 
 xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
 
-  xt::xtensor<double, 3> pnts_out = xt::zeros<double>({axial_divs_ + 1, points_per_plane_, 3});
+  xt::xarray<double> pnts_out = xt::zeros<double>({axial_divs_ + 1,
+                                                  points_per_plane_,
+                                                  3});
 
   xt::xtensor<double, 1> x = xt::zeros<double>({points_per_plane_});
   xt::xtensor<double, 1> y = xt::zeros<double>({points_per_plane_});
@@ -182,70 +186,83 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
   y += y_;
 
   for (int i = 0; i < z_grid_.size(); i++) {
-    double z = z_grid_[i];
     xt::view(pnts_out, i, xt::all(), 0) = x;
     xt::view(pnts_out, i, xt::all(), 1) = y;
-    xt::view(pnts_out, i, xt::all(), 2) = z;
+    xt::view(pnts_out, i, xt::all(), 2) = z_grid_[i];
   }
 
   return pnts_out;
 }
 
 xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::cells() {
-  int n_divs = z_grid_.size() - 1;
-  int n_points = cells_per_plane_ + 1;
+  // size output array
   xt::xtensor<int, 4> cells_out({axial_divs_, radial_divs_, t_res_, 10});
 
-  // first ring is wedges
-  xt::view(cells_out, xt::all(), 0, xt::all(), 0) = 13;
-  xt::view(cells_out, xt::all(), 0, xt::all(), 1) = 6;
-
-  // the rest are hexes
-  xt::view(cells_out, xt::all(), xt::range(1, xt::placeholders::_), xt::all(), 0) = 12;
-  xt::view(cells_out, xt::all(), xt::range(1, xt::placeholders::_), xt::all(), 1) = 8;
-
+  // generate a base layer to be extended in Z
   xt::xtensor<int, 3> base = xt::zeros<int>({radial_divs_, t_res_, 8});
 
-  // inner ring
+  /// INNER RING \\\
+
+  xt::xtensor<int, 2> inner_base = xt::zeros<int>({t_res_, 8});
+
   // cell connectivity for the first z level
-  xt::view(base, 0, xt::all(), 1) = xt::arange(1, t_res_ + 1);
-  xt::view(base, 0, xt::all(), 2) = xt::arange(2, t_res_ + 2);
-  // adjust last cell
-  xt::view(base, 0, t_res_ - 1, 2) = 1;
-  xt::view(base, 0, xt::all(), 3) = n_points;
-  xt::view(base, 0, xt::all(), 4) = xt::view(base, 0, xt::all(), 1) + points_per_plane_;
-  xt::view(base, 0, xt::all(), 5) = xt::view(base, 0, xt::all(), 2) + points_per_plane_;
+  xt::view(inner_base, xt::all(), 1) = xt::arange(1, t_res_ + 1);
+  xt::view(inner_base, xt::all(), 2) = xt::arange(2, t_res_ + 2);
+  // adjust last cell for perioic condition
+   xt::view(inner_base, t_res_ - 1, 2) = 1;
 
+  // copy connectivity of first layer to the second
+  xt::view(inner_base, xt::all(), xt::range(3,6)) =
+    xt::view(inner_base, xt::all(), xt::range(0,3));
+  // shift connectivity down one layer
+  xt::strided_view(inner_base, {xt::all(), xt::range(3,6)}) += points_per_plane_;
 
-  xt::xtensor<int, 3> radial_base = xt::zeros<int>({1, t_res_, 8});
-  xt::view(radial_base, xt::all(), xt::all(), 0) = xt::arange(1, t_res_ + 1);
-  xt::view(radial_base, xt::all(), xt::all(), 1) = xt::arange(2, t_res_ + 2);
-  xt::view(radial_base, xt::all(), xt::all(), 2) = xt::view(radial_base, xt::all(), xt::all(), 1) + t_res_;
-  xt::view(radial_base, xt::all(), xt::all(), 3) = xt::view(radial_base, xt::all(), xt::all(), 0) + t_res_;
-  xt::view(radial_base, xt::all(), t_res_ - 1, 1) = 1;
-  xt::view(radial_base, xt::all(), t_res_ - 1, 2) = t_res_ + 1;
+  // set the inner_base
+   xt::view(base, 0, xt::all(), xt::all()) = inner_base;
 
-  xt::view(radial_base, xt::all(), xt::all(), 4) = xt::view(radial_base, xt::all(), xt::all(), 0) + points_per_plane_;
-  xt::view(radial_base, xt::all(), xt::all(), 5) = xt::view(radial_base, xt::all(), xt::all(), 1) + points_per_plane_;
-  xt::view(radial_base, xt::all(), xt::all(), 6) = xt::view(radial_base, xt::all(), xt::all(), 2) + points_per_plane_;
-  xt::view(radial_base, xt::all(), xt::all(), 7) = xt::view(radial_base, xt::all(), xt::all(), 3) + points_per_plane_;
+  /// OUTER RINGS \\\
+
+  xt::xtensor<int, 2> radial_base = xt::zeros<int>({t_res_, 8});
+
+  // setup connectivity of the first layer
+  xt::view(radial_base, xt::all(), 0) = xt::arange(1, t_res_ + 1);
+  xt::view(radial_base, xt::all(), 1) = xt::arange(2, t_res_ + 2);
+  xt::view(radial_base, xt::all(), 2) = xt::view(radial_base, xt::all(), 1) + t_res_;
+  xt::view(radial_base, xt::all(), 3) = xt::view(radial_base, xt::all(), 0) + t_res_;
+  xt::view(radial_base, t_res_ - 1, 1) = 1;
+  xt::view(radial_base, t_res_ - 1, 2) = t_res_ + 1;
+
+  // copy connectivity of the first layer
+  xt::view(radial_base, xt::all(), xt::range(4,8)) +=
+    xt::view(radial_base, xt::all(), xt::range(0,4));
+  // shift connectivity down one layer
+  xt::view(radial_base, xt::all(), xt::range(4,8)) += points_per_plane_;
 
   // other rings
-  xt::view(base, xt::range(1, xt::placeholders::_), xt::all(), xt::all()) = radial_base;
+  xt::strided_view(base, {xt::range(1, _), xt::ellipsis()}) = radial_base;
   for (int i = 1; i < radial_divs_; i++) {
+    // extend based on the starting index of the ring
     int start_idx = (i-1) * t_res_;
     xt::view(base, i, xt::all(), xt::all()) += start_idx;
   }
 
+  // the inner ring is wedges
+  xt::view(cells_out, xt::all(), 0, xt::all(), 0) = WEDGE_TYPE_;
+  xt::view(cells_out, xt::all(), 0, xt::all(), 1) = WEDGE_SIZE_;
 
-  for(int i = 0; i < z_grid_.size() - 1; i++) {
+  // the rest are hexes
+  xt::view(cells_out, xt::all(), xt::range(1, _), xt::all(), 0) = HEX_TYPE_;
+  xt::view(cells_out, xt::all(), xt::range(1, _), xt::all(), 1) = HEX_SIZE_;
+
+  // set all axial divs using base
+  for(int i = 0; i < axial_divs_; i++) {
+    // set layer and increment connectivity by number of points in axial div
     xt::view(cells_out, i, xt::all(), xt::all(), xt::range(2, 10)) = base;
-    // increment connectivity
     base += points_per_plane_;
   }
 
   // first ring should be wedges only, invalidate last two entries
-  xt::view(cells_out, xt::all(), 0, xt::all(), xt::range(8,10)) = -1;
+  xt::view(cells_out, xt::all(), 0, xt::all(), xt::range(8,10)) = INVALID_CONN_;
 
   return cells_out;
 }

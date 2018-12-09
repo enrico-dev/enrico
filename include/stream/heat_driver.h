@@ -70,6 +70,12 @@ private:
   void generate_arrays();
 
   class VisualizationPin {
+    // some constant values
+    const int WEDGE_TYPE_ = 13;
+    const int WEDGE_SIZE_ = 6;
+    const int HEX_TYPE_ = 12;
+    const int HEX_SIZE_ = 8;
+    const int INVALID_CONN_ = -1;
   public:
     VisualizationPin(double x, double y,
                      xt::xtensor<double, 1> z_grid,
@@ -97,7 +103,6 @@ private:
     xt::xtensor<double, 1> z_grid_;
     xt::xtensor<double, 1> r_grid_;
     xt::xtensor<double, 1> data_;
-
   };
 }; // end SurrogateHeatDriver
 
