@@ -12,7 +12,25 @@
 
 namespace stream {
 
-  using namespace xt::placeholders;
+using namespace xt::placeholders;
+
+xt::xtensor<double, 2> create_ring_points(double radius,
+                                          int t_resolution) {
+  xt::xtensor<double, 1> x = xt::zeros<double>({t_resolution});
+  xt::xtensor<double, 1> y = xt::zeros<double>({t_resolution});
+
+  xt::xtensor<double, 1> theta;
+  theta = xt::linspace<double>(0., 2.*openmc::PI, t_resolution + 1);
+
+  x = radius * xt::cos(theta);
+  y = radius * xt::sin(theta);
+
+  xt::xtensor<double, 2> out = xt::zeros<double>({2, t_resolution});
+  xt::view(out, 0, xt::all()) = x;
+  xt::view(out, 1, xt::all()) = x;
+
+  return out;
+}
 
 SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   : HeatFluidsDriver{comm}
