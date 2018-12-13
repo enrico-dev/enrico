@@ -20,6 +20,11 @@ c-----------------------------------------------------------------------
       udiff  = 0.01
       utrans = 1.0
 
+      if (ifield.eq.2) then
+         udiff  = 0.024
+         utrans = 2.4
+      endif
+
       e  = gllel(eg)
       xx = xm1(ix,iy,iz,e)
       yy = ym1(ix,iy,iz,e)
