@@ -229,13 +229,15 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   }
 
   // data header
-  fh << "CELL_DATA " << vpin.num_cells() << "\n";
+  fh << "CELL_DATA " << num_cells << "\n";
+
+  int num_rings = (r_grid_fuel_.size() - 1) + (r_grid_clad_.size() - 1);
 
   // temperature data
   fh << "SCALARS TEMPERATURE double 1\n";
   fh << "LOOKUP_TABLE default\n";
   for (int i = 0; i < temperature_.shape()[1]; i++) {
-    for (int j = 0; j < vpin.radial_divs_; j++) {
+    for (int j = 0; j < num_rings; j++) {
       for (int k = 0; k < radial_resolution; k++) {
         fh << temperature_(0, i, j) << "\n";
       }
@@ -246,7 +248,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   fh << "SCALARS SOURCE double 1\n";
   fh << "LOOKUP_TABLE default\n";
   for (int i = 0; i < source_.shape()[1]; i++) {
-    for (int j = 0; j < vpin.radial_divs_; j++) {
+    for (int j = 0; j < num_rings; j++) {
       for (int k = 0; k < radial_resolution; k++) {
         fh << source_(0, i, j) << "\n";
       }
