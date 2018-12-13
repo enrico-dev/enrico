@@ -14,24 +14,6 @@ namespace stream {
 
 using namespace xt::placeholders;
 
-xt::xtensor<double, 2> create_ring_points(double radius,
-                                          int t_resolution) {
-  xt::xtensor<double, 1> x = xt::zeros<double>({t_resolution});
-  xt::xtensor<double, 1> y = xt::zeros<double>({t_resolution});
-
-  xt::xtensor<double, 1> theta;
-  theta = xt::linspace<double>(0., 2.*openmc::PI, t_resolution + 1);
-
-  x = radius * xt::cos(theta);
-  y = radius * xt::sin(theta);
-
-  xt::xtensor<double, 2> out = xt::zeros<double>({2, t_resolution});
-  xt::view(out, 0, xt::all()) = x;
-  xt::view(out, 1, xt::all()) = x;
-
-  return out;
-}
-
 SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   : HeatFluidsDriver{comm}
 {
@@ -119,7 +101,13 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   xt::xtensor<double, 1> rs = xt::linspace(5, 15, 5);
 
   // create a pin
-  int radial_resolution = 50;
+  int radial_resolution = 10;
+  // VisualizationPin vpin(0.0,
+  //                       0.0,
+  //                       zs,
+  //                       rs,
+  //                       radial_resolution);
+
   VisualizationPin vpin(pin_centers_(0,0),
                         pin_centers_(0,1),
                         z_,
@@ -211,14 +199,33 @@ SurrogateHeatDriver::VisualizationPin::VisualizationPin(double x, double y,
       cells_per_plane_ = points_per_plane_ - 1;
     }
 
+xt::xtensor<double, 2> SurrogateHeatDriver::VisualizationPin::create_ring(double radius,
+                                                                          int t_resolution) {
+  xt::xtensor<double, 1> x = xt::zeros<double>({t_resolution});
+  xt::xtensor<double, 1> y = xt::zeros<double>({t_resolution});
+
+  xt::xtensor<double, 1> theta;
+  theta = xt::linspace<double>(0., 2.*openmc::PI, t_resolution);
+
+  x = radius * xt::cos(theta);
+  y = radius * xt::sin(theta);
+
+  xt::xtensor<double, 2> out = xt::zeros<double>({2, t_resolution});
+
+  xt::view(out, 0, xt::all()) = x;
+  xt::view(out, 1, xt::all()) = y;
+
+  return out;
+}
+
 xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
 
   xt::xarray<double> pnts_out = xt::zeros<double>({axial_divs_ + 1,
                                                   points_per_plane_,
                                                   3});
 
-  xt::xtensor<double, 1> x = xt::zeros<double>({points_per_plane_});
-  xt::xtensor<double, 1> y = xt::zeros<double>({points_per_plane_});
+  xt::xarray<double> x = xt::zeros<double>({radial_divs_, t_res_});
+  xt::xarray<double> y = xt::zeros<double>({radial_divs_, t_res_});
 
   xt::xtensor<double, 1> theta;
   theta = xt::linspace<double>(0., 2.*openmc::PI, t_res_ + 1);
@@ -226,22 +233,25 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
   // first point is the pin center, start at one
   for(int i = 0; i < radial_divs_; i++) {
     double ring_rad = r_grid_(i);
-    for (int j = 1; j <= t_res_; j++) {
-      int idx = i * t_res_ + j;
-      x(idx) = ring_rad * std::cos(theta[j]);
-      y(idx) = ring_rad * std::sin(theta[j]);
-    }
+    xt::xtensor<double, 2> ring = create_ring(ring_rad, t_res_);
+    xt::view(x, i, xt::all()) = xt::view(ring, 0, xt::all());
+    xt::view(y, i, xt::all()) = xt::view(ring, 1, xt::all());
+  }
+  // flatten x,y point arrays
+  x = xt::flatten(x);
+  y = xt::flatten(y);
+
+
+  for (int i = 0; i < z_grid_.size(); i++) {
+    // set all but the center point
+    xt::view(pnts_out, i, xt::range(1,_), 0) = x;
+    xt::view(pnts_out, i, xt::range(1,_), 1) = y;
+    xt::view(pnts_out, i, xt::all(), 2) = z_grid_[i];
   }
 
   // translate
-  x += x_;
-  y += y_;
-
-  for (int i = 0; i < z_grid_.size(); i++) {
-    xt::view(pnts_out, i, xt::all(), 0) = x;
-    xt::view(pnts_out, i, xt::all(), 1) = y;
-    xt::view(pnts_out, i, xt::all(), 2) = z_grid_[i];
-  }
+  xt::view(pnts_out, 0) += x_;
+  xt::view(pnts_out, 1) += y_;
 
   return pnts_out;
 }

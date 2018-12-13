@@ -85,6 +85,7 @@ private:
                      int t_res);
 
     // methods
+    xt::xtensor<double, 2> create_ring(double radius, int t_resolution);
     xt::xtensor<double, 3> points();
     xt::xtensor<int, 4> cells();
 
