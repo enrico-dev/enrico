@@ -120,8 +120,6 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   // generate cell connectivity
   xt::xtensor<int, 4> clad_cells = vpin.clad_connectivity();
 
-
-
   xt::xtensor<double, 3> pin_points = vpin.fuel_points();
 
   // open vtk file
@@ -168,19 +166,34 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   xt::xtensor<int, 4> cells = vpin.fuel_connectivity();
 
   // write header
+  int points_per_plane = (r_grid_fuel_.size() - 1) * radial_resolution + 1;
+  points_per_plane += r_grid_clad_.size() * radial_resolution;
+  std::cout << "POINTS PER PLANE: " << points_per_plane << std::endl;
+  int num_points = points_per_plane * z_.size();
+
   fh << "# vtk DataFile Version 2.0\n";
   fh << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
-  fh << "POINTS " << vpin.num_points() << " float\n";
+  fh << "POINTS " << num_points << " float\n";
   xt::xtensor<double, 1> points_flat = xt::flatten(pin_points);
   for (auto p = points_flat.begin(); p != points_flat.end(); p+=3) {
     fh << *p << " " << *(p+1) << " " << *(p+2) << "\n";
   }
 
+  points_flat = xt::flatten(clad_points);
+  for (auto p = points_flat.begin(); p != points_flat.end(); p+=3) {
+    fh << *p << " " << *(p+1) << " " << *(p+2) << "\n";
+  }
+
+  int num_cells = (r_grid_fuel_.size() - 1) * (z_.size() - 1) * radial_resolution;
+  num_cells += (r_grid_clad_.size() - 1) * (z_.size() - 1) * radial_resolution;
+  int num_entries = vpin.num_entries() + clad_cell_types.size() * 9;
+
   // separate cell types and cell entries
   xt::xtensor<int, 4> cell_types = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(0,1));
   cells = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, _));
 
-  fh << "\nCELLS " << vpin.num_cells() << " " << vpin.num_entries() << "\n";
+
+  fh << "\nCELLS " << num_cells << " " << num_entries << "\n";
 
   // write points to file
   xt::xtensor<int, 1> cells_flat = xt::flatten(cells);
@@ -193,9 +206,25 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
     fh << "\n";
   }
 
+  xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(1,_)) += vpin.num_points();
+  cells_flat = xt::flatten(clad_cells);
+  conn_size = vpin.conn_entry_size();
+  for (auto c = cells_flat.begin(); c != cells_flat.end(); c += conn_size) {
+    for (int i = 0; i < conn_size; i++) {
+      auto val = *(c+i);
+      if (val >= 0) { fh << val << " "; }
+    }
+    fh << "\n";
+  }
+
   // write cell types
-  fh << "\nCELL_TYPES " << vpin.num_cells() << "\n";
+  fh << "\nCELL_TYPES " << num_cells << "\n";
   for (auto v : cell_types) {
+    fh << v << "\n";
+  }
+
+  // write cell types
+  for (auto v : clad_cell_types) {
     fh << v << "\n";
   }
 
