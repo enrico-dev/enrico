@@ -96,12 +96,12 @@ void SurrogateHeatDriver::solve_step()
 void SurrogateHeatDriver::to_vtk(std::string filename)
 {
   std::cout << "Writing VTK file: " << filename << "...\n";
+  // create a pin
+  int radial_resolution = 10;
 
   xt::xtensor<double, 1> zs = xt::linspace(1, 5, 5);
   xt::xtensor<double, 1> rs = xt::linspace(5, 15, 5);
 
-  // create a pin
-  int radial_resolution = 10;
   // VisualizationPin vpin(0.0,
   //                       0.0,
   //                       zs,
@@ -122,7 +122,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
 
 
 
-  xt::xtensor<double, 3> pin_points = vpin.pin_points();
+  xt::xtensor<double, 3> pin_points = vpin.fuel_points();
 
   // open vtk file
   std::ofstream ch("clad.vtk", std::ofstream::out);
@@ -165,7 +165,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   std::ofstream fh(filename, std::ofstream::out);
 
   // generate cell connectivity
-  xt::xtensor<int, 4> cells = vpin.pin_connectivity();
+  xt::xtensor<int, 4> cells = vpin.fuel_connectivity();
 
   // write header
   fh << "# vtk DataFile Version 2.0\n";
@@ -265,7 +265,7 @@ xt::xtensor<double, 2> SurrogateHeatDriver::VisualizationPin::create_ring(double
   return out;
 }
 
-xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::pin_points() {
+xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::fuel_points() {
 
   xt::xarray<double> pnts_out = xt::zeros<double>({axial_divs_ + 1,
                                                   points_per_plane_,
@@ -303,7 +303,7 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::pin_points() {
   return pnts_out;
 }
 
-xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::pin_connectivity() {
+xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::fuel_connectivity() {
   // size output array
   xt::xtensor<int, 4> cells_out = xt::zeros<int>({axial_divs_,
                                                   radial_divs_,
