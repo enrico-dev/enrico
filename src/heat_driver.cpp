@@ -112,11 +112,60 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
                         pin_centers_(0,1),
                         z_,
                         r_grid_fuel_,
+                        r_grid_clad_,
                         radial_resolution);
-  xt::xtensor<double, 3> pin_points = vpin.points();
+
+  xt::xtensor<double, 3> clad_points = vpin.clad_points();
+
+  // generate cell connectivity
+  xt::xtensor<int, 4> clad_cells = vpin.clad_connectivity();
+
+
+
+  xt::xtensor<double, 3> pin_points = vpin.pin_points();
+
+  // open vtk file
+  std::ofstream ch("clad.vtk", std::ofstream::out);
+
+  // write header
+  ch << "# vtk DataFile Version 2.0\n";
+  ch << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
+  ch << "POINTS " << clad_points.size()/3 << " float\n";
+  xt::xtensor<double, 1> cpoints_flat = xt::flatten(clad_points);
+  for (auto p = cpoints_flat.begin(); p != cpoints_flat.end(); p+=3) {
+    ch << *p << " " << *(p+1) << " " << *(p+2) << "\n";
+  }
+
+  xt::xtensor<int, 4> clad_cell_types = xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(0,1));
+  clad_cells = xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(1, _));
+
+  ch << "\nCELLS " << clad_cell_types.size() << " " << clad_cell_types.size()*9 << "\n";
+
+  // write points to file
+  xt::xtensor<int, 1> clad_cells_flat = xt::flatten(clad_cells);
+  int clad_conn_size = vpin.conn_entry_size();
+  for (auto c = clad_cells_flat.begin(); c != clad_cells_flat.end(); c += clad_conn_size) {
+    for (int i = 0; i < clad_conn_size; i++) {
+      auto val = *(c+i);
+      if (val >= 0) { ch << val << " "; }
+    }
+    ch << "\n";
+  }
+
+  // write cell types
+  ch << "\nCELL_TYPES " << clad_cell_types.size() << "\n";
+  for (auto v : clad_cell_types) {
+    ch << v << "\n";
+  }
+
+
+  ch.close();
 
   // open vtk file
   std::ofstream fh(filename, std::ofstream::out);
+
+  // generate cell connectivity
+  xt::xtensor<int, 4> cells = vpin.pin_connectivity();
 
   // write header
   fh << "# vtk DataFile Version 2.0\n";
@@ -126,9 +175,6 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   for (auto p = points_flat.begin(); p != points_flat.end(); p+=3) {
     fh << *p << " " << *(p+1) << " " << *(p+2) << "\n";
   }
-
-  // generate cell connectivity
-  xt::xtensor<int, 4> cells = vpin.cells();
 
   // separate cell types and cell entries
   xt::xtensor<int, 4> cell_types = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(0,1));
@@ -186,8 +232,9 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
 SurrogateHeatDriver::VisualizationPin::VisualizationPin(double x, double y,
                                    xt::xtensor<double, 1> z_grid,
                                    xt::xtensor<double, 1> r_grid,
+                                   xt::xtensor<double, 1> c_grid,
                                    int t_res)
-    : x_(x), y_(y), z_grid_(z_grid), r_grid_(r_grid), t_res_(t_res)
+  : x_(x), y_(y), z_grid_(z_grid), r_grid_(r_grid), c_grid_(c_grid), t_res_(t_res)
     {
       // adjust to remove extra radial ring if needed
       if (r_grid[0] == 0) {
@@ -218,7 +265,7 @@ xt::xtensor<double, 2> SurrogateHeatDriver::VisualizationPin::create_ring(double
   return out;
 }
 
-xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
+xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::pin_points() {
 
   xt::xarray<double> pnts_out = xt::zeros<double>({axial_divs_ + 1,
                                                   points_per_plane_,
@@ -250,13 +297,13 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::points() {
   }
 
   // translate
-  xt::view(pnts_out, 0) += x_;
-  xt::view(pnts_out, 1) += y_;
+  xt::view(pnts_out, xt::all(), xt::all(), 0) += x_;
+  xt::view(pnts_out, xt::all(), xt::all(), 1) += y_;
 
   return pnts_out;
 }
 
-xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::cells() {
+xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::pin_connectivity() {
   // size output array
   xt::xtensor<int, 4> cells_out = xt::zeros<int>({axial_divs_,
                                                   radial_divs_,
@@ -331,5 +378,98 @@ xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::cells() {
 
   return cells_out;
 }
+
+xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::clad_points() {
+
+  int clad_points_per_plane = c_grid_.size()*t_res_;
+  int clad_divs_ = c_grid_.size();
+  xt::xarray<double> pnts_out = xt::zeros<double>({axial_divs_ + 1,
+                                                  clad_points_per_plane,
+                                                  3});
+
+  xt::xarray<double> x = xt::zeros<double>({clad_divs_, t_res_});
+  xt::xarray<double> y = xt::zeros<double>({clad_divs_, t_res_});
+
+  xt::xtensor<double, 1> theta;
+  theta = xt::linspace<double>(0., 2.*openmc::PI, t_res_ + 1);
+
+  for(int i = 0; i < clad_divs_; i++) {
+    double ring_rad = c_grid_(i);
+    xt::xtensor<double, 2> ring = create_ring(ring_rad, t_res_);
+    xt::view(x, i, xt::all()) = xt::view(ring, 0, xt::all());
+    xt::view(y, i, xt::all()) = xt::view(ring, 1, xt::all());
+  }
+  // flatten x,y point arrays
+  x = xt::flatten(x);
+  y = xt::flatten(y);
+
+
+  for (int i = 0; i < z_grid_.size(); i++) {
+    // set all but the center point
+    xt::view(pnts_out, i, xt::all(), 0) = x;
+    xt::view(pnts_out, i, xt::all(), 1) = y;
+    xt::view(pnts_out, i, xt::all(), 2) = z_grid_[i];
+  }
+
+  // translate
+  xt::view(pnts_out, 0) += x_;
+  xt::view(pnts_out, 1) += y_;
+
+  return pnts_out;
+}
+
+xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::clad_connectivity() {
+  int clad_points_per_plane = c_grid_.size()*t_res_;
+  int clad_divs_ = c_grid_.size() - 1;
+
+  // size output array
+  xt::xtensor<int, 4> cells_out = xt::zeros<int>({axial_divs_,
+                                                  clad_divs_,
+                                                  t_res_,
+                                                  HEX_SIZE_ + 2});
+
+  // generate a base layer to be extended in Z
+  xt::xtensor<int, 3> base = xt::zeros<int>({clad_divs_, t_res_, HEX_SIZE_});
+
+  /// OUTER RINGS \\\
+
+  xt::xtensor<int, 2> radial_base = xt::zeros<int>({t_res_, HEX_SIZE_});
+
+  // setup connectivity of the first layer
+  xt::view(radial_base, xt::all(), 0) = xt::arange(0, t_res_);
+  xt::view(radial_base, xt::all(), 1) = xt::arange(1, t_res_ + 1);
+  xt::view(radial_base, xt::all(), 2) = xt::view(radial_base, xt::all(), 1) + t_res_;
+  xt::view(radial_base, xt::all(), 3) = xt::view(radial_base, xt::all(), 0) + t_res_;
+  xt::view(radial_base, t_res_ - 1, 1) = 1;
+  xt::view(radial_base, t_res_ - 1, 2) = t_res_ + 1;
+
+  // copy connectivity of the first layer
+  xt::view(radial_base, xt::all(), xt::range(4,8)) +=
+    xt::view(radial_base, xt::all(), xt::range(0,4));
+  // shift connectivity down one layer
+  xt::view(radial_base, xt::all(), xt::range(4,8)) += clad_points_per_plane;
+
+  // other rings
+  xt::strided_view(base, {xt::range(0, _), xt::ellipsis()}) = radial_base;
+  for (int i = 0; i < clad_divs_; i++) {
+    // extend based on the starting index of the ring
+    int start_idx = i * t_res_;
+    xt::view(base, i, xt::all(), xt::all()) += start_idx;
+  }
+
+  // the rest are hexes
+  xt::view(cells_out, xt::all(), xt::all(), xt::all(), 0) = HEX_TYPE_;
+  xt::view(cells_out, xt::all(), xt::all(), xt::all(), 1) = HEX_SIZE_;
+
+  // set all axial divs using base
+  for(int i = 0; i < axial_divs_; i++) {
+    // set layer and increment connectivity by number of points in axial div
+    xt::view(cells_out, i, xt::all(), xt::all(), xt::range(2, 10)) = base;
+    base += clad_points_per_plane;
+  }
+
+  return cells_out;
+}
+
 
 } // namespace stream

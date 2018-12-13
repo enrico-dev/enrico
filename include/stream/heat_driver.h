@@ -82,12 +82,16 @@ private:
     VisualizationPin(double x, double y,
                      xt::xtensor<double, 1> z_grid,
                      xt::xtensor<double, 1> r_grid,
+                     xt::xtensor<double, 1> c_grid,
                      int t_res);
 
     // methods
     xt::xtensor<double, 2> create_ring(double radius, int t_resolution);
-    xt::xtensor<double, 3> points();
-    xt::xtensor<int, 4> cells();
+    xt::xtensor<double, 3> pin_points();
+    xt::xtensor<int, 4> pin_connectivity();
+
+    xt::xtensor<double, 3> clad_points();
+    xt::xtensor<int, 4> clad_connectivity();
 
     inline int num_points() { return points_per_plane_ * (axial_divs_ + 1); }
     inline int num_entries() { return (WEDGE_SIZE_ + 1) * (axial_divs_ * t_res_) +
@@ -104,6 +108,7 @@ private:
     int axial_divs_;
     xt::xtensor<double, 1> z_grid_;
     xt::xtensor<double, 1> r_grid_;
+    xt::xtensor<double, 1> c_grid_;
     xt::xtensor<double, 1> data_;
   };
 }; // end SurrogateHeatDriver
