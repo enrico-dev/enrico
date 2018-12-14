@@ -97,16 +97,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
 {
   std::cout << "Writing VTK file: " << filename << "...\n";
   // create a pin
-  int radial_resolution = 40;
-
-  xt::xtensor<double, 1> zs = xt::linspace(1, 5, 5);
-  xt::xtensor<double, 1> rs = xt::linspace(5, 15, 5);
-
-  // VisualizationPin vpin(0.0,
-  //                       0.0,
-  //                       zs,
-  //                       rs,
-  //                       radial_resolution);
+  int radial_resolution = 10;
 
   VisualizationPin vpin(pin_centers_(0,0),
                         pin_centers_(0,1),
@@ -115,64 +106,39 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
                         r_grid_clad_,
                         radial_resolution);
 
+
+  // generate fuel and cladding points
+  xt::xtensor<double, 3> pin_points = vpin.fuel_points();
   xt::xtensor<double, 3> clad_points = vpin.clad_points();
 
-  // generate cell connectivity
+  // generate mesh element connectivity for fuel
+  xt::xtensor<int, 4> cells = vpin.fuel_connectivity();
+  xt::xtensor<int, 4> cell_types = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(0,1));
+  cells = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, _));
+
+  // generate mesh element connectivity for fuel
   xt::xtensor<int, 4> clad_cells = vpin.clad_connectivity();
-
-  xt::xtensor<double, 3> pin_points = vpin.fuel_points();
-
-  // open vtk file
-  std::ofstream ch("clad.vtk", std::ofstream::out);
-
-  // write header
-  ch << "# vtk DataFile Version 2.0\n";
-  ch << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
-  ch << "POINTS " << clad_points.size()/3 << " float\n";
-  xt::xtensor<double, 1> cpoints_flat = xt::flatten(clad_points);
-  for (auto p = cpoints_flat.begin(); p != cpoints_flat.end(); p+=3) {
-    ch << *p << " " << *(p+1) << " " << *(p+2) << "\n";
-  }
-
   xt::xtensor<int, 4> clad_cell_types = xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(0,1));
   clad_cells = xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(1, _));
 
-  ch << "\nCELLS " << clad_cell_types.size() << " " << clad_cell_types.size()*9 << "\n";
-
-  // write points to file
-  xt::xtensor<int, 1> clad_cells_flat = xt::flatten(clad_cells);
-  int clad_conn_size = vpin.conn_entry_size();
-  for (auto c = clad_cells_flat.begin(); c != clad_cells_flat.end(); c += clad_conn_size) {
-    for (int i = 0; i < clad_conn_size; i++) {
-      auto val = *(c+i);
-      if (val >= 0) { ch << val << " "; }
-    }
-    ch << "\n";
-  }
-
-  // write cell types
-  ch << "\nCELL_TYPES " << clad_cell_types.size() << "\n";
-  for (auto v : clad_cell_types) {
-    ch << v << "\n";
-  }
-
-
-  ch.close();
 
   // open vtk file
   std::ofstream fh(filename, std::ofstream::out);
 
-  // generate cell connectivity
-  xt::xtensor<int, 4> cells = vpin.fuel_connectivity();
-
   // write header
-  int points_per_plane = (r_grid_fuel_.size() - 1) * radial_resolution + 1;
+  int points_per_plane, fuel_points, total_points;
+  // fuel points
+  points_per_plane  = (r_grid_fuel_.size() - 1) * radial_resolution + 1;
+  fuel_points = points_per_plane * z_.size();
+  // cladding points
   points_per_plane += r_grid_clad_.size() * radial_resolution;
-  int num_points = points_per_plane * z_.size();
+  // total number of points in pin
+
+  total_points = points_per_plane * z_.size();
 
   fh << "# vtk DataFile Version 2.0\n";
   fh << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
-  fh << "POINTS " << num_points << " float\n";
+  fh << "POINTS " << total_points << " float\n";
   xt::xtensor<double, 1> points_flat = xt::flatten(pin_points);
   for (auto p = points_flat.begin(); p != points_flat.end(); p+=3) {
     fh << *p << " " << *(p+1) << " " << *(p+2) << "\n";
@@ -183,20 +149,24 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
     fh << *p << " " << *(p+1) << " " << *(p+2) << "\n";
   }
 
-  int num_cells = (r_grid_fuel_.size() - 1) * (z_.size() - 1) * radial_resolution;
-  num_cells += (r_grid_clad_.size() - 1) * (z_.size() - 1) * radial_resolution;
-  int num_entries = vpin.num_entries() + clad_cell_types.size() * 9;
+  int num_mesh_elements, num_entries;
+  // fuel elements, entries
+  num_mesh_elements  = (r_grid_fuel_.size() - 1) * (z_.size() - 1) * radial_resolution;
+  // wedge regions
+  num_entries  = (WEDGE_SIZE_ + 1) * radial_resolution * (z_.size() - 1);
+  // other radial regions
+  num_entries += (HEX_SIZE_ + 1) * radial_resolution * (r_grid_fuel_.size() - 2) * (z_.size() - 1);
 
-  // separate cell types and cell entries
-  xt::xtensor<int, 4> cell_types = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(0,1));
-  cells = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, _));
+  // cladding elements
+  num_mesh_elements += (r_grid_clad_.size() - 1) * (z_.size() - 1) * radial_resolution;
+  num_entries += clad_cell_types.size() * (HEX_SIZE_ + 1);
 
+  // write connectivity header
+  fh << "\nCELLS " << num_mesh_elements << " " << num_entries << "\n";
 
-  fh << "\nCELLS " << num_cells << " " << num_entries << "\n";
-
-  // write points to file
+  // write mesh element connectivity
   xt::xtensor<int, 1> cells_flat = xt::flatten(cells);
-  int conn_size = vpin.conn_entry_size();
+  int conn_size = HEX_SIZE_ + 1;
   for (auto c = cells_flat.begin(); c != cells_flat.end(); c += conn_size) {
     for (int i = 0; i < conn_size; i++) {
       auto val = *(c+i);
@@ -205,9 +175,9 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
     fh << "\n";
   }
 
-  xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(1,_)) += vpin.num_points();
+  xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(1,_)) += fuel_points;
   cells_flat = xt::flatten(clad_cells);
-  conn_size = vpin.conn_entry_size();
+  conn_size = HEX_SIZE_ + 1;
   for (auto c = cells_flat.begin(); c != cells_flat.end(); c += conn_size) {
     for (int i = 0; i < conn_size; i++) {
       auto val = *(c+i);
@@ -217,7 +187,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   }
 
   // write cell types
-  fh << "\nCELL_TYPES " << num_cells << "\n";
+  fh << "\nCELL_TYPES " << num_mesh_elements << "\n";
   for (auto v : cell_types) {
     fh << v << "\n";
   }
@@ -228,9 +198,15 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   }
 
   // data header
-  fh << "CELL_DATA " << num_cells << "\n";
+  fh << "CELL_DATA " << num_mesh_elements << "\n";
 
-  int num_rings = (r_grid_fuel_.size() - 1) + (r_grid_clad_.size() - 1);
+  // number of radial rings in a pin, determines
+  // how many times to write a data value
+  int num_rings;
+  // radial rings in the fuel
+  num_rings  = (r_grid_fuel_.size() - 1);
+  // radial rings in the cladding
+  num_rings += (r_grid_clad_.size() - 1);
 
   // temperature data
   fh << "SCALARS TEMPERATURE double 1\n";
