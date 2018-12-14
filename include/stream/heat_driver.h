@@ -100,6 +100,9 @@ private:
     xt::xtensor<double, 3> clad_points();
     xt::xtensor<int, 4> clad_connectivity();
 
+    xt::xtensor<double, 1> points();
+
+
     // members
     double x_, y_;
     int t_res_;

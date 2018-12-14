@@ -132,10 +132,10 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
                         r_grid_clad_,
                         radial_resolution);
 
-
   // generate fuel and cladding points
-  xt::xtensor<double, 3> pin_points = vpin.fuel_points();
-  xt::xtensor<double, 3> clad_points = vpin.clad_points();
+
+
+  xt::xtensor<double, 1> points = vpin.points();
 
   // generate mesh element connectivity for fuel
   xt::xtensor<int, 4> cells = vpin.fuel_connectivity();
@@ -149,19 +149,13 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   // adjust cladding connctivity by the number of existing fuel points
   xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(1,_)) += fuel_points;
 
-
   // open vtk file
   std::ofstream fh(filename, std::ofstream::out);
 
   fh << "# vtk DataFile Version 2.0\n";
   fh << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
   fh << "POINTS " << total_points << " float\n";
-  xt::xtensor<double, 1> points_flat = xt::flatten(pin_points);
-  for (auto p = points_flat.begin(); p != points_flat.end(); p+=3) {
-    fh << *p << " " << *(p+1) << " " << *(p+2) << "\n";
-  }
-
-  points_flat = xt::flatten(clad_points);
+  xt::xtensor<double, 1> points_flat = xt::flatten(points);
   for (auto p = points_flat.begin(); p != points_flat.end(); p+=3) {
     fh << *p << " " << *(p+1) << " " << *(p+2) << "\n";
   }
@@ -481,6 +475,15 @@ xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::clad_connectivity() {
   }
 
   return cells_out;
+}
+
+xt::xtensor<double, 1> SurrogateHeatDriver::VisualizationPin::points() {
+  xt::xtensor<double, 3> fuel_pnts = fuel_points();
+  xt::xtensor<double, 3> clad_pnts = clad_points();
+  xt::xtensor<double, 1> points =
+    xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts),
+                               xt::flatten(clad_pnts)));
+  return points;
 }
 
 
