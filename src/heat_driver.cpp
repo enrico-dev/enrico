@@ -99,6 +99,29 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   // create a pin
   int radial_resolution = 40;
 
+  // Calculate some necessary values ahead of time
+  int points_per_plane, fuel_points, total_points;
+  // fuel points
+  points_per_plane  = (r_grid_fuel_.size() - 1) * radial_resolution + 1;
+  fuel_points = points_per_plane * z_.size();
+  // cladding points
+  points_per_plane += r_grid_clad_.size() * radial_resolution;
+  // total number of points in pin
+
+  total_points = points_per_plane * z_.size();
+
+  int num_mesh_elements, num_entries;
+  // fuel elements, entries
+  num_mesh_elements  = (r_grid_fuel_.size() - 1) * (z_.size() - 1) * radial_resolution;
+  // wedge regions
+  num_entries  = (WEDGE_SIZE_ + 1) * radial_resolution * (z_.size() - 1);
+  // other radial regions
+  num_entries += (HEX_SIZE_ + 1) * radial_resolution * (r_grid_fuel_.size() - 2) * (z_.size() - 1);
+
+  // cladding elements
+  num_mesh_elements += (r_grid_clad_.size() - 1) * (z_.size() - 1) * radial_resolution;
+  num_entries += (r_grid_clad_.size() - 1) * (z_.size() - 1) * radial_resolution * (HEX_SIZE_ + 1);
+
   VisualizationPin vpin(pin_centers_(0,0),
                         pin_centers_(0,1),
                         z_,
@@ -120,21 +143,12 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   xt::xtensor<int, 4> clad_cells = vpin.clad_connectivity();
   xt::xtensor<int, 4> clad_cell_types = xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(0,1));
   clad_cells = xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(1, _));
+  // adjust cladding connctivity by the number of existing fuel points
+  xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(1,_)) += fuel_points;
 
 
   // open vtk file
   std::ofstream fh(filename, std::ofstream::out);
-
-  // write header
-  int points_per_plane, fuel_points, total_points;
-  // fuel points
-  points_per_plane  = (r_grid_fuel_.size() - 1) * radial_resolution + 1;
-  fuel_points = points_per_plane * z_.size();
-  // cladding points
-  points_per_plane += r_grid_clad_.size() * radial_resolution;
-  // total number of points in pin
-
-  total_points = points_per_plane * z_.size();
 
   fh << "# vtk DataFile Version 2.0\n";
   fh << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
@@ -148,18 +162,6 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   for (auto p = points_flat.begin(); p != points_flat.end(); p+=3) {
     fh << *p << " " << *(p+1) << " " << *(p+2) << "\n";
   }
-
-  int num_mesh_elements, num_entries;
-  // fuel elements, entries
-  num_mesh_elements  = (r_grid_fuel_.size() - 1) * (z_.size() - 1) * radial_resolution;
-  // wedge regions
-  num_entries  = (WEDGE_SIZE_ + 1) * radial_resolution * (z_.size() - 1);
-  // other radial regions
-  num_entries += (HEX_SIZE_ + 1) * radial_resolution * (r_grid_fuel_.size() - 2) * (z_.size() - 1);
-
-  // cladding elements
-  num_mesh_elements += (r_grid_clad_.size() - 1) * (z_.size() - 1) * radial_resolution;
-  num_entries += clad_cell_types.size() * (HEX_SIZE_ + 1);
 
   // write connectivity header
   fh << "\nCELLS " << num_mesh_elements << " " << num_entries << "\n";
@@ -175,8 +177,6 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
     fh << "\n";
   }
 
-  // adjust cladding connctivity by the number of existing fuel points
-  xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(1,_)) += fuel_points;
   // write cladding connectivity
   cells_flat = xt::flatten(clad_cells);
   conn_size = HEX_SIZE_ + 1;
@@ -209,11 +209,12 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   num_rings  = (r_grid_fuel_.size() - 1);
   // radial rings in the cladding
   num_rings += (r_grid_clad_.size() - 1);
+  std::cout << "NUM RINGS: " << num_rings << std::endl;
 
   // temperature data
   fh << "SCALARS TEMPERATURE double 1\n";
   fh << "LOOKUP_TABLE default\n";
-  for (int i = 0; i < temperature_.shape()[1]; i++) {
+  for (int i = 0; i < z_.size() - 1; i++) {
     for (int j = 0; j < num_rings; j++) {
       for (int k = 0; k < radial_resolution; k++) {
         fh << temperature_(0, i, j) << "\n";
@@ -224,7 +225,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   // fission source data
   fh << "SCALARS SOURCE double 1\n";
   fh << "LOOKUP_TABLE default\n";
-  for (int i = 0; i < source_.shape()[1]; i++) {
+  for (int i = 0; i < z_.size() - 1; i++) {
     for (int j = 0; j < num_rings; j++) {
       for (int k = 0; k < radial_resolution; k++) {
         fh << source_(0, i, j) << "\n";
