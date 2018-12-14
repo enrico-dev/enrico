@@ -97,7 +97,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
 {
   std::cout << "Writing VTK file: " << filename << "...\n";
   // create a pin
-  int radial_resolution = 10;
+  int radial_resolution = 40;
 
   xt::xtensor<double, 1> zs = xt::linspace(1, 5, 5);
   xt::xtensor<double, 1> rs = xt::linspace(5, 15, 5);
@@ -168,7 +168,6 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   // write header
   int points_per_plane = (r_grid_fuel_.size() - 1) * radial_resolution + 1;
   points_per_plane += r_grid_clad_.size() * radial_resolution;
-  std::cout << "POINTS PER PLANE: " << points_per_plane << std::endl;
   int num_points = points_per_plane * z_.size();
 
   fh << "# vtk DataFile Version 2.0\n";
