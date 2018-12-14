@@ -97,7 +97,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
 {
   std::cout << "Writing VTK file: " << filename << "...\n";
   // create a pin
-  int radial_resolution = 10;
+  int radial_resolution = 40;
 
   VisualizationPin vpin(pin_centers_(0,0),
                         pin_centers_(0,1),
