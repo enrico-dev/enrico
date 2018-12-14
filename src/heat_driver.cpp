@@ -102,7 +102,8 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   int n_axial_sections = z_.size() - 1;
   int n_radial_fuel_sections = r_grid_fuel_.size() - 1;
   int n_radial_clad_sections = r_grid_clad_.size() - 1;
-  int n_sections_per_plane = n_radial_fuel_sections + n_radial_clad_sections;
+  int n_radial_sections = n_radial_fuel_sections + n_radial_clad_sections;
+  int n_sections_per_plane = n_radial_sections * radial_resolution;
   // Calculate some necessary values ahead of time
   // fuel points
   int fuel_points_per_plane  = n_radial_fuel_sections * radial_resolution + 1;
@@ -114,7 +115,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   int total_points = points_per_plane * z_.size();
 
   // fuel elements, entries
-  int num_mesh_elements = radial_resolution * n_sections_per_plane * n_axial_sections;
+  int num_mesh_elements = n_sections_per_plane * n_axial_sections;
   // wedge regions
   int num_fuel_entries_per_plane = radial_resolution * (WEDGE_SIZE_ + 1);
   // other radial regions
