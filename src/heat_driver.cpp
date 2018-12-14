@@ -175,7 +175,9 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
     fh << "\n";
   }
 
+  // adjust cladding connctivity by the number of existing fuel points
   xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(1,_)) += fuel_points;
+  // write cladding connectivity
   cells_flat = xt::flatten(clad_cells);
   conn_size = HEX_SIZE_ + 1;
   for (auto c = cells_flat.begin(); c != cells_flat.end(); c += conn_size) {
