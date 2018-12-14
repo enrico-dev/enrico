@@ -21,8 +21,8 @@ c-----------------------------------------------------------------------
       utrans = 1.0
 
       if (ifield.eq.2) then
-         udiff  = 0.033405 ! Pr~1
-         utrans = 3.3405  ! Estimated Volumetric Heat capacity at a temperature of 280 C and 110 bar
+         udiff  = 0.039 ! Pr~1
+         utrans = 3.9  ! Estimated Volumetric Heat capacity at a temperature of 280 C and 110 bar
       endif
 
       e  = gllel(eg)
