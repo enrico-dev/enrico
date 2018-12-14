@@ -99,28 +99,30 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   // create a pin
   int radial_resolution = 40;
 
+  int n_axial_sections = z_.size() - 1;
+  int n_radial_fuel_sections = r_grid_fuel_.size() - 1;
+  int n_radial_clad_sections = r_grid_clad_.size() - 1;
+  int n_sections_per_plane = n_radial_fuel_sections + n_radial_clad_sections;
   // Calculate some necessary values ahead of time
-  int points_per_plane, fuel_points, total_points;
   // fuel points
-  points_per_plane  = (r_grid_fuel_.size() - 1) * radial_resolution + 1;
-  fuel_points = points_per_plane * z_.size();
+  int fuel_points_per_plane  = n_radial_fuel_sections * radial_resolution + 1;
+  int fuel_points = fuel_points_per_plane * z_.size();
   // cladding points
-  points_per_plane += r_grid_clad_.size() * radial_resolution;
+  int clad_points_per_plane = r_grid_clad_.size() * radial_resolution;
+  int points_per_plane = fuel_points_per_plane + clad_points_per_plane;
   // total number of points in pin
+  int total_points = points_per_plane * z_.size();
 
-  total_points = points_per_plane * z_.size();
-
-  int num_mesh_elements, num_entries;
   // fuel elements, entries
-  num_mesh_elements  = (r_grid_fuel_.size() - 1) * (z_.size() - 1) * radial_resolution;
+  int num_mesh_elements = radial_resolution * n_sections_per_plane * n_axial_sections;
   // wedge regions
-  num_entries  = (WEDGE_SIZE_ + 1) * radial_resolution * (z_.size() - 1);
+  int num_fuel_entries_per_plane = radial_resolution * (WEDGE_SIZE_ + 1);
   // other radial regions
-  num_entries += (HEX_SIZE_ + 1) * radial_resolution * (r_grid_fuel_.size() - 2) * (z_.size() - 1);
-
+  num_fuel_entries_per_plane += radial_resolution * (HEX_SIZE_ + 1) * (n_radial_fuel_sections - 1);
+  int num_clad_entries_per_plane = radial_resolution * (HEX_SIZE_ + 1) * n_radial_clad_sections;
+  int num_entries_per_plane = num_fuel_entries_per_plane + num_clad_entries_per_plane;
   // cladding elements
-  num_mesh_elements += (r_grid_clad_.size() - 1) * (z_.size() - 1) * radial_resolution;
-  num_entries += (r_grid_clad_.size() - 1) * (z_.size() - 1) * radial_resolution * (HEX_SIZE_ + 1);
+  int num_entries = num_entries_per_plane * n_axial_sections;
 
   VisualizationPin vpin(pin_centers_(0,0),
                         pin_centers_(0,1),
