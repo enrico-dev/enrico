@@ -17,12 +17,12 @@ c-----------------------------------------------------------------------
       integer e,f,eg
       real t_
 
-      udiff  = 0.01
+      udiff  = 0.01 ! Artifically increased viscosity to simplify problem
       utrans = 1.0
 
       if (ifield.eq.2) then
-         udiff  = 0.024
-         utrans = 2.4
+         udiff  = 0.03405 ! Pr~1
+         utrans = 3.3405  ! Estimated Volumetric Heat capacity at a temperature of 280 C and 110 bar
       endif
 
       e  = gllel(eg)
