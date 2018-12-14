@@ -97,7 +97,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
 {
   std::cout << "Writing VTK file: " << filename << "...\n";
   // create a pin
-  int radial_resolution = 4;
+  int radial_resolution = 50;
 
   int n_axial_sections = z_.size() - 1;
   int n_radial_fuel_sections = r_grid_fuel_.size() - 1;
@@ -192,23 +192,42 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   fh << "SCALARS TEMPERATURE double 1\n";
   fh << "LOOKUP_TABLE default\n";
   for (int i = 0; i < n_axial_sections; i++) {
-    for (int j = 0; j < n_radial_sections; j++) {
+    for (int j = 0; j < n_radial_fuel_sections; j++) {
       for (int k = 0; k < radial_resolution; k++) {
         fh << temperature_(0, i, j) << "\n";
       }
     }
   }
 
-  // fission source data
+  for (int i = 0; i < n_axial_sections; i++) {
+    for (int j = 0; j < n_radial_clad_sections; j++) {
+      for (int k = 0; k < radial_resolution; k++) {
+        fh << temperature_(0, i, j + n_radial_fuel_sections) << "\n";
+      }
+    }
+  }
+
+
+    // source data
   fh << "SCALARS SOURCE double 1\n";
   fh << "LOOKUP_TABLE default\n";
   for (int i = 0; i < n_axial_sections; i++) {
-    for (int j = 0; j < n_radial_sections; j++) {
+    for (int j = 0; j < n_radial_fuel_sections; j++) {
       for (int k = 0; k < radial_resolution; k++) {
         fh << source_(0, i, j) << "\n";
       }
     }
   }
+
+  for (int i = 0; i < n_axial_sections; i++) {
+    for (int j = 0; j < n_radial_clad_sections; j++) {
+      for (int k = 0; k < radial_resolution; k++) {
+        fh << source_(0, i, j + n_radial_fuel_sections) << "\n";
+      }
+    }
+  }
+
+
 
   fh.close();
 
