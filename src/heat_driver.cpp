@@ -97,7 +97,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
 {
   std::cout << "Writing VTK file: " << filename << "...\n";
   // create a pin
-  int radial_resolution = 40;
+  int radial_resolution = 4;
 
   int n_axial_sections = z_.size() - 1;
   int n_radial_fuel_sections = r_grid_fuel_.size() - 1;
@@ -133,8 +133,6 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
                         radial_resolution);
 
   // generate fuel and cladding points
-
-
   xt::xtensor<double, 1> points = vpin.points();
 
   // generate mesh element connectivity for fuel
@@ -164,19 +162,10 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   fh << "\nCELLS " << num_mesh_elements << " " << num_entries << "\n";
 
   // write mesh element connectivity
-  xt::xtensor<int, 1> cells_flat = xt::flatten(cells);
+  xt::xtensor<int, 1> cells_flat =
+    xt::concatenate(xt::xtuple(xt::flatten(cells),
+                               xt::flatten(clad_cells)));
   int conn_size = HEX_SIZE_ + 1;
-  for (auto c = cells_flat.begin(); c != cells_flat.end(); c += conn_size) {
-    for (int i = 0; i < conn_size; i++) {
-      auto val = *(c+i);
-      if (val >= 0) { fh << val << " "; }
-    }
-    fh << "\n";
-  }
-
-  // write cladding connectivity
-  cells_flat = xt::flatten(clad_cells);
-  conn_size = HEX_SIZE_ + 1;
   for (auto c = cells_flat.begin(); c != cells_flat.end(); c += conn_size) {
     for (int i = 0; i < conn_size; i++) {
       auto val = *(c+i);
@@ -199,20 +188,11 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   // data header
   fh << "CELL_DATA " << num_mesh_elements << "\n";
 
-  // number of radial rings in a pin, determines
-  // how many times to write a data value
-  int num_rings;
-  // radial rings in the fuel
-  num_rings  = (r_grid_fuel_.size() - 1);
-  // radial rings in the cladding
-  num_rings += (r_grid_clad_.size() - 1);
-  std::cout << "NUM RINGS: " << num_rings << std::endl;
-
   // temperature data
   fh << "SCALARS TEMPERATURE double 1\n";
   fh << "LOOKUP_TABLE default\n";
-  for (int i = 0; i < z_.size() - 1; i++) {
-    for (int j = 0; j < num_rings; j++) {
+  for (int i = 0; i < n_axial_sections; i++) {
+    for (int j = 0; j < n_radial_sections; j++) {
       for (int k = 0; k < radial_resolution; k++) {
         fh << temperature_(0, i, j) << "\n";
       }
@@ -222,8 +202,8 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   // fission source data
   fh << "SCALARS SOURCE double 1\n";
   fh << "LOOKUP_TABLE default\n";
-  for (int i = 0; i < z_.size() - 1; i++) {
-    for (int j = 0; j < num_rings; j++) {
+  for (int i = 0; i < n_axial_sections; i++) {
+    for (int j = 0; j < n_radial_sections; j++) {
       for (int k = 0; k < radial_resolution; k++) {
         fh << source_(0, i, j) << "\n";
       }
@@ -258,8 +238,8 @@ xt::xtensor<double, 2> SurrogateHeatDriver::VisualizationPin::create_ring(double
   xt::xtensor<double, 1> y = xt::zeros<double>({t_resolution});
 
   xt::xtensor<double, 1> theta;
-  theta = xt::linspace<double>(0., 2.*openmc::PI, t_resolution);
-
+  theta = xt::linspace<double>(0., 2.*openmc::PI, t_resolution + 1);
+  theta = xt::view(theta, xt::range(0, -1)); // remove last value
   x = radius * xt::cos(theta);
   y = radius * xt::sin(theta);
 
@@ -279,9 +259,6 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::fuel_points() {
 
   xt::xarray<double> x = xt::zeros<double>({radial_divs_, t_res_});
   xt::xarray<double> y = xt::zeros<double>({radial_divs_, t_res_});
-
-  xt::xtensor<double, 1> theta;
-  theta = xt::linspace<double>(0., 2.*openmc::PI, t_res_ + 1);
 
   // first point is the pin center, start at one
   for(int i = 0; i < radial_divs_; i++) {
@@ -396,9 +373,6 @@ xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::clad_points() {
   xt::xarray<double> x = xt::zeros<double>({clad_divs_, t_res_});
   xt::xarray<double> y = xt::zeros<double>({clad_divs_, t_res_});
 
-  xt::xtensor<double, 1> theta;
-  theta = xt::linspace<double>(0., 2.*openmc::PI, t_res_ + 1);
-
   for(int i = 0; i < clad_divs_; i++) {
     double ring_rad = c_grid_(i);
     xt::xtensor<double, 2> ring = create_ring(ring_rad, t_res_);
@@ -446,8 +420,8 @@ xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::clad_connectivity() {
   xt::view(radial_base, xt::all(), 1) = xt::arange(1, t_res_ + 1);
   xt::view(radial_base, xt::all(), 2) = xt::view(radial_base, xt::all(), 1) + t_res_;
   xt::view(radial_base, xt::all(), 3) = xt::view(radial_base, xt::all(), 0) + t_res_;
-  xt::view(radial_base, t_res_ - 1, 1) = 1;
-  xt::view(radial_base, t_res_ - 1, 2) = t_res_ + 1;
+  xt::view(radial_base, t_res_ - 1, 1) = 0;
+  xt::view(radial_base, t_res_ - 1, 2) = t_res_;
 
   // copy connectivity of the first layer
   xt::view(radial_base, xt::all(), xt::range(4,8)) +=
