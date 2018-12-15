@@ -42,6 +42,9 @@ private:
   xt::xtensor<double, 3> fuel_points();
   xt::xtensor<double, 3> clad_points();
   xt::xtensor<double, 1> points();
+
+  xt::xtensor<int, 4> fuel_conn();
+  xt::xtensor<int, 1> conn();
 };
 
 } // stream

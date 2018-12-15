@@ -15,6 +15,7 @@ const int WEDGE_SIZE_ = 6;
 const int HEX_TYPE_ = 12;
 const int HEX_SIZE_ = 8;
 const int INVALID_CONN_ = -1;
+const int CONN_STRIDE_ = HEX_SIZE_ + 1;
 
 namespace stream {
 
@@ -63,6 +64,8 @@ sgate(surrogate_ptr) {
 
   // fuel elements, entries
   n_mesh_elements = n_sections_per_plane * n_axial_sections;
+  n_fuel_elements = n_radial_fuel_sections * radial_res * n_axial_sections;
+  n_clad_elements = n_radial_clad_sections * radial_res * n_axial_sections;
   // wedge regions
   n_fuel_entries_per_plane = radial_res * (WEDGE_SIZE_ + 1);
   // other radial regions
@@ -71,7 +74,6 @@ sgate(surrogate_ptr) {
   n_entries_per_plane = n_fuel_entries_per_plane + n_clad_entries_per_plane;
   // cladding elements
   n_entries = n_entries_per_plane * n_axial_sections;
-
 }
 
 void SurrogateToVtk::write_vtk() {
@@ -86,6 +88,27 @@ void SurrogateToVtk::write_vtk() {
   for (auto val = pnts.begin(); val != pnts.end(); val+=3) {
     fh << *val << " " << *(val+1) << " " << *(val+2) << "\n";
   }
+  // write connectivity header
+  fh << "\nCELLS " << n_fuel_elements << " " << n_fuel_entries_per_plane * n_axial_points << "\n";
+
+  xt::xtensor<int, 1> connectivity = conn();
+  for (auto val = connectivity.begin(); val != connectivity.end(); val += CONN_STRIDE_) {
+    for (int i = 0; i < CONN_STRIDE_; i++) {
+      auto v = *(val+i);
+      if (v >=0) { fh << v << " "; }
+    }
+    fh << "\n";
+  }
+
+}
+
+xt::xtensor<double, 1> SurrogateToVtk::points() {
+  xt::xtensor<double, 3> fuel_pnts = fuel_points();
+  xt::xtensor<double, 3> clad_pnts = clad_points();
+  xt::xtensor<double, 1> points =
+    xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts),
+                               xt::flatten(clad_pnts)));
+  return points;
 }
 
 xt::xtensor<double, 3> SurrogateToVtk::fuel_points() {
@@ -122,7 +145,6 @@ xt::xtensor<double, 3> SurrogateToVtk::fuel_points() {
   return pnts_out;
 }
 
-
 xt::xtensor<double, 3> SurrogateToVtk::clad_points() {
 
   xt::xarray<double> pnts_out = xt::zeros<double>({n_axial_points,
@@ -142,7 +164,6 @@ xt::xtensor<double, 3> SurrogateToVtk::clad_points() {
   x = xt::flatten(x);
   y = xt::flatten(y);
 
-
   for (int i = 0; i < n_axial_points; i++) {
     // set all but the center point
     xt::view(pnts_out, i, xt::all(), 0) = x;
@@ -157,13 +178,86 @@ xt::xtensor<double, 3> SurrogateToVtk::clad_points() {
   return pnts_out;
 }
 
-xt::xtensor<double, 1> SurrogateToVtk::points() {
-  xt::xtensor<double, 3> fuel_pnts = fuel_points();
-  xt::xtensor<double, 3> clad_pnts = clad_points();
-  xt::xtensor<double, 1> points =
-    xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts),
-                               xt::flatten(clad_pnts)));
-  return points;
+xt::xtensor<int, 1> SurrogateToVtk::conn() {
+  xt::xtensor<int, 4> f_conn = fuel_conn();
+  xt::xtensor<int , 1> out = xt::flatten(f_conn);
+  return out;
+}
+
+
+xt::xtensor<int, 4> SurrogateToVtk::fuel_conn() {
+  // size output array
+  xt::xtensor<int, 4> cells_out = xt::zeros<int>({n_axial_sections,
+                                                  n_radial_fuel_sections,
+                                                  radial_res,
+                                                  HEX_SIZE_ + 1});
+
+  // generate a base layer to be extended in Z
+  xt::xtensor<int, 3> base = xt::zeros<int>({n_radial_fuel_sections,
+                                             radial_res,
+                                             HEX_SIZE_});
+
+
+  /// INNER RING \\\
+
+  xt::xtensor<int, 2> inner_base = xt::zeros<int>({radial_res, HEX_SIZE_});
+
+  // cell connectivity for the first z level
+  xt::view(inner_base, xt::all(), 1) = xt::arange(1, radial_res + 1);
+  xt::view(inner_base, xt::all(), 2) = xt::arange(2, radial_res + 2);
+  // adjust last cell for perioic condition
+   xt::view(inner_base, radial_res - 1, 2) = 1;
+
+  // copy connectivity of first layer to the second
+  xt::view(inner_base, xt::all(), xt::range(3,6)) =
+    xt::view(inner_base, xt::all(), xt::range(0,3));
+  // shift connectivity down one layer
+  xt::strided_view(inner_base, {xt::all(), xt::range(3,6)}) += fuel_points_per_plane;
+
+  // set the inner_base
+   xt::view(base, 0, xt::all(), xt::all()) = inner_base;
+
+  /// OUTER RINGS \\\
+
+  xt::xtensor<int, 2> radial_base = xt::zeros<int>({radial_res, HEX_SIZE_});
+
+  // setup connectivity of the first layer
+  xt::view(radial_base, xt::all(), 0) = xt::arange(1, radial_res + 1);
+  xt::view(radial_base, xt::all(), 1) = xt::arange(2, radial_res + 2);
+  xt::view(radial_base, xt::all(), 2) = xt::view(radial_base, xt::all(), 1) + radial_res;
+  xt::view(radial_base, xt::all(), 3) = xt::view(radial_base, xt::all(), 0) + radial_res;
+  xt::view(radial_base, radial_res - 1, 1) = 1;
+  xt::view(radial_base, radial_res - 1, 2) = radial_res + 1;
+
+  // copy connectivity of the first layer
+  xt::view(radial_base, xt::all(), xt::range(4,8)) +=
+    xt::view(radial_base, xt::all(), xt::range(0,4));
+  // shift connectivity down one layer
+  xt::view(radial_base, xt::all(), xt::range(4,8)) += fuel_points_per_plane;
+
+  // other rings
+  xt::strided_view(base, {xt::range(1, _), xt::ellipsis()}) = radial_base;
+  for (int i = 1; i < n_radial_fuel_sections; i++) {
+    // extend based on the starting index of the ring
+    int start_idx = (i-1) * radial_res;
+    xt::view(base, i, xt::all(), xt::all()) += start_idx;
+  }
+
+  // set all axial divs using base
+  for (int j = 0; j < n_axial_sections; j++) {
+    // set layer and increment connectivity by number of points in axial div
+    xt::view(cells_out, j, xt::all(), xt::all(), xt::range(1, _)) = base;
+    base += fuel_points_per_plane;
+  }
+
+  // innermost ring is always wedges
+  xt::view(cells_out, xt::all(), 0, xt::all(), 0) = WEDGE_SIZE_;
+  // the reset are hexes
+  xt::view(cells_out, xt::all(), xt::range(1, _), xt::all(), 0) = HEX_SIZE_;
+  // first ring should be wedges only, invalidate last two entries
+  xt::view(cells_out, xt::all(), 0, xt::all(), xt::range(7,_)) = INVALID_CONN_;
+
+  return cells_out;
 }
 
 } // stream
