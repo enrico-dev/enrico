@@ -19,7 +19,7 @@ private:
 
 public:
   //! Write the surrogate model to VTK
-  void write_vtk(std::string = "magnolia.vtk");
+  void write_vtk(std::string filename = "magnolia.vtk");
 
   //! Generate fuel points (axial, radial_rings, xyz)
   xt::xtensor<double, 3> fuel_points();

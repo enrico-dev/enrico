@@ -117,7 +117,7 @@ void OpenmcHeatDriver::solve_step()
 
       // Solve heat equation
       if (heat_driver_->active()) {
-        heat_driver_->solve_step();
+        heat_driver_->solve_step(i_picard);
       }
       comm_.Barrier();
 
