@@ -16,7 +16,7 @@ private:
   const SurrogateHeatDriver* sgate;
   int radial_res;
   // axial
-  int n_axial_sections;
+  int n_axial_sections, n_axial_points;
   // radial
   int n_radial_fuel_sections, n_radial_clad_sections, n_radial_sections;
   // fuel
@@ -38,7 +38,10 @@ private:
   public:
   void write_vtk();
 
+
   xt::xtensor<double, 3> fuel_points();
+  xt::xtensor<double, 3> clad_points();
+  xt::xtensor<double, 1> points();
 };
 
 } // stream

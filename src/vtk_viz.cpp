@@ -44,6 +44,7 @@ sgate(surrogate_ptr) {
    radial_res = 5;
 
    n_axial_sections = sgate->z_.size() - 1;
+   n_axial_points = sgate->z_.size();
    n_radial_fuel_sections = sgate->r_grid_fuel_.size() - 1;
    n_radial_clad_sections = sgate->r_grid_clad_.size() - 1;
    n_radial_sections = n_radial_fuel_sections + n_radial_clad_sections;
@@ -80,11 +81,16 @@ void SurrogateToVtk::write_vtk() {
   fh << "# vtk DataFile Version 2.0\n";
   fh << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
   fh << "POINTS " << total_points << " float\n";
+
+  xt::xtensor<double, 1> pnts = points();
+  for (auto val = pnts.begin(); val != pnts.end(); val+=3) {
+    fh << *val << " " << *(val+1) << " " << *(val+2) << "\n";
+  }
 }
 
 xt::xtensor<double, 3> SurrogateToVtk::fuel_points() {
 
-  xt::xarray<double> pnts_out = xt::zeros<double>({n_axial_sections + 1,
+  xt::xarray<double> pnts_out = xt::zeros<double>({n_axial_points,
                                                   fuel_points_per_plane,
                                                   3});
 
@@ -115,6 +121,50 @@ xt::xtensor<double, 3> SurrogateToVtk::fuel_points() {
   xt::view(pnts_out, xt::all(), xt::all(), 1) += sgate->pin_centers_(0,1);
 
   return pnts_out;
+}
+
+
+xt::xtensor<double, 3> SurrogateToVtk::clad_points() {
+
+  xt::xarray<double> pnts_out = xt::zeros<double>({n_axial_points,
+                                                  clad_points_per_plane,
+                                                  3});
+
+  xt::xarray<double> x = xt::zeros<double>({n_radial_clad_sections + 1, radial_res});
+  xt::xarray<double> y = xt::zeros<double>({n_radial_clad_sections + 1, radial_res});
+
+  for(int i = 0; i < n_radial_clad_sections; i++) {
+    double ring_rad = sgate->r_grid_clad_(i);
+    xt::xtensor<double, 2> ring = create_ring(ring_rad, radial_res);
+    xt::view(x, i, xt::all()) = xt::view(ring, 0, xt::all());
+    xt::view(y, i, xt::all()) = xt::view(ring, 1, xt::all());
+  }
+  // flatten x,y point arrays
+  x = xt::flatten(x);
+  y = xt::flatten(y);
+
+
+  for (int i = 0; i < n_axial_points; i++) {
+    // set all but the center point
+    xt::view(pnts_out, i, xt::all(), 0) = x;
+    xt::view(pnts_out, i, xt::all(), 1) = y;
+    xt::view(pnts_out, i, xt::all(), 2) = sgate->z_[i];
+  }
+
+  // translate
+  xt::view(pnts_out, 0) += sgate->pin_centers_(0,0);
+  xt::view(pnts_out, 1) += sgate->pin_centers_(0,1);
+
+  return pnts_out;
+}
+
+xt::xtensor<double, 1> SurrogateToVtk::points() {
+  xt::xtensor<double, 3> fuel_pnts = fuel_points();
+  xt::xtensor<double, 3> clad_pnts = clad_points();
+  xt::xtensor<double, 1> points =
+    xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts),
+                               xt::flatten(clad_pnts)));
+  return points;
 }
 
 } // stream
