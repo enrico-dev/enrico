@@ -173,14 +173,12 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
 
   // write cell types
   fh << "\nCELL_TYPES " << num_mesh_elements << "\n";
-  xt::xtensor<int, 3> fuel_cell_types = vpin.fuel_types();
-  for (auto v : fuel_cell_types) {
-    fh << v << "\n";
-  }
-
-  // write cell types
-  xt::xtensor<int, 3> clad_cell_types = vpin.clad_types();
-  for (auto v : clad_cell_types) {
+  xt::xtensor<int, 3> fuel_types = vpin.fuel_types();
+  xt::xtensor<int, 3> clad_types = vpin.clad_types();
+  xt::xtensor<int, 1> flat_types = xt::concatenate(xt::xtuple(
+                                                    xt::flatten(fuel_types),
+                                                    xt::flatten(clad_types)));
+  for (auto v : flat_types) {
     fh << v << "\n";
   }
 
