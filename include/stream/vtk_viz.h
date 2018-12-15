@@ -36,8 +36,7 @@ private:
   int total_points;
 
   public:
-  void write_vtk();
-
+  void write_vtk(std::string = "magnolia.vtk");
 
   xt::xtensor<double, 3> fuel_points();
   xt::xtensor<double, 3> clad_points();

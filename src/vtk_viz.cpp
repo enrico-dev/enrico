@@ -74,21 +74,25 @@ sgate(surrogate_ptr), radial_res(t_res) {
   n_entries = n_entries_per_plane * n_axial_sections;
 }
 
-void SurrogateToVtk::write_vtk() {
+void SurrogateToVtk::write_vtk(std::string filename) {
 
-  std::ofstream fh("magnolia.vtk", std::ofstream::out);
+  std::ofstream fh(filename, std::ofstream::out);
 
+  // write vtk header
   fh << "# vtk DataFile Version 2.0\n";
   fh << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
-  fh << "POINTS " << total_points << " float\n";
 
+  /// POINTS \\\
+
+  fh << "POINTS " << total_points << " float\n";
   xt::xtensor<double, 1> pnts = points();
   for (auto val = pnts.begin(); val != pnts.end(); val+=3) {
     fh << *val << " " << *(val+1) << " " << *(val+2) << "\n";
   }
-  // write connectivity header
-  fh << "\nCELLS " << n_mesh_elements << " " << n_entries << "\n";
 
+  /// ELEMENT CONNECTIVITY \\\
+
+  fh << "\nCELLS " << n_mesh_elements << " " << n_entries << "\n";
   xt::xtensor<int, 1> connectivity = conn();
   for (auto val = connectivity.begin(); val != connectivity.end(); val += CONN_STRIDE_) {
     for (int i = 0; i < CONN_STRIDE_; i++) {
@@ -98,18 +102,26 @@ void SurrogateToVtk::write_vtk() {
     fh << "\n";
   }
 
+  /// MESH ELEMENT TYPES \\\
+
   fh << "\nCELL_TYPES " << n_mesh_elements << "\n";
   xt::xtensor<int ,1> cell_types = types();
   for (auto v : cell_types) {
       fh << v << "\n";
   }
 
-  // data header
+  /// WRITE DATA \\\
+  // fuel mesh elements are written first, followed by cladding elements
+  // the data needs to be written in a similar matter
+
+  // for each radial section, the data point for that radial ring
+  // is repeated radial_res times
   fh << "CELL_DATA " << n_mesh_elements << "\n";
 
   // temperature data
   fh << "SCALARS TEMPERATURE double 1\n";
   fh << "LOOKUP_TABLE default\n";
+  // write all fuel data first
   for (int i = 0; i < n_axial_sections; i++) {
     for (int j = 0; j < n_radial_fuel_sections; j++) {
       for (int k = 0; k < radial_res; k++) {
@@ -117,7 +129,7 @@ void SurrogateToVtk::write_vtk() {
       }
     }
   }
-
+  // then write cladding data
   for (int i = 0; i < n_axial_sections; i++) {
     for (int j = 0; j < n_radial_clad_sections; j++) {
       for (int k = 0; k < radial_res; k++) {
@@ -126,10 +138,10 @@ void SurrogateToVtk::write_vtk() {
     }
   }
 
-
-    // source data
+  // source data
   fh << "SCALARS SOURCE double 1\n";
   fh << "LOOKUP_TABLE default\n";
+  // write all fuel data first
   for (int i = 0; i < n_axial_sections; i++) {
     for (int j = 0; j < n_radial_fuel_sections; j++) {
       for (int k = 0; k < radial_res; k++) {
@@ -137,7 +149,7 @@ void SurrogateToVtk::write_vtk() {
       }
     }
   }
-
+  // then write the cladding data
   for (int i = 0; i < n_axial_sections; i++) {
     for (int j = 0; j < n_radial_clad_sections; j++) {
       for (int k = 0; k < radial_res; k++) {
@@ -146,40 +158,50 @@ void SurrogateToVtk::write_vtk() {
     }
   }
 
+  // close the file
   fh.close();
 
-}
+} // write vtk
 
 xt::xtensor<double, 1> SurrogateToVtk::points() {
+  // get fuel points
   xt::xtensor<double, 3> fuel_pnts = fuel_points();
+  // get cladding points
   xt::xtensor<double, 3> clad_pnts = clad_points();
+  // concatenate in 1-D and return
   xt::xtensor<double, 1> points = xt::concatenate(xt::xtuple(
     xt::flatten(fuel_pnts), xt::flatten(clad_pnts)));
   return points;
 }
 
 xt::xtensor<double, 3> SurrogateToVtk::fuel_points() {
-
+  // array to hold all point data
   xt::xarray<double> pnts_out = xt::zeros<double>({n_axial_points,
                                                   fuel_points_per_plane,
                                                   3});
 
+  // x and y for a single axial plane in the rod
   xt::xarray<double> x = xt::zeros<double>({n_radial_fuel_sections, radial_res});
   xt::xarray<double> y = xt::zeros<double>({n_radial_fuel_sections, radial_res});
 
+  // generate x/y points for each raidal section
   for(int i = 0; i < n_radial_fuel_sections; i++) {
-    // first radius is zero, start at one
+    // first radius in r_grid_fuel_ is zero, start at one
     double ring_rad = sgate->r_grid_fuel_(i + 1);
+    // create a unit ring scaled by radius
     xt::xtensor<double, 2> ring = create_ring(ring_rad, radial_res);
+    // set x/y values for this ring
     xt::view(x, i, xt::all()) = xt::view(ring, 0, xt::all());
     xt::view(y, i, xt::all()) = xt::view(ring, 1, xt::all());
   }
-  // flatten x,y point arrays
+
+  // flatten radial point arrays
   x = xt::flatten(x);
   y = xt::flatten(y);
 
+  // set the point values for each axial plane
   for (int i = 0; i < n_axial_points; i++) {
-    // set all but the center point
+    // set all but the center point, which is always (0,0,z)
     xt::view(pnts_out, i, xt::range(1,_), 0) = x;
     xt::view(pnts_out, i, xt::range(1,_), 1) = y;
     xt::view(pnts_out, i, xt::all(), 2) = sgate->z_(i);
@@ -193,32 +215,36 @@ xt::xtensor<double, 3> SurrogateToVtk::fuel_points() {
 }
 
 xt::xtensor<double, 3> SurrogateToVtk::clad_points() {
-
+  // array to hold all point data
   xt::xarray<double> pnts_out = xt::zeros<double>({n_axial_points,
                                                   clad_points_per_plane,
                                                   3});
-
+  // x and y for a single axial plane in the rod
   xt::xarray<double> x = xt::zeros<double>({n_radial_clad_sections + 1, radial_res});
   xt::xarray<double> y = xt::zeros<double>({n_radial_clad_sections + 1, radial_res});
 
+  // generate x/y points for each radial ring
   for(int i = 0; i < n_radial_clad_sections + 1; i++) {
     double ring_rad = sgate->r_grid_clad_(i);
+    // create a unit ring scaled by radius
     xt::xtensor<double, 2> ring = create_ring(ring_rad, radial_res);
+    // set x/y values for this ring
     xt::view(x, i, xt::all()) = xt::view(ring, 0, xt::all());
     xt::view(y, i, xt::all()) = xt::view(ring, 1, xt::all());
   }
+
   // flatten x,y point arrays
   x = xt::flatten(x);
   y = xt::flatten(y);
 
   for (int i = 0; i < n_axial_points; i++) {
-    // set all but the center point
+    // set all points, no center point for cladding
     xt::view(pnts_out, i, xt::all(), 0) = x;
     xt::view(pnts_out, i, xt::all(), 1) = y;
     xt::view(pnts_out, i, xt::all(), 2) = sgate->z_[i];
   }
 
-  // translate
+  // translate to pin center
   xt::view(pnts_out, 0) += sgate->pin_centers_(0,0);
   xt::view(pnts_out, 1) += sgate->pin_centers_(0,1);
 
@@ -226,14 +252,18 @@ xt::xtensor<double, 3> SurrogateToVtk::clad_points() {
 }
 
 xt::xtensor<int, 1> SurrogateToVtk::conn() {
+  // get the fuel connectivity
   xt::xtensor<int, 4> f_conn = fuel_conn();
+  // get the cladding connectivity
   xt::xtensor<int, 4> c_conn = clad_conn();
+  // adjust the cladding connectivity by
+  // the number of points in the fuel mesh
   xt::view(c_conn, xt::all(), xt::all(), xt::all(), xt::range(1, _)) += fuel_points_per_plane * n_axial_points;
+  // concatenate and return 1-D form
   xt::xtensor<int, 1> conn_out = xt::concatenate(xt::xtuple(
     xt::flatten(f_conn), xt::flatten(c_conn)));
   return conn_out;
 }
-
 
 xt::xtensor<int, 4> SurrogateToVtk::fuel_conn() {
   // size output array
@@ -248,52 +278,53 @@ xt::xtensor<int, 4> SurrogateToVtk::fuel_conn() {
                                              HEX_SIZE_});
 
 
-  /// INNER RING \\\
+  /// INNERMOST RING (WEDGES) \\\
 
   xt::xtensor<int, 2> inner_base = xt::zeros<int>({radial_res, HEX_SIZE_});
 
-  // cell connectivity for the first z level
   xt::view(inner_base, xt::all(), 1) = xt::arange(1, radial_res + 1);
   xt::view(inner_base, xt::all(), 2) = xt::arange(2, radial_res + 2);
-  // adjust last cell for perioic condition
+  // adjust last point id for perioic condition
    xt::view(inner_base, radial_res - 1, 2) = 1;
 
-  // copy connectivity of first layer to the second
+  // copy connectivity of first z-layer to the second and shift
+  // by the number of points in a plane
   xt::view(inner_base, xt::all(), xt::range(3,6)) =
     xt::view(inner_base, xt::all(), xt::range(0,3));
-  // shift connectivity down one layer
   xt::strided_view(inner_base, {xt::all(), xt::range(3,6)}) += fuel_points_per_plane;
 
-  // set the inner_base
-   xt::view(base, 0, xt::all(), xt::all()) = inner_base;
+  // set values for the innermost ring
+  xt::view(base, 0, xt::all(), xt::all()) = inner_base;
 
-  /// OUTER RINGS \\\
+  /// OUTER RINGS (HEXES) \\\
 
   xt::xtensor<int, 2> radial_base = xt::zeros<int>({radial_res, HEX_SIZE_});
 
-  // setup connectivity of the first layer
+  // set connectivity of the first z-layer
   xt::view(radial_base, xt::all(), 0) = xt::arange(1, radial_res + 1);
   xt::view(radial_base, xt::all(), 1) = xt::arange(2, radial_res + 2);
   xt::view(radial_base, xt::all(), 2) = xt::view(radial_base, xt::all(), 1) + radial_res;
   xt::view(radial_base, xt::all(), 3) = xt::view(radial_base, xt::all(), 0) + radial_res;
+  // adjust last point id for periodic condition on both layers, using hexes now
   xt::view(radial_base, radial_res - 1, 1) = 1;
   xt::view(radial_base, radial_res - 1, 2) = radial_res + 1;
 
-  // copy connectivity of the first layer
+  // copy connectivity of the first layer to the second
+  // and shift by number of points
   xt::view(radial_base, xt::all(), xt::range(4,8)) +=
     xt::view(radial_base, xt::all(), xt::range(0,4));
   // shift connectivity down one layer
   xt::view(radial_base, xt::all(), xt::range(4,8)) += fuel_points_per_plane;
 
-  // other rings
-  xt::strided_view(base, {xt::range(1, _), xt::ellipsis()}) = radial_base;
+  // set the other rings by shifting the initial base
+  // by radial_res for each ring
   for (int i = 1; i < n_radial_fuel_sections; i++) {
-    // extend based on the starting index of the ring
-    int start_idx = (i-1) * radial_res;
-    xt::view(base, i, xt::all(), xt::all()) += start_idx;
+    xt::view(base, i, xt::all(), xt::all()) = radial_base;
+    radial_base += radial_res;
   }
 
-  // set all axial divs using base
+  // set all axial divs using the base connectivity
+  // and shifting by the number of points in a plane
   for (int j = 0; j < n_axial_sections; j++) {
     // set layer and increment connectivity by number of points in axial div
     xt::view(cells_out, j, xt::all(), xt::all(), xt::range(1, _)) = base;
@@ -319,20 +350,21 @@ xt::xtensor<int, 4> SurrogateToVtk::clad_conn() {
                                                   HEX_SIZE_ + 1});
 
 
-  // generate a base layer to be extended in Z
+  // base layer to be extended in Z
   xt::xtensor<int, 3> base = xt::zeros<int>({n_radial_clad_sections,
                                              radial_res,
                                              HEX_SIZE_});
 
-  /// OUTER RINGS \\\
-
   xt::xtensor<int, 2> radial_base = xt::zeros<int>({radial_res, HEX_SIZE_});
+
+  /// ELEMENT RINGS (HEXES) \\\
 
   // setup connectivity of the first layer
   xt::view(radial_base, xt::all(), 0) = xt::arange(0, radial_res);
   xt::view(radial_base, xt::all(), 1) = xt::arange(1, radial_res + 1);
   xt::view(radial_base, xt::all(), 2) = xt::view(radial_base, xt::all(), 1) + radial_res;
   xt::view(radial_base, xt::all(), 3) = xt::view(radial_base, xt::all(), 0) + radial_res;
+  // adjust connectivity for the perioic condition
   xt::view(radial_base, radial_res - 1, 1) = 0;
   xt::view(radial_base, radial_res - 1, 2) = radial_res;
 
@@ -341,16 +373,16 @@ xt::xtensor<int, 4> SurrogateToVtk::clad_conn() {
     xt::view(radial_base, xt::all(), xt::range(0,4));
   // shift connectivity down one layer
   xt::view(radial_base, xt::all(), xt::range(4,8)) += clad_points_per_plane;
-  // other rings
-  xt::strided_view(base, {xt::range(0, _), xt::ellipsis()}) = radial_base;
+
+  // set the other rings by shifting the initial base
+  // by radial_res for each ring
   for (int i = 0; i < n_radial_clad_sections; i++) {
-    // extend based on the starting index of the ring
-    int start_idx = i * radial_res;
-    xt::view(base, i, xt::all(), xt::all()) += start_idx;
+    xt::view(base, i, xt::all(), xt::all()) = radial_base;
+    radial_base += radial_res;
   }
 
-
-  // set all axial divs using base
+  // set all axial divs using base for the first layer and
+  // shift by the number of points in a plane
   for(int i = 0; i < n_axial_sections; i++) {
     // set layer and increment connectivity by number of points in axial div
     xt::view(cells_out, i, xt::all(), xt::all(), xt::range(1, _)) = base;
@@ -364,22 +396,24 @@ xt::xtensor<int, 4> SurrogateToVtk::clad_conn() {
 }
 
 xt::xtensor<int, 1> SurrogateToVtk::types() {
+  // get fuel types
   xt::xtensor<int, 3> ftypes = fuel_types();
+  // get the cladding types
   xt::xtensor<int, 3> ctypes = clad_types();
+  // concatenate and return 1-D form
   xt::xtensor<int, 1> types_out = xt::concatenate(xt::xtuple(
     xt::flatten(ftypes), xt::flatten(ctypes)));
   return types_out;
 }
 
 xt::xtensor<int, 3> SurrogateToVtk::fuel_types() {
-
+  // size the output array
   xt::xtensor<int, 3> types_out = xt::zeros<int>({n_axial_sections,
                                                   n_radial_fuel_sections,
                                                   radial_res});
 
   // the inner ring is wedges
   xt::view(types_out, xt::all(), 0, xt::all()) = WEDGE_TYPE_;
-
   // the rest are hexes
   xt::view(types_out, xt::all(), xt::range(1, _), xt::all()) = HEX_TYPE_;
 
@@ -391,9 +425,10 @@ xt::xtensor<int, 3> SurrogateToVtk::clad_types() {
   xt::xtensor<int, 3> clad_types_out = xt::zeros<int>({n_axial_sections,
                                                       n_radial_clad_sections,
                                                       radial_res});
+  // all elements are hexes
   clad_types_out = xt::full_like(clad_types_out, HEX_TYPE_);
+
   return clad_types_out;
 }
-
 
 } // stream
