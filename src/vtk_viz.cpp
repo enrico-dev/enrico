@@ -106,6 +106,50 @@ void SurrogateToVtk::write_vtk() {
       fh << v << "\n";
   }
 
+  // data header
+  fh << "CELL_DATA " << n_mesh_elements << "\n";
+
+  // temperature data
+  fh << "SCALARS TEMPERATURE double 1\n";
+  fh << "LOOKUP_TABLE default\n";
+  for (int i = 0; i < n_axial_sections; i++) {
+    for (int j = 0; j < n_radial_fuel_sections; j++) {
+      for (int k = 0; k < radial_res; k++) {
+        fh << sgate->temperature_(0, i, j) << "\n";
+      }
+    }
+  }
+
+  for (int i = 0; i < n_axial_sections; i++) {
+    for (int j = 0; j < n_radial_clad_sections; j++) {
+      for (int k = 0; k < radial_res; k++) {
+        fh << sgate->temperature_(0, i, j + n_radial_fuel_sections) << "\n";
+      }
+    }
+  }
+
+
+    // source data
+  fh << "SCALARS SOURCE double 1\n";
+  fh << "LOOKUP_TABLE default\n";
+  for (int i = 0; i < n_axial_sections; i++) {
+    for (int j = 0; j < n_radial_fuel_sections; j++) {
+      for (int k = 0; k < radial_res; k++) {
+        fh << sgate->source_(0, i, j) << "\n";
+      }
+    }
+  }
+
+  for (int i = 0; i < n_axial_sections; i++) {
+    for (int j = 0; j < n_radial_clad_sections; j++) {
+      for (int k = 0; k < radial_res; k++) {
+        fh << sgate->source_(0, i, j + n_radial_fuel_sections) << "\n";
+      }
+    }
+  }
+
+  fh.close();
+
 }
 
 xt::xtensor<double, 1> SurrogateToVtk::points() {
