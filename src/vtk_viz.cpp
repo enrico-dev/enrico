@@ -40,6 +40,28 @@ xt::xtensor<double, 2> create_ring(double radius,
   return out;
 }
 
+xt::xtensor<int, 2> hex_ring(int start_idx, int resolution, int z_shift) {
+  xt::xtensor<int, 2> out = xt::zeros<int>({resolution, HEX_SIZE_});
+
+  // set connectivity of the first z-layer
+  xt::view(out, xt::all(), 0) = xt::arange(start_idx, resolution + start_idx);
+  xt::view(out, xt::all(), 1) = xt::arange(start_idx + 1, resolution + start_idx + 1);
+  xt::view(out, xt::all(), 2) = xt::view(out, xt::all(), 1) + resolution;
+  xt::view(out, xt::all(), 3) = xt::view(out, xt::all(), 0) + resolution;
+  // adjust last point id for periodic condition on both layers, using hexes now
+  xt::view(out, resolution - 1, 1) = 1;
+  xt::view(out, resolution - 1, 2) = resolution + 1;
+
+  // copy connectivity of the first layer to the second
+  // and shift by number of points
+  xt::view(out, xt::all(), xt::range(4,HEX_SIZE_)) +=
+    xt::view(out, xt::all(), xt::range(0,4));
+  // shift connectivity down one layer
+  xt::view(out, xt::all(), xt::range(4,HEX_SIZE_)) += z_shift;
+
+  return out;
+}
+
 SurrogateToVtk::SurrogateToVtk(const SurrogateHeatDriver* surrogate_ptr, int t_res) :
 sgate(surrogate_ptr), radial_res(t_res) {
   // Set some necessary values ahead of time
@@ -298,23 +320,10 @@ xt::xtensor<int, 4> SurrogateToVtk::fuel_conn() {
 
   /// OUTER RINGS (HEXES) \\\
 
-  xt::xtensor<int, 2> radial_base = xt::zeros<int>({radial_res, HEX_SIZE_});
-
-  // set connectivity of the first z-layer
-  xt::view(radial_base, xt::all(), 0) = xt::arange(1, radial_res + 1);
-  xt::view(radial_base, xt::all(), 1) = xt::arange(2, radial_res + 2);
-  xt::view(radial_base, xt::all(), 2) = xt::view(radial_base, xt::all(), 1) + radial_res;
-  xt::view(radial_base, xt::all(), 3) = xt::view(radial_base, xt::all(), 0) + radial_res;
-  // adjust last point id for periodic condition on both layers, using hexes now
-  xt::view(radial_base, radial_res - 1, 1) = 1;
-  xt::view(radial_base, radial_res - 1, 2) = radial_res + 1;
-
-  // copy connectivity of the first layer to the second
-  // and shift by number of points
-  xt::view(radial_base, xt::all(), xt::range(4,8)) +=
-    xt::view(radial_base, xt::all(), xt::range(0,4));
-  // shift connectivity down one layer
-  xt::view(radial_base, xt::all(), xt::range(4,8)) += fuel_points_per_plane;
+  // create a radial base starting at point zero
+  // with a shift between the first and second layer of connectivity
+  // equal to the number of fuel points in a plane
+  xt::xtensor<int, 2> radial_base = hex_ring(1, radial_res, fuel_points_per_plane);
 
   // set the other rings by shifting the initial base
   // by radial_res for each ring
@@ -355,24 +364,13 @@ xt::xtensor<int, 4> SurrogateToVtk::clad_conn() {
                                              radial_res,
                                              HEX_SIZE_});
 
-  xt::xtensor<int, 2> radial_base = xt::zeros<int>({radial_res, HEX_SIZE_});
 
   /// ELEMENT RINGS (HEXES) \\\
 
-  // setup connectivity of the first layer
-  xt::view(radial_base, xt::all(), 0) = xt::arange(0, radial_res);
-  xt::view(radial_base, xt::all(), 1) = xt::arange(1, radial_res + 1);
-  xt::view(radial_base, xt::all(), 2) = xt::view(radial_base, xt::all(), 1) + radial_res;
-  xt::view(radial_base, xt::all(), 3) = xt::view(radial_base, xt::all(), 0) + radial_res;
-  // adjust connectivity for the perioic condition
-  xt::view(radial_base, radial_res - 1, 1) = 0;
-  xt::view(radial_base, radial_res - 1, 2) = radial_res;
-
-  // copy connectivity of the first layer
-  xt::view(radial_base, xt::all(), xt::range(4,8)) +=
-    xt::view(radial_base, xt::all(), xt::range(0,4));
-  // shift connectivity down one layer
-  xt::view(radial_base, xt::all(), xt::range(4,8)) += clad_points_per_plane;
+  // create a radial base starting at point zero
+  // with a shift between the first and second layer of connectivity
+  // equal to the number of cladding points in a plane
+  xt::xtensor<int, 2> radial_base = hex_ring(0, radial_res, clad_points_per_plane);
 
   // set the other rings by shifting the initial base
   // by radial_res for each ring
