@@ -44,8 +44,10 @@ xt::xtensor<int, 2> hex_ring(int start_idx, int resolution, int z_shift) {
   xt::xtensor<int, 2> out = xt::zeros<int>({resolution, HEX_SIZE_});
 
   // set connectivity of the first z-layer
+  // first two points - along the inner radial ring
   xt::view(out, xt::all(), 0) = xt::arange(start_idx, resolution + start_idx);
   xt::view(out, xt::all(), 1) = xt::arange(start_idx + 1, resolution + start_idx + 1);
+  // second two poitns - along the outer radial ring, going back toward the starting point
   xt::view(out, xt::all(), 2) = xt::view(out, xt::all(), 1) + resolution;
   xt::view(out, xt::all(), 3) = xt::view(out, xt::all(), 0) + resolution;
   // adjust last point id for periodic condition on both layers, using hexes now
