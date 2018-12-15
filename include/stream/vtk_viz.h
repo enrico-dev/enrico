@@ -21,25 +21,33 @@ public:
   //! Write the surrogate model to VTK
   void write_vtk(std::string filename = "magnolia.vtk");
 
-  //! Generate fuel points (axial, radial_rings, xyz)
+  //! Generate fuel mesh points
+  //! \return fuel points (axial, radial_rings, xyz)
   xt::xtensor<double, 3> fuel_points();
-  //! Generate cladding points (axial, radial_rings, xyz)
+  //! Generate cladding mesh points
+  //! \return cladding points (axial, radial_rings, xyz)
   xt::xtensor<double, 3> clad_points();
-  //! Return all point values for writing (x,y,z)
+  //! Return 1-D array of points for writing (xyz...) (ordered radially, axially)
   xt::xtensor<double, 1> points();
 
-  //! Generate fuel connectivity (axial, radial, res, xyz)
+  //! Generate fuel connectivity (axial, radial, res, conn)
+  //! \return fuel element connectivity (axial, radial, res, conn)
   xt::xtensor<int, 4> fuel_conn();
-  //! Generate fuel connectivity (axial, radial, res, xyz)
+  //! Generate cladding connectivity
+  //! \return cladding element connectivity (axial, radial, res, conn)
   xt::xtensor<int, 4> clad_conn();
   //! Return all connectivity values for writing
+  //! \return 1-D array of connectivity, strided by CONN_STRIDE_ per element (ordered radially, axially)
   xt::xtensor<int, 1> conn();
 
   //! Generate fuel vtk mesh element (cell) types
+  //! \return fuel cell types (axia, radial, azimuthal)
   xt::xtensor<int, 3> fuel_types();
-  //! Generate fuel vtk mesh element (cell) types
+  //! Generate cladding vtk mesh element (cell) types
+  //! \return cladding cell types (axia, radial, azimuthal)
   xt::xtensor<int, 3> clad_types();
   //! Return all element type values for writing
+  //! \return 1-D array of types, one for each element (ordered radially, axially)
   xt::xtensor<int, 1> types();
 
 private:
