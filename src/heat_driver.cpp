@@ -137,7 +137,6 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
 
   // generate mesh element connectivity for fuel
   xt::xtensor<int, 4> cells = vpin.fuel_connectivity();
-  cells = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, _));
 
   // generate mesh element connectivity for fuel
   xt::xtensor<int, 4> clad_cells = vpin.clad_connectivity();
@@ -310,7 +309,7 @@ xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::fuel_connectivity() {
   xt::xtensor<int, 4> cells_out = xt::zeros<int>({axial_divs_,
                                                   radial_divs_,
                                                   t_res_,
-                                                  HEX_SIZE_ + 2});
+                                                  HEX_SIZE_ + 1});
 
   // generate a base layer to be extended in Z
   xt::xtensor<int, 3> base = xt::zeros<int>({radial_divs_, t_res_, HEX_SIZE_});
@@ -363,16 +362,16 @@ xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::fuel_connectivity() {
   // set all axial divs using base
   for(int i = 0; i < axial_divs_; i++) {
     // set layer and increment connectivity by number of points in axial div
-    xt::view(cells_out, i, xt::all(), xt::all(), xt::range(2, 10)) = base;
+    xt::view(cells_out, i, xt::all(), xt::all(), xt::range(1, _)) = base;
     base += points_per_plane_;
   }
 
   // innermost ring is always wedges
-  xt::view(cells_out, xt::all(), 0, xt::all(), 1) = WEDGE_SIZE_;
+  xt::view(cells_out, xt::all(), 0, xt::all(), 0) = WEDGE_SIZE_;
   // the reset are hexes
-  xt::view(cells_out, xt::all(), xt::range(1, _), xt::all(), 1) = HEX_SIZE_;
+  xt::view(cells_out, xt::all(), xt::range(1, _), xt::all(), 0) = HEX_SIZE_;
   // first ring should be wedges only, invalidate last two entries
-  xt::view(cells_out, xt::all(), 0, xt::all(), xt::range(8,10)) = INVALID_CONN_;
+  xt::view(cells_out, xt::all(), 0, xt::all(), xt::range(7,_)) = INVALID_CONN_;
 
   return cells_out;
 }
@@ -438,8 +437,6 @@ xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::clad_connectivity() {
                                                   t_res_,
                                                   HEX_SIZE_ + 1});
 
-  // all are hexes
-  xt::view(cells_out, xt::all(), xt::all(), xt::all(), 0) = HEX_SIZE_;
 
   // generate a base layer to be extended in Z
   xt::xtensor<int, 3> base = xt::zeros<int>({clad_divs_, t_res_, HEX_SIZE_});
@@ -477,6 +474,9 @@ xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::clad_connectivity() {
     xt::view(cells_out, i, xt::all(), xt::all(), xt::range(1, _)) = base;
     base += clad_points_per_plane;
   }
+
+  // all are hexes
+  xt::view(cells_out, xt::all(), xt::all(), xt::all(), 0) = HEX_SIZE_;
 
   return cells_out;
 }
