@@ -44,9 +44,11 @@ private:
   xt::xtensor<double, 1> points();
 
   xt::xtensor<int, 4> fuel_conn();
+  xt::xtensor<int, 4> clad_conn();
   xt::xtensor<int, 1> conn();
 
   xt::xtensor<int, 3> fuel_types();
+  xt::xtensor<int, 3> clad_types();
   xt::xtensor<int, 1> types();
 };
 
