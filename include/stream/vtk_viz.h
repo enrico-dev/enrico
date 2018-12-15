@@ -45,6 +45,10 @@ private:
 
   xt::xtensor<int, 4> fuel_conn();
   xt::xtensor<int, 1> conn();
+
+  xt::xtensor<int, 3> fuel_types();
+  xt::xtensor<int, 1> types();
 };
+
 
 } // stream

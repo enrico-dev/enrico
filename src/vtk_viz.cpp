@@ -82,14 +82,14 @@ void SurrogateToVtk::write_vtk() {
 
   fh << "# vtk DataFile Version 2.0\n";
   fh << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
-  fh << "POINTS " << total_points << " float\n";
+  fh << "POINTS " << n_fuel_points << " float\n";
 
   xt::xtensor<double, 1> pnts = points();
   for (auto val = pnts.begin(); val != pnts.end(); val+=3) {
     fh << *val << " " << *(val+1) << " " << *(val+2) << "\n";
   }
   // write connectivity header
-  fh << "\nCELLS " << n_fuel_elements << " " << n_fuel_entries_per_plane * n_axial_points << "\n";
+  fh << "\nCELLS " << n_fuel_elements << " " << n_fuel_entries_per_plane * n_axial_sections << "\n";
 
   xt::xtensor<int, 1> connectivity = conn();
   for (auto val = connectivity.begin(); val != connectivity.end(); val += CONN_STRIDE_) {
@@ -100,14 +100,18 @@ void SurrogateToVtk::write_vtk() {
     fh << "\n";
   }
 
+  fh << "\nCELL_TYPES " << n_fuel_elements << "\n";
+  xt::xtensor<int ,1> cell_types = types();
+  for (auto v : cell_types) {
+      fh << v << "\n";
+  }
+
 }
 
 xt::xtensor<double, 1> SurrogateToVtk::points() {
   xt::xtensor<double, 3> fuel_pnts = fuel_points();
   xt::xtensor<double, 3> clad_pnts = clad_points();
-  xt::xtensor<double, 1> points =
-    xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts),
-                               xt::flatten(clad_pnts)));
+  xt::xtensor<double, 1> points = xt::flatten(fuel_pnts);
   return points;
 }
 
@@ -259,5 +263,26 @@ xt::xtensor<int, 4> SurrogateToVtk::fuel_conn() {
 
   return cells_out;
 }
+
+xt::xtensor<int, 1> SurrogateToVtk::types() {
+  xt::xtensor<int, 3> ftypes = fuel_types();
+  return xt::flatten(ftypes);
+}
+
+xt::xtensor<int, 3> SurrogateToVtk::fuel_types() {
+
+  xt::xtensor<int, 3> types_out = xt::zeros<int>({n_axial_sections,
+                                                  n_radial_fuel_sections,
+                                                  radial_res});
+
+  // the inner ring is wedges
+  xt::view(types_out, xt::all(), 0, xt::all()) = WEDGE_TYPE_;
+
+  // the rest are hexes
+  xt::view(types_out, xt::all(), xt::range(1, _), xt::all()) = HEX_TYPE_;
+
+  return types_out;
+}
+
 
 } // stream
