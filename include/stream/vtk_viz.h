@@ -10,12 +10,21 @@ class SurrogateToVtk {
 
   friend SurrogateHeatDriver;
 
+  enum class VizDataType {
+    none = 0,
+    source = 1,
+    temp   = 2,
+    all    = 3
+  };
+
 private:
   //! Initializes the surrogate to VTK writer with a surrogate model. Can only be called withing the SurrogateHeatDriver.
   //!
   //! \param surrogate_ptr Pointer to the surrogate to write
   //! \param t_rad         Radial resolution of the generated VTK mesh
-  SurrogateToVtk(const SurrogateHeatDriver *surrogate_ptr, int t_res);
+  SurrogateToVtk(const SurrogateHeatDriver *surrogate_ptr,
+                 int t_res,
+                 std::string data_to_write);
 
 public:
   //! Write the surrogate model to VTK
@@ -51,9 +60,11 @@ public:
   xt::xtensor<int, 1> types();
 
 private:
-  // intput variables
+  // internal variables
   const SurrogateHeatDriver* sgate; //!< pointer to surrogate
   int radial_res; //!< radial resolution;
+
+  VizDataType data_out_;
 
   /// SECTIONS \\\
   // axial

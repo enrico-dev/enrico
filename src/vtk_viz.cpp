@@ -64,8 +64,21 @@ xt::xtensor<int, 2> hex_ring(int start_idx, int resolution, int z_shift) {
   return out;
 }
 
-SurrogateToVtk::SurrogateToVtk(const SurrogateHeatDriver* surrogate_ptr, int t_res) :
+SurrogateToVtk::SurrogateToVtk(const SurrogateHeatDriver* surrogate_ptr,
+                               int t_res,
+                               std::string data_to_write) :
 sgate(surrogate_ptr), radial_res(t_res) {
+
+  // read data specs
+  data_out_ = VizDataType::none;
+  if ("all" == data_to_write) {
+    data_out_ = VizDataType::all;
+  } else if ("source" == data_to_write) {
+    data_out_ = VizDataType::source;
+  } else if ("temp" == data_to_write || "temperature" == data_to_write) {
+    data_out_ = VizDataType::temp;
+  }
+
   // Set some necessary values ahead of time
    n_axial_sections = sgate->z_.size() - 1;
    n_axial_points = sgate->z_.size();
@@ -143,42 +156,47 @@ void SurrogateToVtk::write_vtk(std::string filename) {
   // is repeated radial_res times
   fh << "CELL_DATA " << n_mesh_elements << "\n";
 
-  // temperature data
-  fh << "SCALARS TEMPERATURE double 1\n";
-  fh << "LOOKUP_TABLE default\n";
-  // write all fuel data first
-  for (int i = 0; i < n_axial_sections; i++) {
-    for (int j = 0; j < n_radial_fuel_sections; j++) {
-      for (int k = 0; k < radial_res; k++) {
-        fh << sgate->temperature_(0, i, j) << "\n";
+  if (VizDataType::all == data_out_ || VizDataType::temp == data_out_) {
+    std::cout << "Writing temperature data" << std::endl;
+    // temperature data
+    fh << "SCALARS TEMPERATURE double 1\n";
+    fh << "LOOKUP_TABLE default\n";
+    // write all fuel data first
+    for (int i = 0; i < n_axial_sections; i++) {
+      for (int j = 0; j < n_radial_fuel_sections; j++) {
+        for (int k = 0; k < radial_res; k++) {
+          fh << sgate->temperature_(0, i, j) << "\n";
+        }
       }
     }
-  }
-  // then write cladding data
-  for (int i = 0; i < n_axial_sections; i++) {
-    for (int j = 0; j < n_radial_clad_sections; j++) {
-      for (int k = 0; k < radial_res; k++) {
-        fh << sgate->temperature_(0, i, j + n_radial_fuel_sections) << "\n";
+    // then write cladding data
+    for (int i = 0; i < n_axial_sections; i++) {
+      for (int j = 0; j < n_radial_clad_sections; j++) {
+        for (int k = 0; k < radial_res; k++) {
+          fh << sgate->temperature_(0, i, j + n_radial_fuel_sections) << "\n";
+        }
       }
     }
   }
 
-  // source data
-  fh << "SCALARS SOURCE double 1\n";
-  fh << "LOOKUP_TABLE default\n";
-  // write all fuel data first
-  for (int i = 0; i < n_axial_sections; i++) {
-    for (int j = 0; j < n_radial_fuel_sections; j++) {
-      for (int k = 0; k < radial_res; k++) {
-        fh << sgate->source_(0, i, j) << "\n";
+  if (VizDataType::all == data_out_ || VizDataType::source == data_out_) {
+    // source data
+    fh << "SCALARS SOURCE double 1\n";
+    fh << "LOOKUP_TABLE default\n";
+    // write all fuel data first
+    for (int i = 0; i < n_axial_sections; i++) {
+      for (int j = 0; j < n_radial_fuel_sections; j++) {
+        for (int k = 0; k < radial_res; k++) {
+          fh << sgate->source_(0, i, j) << "\n";
+        }
       }
     }
-  }
-  // then write the cladding data
-  for (int i = 0; i < n_axial_sections; i++) {
-    for (int j = 0; j < n_radial_clad_sections; j++) {
-      for (int k = 0; k < radial_res; k++) {
-        fh << sgate->source_(0, i, j + n_radial_fuel_sections) << "\n";
+    // then write the cladding data
+    for (int i = 0; i < n_axial_sections; i++) {
+      for (int j = 0; j < n_radial_clad_sections; j++) {
+        for (int k = 0; k < radial_res; k++) {
+          fh << sgate->source_(0, i, j + n_radial_fuel_sections) << "\n";
+        }
       }
     }
   }

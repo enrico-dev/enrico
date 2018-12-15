@@ -64,6 +64,7 @@ public:
   // visualization
   std::string viz_basename;   //!< base filename for visualization files (default: magnolia)
   std::string viz_iterations; //!< visualization iterations to write (none, all, final)
+  std::string viz_data;       //!< visualization data for heat driver
   int vtk_radial_res;         //!< radial resolution of resulting vtk files
 
 private:
