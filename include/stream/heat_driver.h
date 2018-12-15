@@ -12,21 +12,9 @@
 
 #include <cstddef>
 
-using namespace xt::placeholders;
-
 namespace stream {
 
 class SurrogateHeatDriver : public HeatFluidsDriver {
-
-// some constant values
-const int WEDGE_TYPE_ = 13;
-const int WEDGE_SIZE_ = 6;
-const int HEX_TYPE_ = 12;
-const int HEX_SIZE_ = 8;
-const int INVALID_CONN_ = -1;
-
-enum class VTKData {heat = 0, neutronics, all};
-
 public:
   //! Initializes heat-fluids surrogate with the given MPI communicator.
   //!
@@ -76,47 +64,6 @@ public:
 private:
   //! Create internal arrays used for heat equation solver
   void generate_arrays();
-
-  class VisualizationPin {
-    // some constant values
-    const int WEDGE_TYPE_ = 13;
-    const int WEDGE_SIZE_ = 6;
-    const int HEX_TYPE_ = 12;
-    const int HEX_SIZE_ = 8;
-    const int INVALID_CONN_ = -1;
-
-  public:
-    VisualizationPin(double x, double y,
-                     xt::xtensor<double, 1> z_grid,
-                     xt::xtensor<double, 1> r_grid,
-                     xt::xtensor<double, 1> c_grid,
-                     int t_res);
-
-    // methods
-    xt::xtensor<double, 2> create_ring(double radius, int t_resolution);
-    xt::xtensor<double, 3> fuel_points();
-    xt::xtensor<int, 4> fuel_connectivity();
-    xt::xtensor<int, 3> fuel_types();
-    xt::xtensor<int, 3> clad_types();
-
-    xt::xtensor<double, 3> clad_points();
-    xt::xtensor<int, 4> clad_connectivity();
-
-    xt::xtensor<double, 1> points();
-
-
-    // members
-    double x_, y_;
-    int t_res_;
-    int cells_per_plane_;
-    int points_per_plane_;
-    int radial_divs_;
-    int axial_divs_;
-    xt::xtensor<double, 1> z_grid_;
-    xt::xtensor<double, 1> r_grid_;
-    xt::xtensor<double, 1> c_grid_;
-    xt::xtensor<double, 1> data_;
-  };
 }; // end SurrogateHeatDriver
 
 } // namespace stream
