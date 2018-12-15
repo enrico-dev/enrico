@@ -8,6 +8,8 @@ namespace stream {
 
 class SurrogateToVtk {
 
+  friend SurrogateHeatDriver;
+
 private:
   SurrogateToVtk(const SurrogateHeatDriver *surrogate_ptr);
 

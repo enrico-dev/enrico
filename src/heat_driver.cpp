@@ -4,6 +4,7 @@
 #include "xtensor/xbuilder.hpp"
 #include "xtensor/xview.hpp"
 #include "heat_xfer_backend.h"
+#include "stream/vtk_viz.h"
 #include "openmc/xml_interface.h"
 #include "openmc/constants.h"
 
@@ -95,9 +96,14 @@ void SurrogateHeatDriver::solve_step()
 
 void SurrogateHeatDriver::to_vtk(std::string filename)
 {
+
+  SurrogateToVtk vtk_writer(this);
+  vtk_writer.write_vtk();
+  return;
+
   std::cout << "Writing VTK file: " << filename << "...\n";
   // create a pin
-  int radial_resolution = 50;
+  int radial_resolution = 5;
 
   int n_axial_sections = z_.size() - 1;
   int n_radial_fuel_sections = r_grid_fuel_.size() - 1;
