@@ -19,6 +19,8 @@ const int CONN_STRIDE_ = HEX_SIZE_ + 1;
 
 namespace stream {
 
+using namespace xt::placeholders;
+
 xt::xtensor<double, 2> create_ring(double radius,
                                    int t_resolution) {
   xt::xtensor<double, 1> x = xt::zeros<double>({t_resolution});
@@ -38,19 +40,15 @@ xt::xtensor<double, 2> create_ring(double radius,
   return out;
 }
 
-SurrogateToVtk::SurrogateToVtk(const SurrogateHeatDriver* surrogate_ptr) :
-sgate(surrogate_ptr) {
-
-  // create a pin
-   radial_res = 5;
-
+SurrogateToVtk::SurrogateToVtk(const SurrogateHeatDriver* surrogate_ptr, int t_res) :
+sgate(surrogate_ptr), radial_res(t_res) {
+  // Set some necessary values ahead of time
    n_axial_sections = sgate->z_.size() - 1;
    n_axial_points = sgate->z_.size();
    n_radial_fuel_sections = sgate->r_grid_fuel_.size() - 1;
    n_radial_clad_sections = sgate->r_grid_clad_.size() - 1;
    n_radial_sections = n_radial_fuel_sections + n_radial_clad_sections;
    n_sections_per_plane = n_radial_sections * radial_res;
-  // Calculate some necessary values ahead of time
   // fuel points
   fuel_points_per_plane  = n_radial_fuel_sections * radial_res + 1;
   n_fuel_points = fuel_points_per_plane * sgate->z_.size();

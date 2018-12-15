@@ -92,7 +92,7 @@ void SurrogateHeatDriver::solve_step()
 
 void SurrogateHeatDriver::to_vtk(std::string filename)
 {
-  SurrogateToVtk vtk_writer(this);
+  SurrogateToVtk vtk_writer(this, 50);
   vtk_writer.write_vtk();
   return;
 }

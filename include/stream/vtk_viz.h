@@ -11,7 +11,7 @@ class SurrogateToVtk {
   friend SurrogateHeatDriver;
 
 private:
-  SurrogateToVtk(const SurrogateHeatDriver *surrogate_ptr);
+  SurrogateToVtk(const SurrogateHeatDriver *surrogate_ptr, int t_res);
 
   const SurrogateHeatDriver* sgate;
   int radial_res;
