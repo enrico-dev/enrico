@@ -71,7 +71,7 @@ SurrogateToVtk::SurrogateToVtk(const SurrogateHeatDriver* surrogate_ptr,
 sgate(surrogate_ptr), radial_res(t_res) {
 
   // read data specs
-  data_out_ = VizDataType::none;
+  data_out_ = VizDataType::all;
   if ("all" == data_to_write) {
     data_out_ = VizDataType::all;
   } else if ("source" == data_to_write) {
@@ -81,7 +81,7 @@ sgate(surrogate_ptr), radial_res(t_res) {
   }
 
   // read data specs
-  regions_out_ = VizRegionType::none;
+  regions_out_ = VizRegionType::all;
   if ("all" == regions_to_write) {
     regions_out_  = VizRegionType::all;
   } else if ("fuel" == regions_to_write) {
