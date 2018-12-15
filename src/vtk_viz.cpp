@@ -182,23 +182,28 @@ void SurrogateToVtk::write_vtk(std::string filename) {
   fh << "CELL_DATA " << n_mesh_elements << "\n";
 
   if (VizDataType::all == data_out_ || VizDataType::temp == data_out_) {
-    std::cout << "Writing temperature data" << std::endl;
     // temperature data
     fh << "SCALARS TEMPERATURE double 1\n";
     fh << "LOOKUP_TABLE default\n";
-    // write all fuel data first
-    for (int i = 0; i < n_axial_sections; i++) {
-      for (int j = 0; j < n_radial_fuel_sections; j++) {
-        for (int k = 0; k < radial_res; k++) {
-          fh << sgate->temperature_(0, i, j) << "\n";
+
+    if (VizRegionType::fuel == regions_out_ || VizRegionType::all == regions_out_) {
+      // write all fuel data first
+      for (int i = 0; i < n_axial_sections; i++) {
+        for (int j = 0; j < n_radial_fuel_sections; j++) {
+          for (int k = 0; k < radial_res; k++) {
+            fh << sgate->temperature_(0, i, j) << "\n";
+          }
         }
       }
     }
+
     // then write cladding data
-    for (int i = 0; i < n_axial_sections; i++) {
-      for (int j = 0; j < n_radial_clad_sections; j++) {
-        for (int k = 0; k < radial_res; k++) {
-          fh << sgate->temperature_(0, i, j + n_radial_fuel_sections) << "\n";
+    if (VizRegionType::clad == regions_out_ || VizRegionType::all == regions_out_) {
+      for (int i = 0; i < n_axial_sections; i++) {
+        for (int j = 0; j < n_radial_clad_sections; j++) {
+          for (int k = 0; k < radial_res; k++) {
+            fh << sgate->temperature_(0, i, j + n_radial_fuel_sections) << "\n";
+          }
         }
       }
     }
@@ -209,18 +214,23 @@ void SurrogateToVtk::write_vtk(std::string filename) {
     fh << "SCALARS SOURCE double 1\n";
     fh << "LOOKUP_TABLE default\n";
     // write all fuel data first
-    for (int i = 0; i < n_axial_sections; i++) {
-      for (int j = 0; j < n_radial_fuel_sections; j++) {
-        for (int k = 0; k < radial_res; k++) {
-          fh << sgate->source_(0, i, j) << "\n";
+    if (VizRegionType::fuel == regions_out_ || VizRegionType::all == regions_out_) {
+      for (int i = 0; i < n_axial_sections; i++) {
+        for (int j = 0; j < n_radial_fuel_sections; j++) {
+          for (int k = 0; k < radial_res; k++) {
+            fh << sgate->source_(0, i, j) << "\n";
+          }
         }
       }
     }
+
     // then write the cladding data
-    for (int i = 0; i < n_axial_sections; i++) {
-      for (int j = 0; j < n_radial_clad_sections; j++) {
-        for (int k = 0; k < radial_res; k++) {
-          fh << sgate->source_(0, i, j + n_radial_fuel_sections) << "\n";
+    if (VizRegionType::clad == regions_out_ || VizRegionType::all == regions_out_) {
+      for (int i = 0; i < n_axial_sections; i++) {
+        for (int j = 0; j < n_radial_clad_sections; j++) {
+          for (int k = 0; k < radial_res; k++) {
+            fh << sgate->source_(0, i, j + n_radial_fuel_sections) << "\n";
+          }
         }
       }
     }
