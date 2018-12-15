@@ -17,6 +17,13 @@ class SurrogateToVtk {
     all    = 3
   };
 
+  enum class VizRegionType {
+    none = 0,
+    fuel = 1,
+    clad = 2,
+    all  = 3
+  };
+
 private:
   //! Initializes the surrogate to VTK writer with a surrogate model. Can only be called withing the SurrogateHeatDriver.
   //!
@@ -24,6 +31,7 @@ private:
   //! \param t_rad         Radial resolution of the generated VTK mesh
   SurrogateToVtk(const SurrogateHeatDriver *surrogate_ptr,
                  int t_res,
+                 std::string regions_to_write,
                  std::string data_to_write);
 
 public:
@@ -65,6 +73,7 @@ private:
   int radial_res; //!< radial resolution;
 
   VizDataType data_out_;
+  VizRegionType regions_out_ ;
 
   /// SECTIONS \\\
   // axial

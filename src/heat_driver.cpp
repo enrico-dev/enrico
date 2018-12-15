@@ -50,10 +50,12 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
     if (viz_node.attribute("filename")) {
         viz_basename = viz_node.attribute("filename").value();
     }
+
     // set other values
     vtk_radial_res = viz_node.child("resolution").text().as_int();
     viz_iterations = viz_node.child("iterations").text().as_string();
     viz_data = viz_node.child("data").text().as_string();
+    viz_regions = viz_node.child("regions").text().as_string();
   }
 
   // Initialize heat transfer solver
@@ -115,7 +117,7 @@ void SurrogateHeatDriver::to_vtk(int iteration)
   if (iteration >= 0) { filename << "_" << iteration; }
   filename << ".vtk";
 
-  SurrogateToVtk vtk_writer(this, vtk_radial_res, viz_data);
+  SurrogateToVtk vtk_writer(this, vtk_radial_res, viz_regions, viz_data);
   std::cout << "Writing VTK file: " << filename.str() << "\n";
   vtk_writer.write_vtk(filename.str());
   return;

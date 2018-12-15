@@ -66,6 +66,7 @@ xt::xtensor<int, 2> hex_ring(int start_idx, int resolution, int z_shift) {
 
 SurrogateToVtk::SurrogateToVtk(const SurrogateHeatDriver* surrogate_ptr,
                                int t_res,
+                               std::string regions_to_write,
                                std::string data_to_write) :
 sgate(surrogate_ptr), radial_res(t_res) {
 
@@ -77,6 +78,16 @@ sgate(surrogate_ptr), radial_res(t_res) {
     data_out_ = VizDataType::source;
   } else if ("temp" == data_to_write || "temperature" == data_to_write) {
     data_out_ = VizDataType::temp;
+  }
+
+  // read data specs
+  regions_out_ = VizRegionType::none;
+  if ("all" == regions_to_write) {
+    regions_out_  = VizRegionType::all;
+  } else if ("fuel" == regions_to_write) {
+    regions_out_  = VizRegionType::fuel;
+  } else if ("cladding" == regions_to_write) {
+    regions_out_  = VizRegionType::clad;
   }
 
   // Set some necessary values ahead of time
@@ -93,22 +104,36 @@ sgate(surrogate_ptr), radial_res(t_res) {
   clad_points_per_plane = sgate->r_grid_clad_.size() * radial_res;
   n_clad_points = clad_points_per_plane * sgate->r_grid_clad_.size();
 
-  points_per_plane = fuel_points_per_plane + clad_points_per_plane;
-  // total number of points in pin
-  n_points = points_per_plane * sgate->z_.size();
-
   // fuel elements, entries
   n_fuel_elements = n_radial_fuel_sections * radial_res * n_axial_sections;
   n_clad_elements = n_radial_clad_sections * radial_res * n_axial_sections;
-  n_mesh_elements = n_sections_per_plane * n_axial_sections;
   // wedge regions
   n_fuel_entries_per_plane = radial_res * (WEDGE_SIZE_ + 1);
   // other radial regions
   n_fuel_entries_per_plane += radial_res * (HEX_SIZE_ + 1) * (n_radial_fuel_sections - 1);
   n_clad_entries_per_plane = radial_res * (HEX_SIZE_ + 1) * n_radial_clad_sections;
   n_entries_per_plane = n_fuel_entries_per_plane + n_clad_entries_per_plane;
-  // cladding elements
+
+  // set totals based on region
+  if (VizRegionType::all == regions_out_) {
+    points_per_plane = fuel_points_per_plane + clad_points_per_plane;
+    n_radial_sections = n_radial_fuel_sections + n_radial_clad_sections;
+    n_entries_per_plane = n_fuel_entries_per_plane + n_clad_entries_per_plane;
+  } else if (VizRegionType::fuel == regions_out_) {
+    points_per_plane = fuel_points_per_plane;
+    n_radial_sections = n_radial_fuel_sections;
+    n_entries_per_plane = n_fuel_entries_per_plane;
+  } else if (VizRegionType::clad == regions_out_) {
+    points_per_plane = clad_points_per_plane;
+    n_radial_sections = n_radial_clad_sections;
+    n_entries_per_plane = n_clad_entries_per_plane;
+  }
+
+  // totals
+  n_points = points_per_plane * sgate->z_.size();
+  n_mesh_elements = n_radial_sections * radial_res * n_axial_sections;
   n_entries = n_entries_per_plane * n_axial_sections;
+
 }
 
 void SurrogateToVtk::write_vtk(std::string filename) {
@@ -207,13 +232,25 @@ void SurrogateToVtk::write_vtk(std::string filename) {
 } // write vtk
 
 xt::xtensor<double, 1> SurrogateToVtk::points() {
-  // get fuel points
-  xt::xtensor<double, 3> fuel_pnts = fuel_points();
-  // get cladding points
-  xt::xtensor<double, 3> clad_pnts = clad_points();
-  // concatenate in 1-D and return
-  xt::xtensor<double, 1> points = xt::concatenate(xt::xtuple(
-    xt::flatten(fuel_pnts), xt::flatten(clad_pnts)));
+  xt::xtensor<double, 1> points;
+
+  if (VizRegionType::fuel == regions_out_) {
+    // get fuel points
+    xt::xtensor<double, 3> fuel_pnts = fuel_points();
+    points = xt::flatten(fuel_pnts);
+  } else if (VizRegionType::clad == regions_out_) {
+    // get cladding points
+    xt::xtensor<double, 3> clad_pnts = clad_points();
+    points = xt::flatten(clad_pnts);
+  } else if (VizRegionType::all == regions_out_) {
+    // get both sets of points
+    xt::xtensor<double, 3> fuel_pnts = fuel_points();
+    xt::xtensor<double, 3> clad_pnts = clad_points();
+    // concatenate in 1-D and return
+    points = xt::concatenate(xt::xtuple(
+      xt::flatten(fuel_pnts), xt::flatten(clad_pnts)));
+  }
+
   return points;
 }
 
@@ -295,16 +332,27 @@ xt::xtensor<double, 3> SurrogateToVtk::clad_points() {
 }
 
 xt::xtensor<int, 1> SurrogateToVtk::conn() {
-  // get the fuel connectivity
-  xt::xtensor<int, 4> f_conn = fuel_conn();
-  // get the cladding connectivity
-  xt::xtensor<int, 4> c_conn = clad_conn();
-  // adjust the cladding connectivity by
-  // the number of points in the fuel mesh
-  xt::view(c_conn, xt::all(), xt::all(), xt::all(), xt::range(1, _)) += fuel_points_per_plane * n_axial_points;
-  // concatenate and return 1-D form
-  xt::xtensor<int, 1> conn_out = xt::concatenate(xt::xtuple(
-    xt::flatten(f_conn), xt::flatten(c_conn)));
+  xt::xtensor<int, 1> conn_out;
+  if (VizRegionType::fuel == regions_out_) {
+    // get the fuel connectivity
+    xt::xtensor<int, 4> f_conn = fuel_conn();
+    conn_out = xt::flatten(f_conn);
+  } else if (VizRegionType::clad == regions_out_) {
+    // get the cladding connectivity
+    xt::xtensor<int, 4> c_conn = clad_conn();
+    conn_out = xt::flatten(c_conn);
+  } else if (VizRegionType::all == regions_out_) {
+    // get both sets of points
+    xt::xtensor<int, 4> f_conn = fuel_conn();
+    xt::xtensor<int, 4> c_conn = clad_conn();
+    // adjust the cladding connectivity by
+    // the number of points in the fuel mesh
+    xt::view(c_conn, xt::all(), xt::all(), xt::all(), xt::range(1, _)) += fuel_points_per_plane * n_axial_points;
+    // concatenate in 1-D and return
+   conn_out = xt::concatenate(xt::xtuple(
+      xt::flatten(f_conn), xt::flatten(c_conn)));
+  }
+
   return conn_out;
 }
 
@@ -415,13 +463,25 @@ xt::xtensor<int, 4> SurrogateToVtk::clad_conn() {
 }
 
 xt::xtensor<int, 1> SurrogateToVtk::types() {
-  // get fuel types
-  xt::xtensor<int, 3> ftypes = fuel_types();
-  // get the cladding types
-  xt::xtensor<int, 3> ctypes = clad_types();
-  // concatenate and return 1-D form
-  xt::xtensor<int, 1> types_out = xt::concatenate(xt::xtuple(
-    xt::flatten(ftypes), xt::flatten(ctypes)));
+  xt::xtensor<int, 1> types_out;
+  if (VizRegionType::fuel == regions_out_) {
+    // get fuel types
+    xt::xtensor<int, 3> ftypes = fuel_types();
+    types_out = xt::flatten(ftypes);
+  } else if (VizRegionType::clad == regions_out_) {
+    // get the cladding types
+    xt::xtensor<int, 3> ctypes = clad_types();
+    types_out = xt::flatten(ctypes);
+  } else if (VizRegionType::all == regions_out_) {
+    // get fuel types
+    xt::xtensor<int, 3> ftypes = fuel_types();
+    // get the cladding types
+    xt::xtensor<int, 3> ctypes = clad_types();
+    // concatenate and return 1-D form
+    types_out = xt::concatenate(xt::xtuple(
+      xt::flatten(ftypes), xt::flatten(ctypes)));
+  }
+
   return types_out;
 }
 
