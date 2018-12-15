@@ -176,7 +176,8 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
 
   // write cell types
   fh << "\nCELL_TYPES " << num_mesh_elements << "\n";
-  for (auto v : cell_types) {
+  xt::xtensor<int, 3> fuel_cell_types = vpin.fuel_types();
+  for (auto v : fuel_cell_types) {
     fh << v << "\n";
   }
 
@@ -317,7 +318,7 @@ xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::fuel_connectivity() {
 
   /// INNER RING \\\
 
-  xt::xtensor<int, 2> inner_base = xt::zeros<int>({t_res_, 8});
+  xt::xtensor<int, 2> inner_base = xt::zeros<int>({t_res_, HEX_SIZE_});
 
   // cell connectivity for the first z level
   xt::view(inner_base, xt::all(), 1) = xt::arange(1, t_res_ + 1);
@@ -360,14 +361,6 @@ xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::fuel_connectivity() {
     xt::view(base, i, xt::all(), xt::all()) += start_idx;
   }
 
-  // the inner ring is wedges
-  xt::view(cells_out, xt::all(), 0, xt::all(), 0) = WEDGE_TYPE_;
-  xt::view(cells_out, xt::all(), 0, xt::all(), 1) = WEDGE_SIZE_;
-
-  // the rest are hexes
-  xt::view(cells_out, xt::all(), xt::range(1, _), xt::all(), 0) = HEX_TYPE_;
-  xt::view(cells_out, xt::all(), xt::range(1, _), xt::all(), 1) = HEX_SIZE_;
-
   // set all axial divs using base
   for(int i = 0; i < axial_divs_; i++) {
     // set layer and increment connectivity by number of points in axial div
@@ -375,10 +368,29 @@ xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::fuel_connectivity() {
     base += points_per_plane_;
   }
 
+  // innermost ring is always wedges
+  xt::view(cells_out, xt::all(), 0, xt::all(), 1) = WEDGE_SIZE_;
+  // the reset are hexes
+  xt::view(cells_out, xt::all(), xt::range(1, _), xt::all(), 1) = HEX_SIZE_;
   // first ring should be wedges only, invalidate last two entries
   xt::view(cells_out, xt::all(), 0, xt::all(), xt::range(8,10)) = INVALID_CONN_;
 
   return cells_out;
+}
+
+xt::xtensor<int, 3> SurrogateHeatDriver::VisualizationPin::fuel_types() {
+
+  xt::xtensor<int, 3> types_out = xt::zeros<int>({axial_divs_,
+                                                  radial_divs_,
+                                                  t_res_});
+
+  // the inner ring is wedges
+  xt::view(types_out, xt::all(), 0, xt::all()) = WEDGE_TYPE_;
+
+  // the rest are hexes
+  xt::view(types_out, xt::all(), xt::range(1, _), xt::all()) = HEX_TYPE_;
+
+  return types_out;
 }
 
 xt::xtensor<double, 3> SurrogateHeatDriver::VisualizationPin::clad_points() {

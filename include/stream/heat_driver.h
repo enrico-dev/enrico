@@ -96,6 +96,7 @@ private:
     xt::xtensor<double, 2> create_ring(double radius, int t_resolution);
     xt::xtensor<double, 3> fuel_points();
     xt::xtensor<int, 4> fuel_connectivity();
+    xt::xtensor<int, 3> fuel_types();
 
     xt::xtensor<double, 3> clad_points();
     xt::xtensor<int, 4> clad_connectivity();
