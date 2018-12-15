@@ -82,12 +82,12 @@ sgate(surrogate_ptr), radial_res(t_res) {
 
   points_per_plane = fuel_points_per_plane + clad_points_per_plane;
   // total number of points in pin
-  total_points = points_per_plane * sgate->z_.size();
+  n_points = points_per_plane * sgate->z_.size();
 
   // fuel elements, entries
-  n_mesh_elements = n_sections_per_plane * n_axial_sections;
   n_fuel_elements = n_radial_fuel_sections * radial_res * n_axial_sections;
   n_clad_elements = n_radial_clad_sections * radial_res * n_axial_sections;
+  n_mesh_elements = n_sections_per_plane * n_axial_sections;
   // wedge regions
   n_fuel_entries_per_plane = radial_res * (WEDGE_SIZE_ + 1);
   // other radial regions
@@ -108,7 +108,7 @@ void SurrogateToVtk::write_vtk(std::string filename) {
 
   /// POINTS \\\
 
-  fh << "POINTS " << total_points << " float\n";
+  fh << "POINTS " << n_points << " float\n";
   xt::xtensor<double, 1> pnts = points();
   for (auto val = pnts.begin(); val != pnts.end(); val+=3) {
     fh << *val << " " << *(val+1) << " " << *(val+2) << "\n";
@@ -121,7 +121,8 @@ void SurrogateToVtk::write_vtk(std::string filename) {
   for (auto val = connectivity.begin(); val != connectivity.end(); val += CONN_STRIDE_) {
     for (int i = 0; i < CONN_STRIDE_; i++) {
       auto v = *(val+i);
-      if (v >=0) { fh << v << " "; }
+      // mask out any negative connectivity values
+      if (v >= 0) { fh << v << " "; }
     }
     fh << "\n";
   }
