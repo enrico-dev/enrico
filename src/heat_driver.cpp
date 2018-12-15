@@ -137,13 +137,11 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
 
   // generate mesh element connectivity for fuel
   xt::xtensor<int, 4> cells = vpin.fuel_connectivity();
-  xt::xtensor<int, 4> cell_types = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(0,1));
   cells = xt::view(cells, xt::all(), xt::all(), xt::all(), xt::range(1, _));
 
   // generate mesh element connectivity for fuel
   xt::xtensor<int, 4> clad_cells = vpin.clad_connectivity();
-  xt::xtensor<int, 4> clad_cell_types = xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(0,1));
-  clad_cells = xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(1, _));
+
   // adjust cladding connctivity by the number of existing fuel points
   xt::view(clad_cells, xt::all(), xt::all(), xt::all(), xt::range(1,_)) += fuel_points;
 
@@ -182,6 +180,7 @@ void SurrogateHeatDriver::to_vtk(std::string filename)
   }
 
   // write cell types
+  xt::xtensor<int, 3> clad_cell_types = vpin.clad_types();
   for (auto v : clad_cell_types) {
     fh << v << "\n";
   }
@@ -437,7 +436,10 @@ xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::clad_connectivity() {
   xt::xtensor<int, 4> cells_out = xt::zeros<int>({axial_divs_,
                                                   clad_divs_,
                                                   t_res_,
-                                                  HEX_SIZE_ + 2});
+                                                  HEX_SIZE_ + 1});
+
+  // all are hexes
+  xt::view(cells_out, xt::all(), xt::all(), xt::all(), 0) = HEX_SIZE_;
 
   // generate a base layer to be extended in Z
   xt::xtensor<int, 3> base = xt::zeros<int>({clad_divs_, t_res_, HEX_SIZE_});
@@ -468,18 +470,25 @@ xt::xtensor<int, 4> SurrogateHeatDriver::VisualizationPin::clad_connectivity() {
     xt::view(base, i, xt::all(), xt::all()) += start_idx;
   }
 
-  // the rest are hexes
-  xt::view(cells_out, xt::all(), xt::all(), xt::all(), 0) = HEX_TYPE_;
-  xt::view(cells_out, xt::all(), xt::all(), xt::all(), 1) = HEX_SIZE_;
 
   // set all axial divs using base
   for(int i = 0; i < axial_divs_; i++) {
     // set layer and increment connectivity by number of points in axial div
-    xt::view(cells_out, i, xt::all(), xt::all(), xt::range(2, 10)) = base;
+    xt::view(cells_out, i, xt::all(), xt::all(), xt::range(1, _)) = base;
     base += clad_points_per_plane;
   }
 
   return cells_out;
+}
+
+xt::xtensor<int, 3> SurrogateHeatDriver::VisualizationPin::clad_types() {
+  int clad_divs_ = c_grid_.size() - 1;
+  // size output array
+  xt::xtensor<int, 3> clad_types_out = xt::zeros<int>({axial_divs_,
+                                                      clad_divs_,
+                                                      t_res_});
+  clad_types_out = xt::full_like(clad_types_out, HEX_TYPE_);
+  return clad_types_out;
 }
 
 xt::xtensor<double, 1> SurrogateHeatDriver::VisualizationPin::points() {
