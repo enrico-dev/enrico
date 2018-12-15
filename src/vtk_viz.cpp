@@ -97,9 +97,9 @@ xt::xtensor<double, 3> SurrogateToVtk::fuel_points() {
   xt::xarray<double> x = xt::zeros<double>({n_radial_fuel_sections, radial_res});
   xt::xarray<double> y = xt::zeros<double>({n_radial_fuel_sections, radial_res});
 
-  // first point is the pin center, start at one
   for(int i = 0; i < n_radial_fuel_sections; i++) {
-    double ring_rad = sgate->r_grid_fuel_(i);
+    // first radius is zero, start at one
+    double ring_rad = sgate->r_grid_fuel_(i + 1);
     xt::xtensor<double, 2> ring = create_ring(ring_rad, radial_res);
     xt::view(x, i, xt::all()) = xt::view(ring, 0, xt::all());
     xt::view(y, i, xt::all()) = xt::view(ring, 1, xt::all());
@@ -108,8 +108,7 @@ xt::xtensor<double, 3> SurrogateToVtk::fuel_points() {
   x = xt::flatten(x);
   y = xt::flatten(y);
 
-
-  for (int i = 0; i < n_axial_sections + 1; i++) {
+  for (int i = 0; i < n_axial_points; i++) {
     // set all but the center point
     xt::view(pnts_out, i, xt::range(1,_), 0) = x;
     xt::view(pnts_out, i, xt::range(1,_), 1) = y;
