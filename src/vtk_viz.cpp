@@ -68,7 +68,7 @@ SurrogateToVtk::SurrogateToVtk(const SurrogateHeatDriver* surrogate_ptr,
                                int t_res,
                                std::string regions_to_write,
                                std::string data_to_write) :
-sgate_(surrogate_ptr), radial_res_(t_res) {
+  sgate_(surrogate_ptr), radial_res_(t_res) {
 
   // read data specs
   data_out_ = VizDataType::all;
@@ -133,7 +133,6 @@ sgate_(surrogate_ptr), radial_res_(t_res) {
   n_points_ = points_per_plane_ * sgate_->z_.size();
   n_mesh_elements_ = n_radial_sections_ * radial_res_ * n_axial_sections_;
   n_entries_ = n_entries_per_plane_ * n_axial_sections_;
-
 }
 
 void SurrogateToVtk::write_vtk(std::string filename) {
@@ -238,7 +237,6 @@ void SurrogateToVtk::write_vtk(std::string filename) {
 
   // close the file
   fh.close();
-
 } // write vtk
 
 xtensor<double, 1> SurrogateToVtk::points() {
@@ -378,7 +376,6 @@ xtensor<int, 4> SurrogateToVtk::fuel_conn() {
                                              radial_res_,
                                              HEX_SIZE_});
 
-
   /// INNERMOST RING (WEDGES) \\\
 
   xtensor<int, 2> inner_base = xt::zeros<int>({radial_res_, HEX_SIZE_});
@@ -442,7 +439,6 @@ xtensor<int, 4> SurrogateToVtk::clad_conn() {
   xtensor<int, 3> base = xt::zeros<int>({n_radial_clad_sections_,
                                          radial_res_,
                                          HEX_SIZE_});
-
 
   /// ELEMENT RINGS (HEXES) \\\
 
