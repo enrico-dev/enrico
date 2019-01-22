@@ -4,6 +4,8 @@
 
 #include "stream/heat_driver.h"
 
+using xt::xtensor;
+
 namespace stream {
 
 class SurrogateToVtk {
@@ -40,32 +42,32 @@ public:
 
   //! Generate fuel mesh points
   //! \return fuel points (axial, radial_rings, xyz)
-  xt::xtensor<double, 3> fuel_points();
+  xtensor<double, 3> fuel_points();
   //! Generate cladding mesh points
   //! \return cladding points (axial, radial_rings, xyz)
-  xt::xtensor<double, 3> clad_points();
+  xtensor<double, 3> clad_points();
   //! Return 1-D array of points for writing (xyz...) (ordered radially, axially)
-  xt::xtensor<double, 1> points();
+  xtensor<double, 1> points();
 
   //! Generate fuel connectivity (axial, radial, res, conn)
   //! \return fuel element connectivity (axial, radial, res, conn)
-  xt::xtensor<int, 4> fuel_conn();
+  xtensor<int, 4> fuel_conn();
   //! Generate cladding connectivity
   //! \return cladding element connectivity (axial, radial, res, conn)
-  xt::xtensor<int, 4> clad_conn();
+  xtensor<int, 4> clad_conn();
   //! Return all connectivity values for writing
   //! \return 1-D array of connectivity, strided by CONN_STRIDE_ per element (ordered radially, axially)
-  xt::xtensor<int, 1> conn();
+  xtensor<int, 1> conn();
 
   //! Generate fuel vtk mesh element (cell) types
   //! \return fuel cell types (axia, radial, azimuthal)
-  xt::xtensor<int, 3> fuel_types();
+  xtensor<int, 3> fuel_types();
   //! Generate cladding vtk mesh element (cell) types
   //! \return cladding cell types (axia, radial, azimuthal)
-  xt::xtensor<int, 3> clad_types();
+  xtensor<int, 3> clad_types();
   //! Return all element type values for writing
   //! \return 1-D array of types, one for each element (ordered radially, axially)
-  xt::xtensor<int, 1> types();
+  xtensor<int, 1> types();
 
 private:
   // internal variables

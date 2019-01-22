@@ -1,5 +1,4 @@
 
-
 #include "stream/vtk_viz.h"
 #include "xtensor/xtensor.hpp"
 
@@ -19,20 +18,21 @@ const int CONN_STRIDE_ = HEX_SIZE_ + 1;
 
 namespace stream {
 
-using namespace xt::placeholders;
+using xt::placeholders::_;
+using xt::xtensor;
 
-xt::xtensor<double, 2> create_ring(double radius,
+xtensor<double, 2> create_ring(double radius,
                                    int t_resolution) {
-  xt::xtensor<double, 1> x = xt::zeros<double>({t_resolution});
-  xt::xtensor<double, 1> y = xt::zeros<double>({t_resolution});
+  xtensor<double, 1> x = xt::zeros<double>({t_resolution});
+  xtensor<double, 1> y = xt::zeros<double>({t_resolution});
 
-  xt::xtensor<double, 1> theta;
+  xtensor<double, 1> theta;
   theta = xt::linspace<double>(0., 2.*openmc::PI, t_resolution + 1);
   theta = xt::view(theta, xt::range(0, -1)); // remove last value
   x = radius * xt::cos(theta);
   y = radius * xt::sin(theta);
 
-  xt::xtensor<double, 2> out = xt::zeros<double>({2, t_resolution});
+  xtensor<double, 2> out = xt::zeros<double>({2, t_resolution});
 
   xt::view(out, 0, xt::all()) = x;
   xt::view(out, 1, xt::all()) = y;
@@ -40,8 +40,8 @@ xt::xtensor<double, 2> create_ring(double radius,
   return out;
 }
 
-xt::xtensor<int, 2> hex_ring(int start_idx, int resolution, int z_shift) {
-  xt::xtensor<int, 2> out = xt::zeros<int>({resolution, HEX_SIZE_});
+xtensor<int, 2> hex_ring(int start_idx, int resolution, int z_shift) {
+  xtensor<int, 2> out = xt::zeros<int>({resolution, HEX_SIZE_});
 
   // set connectivity of the first z-layer
   // first two points - along the inner radial ring
@@ -147,7 +147,7 @@ void SurrogateToVtk::write_vtk(std::string filename) {
   /// POINTS \\\
 
   fh << "POINTS " << n_points << " float\n";
-  xt::xtensor<double, 1> pnts = points();
+  xtensor<double, 1> pnts = points();
   for (auto val = pnts.begin(); val != pnts.end(); val+=3) {
     fh << *val << " " << *(val+1) << " " << *(val+2) << "\n";
   }
@@ -155,7 +155,7 @@ void SurrogateToVtk::write_vtk(std::string filename) {
   /// ELEMENT CONNECTIVITY \\\
 
   fh << "\nCELLS " << n_mesh_elements << " " << n_entries << "\n";
-  xt::xtensor<int, 1> connectivity = conn();
+  xtensor<int, 1> connectivity = conn();
   for (auto val = connectivity.begin(); val != connectivity.end(); val += CONN_STRIDE_) {
     for (int i = 0; i < CONN_STRIDE_; i++) {
       auto v = *(val+i);
@@ -168,7 +168,7 @@ void SurrogateToVtk::write_vtk(std::string filename) {
   /// MESH ELEMENT TYPES \\\
 
   fh << "\nCELL_TYPES " << n_mesh_elements << "\n";
-  xt::xtensor<int ,1> cell_types = types();
+  xtensor<int ,1> cell_types = types();
   for (auto v : cell_types) {
       fh << v << "\n";
   }
@@ -241,21 +241,21 @@ void SurrogateToVtk::write_vtk(std::string filename) {
 
 } // write vtk
 
-xt::xtensor<double, 1> SurrogateToVtk::points() {
-  xt::xtensor<double, 1> points;
+xtensor<double, 1> SurrogateToVtk::points() {
+  xtensor<double, 1> points;
 
   if (VizRegionType::fuel == regions_out_) {
     // get fuel points
-    xt::xtensor<double, 3> fuel_pnts = fuel_points();
+    xtensor<double, 3> fuel_pnts = fuel_points();
     points = xt::flatten(fuel_pnts);
   } else if (VizRegionType::clad == regions_out_) {
     // get cladding points
-    xt::xtensor<double, 3> clad_pnts = clad_points();
+    xtensor<double, 3> clad_pnts = clad_points();
     points = xt::flatten(clad_pnts);
   } else if (VizRegionType::all == regions_out_) {
     // get both sets of points
-    xt::xtensor<double, 3> fuel_pnts = fuel_points();
-    xt::xtensor<double, 3> clad_pnts = clad_points();
+    xtensor<double, 3> fuel_pnts = fuel_points();
+    xtensor<double, 3> clad_pnts = clad_points();
     // concatenate in 1-D and return
     points = xt::concatenate(xt::xtuple(
       xt::flatten(fuel_pnts), xt::flatten(clad_pnts)));
@@ -264,7 +264,7 @@ xt::xtensor<double, 1> SurrogateToVtk::points() {
   return points;
 }
 
-xt::xtensor<double, 3> SurrogateToVtk::fuel_points() {
+xtensor<double, 3> SurrogateToVtk::fuel_points() {
   // array to hold all point data
   xt::xarray<double> pnts_out = xt::zeros<double>({n_axial_points,
                                                   fuel_points_per_plane,
@@ -279,7 +279,7 @@ xt::xtensor<double, 3> SurrogateToVtk::fuel_points() {
     // first radius in r_grid_fuel_ is zero, start at one
     double ring_rad = sgate->r_grid_fuel_(i + 1);
     // create a unit ring scaled by radius
-    xt::xtensor<double, 2> ring = create_ring(ring_rad, radial_res);
+    xtensor<double, 2> ring = create_ring(ring_rad, radial_res);
     // set x/y values for this ring
     xt::view(x, i, xt::all()) = xt::view(ring, 0, xt::all());
     xt::view(y, i, xt::all()) = xt::view(ring, 1, xt::all());
@@ -304,7 +304,7 @@ xt::xtensor<double, 3> SurrogateToVtk::fuel_points() {
   return pnts_out;
 }
 
-xt::xtensor<double, 3> SurrogateToVtk::clad_points() {
+xtensor<double, 3> SurrogateToVtk::clad_points() {
   // array to hold all point data
   xt::xarray<double> pnts_out = xt::zeros<double>({n_axial_points,
                                                   clad_points_per_plane,
@@ -317,7 +317,7 @@ xt::xtensor<double, 3> SurrogateToVtk::clad_points() {
   for(int i = 0; i < n_radial_clad_sections + 1; i++) {
     double ring_rad = sgate->r_grid_clad_(i);
     // create a unit ring scaled by radius
-    xt::xtensor<double, 2> ring = create_ring(ring_rad, radial_res);
+    xtensor<double, 2> ring = create_ring(ring_rad, radial_res);
     // set x/y values for this ring
     xt::view(x, i, xt::all()) = xt::view(ring, 0, xt::all());
     xt::view(y, i, xt::all()) = xt::view(ring, 1, xt::all());
@@ -341,20 +341,20 @@ xt::xtensor<double, 3> SurrogateToVtk::clad_points() {
   return pnts_out;
 }
 
-xt::xtensor<int, 1> SurrogateToVtk::conn() {
-  xt::xtensor<int, 1> conn_out;
+xtensor<int, 1> SurrogateToVtk::conn() {
+  xtensor<int, 1> conn_out;
   if (VizRegionType::fuel == regions_out_) {
     // get the fuel connectivity
-    xt::xtensor<int, 4> f_conn = fuel_conn();
+    xtensor<int, 4> f_conn = fuel_conn();
     conn_out = xt::flatten(f_conn);
   } else if (VizRegionType::clad == regions_out_) {
     // get the cladding connectivity
-    xt::xtensor<int, 4> c_conn = clad_conn();
+    xtensor<int, 4> c_conn = clad_conn();
     conn_out = xt::flatten(c_conn);
   } else if (VizRegionType::all == regions_out_) {
     // get both sets of points
-    xt::xtensor<int, 4> f_conn = fuel_conn();
-    xt::xtensor<int, 4> c_conn = clad_conn();
+    xtensor<int, 4> f_conn = fuel_conn();
+    xtensor<int, 4> c_conn = clad_conn();
     // adjust the cladding connectivity by
     // the number of points in the fuel mesh
     xt::view(c_conn, xt::all(), xt::all(), xt::all(), xt::range(1, _)) += fuel_points_per_plane * n_axial_points;
@@ -366,22 +366,22 @@ xt::xtensor<int, 1> SurrogateToVtk::conn() {
   return conn_out;
 }
 
-xt::xtensor<int, 4> SurrogateToVtk::fuel_conn() {
+xtensor<int, 4> SurrogateToVtk::fuel_conn() {
   // size output array
-  xt::xtensor<int, 4> cells_out = xt::zeros<int>({n_axial_sections,
+  xtensor<int, 4> cells_out = xt::zeros<int>({n_axial_sections,
                                                   n_radial_fuel_sections,
                                                   radial_res,
                                                   HEX_SIZE_ + 1});
 
   // generate a base layer to be extended in Z
-  xt::xtensor<int, 3> base = xt::zeros<int>({n_radial_fuel_sections,
+  xtensor<int, 3> base = xt::zeros<int>({n_radial_fuel_sections,
                                              radial_res,
                                              HEX_SIZE_});
 
 
   /// INNERMOST RING (WEDGES) \\\
 
-  xt::xtensor<int, 2> inner_base = xt::zeros<int>({radial_res, HEX_SIZE_});
+  xtensor<int, 2> inner_base = xt::zeros<int>({radial_res, HEX_SIZE_});
 
   xt::view(inner_base, xt::all(), 1) = xt::arange(1, radial_res + 1);
   xt::view(inner_base, xt::all(), 2) = xt::arange(2, radial_res + 2);
@@ -402,7 +402,7 @@ xt::xtensor<int, 4> SurrogateToVtk::fuel_conn() {
   // create a radial base starting at point zero
   // with a shift between the first and second layer of connectivity
   // equal to the number of fuel points in a plane
-  xt::xtensor<int, 2> radial_base = hex_ring(1, radial_res, fuel_points_per_plane);
+  xtensor<int, 2> radial_base = hex_ring(1, radial_res, fuel_points_per_plane);
 
   // set the other rings by shifting the initial base
   // by radial_res for each ring
@@ -429,19 +429,19 @@ xt::xtensor<int, 4> SurrogateToVtk::fuel_conn() {
   return cells_out;
 }
 
-xt::xtensor<int, 4> SurrogateToVtk::clad_conn() {
+xtensor<int, 4> SurrogateToVtk::clad_conn() {
 
   // size output array
-  xt::xtensor<int, 4> cells_out = xt::zeros<int>({n_axial_sections,
-                                                  n_radial_clad_sections,
-                                                  radial_res,
-                                                  HEX_SIZE_ + 1});
+  xtensor<int, 4> cells_out = xt::zeros<int>({n_axial_sections,
+                                              n_radial_clad_sections,
+                                              radial_res,
+                                              HEX_SIZE_ + 1});
 
 
   // base layer to be extended in Z
-  xt::xtensor<int, 3> base = xt::zeros<int>({n_radial_clad_sections,
-                                             radial_res,
-                                             HEX_SIZE_});
+  xtensor<int, 3> base = xt::zeros<int>({n_radial_clad_sections,
+                                         radial_res,
+                                         HEX_SIZE_});
 
 
   /// ELEMENT RINGS (HEXES) \\\
@@ -449,7 +449,7 @@ xt::xtensor<int, 4> SurrogateToVtk::clad_conn() {
   // create a radial base starting at point zero
   // with a shift between the first and second layer of connectivity
   // equal to the number of cladding points in a plane
-  xt::xtensor<int, 2> radial_base = hex_ring(0, radial_res, clad_points_per_plane);
+  xtensor<int, 2> radial_base = hex_ring(0, radial_res, clad_points_per_plane);
 
   // set the other rings by shifting the initial base
   // by radial_res for each ring
@@ -472,21 +472,21 @@ xt::xtensor<int, 4> SurrogateToVtk::clad_conn() {
   return cells_out;
 }
 
-xt::xtensor<int, 1> SurrogateToVtk::types() {
-  xt::xtensor<int, 1> types_out;
+xtensor<int, 1> SurrogateToVtk::types() {
+  xtensor<int, 1> types_out;
   if (VizRegionType::fuel == regions_out_) {
     // get fuel types
-    xt::xtensor<int, 3> ftypes = fuel_types();
+    xtensor<int, 3> ftypes = fuel_types();
     types_out = xt::flatten(ftypes);
   } else if (VizRegionType::clad == regions_out_) {
     // get the cladding types
-    xt::xtensor<int, 3> ctypes = clad_types();
+    xtensor<int, 3> ctypes = clad_types();
     types_out = xt::flatten(ctypes);
   } else if (VizRegionType::all == regions_out_) {
     // get fuel types
-    xt::xtensor<int, 3> ftypes = fuel_types();
+    xtensor<int, 3> ftypes = fuel_types();
     // get the cladding types
-    xt::xtensor<int, 3> ctypes = clad_types();
+    xtensor<int, 3> ctypes = clad_types();
     // concatenate and return 1-D form
     types_out = xt::concatenate(xt::xtuple(
       xt::flatten(ftypes), xt::flatten(ctypes)));
@@ -495,11 +495,11 @@ xt::xtensor<int, 1> SurrogateToVtk::types() {
   return types_out;
 }
 
-xt::xtensor<int, 3> SurrogateToVtk::fuel_types() {
+xtensor<int, 3> SurrogateToVtk::fuel_types() {
   // size the output array
-  xt::xtensor<int, 3> types_out = xt::zeros<int>({n_axial_sections,
-                                                  n_radial_fuel_sections,
-                                                  radial_res});
+  xtensor<int, 3> types_out = xt::zeros<int>({n_axial_sections,
+                                              n_radial_fuel_sections,
+                                              radial_res});
 
   // the inner ring is wedges
   xt::view(types_out, xt::all(), 0, xt::all()) = WEDGE_TYPE_;
@@ -509,11 +509,11 @@ xt::xtensor<int, 3> SurrogateToVtk::fuel_types() {
   return types_out;
 }
 
-xt::xtensor<int, 3> SurrogateToVtk::clad_types() {
+xtensor<int, 3> SurrogateToVtk::clad_types() {
   // size output array
-  xt::xtensor<int, 3> clad_types_out = xt::zeros<int>({n_axial_sections,
-                                                      n_radial_clad_sections,
-                                                      radial_res});
+  xtensor<int, 3> clad_types_out = xt::zeros<int>({n_axial_sections,
+                                                   n_radial_clad_sections,
+                                                   radial_res});
   // all elements are hexes
   clad_types_out = xt::full_like(clad_types_out, HEX_TYPE_);
 
