@@ -51,8 +51,8 @@ xtensor<int, 2> hex_ring(int start_idx, int resolution, int z_shift) {
   xt::view(out, xt::all(), 2) = xt::view(out, xt::all(), 1) + resolution;
   xt::view(out, xt::all(), 3) = xt::view(out, xt::all(), 0) + resolution;
   // adjust last point id for periodic condition on both layers, using hexes now
-  xt::view(out, resolution - 1, 1) = 1;
-  xt::view(out, resolution - 1, 2) = resolution + 1;
+  xt::view(out, resolution - 1, 1) = start_idx;
+  xt::view(out, resolution - 1, 2) = resolution + start_idx;
 
   // copy connectivity of the first layer to the second
   // and shift by number of points
