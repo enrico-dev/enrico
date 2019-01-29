@@ -72,8 +72,6 @@ public:
   xtensor<int, 1> types();
 
 private:
-
-  xtensor<double, 2> pin_centers_;
   xtensor<double, 1> points_;
   xtensor<int, 1> conn_;
   xtensor<int, 1> types_;

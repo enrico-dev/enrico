@@ -176,12 +176,14 @@ void SurrogateToVtk::write_vtk(std::string filename) {
 
   /// MESH ELEMENT TYPES \\\
 
-  fh << "\nCELL_TYPES " << n_mesh_elements_ << "\n";
+  fh << "\nCELL_TYPES " << sgate_->n_pins_ * n_mesh_elements_ << "\n";
   for (int pin = 0; pin < sgate_->n_pins_; pin++) {
     for (auto v : types_) {
       fh << v << "\n";
     }
   }
+
+  fh << "\n";
 
   /// WRITE DATA \\\
   // fuel mesh elements are written first, followed by cladding elements
@@ -189,62 +191,69 @@ void SurrogateToVtk::write_vtk(std::string filename) {
 
   // for each radial section, the data point for that radial ring
   // is repeated radial_res times
-  fh << "CELL_DATA " << n_mesh_elements_ << "\n";
+  fh << "CELL_DATA " << sgate_->n_pins_*n_mesh_elements_ << "\n";
 
   if (VizDataType::all == data_out_ || VizDataType::temp == data_out_) {
     // temperature data
     fh << "SCALARS TEMPERATURE double 1\n";
     fh << "LOOKUP_TABLE default\n";
-
-    if (VizRegionType::fuel == regions_out_ || VizRegionType::all == regions_out_) {
-      // write all fuel data first
-      for (int i = 0; i < n_axial_sections_; i++) {
-        for (int j = 0; j < n_radial_fuel_sections_; j++) {
-          for (int k = 0; k < radial_res_; k++) {
-            fh << sgate_->temperature_(0, i, j) << "\n";
+    for (int pin = 0; pin < sgate_->n_pins_; pin++) {
+      if (VizRegionType::fuel == regions_out_ || VizRegionType::all == regions_out_) {
+        // write all fuel data first
+        for (int i = 0; i < n_axial_sections_; i++) {
+          for (int j = 0; j < n_radial_fuel_sections_; j++) {
+            for (int k = 0; k < radial_res_; k++) {
+              fh << sgate_->temperature_(pin, i, j) << "\n";
+            }
           }
         }
       }
-    }
 
-    // then write cladding data
-    if (VizRegionType::clad == regions_out_ || VizRegionType::all == regions_out_) {
-      for (int i = 0; i < n_axial_sections_; i++) {
-        for (int j = 0; j < n_radial_clad_sections_; j++) {
-          for (int k = 0; k < radial_res_; k++) {
-            fh << sgate_->temperature_(0, i, j + n_radial_fuel_sections_) << "\n";
+
+      // then write cladding data
+      if (VizRegionType::clad == regions_out_ || VizRegionType::all == regions_out_) {
+
+        for (int i = 0; i < n_axial_sections_; i++) {
+          for (int j = 0; j < n_radial_clad_sections_; j++) {
+            for (int k = 0; k < radial_res_; k++) {
+              fh << sgate_->temperature_(pin, i, j + n_radial_fuel_sections_) << "\n";
+            }
           }
         }
       }
-    }
+    } // end pin for
   }
 
   if (VizDataType::all == data_out_ || VizDataType::source == data_out_) {
     // source data
     fh << "SCALARS SOURCE double 1\n";
     fh << "LOOKUP_TABLE default\n";
-    // write all fuel data first
-    if (VizRegionType::fuel == regions_out_ || VizRegionType::all == regions_out_) {
-      for (int i = 0; i < n_axial_sections_; i++) {
-        for (int j = 0; j < n_radial_fuel_sections_; j++) {
-          for (int k = 0; k < radial_res_; k++) {
-            fh << sgate_->source_(0, i, j) << "\n";
+    for (int pin = 0; pin < sgate_->n_pins_; pin++) {
+      // write all fuel data first
+      if (VizRegionType::fuel == regions_out_ || VizRegionType::all == regions_out_) {
+        for (int i = 0; i < n_axial_sections_; i++) {
+          for (int j = 0; j < n_radial_fuel_sections_; j++) {
+            for (int k = 0; k < radial_res_; k++) {
+              fh << sgate_->source_(pin, i, j) << "\n";
+            }
           }
         }
       }
-    }
 
-    // then write the cladding data
-    if (VizRegionType::clad == regions_out_ || VizRegionType::all == regions_out_) {
-      for (int i = 0; i < n_axial_sections_; i++) {
-        for (int j = 0; j < n_radial_clad_sections_; j++) {
-          for (int k = 0; k < radial_res_; k++) {
-            fh << sgate_->source_(0, i, j + n_radial_fuel_sections_) << "\n";
+      // then write the cladding data
+      if (VizRegionType::clad == regions_out_ || VizRegionType::all == regions_out_) {
+
+        for (int i = 0; i < n_axial_sections_; i++) {
+          for (int j = 0; j < n_radial_clad_sections_; j++) {
+            for (int k = 0; k < radial_res_; k++) {
+              fh << sgate_->source_(pin, i, j + n_radial_fuel_sections_) << "\n";
+            }
           }
         }
       }
     }
   }
+
 
   // close the file
   fh.close();
@@ -384,14 +393,19 @@ xtensor<int, 1> SurrogateToVtk::conn() {
 xtensor<int, 1> SurrogateToVtk::conn_for_pin(int offset) {
 
   xt::xarray<int> conn_out = conn_;
-  conn_out.reshape({CONN_STRIDE_, n_mesh_elements_});
+  conn_out.reshape({n_mesh_elements_, CONN_STRIDE_});
   // get locations of all values less than 0
-  auto mask = conn_out < 0;
+  xt::xarray<bool> mask = conn_out < 0;
 
   xt::view(conn_out, xt::all(), xt::range(1, _)) += offset;
+
   conn_out = xt::flatten(conn_out);
+  // no masked_view in this version of xtensor,
+  // making do with this for now
   for (int i = 0; i < mask.size(); i++) {
-    if (mask(i)) conn_out(i) = -1;
+    if (mask(i)) {
+      conn_out(i) = INVALID_CONN_;
+    }
   }
   return conn_out;
 }
