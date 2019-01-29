@@ -150,30 +150,37 @@ void SurrogateToVtk::write_vtk(std::string filename) {
 
   /// POINTS \\\
 
-  fh << "POINTS " << n_points_ << " float\n";
-  xtensor<double, 1> pnts = points_for_pin(sgate_->pin_centers_(0,0),
-                                           sgate_->pin_centers_(0,1));
-  for (auto val = pnts.begin(); val != pnts.end(); val+=3) {
-    fh << *val << " " << *(val+1) << " " << *(val+2) << "\n";
+  fh << "POINTS " << sgate_->n_pins_ * n_points_ << " float\n";
+  for (int pin = 0; pin < sgate_->n_pins_; pin++) {
+    xtensor<double, 1> pnts = points_for_pin(sgate_->pin_centers_(pin,0),
+                                             sgate_->pin_centers_(pin,1));
+    for (auto val = pnts.begin(); val != pnts.end(); val+=3) {
+      fh << *val << " " << *(val+1) << " " << *(val+2) << "\n";
+    }
   }
 
   /// ELEMENT CONNECTIVITY \\\
 
-  fh << "\nCELLS " << n_mesh_elements_ << " " << n_entries_ << "\n";
-  for (auto val = conn_.begin(); val != conn_.end(); val += CONN_STRIDE_) {
-    for (int i = 0; i < CONN_STRIDE_; i++) {
-      auto v = *(val+i);
-      // mask out any negative connectivity values
-      if (v >= 0) { fh << v << " "; }
+  fh << "\nCELLS " << sgate_->n_pins_ * n_mesh_elements_ << " " << sgate_->n_pins_ * n_entries_ << "\n";
+  for (int pin = 0; pin < sgate_->n_pins_; pin++) {
+    xtensor<int, 1> conn = conn_for_pin(pin*n_points_);
+    for (auto val = conn.begin(); val != conn.end(); val += CONN_STRIDE_) {
+      for (int i = 0; i < CONN_STRIDE_; i++) {
+        auto v = *(val+i);
+        // mask out any negative connectivity values
+        if (v >= 0) { fh << v << " "; }
+      }
+      fh << "\n";
     }
-    fh << "\n";
   }
 
   /// MESH ELEMENT TYPES \\\
 
   fh << "\nCELL_TYPES " << n_mesh_elements_ << "\n";
-  for (auto v : types_) {
+  for (int pin = 0; pin < sgate_->n_pins_; pin++) {
+    for (auto v : types_) {
       fh << v << "\n";
+    }
   }
 
   /// WRITE DATA \\\
@@ -371,6 +378,21 @@ xtensor<int, 1> SurrogateToVtk::conn() {
       xt::flatten(f_conn), xt::flatten(c_conn)));
   }
 
+  return conn_out;
+}
+
+xtensor<int, 1> SurrogateToVtk::conn_for_pin(int offset) {
+
+  xt::xarray<int> conn_out = conn_;
+  conn_out.reshape({CONN_STRIDE_, n_mesh_elements_});
+  // get locations of all values less than 0
+  auto mask = conn_out < 0;
+
+  xt::view(conn_out, xt::all(), xt::range(1, _)) += offset;
+  conn_out = xt::flatten(conn_out);
+  for (int i = 0; i < mask.size(); i++) {
+    if (mask(i)) conn_out(i) = -1;
+  }
   return conn_out;
 }
 

@@ -50,6 +50,8 @@ public:
   xtensor<double, 1> points();
   //! Return 1-D array of points, translated to a pin center
   xtensor<double, 1> points_for_pin(double x, double y);
+  //! Return connectivity with an offset
+  xtensor<int, 1> conn_for_pin(int offset);
   //! Generate fuel connectivity (axial, radial, res, conn)
   //! \return fuel element connectivity (axial, radial, res, conn)
   xtensor<int, 4> fuel_conn();
