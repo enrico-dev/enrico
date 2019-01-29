@@ -48,7 +48,8 @@ public:
   xtensor<double, 3> clad_points();
   //! Return 1-D array of points for writing (xyz...) (ordered radially, axially)
   xtensor<double, 1> points();
-
+  //! Return 1-D array of points, translated to a pin center
+  xtensor<double, 1> points_for_pin(double x, double y);
   //! Generate fuel connectivity (axial, radial, res, conn)
   //! \return fuel element connectivity (axial, radial, res, conn)
   xtensor<int, 4> fuel_conn();
@@ -58,7 +59,6 @@ public:
   //! Return all connectivity values for writing
   //! \return 1-D array of connectivity, strided by CONN_STRIDE_ per element (ordered radially, axially)
   xtensor<int, 1> conn();
-
   //! Generate fuel vtk mesh element (cell) types
   //! \return fuel cell types (axia, radial, azimuthal)
   xtensor<int, 3> fuel_types();

@@ -151,7 +151,9 @@ void SurrogateToVtk::write_vtk(std::string filename) {
   /// POINTS \\\
 
   fh << "POINTS " << n_points_ << " float\n";
-  for (auto val = points_.begin(); val != points_.end(); val+=3) {
+  xtensor<double, 1> pnts = points_for_pin(sgate_->pin_centers_(0,0),
+                                           sgate_->pin_centers_(0,1));
+  for (auto val = pnts.begin(); val != pnts.end(); val+=3) {
     fh << *val << " " << *(val+1) << " " << *(val+2) << "\n";
   }
 
@@ -240,6 +242,16 @@ void SurrogateToVtk::write_vtk(std::string filename) {
   // close the file
   fh.close();
 } // write vtk
+
+xtensor<double, 1> SurrogateToVtk::points_for_pin(double x, double y) {
+  xtensor<double, 1> points_out = points_;
+
+  // translate points to pin center
+  xt::view(points_out, xt::range(0, _, 3)) += y;
+  xt::view(points_out, xt::range(1, _, 3)) += x;
+
+  return points_out;
+}
 
 xtensor<double, 1> SurrogateToVtk::points() {
   xtensor<double, 1> points;
