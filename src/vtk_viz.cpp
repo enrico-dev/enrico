@@ -133,6 +133,11 @@ SurrogateToVtk::SurrogateToVtk(const SurrogateHeatDriver* surrogate_ptr,
   n_points_ = points_per_plane_ * sgate_->z_.size();
   n_mesh_elements_ = n_radial_sections_ * radial_res_ * n_axial_sections_;
   n_entries_ = n_entries_per_plane_ * n_axial_sections_;
+
+  // generate a representative set of points and connectivity
+  points_ = points();
+  conn_ = conn();
+  types_ = types();
 }
 
 void SurrogateToVtk::write_vtk(std::string filename) {
@@ -146,16 +151,14 @@ void SurrogateToVtk::write_vtk(std::string filename) {
   /// POINTS \\\
 
   fh << "POINTS " << n_points_ << " float\n";
-  xtensor<double, 1> pnts = points();
-  for (auto val = pnts.begin(); val != pnts.end(); val+=3) {
+  for (auto val = points_.begin(); val != points_.end(); val+=3) {
     fh << *val << " " << *(val+1) << " " << *(val+2) << "\n";
   }
 
   /// ELEMENT CONNECTIVITY \\\
 
   fh << "\nCELLS " << n_mesh_elements_ << " " << n_entries_ << "\n";
-  xtensor<int, 1> connectivity = conn();
-  for (auto val = connectivity.begin(); val != connectivity.end(); val += CONN_STRIDE_) {
+  for (auto val = conn_.begin(); val != conn_.end(); val += CONN_STRIDE_) {
     for (int i = 0; i < CONN_STRIDE_; i++) {
       auto v = *(val+i);
       // mask out any negative connectivity values
@@ -167,8 +170,7 @@ void SurrogateToVtk::write_vtk(std::string filename) {
   /// MESH ELEMENT TYPES \\\
 
   fh << "\nCELL_TYPES " << n_mesh_elements_ << "\n";
-  xtensor<int ,1> cell_types = types();
-  for (auto v : cell_types) {
+  for (auto v : types_) {
       fh << v << "\n";
   }
 
@@ -294,10 +296,6 @@ xtensor<double, 3> SurrogateToVtk::fuel_points() {
     xt::view(pnts_out, i, xt::range(1,_), 1) = y;
     xt::view(pnts_out, i, xt::all(), 2) = sgate_->z_(i);
   }
-
-  // translate
-  xt::view(pnts_out, xt::all(), xt::all(), 0) += sgate_->pin_centers_(0,0);
-  xt::view(pnts_out, xt::all(), xt::all(), 1) += sgate_->pin_centers_(0,1);
 
   return pnts_out;
 }
