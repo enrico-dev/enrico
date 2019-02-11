@@ -63,8 +63,10 @@ public:
   //! \return cladding points (axial, radial_rings, xyz)
   xtensor<double, 3> clad_points();
   //! Return 1-D array of points for writing (xyz...) (ordered radially, axially)
+  //! \return 1-D array of all points in the model
   xtensor<double, 1> points();
   //! Return 1-D array of points, translated to a pin center
+  //! \return 1-D array of points translated to a center x,y
   xtensor<double, 1> points_for_pin(double x, double y);
   //! Return connectivity with an offset
   xtensor<int, 1> conn_for_pin(int offset);
@@ -88,16 +90,17 @@ public:
   xtensor<int, 1> types();
 
 private:
-  xtensor<double, 1> points_;
-  xtensor<int, 1> conn_;
-  xtensor<int, 1> types_;
 
-  // internal variables
+  // internal variables/parameters
   const SurrogateHeatDriver* sgate_; //!< pointer to surrogate
   int radial_res_;                   //!< radial resolution;
-
   VizDataType data_out_;
   VizRegionType regions_out_;
+
+  // pin templates
+  xtensor<double, 1> points_; //!< template of xyz values for the mesh, centerd on the origin
+  xtensor<int, 1> conn_;      //!< template of mesh element connectivity for a single pin
+  xtensor<int, 1> types_;     //!< template of mesh element types for a single pin
 
   // SECTIONS
   // axial

@@ -177,8 +177,10 @@ SurrogateVtkWriter::write_points(ofstream& vtk_file) {
 
   vtk_file << "POINTS " << sgate_->n_pins_ * n_points_ << " float\n";
   for (int pin = 0; pin < sgate_->n_pins_; pin++) {
+    // translate pin template to pin center
     xtensor<double, 1> pnts = points_for_pin(sgate_->pin_centers_(pin,0),
                                              sgate_->pin_centers_(pin,1));
+
     for (auto val = pnts.begin(); val != pnts.end(); val+=3) {
       vtk_file << *val << " " << *(val+1) << " " << *(val+2) << "\n";
     }
@@ -187,15 +189,20 @@ SurrogateVtkWriter::write_points(ofstream& vtk_file) {
 
 void
 SurrogateVtkWriter::write_element_connectivity(ofstream& vtk_file) {
-
-  vtk_file << "\nCELLS " << sgate_->n_pins_ * n_mesh_elements_ << " " << sgate_->n_pins_ * n_entries_ << "\n";
+  // write number of connectivity entries
+  vtk_file << "\nCELLS " << sgate_->n_pins_ * n_mesh_elements_ << " "
+           << sgate_->n_pins_ * n_entries_ << "\n";
+  // pin loop
   for (int pin = 0; pin < sgate_->n_pins_; pin++) {
-    xtensor<int, 1> conn = conn_for_pin(pin*n_points_);
+    // get the connectivity for a given pin, using an
+    // offset to get the connectivity values correct
+    xtensor<int, 1> conn = conn_for_pin(pin * n_points_);
+    // write the connectivity values to file for this pin
     for (auto val = conn.begin(); val != conn.end(); val += CONN_STRIDE_) {
       for (int i = 0; i < CONN_STRIDE_; i++) {
         auto v = *(val+i);
         // mask out any negative connectivity values
-        if (v >= 0) { vtk_file << v << " "; }
+        if (v != INVALID_CONN_) { vtk_file << v << " "; }
       }
       vtk_file << "\n";
     }
@@ -204,8 +211,11 @@ SurrogateVtkWriter::write_element_connectivity(ofstream& vtk_file) {
 
 void
 SurrogateVtkWriter::write_element_types(ofstream& vtk_file) {
+  // write number of cell type entries
   vtk_file << "\nCELL_TYPES " << sgate_->n_pins_ * n_mesh_elements_ << "\n";
+  // pin loop
   for (int pin = 0; pin < sgate_->n_pins_; pin++) {
+    // write the template for each pin
     for (auto v : types_) {
       vtk_file << v << "\n";
     }
@@ -222,11 +232,14 @@ SurrogateVtkWriter::write_data(ofstream& vtk_file) {
   // is repeated radial_res times
   vtk_file << "CELL_DATA " << sgate_->n_pins_*n_mesh_elements_ << "\n";
 
+  // check what data we're writing
   if (VizDataType::all == data_out_ || VizDataType::temp == data_out_) {
     // temperature data
     vtk_file << "SCALARS TEMPERATURE double 1\n";
     vtk_file << "LOOKUP_TABLE default\n";
+    // write data for each pin
     for (int pin = 0; pin < sgate_->n_pins_; pin++) {
+      // write data for specified regions
       if (VizRegionType::fuel == regions_out_ || VizRegionType::all == regions_out_) {
         // write all fuel data first
         for (int i = 0; i < n_axial_sections_; i++) {
@@ -240,7 +253,6 @@ SurrogateVtkWriter::write_data(ofstream& vtk_file) {
 
       // then write cladding data
       if (VizRegionType::clad == regions_out_ || VizRegionType::all == regions_out_) {
-
         for (int i = 0; i < n_axial_sections_; i++) {
           for (int j = 0; j < n_radial_clad_sections_; j++) {
             for (int k = 0; k < radial_res_; k++) {
@@ -249,6 +261,7 @@ SurrogateVtkWriter::write_data(ofstream& vtk_file) {
           }
         }
       }
+
     } // end pin for
   }
 
@@ -270,7 +283,6 @@ SurrogateVtkWriter::write_data(ofstream& vtk_file) {
 
       // then write the cladding data
       if (VizRegionType::clad == regions_out_ || VizRegionType::all == regions_out_) {
-
         for (int i = 0; i < n_axial_sections_; i++) {
           for (int j = 0; j < n_radial_clad_sections_; j++) {
             for (int k = 0; k < radial_res_; k++) {
@@ -279,13 +291,14 @@ SurrogateVtkWriter::write_data(ofstream& vtk_file) {
           }
         }
       }
-    }
+    } // end pin loop
   }
+
 } // write_data
 
 xtensor<double, 1>
 SurrogateVtkWriter::points_for_pin(double x, double y) {
-
+  // start with the origin-centered template
   xtensor<double, 1> points_out = points_;
 
   // translate points to pin center
@@ -448,7 +461,7 @@ xtensor<int, 4> SurrogateVtkWriter::fuel_conn() {
                                              radial_res_,
                                              HEX_SIZE_});
 
-  /// INNERMOST RING (WEDGES) \\\
+  // innermost ring (wedges only)
 
   xtensor<int, 2> inner_base = xt::zeros<int>({radial_res_, HEX_SIZE_});
 
@@ -466,7 +479,7 @@ xtensor<int, 4> SurrogateVtkWriter::fuel_conn() {
   // set values for the innermost ring
   xt::view(base, 0, xt::all(), xt::all()) = inner_base;
 
-  /// OUTER RINGS (HEXES) \\\
+  // outer rings (hexes)
 
   // create a radial base starting at point zero
   // with a shift between the first and second layer of connectivity
@@ -506,13 +519,12 @@ xtensor<int, 4> SurrogateVtkWriter::clad_conn() {
                                               radial_res_,
                                               HEX_SIZE_ + 1});
 
-
   // base layer to be extended in Z
   xtensor<int, 3> base = xt::zeros<int>({n_radial_clad_sections_,
                                          radial_res_,
                                          HEX_SIZE_});
 
-  /// ELEMENT RINGS (HEXES) \\\
+  // element rings (hexes)
 
   // create a radial base starting at point zero
   // with a shift between the first and second layer of connectivity
