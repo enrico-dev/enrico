@@ -20,6 +20,7 @@ namespace stream {
 
 using xt::placeholders::_;
 using xt::xtensor;
+using std::ofstream;
 
 xtensor<double, 2> create_ring(double radius,
                                    int t_resolution) {
@@ -64,7 +65,7 @@ xtensor<int, 2> hex_ring(int start_idx, int resolution, int z_shift) {
   return out;
 }
 
-SurrogateToVtk::SurrogateToVtk(const SurrogateHeatDriver* surrogate_ptr,
+SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver* surrogate_ptr,
                                int t_res,
                                std::string regions_to_write,
                                std::string data_to_write) :
@@ -140,75 +141,102 @@ SurrogateToVtk::SurrogateToVtk(const SurrogateHeatDriver* surrogate_ptr,
   types_ = types();
 }
 
-void SurrogateToVtk::write_vtk(std::string filename) {
+void SurrogateVtkWriter::write_vtk(std::string filename) {
 
-  std::ofstream fh(filename, std::ofstream::out);
+  // open file
+  ofstream fh(filename, std::ofstream::out);
 
   // write vtk header
-  fh << "# vtk DataFile Version 2.0\n";
-  fh << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
+  write_header(fh);
 
-  /// POINTS \\\
+  // write vertex locations
+  write_points(fh);
 
-  fh << "POINTS " << sgate_->n_pins_ * n_points_ << " float\n";
+  // write wedge/hex element connectivity
+  write_element_connectivity(fh);
+
+  // write types for wedge/hex elements
+  write_element_types(fh);
+
+  // write specified data to the vtk file
+  write_data(fh);
+
+  // close the file
+  fh.close();
+
+} // write_vtk
+
+void
+SurrogateVtkWriter::write_header(ofstream& vtk_file) {
+  vtk_file << "# vtk DataFile Version 2.0\n";
+  vtk_file << "No comment\nASCII\nDATASET UNSTRUCTURED_GRID\n";
+}
+
+void
+SurrogateVtkWriter::write_points(ofstream& vtk_file) {
+
+  vtk_file << "POINTS " << sgate_->n_pins_ * n_points_ << " float\n";
   for (int pin = 0; pin < sgate_->n_pins_; pin++) {
     xtensor<double, 1> pnts = points_for_pin(sgate_->pin_centers_(pin,0),
                                              sgate_->pin_centers_(pin,1));
     for (auto val = pnts.begin(); val != pnts.end(); val+=3) {
-      fh << *val << " " << *(val+1) << " " << *(val+2) << "\n";
+      vtk_file << *val << " " << *(val+1) << " " << *(val+2) << "\n";
     }
   }
+} // write_points
 
-  /// ELEMENT CONNECTIVITY \\\
+void
+SurrogateVtkWriter::write_element_connectivity(ofstream& vtk_file) {
 
-  fh << "\nCELLS " << sgate_->n_pins_ * n_mesh_elements_ << " " << sgate_->n_pins_ * n_entries_ << "\n";
+  vtk_file << "\nCELLS " << sgate_->n_pins_ * n_mesh_elements_ << " " << sgate_->n_pins_ * n_entries_ << "\n";
   for (int pin = 0; pin < sgate_->n_pins_; pin++) {
     xtensor<int, 1> conn = conn_for_pin(pin*n_points_);
     for (auto val = conn.begin(); val != conn.end(); val += CONN_STRIDE_) {
       for (int i = 0; i < CONN_STRIDE_; i++) {
         auto v = *(val+i);
         // mask out any negative connectivity values
-        if (v >= 0) { fh << v << " "; }
+        if (v >= 0) { vtk_file << v << " "; }
       }
-      fh << "\n";
+      vtk_file << "\n";
     }
   }
+} // write_element_connectivity
 
-  /// MESH ELEMENT TYPES \\\
-
-  fh << "\nCELL_TYPES " << sgate_->n_pins_ * n_mesh_elements_ << "\n";
+void
+SurrogateVtkWriter::write_element_types(ofstream& vtk_file) {
+  vtk_file << "\nCELL_TYPES " << sgate_->n_pins_ * n_mesh_elements_ << "\n";
   for (int pin = 0; pin < sgate_->n_pins_; pin++) {
     for (auto v : types_) {
-      fh << v << "\n";
+      vtk_file << v << "\n";
     }
   }
+  vtk_file << "\n";
+} // write_element_types
 
-  fh << "\n";
-
-  /// WRITE DATA \\\
+void
+SurrogateVtkWriter::write_data(ofstream& vtk_file) {
   // fuel mesh elements are written first, followed by cladding elements
   // the data needs to be written in a similar matter
 
   // for each radial section, the data point for that radial ring
   // is repeated radial_res times
-  fh << "CELL_DATA " << sgate_->n_pins_*n_mesh_elements_ << "\n";
+  vtk_file << "CELL_DATA " << sgate_->n_pins_*n_mesh_elements_ << "\n";
 
   if (VizDataType::all == data_out_ || VizDataType::temp == data_out_) {
     // temperature data
-    fh << "SCALARS TEMPERATURE double 1\n";
-    fh << "LOOKUP_TABLE default\n";
+    vtk_file << "SCALARS TEMPERATURE double 1\n";
+    vtk_file << "LOOKUP_TABLE default\n";
     for (int pin = 0; pin < sgate_->n_pins_; pin++) {
       if (VizRegionType::fuel == regions_out_ || VizRegionType::all == regions_out_) {
         // write all fuel data first
         for (int i = 0; i < n_axial_sections_; i++) {
           for (int j = 0; j < n_radial_fuel_sections_; j++) {
             for (int k = 0; k < radial_res_; k++) {
-              fh << sgate_->temperature_(pin, i, j) << "\n";
+              vtk_file << sgate_->temperature_(pin, i, j) << "\n";
             }
           }
         }
       }
-
 
       // then write cladding data
       if (VizRegionType::clad == regions_out_ || VizRegionType::all == regions_out_) {
@@ -216,7 +244,7 @@ void SurrogateToVtk::write_vtk(std::string filename) {
         for (int i = 0; i < n_axial_sections_; i++) {
           for (int j = 0; j < n_radial_clad_sections_; j++) {
             for (int k = 0; k < radial_res_; k++) {
-              fh << sgate_->temperature_(pin, i, j + n_radial_fuel_sections_) << "\n";
+              vtk_file << sgate_->temperature_(pin, i, j + n_radial_fuel_sections_) << "\n";
             }
           }
         }
@@ -226,15 +254,15 @@ void SurrogateToVtk::write_vtk(std::string filename) {
 
   if (VizDataType::all == data_out_ || VizDataType::source == data_out_) {
     // source data
-    fh << "SCALARS SOURCE double 1\n";
-    fh << "LOOKUP_TABLE default\n";
+    vtk_file << "SCALARS SOURCE double 1\n";
+    vtk_file << "LOOKUP_TABLE default\n";
     for (int pin = 0; pin < sgate_->n_pins_; pin++) {
       // write all fuel data first
       if (VizRegionType::fuel == regions_out_ || VizRegionType::all == regions_out_) {
         for (int i = 0; i < n_axial_sections_; i++) {
           for (int j = 0; j < n_radial_fuel_sections_; j++) {
             for (int k = 0; k < radial_res_; k++) {
-              fh << sgate_->source_(pin, i, j) << "\n";
+              vtk_file << sgate_->source_(pin, i, j) << "\n";
             }
           }
         }
@@ -246,20 +274,18 @@ void SurrogateToVtk::write_vtk(std::string filename) {
         for (int i = 0; i < n_axial_sections_; i++) {
           for (int j = 0; j < n_radial_clad_sections_; j++) {
             for (int k = 0; k < radial_res_; k++) {
-              fh << sgate_->source_(pin, i, j + n_radial_fuel_sections_) << "\n";
+              vtk_file << sgate_->source_(pin, i, j + n_radial_fuel_sections_) << "\n";
             }
           }
         }
       }
     }
   }
+} // write_data
 
+xtensor<double, 1>
+SurrogateVtkWriter::points_for_pin(double x, double y) {
 
-  // close the file
-  fh.close();
-} // write vtk
-
-xtensor<double, 1> SurrogateToVtk::points_for_pin(double x, double y) {
   xtensor<double, 1> points_out = points_;
 
   // translate points to pin center
@@ -269,7 +295,7 @@ xtensor<double, 1> SurrogateToVtk::points_for_pin(double x, double y) {
   return points_out;
 }
 
-xtensor<double, 1> SurrogateToVtk::points() {
+xtensor<double, 1> SurrogateVtkWriter::points() {
   xtensor<double, 1> points;
 
   if (VizRegionType::fuel == regions_out_) {
@@ -292,7 +318,7 @@ xtensor<double, 1> SurrogateToVtk::points() {
   return points;
 }
 
-xtensor<double, 3> SurrogateToVtk::fuel_points() {
+xtensor<double, 3> SurrogateVtkWriter::fuel_points() {
   // array to hold all point data
   xt::xarray<double> pnts_out = xt::zeros<double>({n_axial_points_,
                                                   fuel_points_per_plane_,
@@ -328,7 +354,7 @@ xtensor<double, 3> SurrogateToVtk::fuel_points() {
   return pnts_out;
 }
 
-xtensor<double, 3> SurrogateToVtk::clad_points() {
+xtensor<double, 3> SurrogateVtkWriter::clad_points() {
   // array to hold all point data
   xt::xarray<double> pnts_out = xt::zeros<double>({n_axial_points_,
                                                   clad_points_per_plane_,
@@ -365,7 +391,7 @@ xtensor<double, 3> SurrogateToVtk::clad_points() {
   return pnts_out;
 }
 
-xtensor<int, 1> SurrogateToVtk::conn() {
+xtensor<int, 1> SurrogateVtkWriter::conn() {
   xtensor<int, 1> conn_out;
   if (VizRegionType::fuel == regions_out_) {
     // get the fuel connectivity
@@ -390,7 +416,7 @@ xtensor<int, 1> SurrogateToVtk::conn() {
   return conn_out;
 }
 
-xtensor<int, 1> SurrogateToVtk::conn_for_pin(int offset) {
+xtensor<int, 1> SurrogateVtkWriter::conn_for_pin(int offset) {
 
   xt::xarray<int> conn_out = conn_;
   conn_out.reshape({n_mesh_elements_, CONN_STRIDE_});
@@ -410,7 +436,7 @@ xtensor<int, 1> SurrogateToVtk::conn_for_pin(int offset) {
   return conn_out;
 }
 
-xtensor<int, 4> SurrogateToVtk::fuel_conn() {
+xtensor<int, 4> SurrogateVtkWriter::fuel_conn() {
   // size output array
   xtensor<int, 4> cells_out = xt::zeros<int>({n_axial_sections_,
                                                   n_radial_fuel_sections_,
@@ -472,7 +498,7 @@ xtensor<int, 4> SurrogateToVtk::fuel_conn() {
   return cells_out;
 }
 
-xtensor<int, 4> SurrogateToVtk::clad_conn() {
+xtensor<int, 4> SurrogateVtkWriter::clad_conn() {
 
   // size output array
   xtensor<int, 4> cells_out = xt::zeros<int>({n_axial_sections_,
@@ -514,7 +540,7 @@ xtensor<int, 4> SurrogateToVtk::clad_conn() {
   return cells_out;
 }
 
-xtensor<int, 1> SurrogateToVtk::types() {
+xtensor<int, 1> SurrogateVtkWriter::types() {
   xtensor<int, 1> types_out;
   if (VizRegionType::fuel == regions_out_) {
     // get fuel types
@@ -537,7 +563,7 @@ xtensor<int, 1> SurrogateToVtk::types() {
   return types_out;
 }
 
-xtensor<int, 3> SurrogateToVtk::fuel_types() {
+xtensor<int, 3> SurrogateVtkWriter::fuel_types() {
   // size the output array
   xtensor<int, 3> types_out = xt::zeros<int>({n_axial_sections_,
                                               n_radial_fuel_sections_,
@@ -551,7 +577,7 @@ xtensor<int, 3> SurrogateToVtk::fuel_types() {
   return types_out;
 }
 
-xtensor<int, 3> SurrogateToVtk::clad_types() {
+xtensor<int, 3> SurrogateVtkWriter::clad_types() {
   // size output array
   xtensor<int, 3> clad_types_out = xt::zeros<int>({n_axial_sections_,
                                                    n_radial_clad_sections_,

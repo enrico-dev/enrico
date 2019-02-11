@@ -5,10 +5,11 @@
 #include "stream/heat_driver.h"
 
 using xt::xtensor;
+using std::ofstream;
 
 namespace stream {
 
-class SurrogateToVtk {
+class SurrogateVtkWriter {
 
 friend SurrogateHeatDriver;
 
@@ -31,7 +32,7 @@ private:
   //!
   //! \param surrogate_ptr Pointer to the surrogate to write
   //! \param t_rad         Radial resolution of the generated VTK mesh
-SurrogateToVtk(const SurrogateHeatDriver *surrogate_ptr,
+SurrogateVtkWriter(const SurrogateHeatDriver *surrogate_ptr,
                int t_res,
                std::string regions_to_write,
                std::string data_to_write);
@@ -39,6 +40,21 @@ SurrogateToVtk(const SurrogateHeatDriver *surrogate_ptr,
 public:
   //! Write the surrogate model to VTK
   void write_vtk(std::string filename = "magnolia.vtk");
+
+  //! Write a vtk header for an unstructured grid
+  void write_header(ofstream& vtk_file);
+
+  //! Write fuel pin points to the vtk file
+  void write_points(ofstream& vtk_file);
+
+  //! Write the wedge/hex element connectivity to the vtk file
+  void write_element_connectivity(ofstream& vtk_file);
+
+  //! Write the wedge/hex element types to the vtk file
+  void write_element_types(ofstream& vtk_file);
+
+  //! Write requested data to the vtk file
+  void write_data(ofstream& vtk_file);
 
   //! Generate fuel mesh points
   //! \return fuel points (axial, radial_rings, xyz)
@@ -78,45 +94,41 @@ private:
 
   // internal variables
   const SurrogateHeatDriver* sgate_; //!< pointer to surrogate
-  int radial_res_; //!< radial resolution;
+  int radial_res_;                   //!< radial resolution;
 
   VizDataType data_out_;
   VizRegionType regions_out_;
 
-  /// SECTIONS \\\
+  // SECTIONS
   // axial
   int n_axial_sections_; //!< number of axial sections
-  int n_axial_points_; //!< number of axial points (planes)
+  int n_axial_points_;   //!< number of axial points (planes)
   // radial
   int n_radial_fuel_sections_; //!< number of radial fuel sections
   int n_radial_clad_sections_; //!< number of radial cladding sections
-  int n_radial_sections_; //!< total number of radial sections
+  int n_radial_sections_;      //!< total number of radial SECTIONS
 
-  /// POINTS \\                                 \
+  // POINTS
+  unsigned long n_fuel_points_; //!< number of points needed to represent the fuel regions
+  unsigned long n_clad_points_; //!< number of points needed to represent the cladding regions
+  unsigned long n_points_;      //!< total number of points in the vtk representation
 
-  int n_fuel_points_; //!< number of points neede to represent the fuel regions
-  int n_clad_points_; //!< number of points neede to represent the cladding regions
-  int n_points_; //!< total number of points in the vtk representation
-
-  /// PER PLANE \\\
-
-  int n_sections_per_plane_; //!< total number of radial sections in a plane
+  // PER PLANE VALUES
+  int n_sections_per_plane_;  //!< total number of radial sections in a plane
   int fuel_points_per_plane_; //!< number of fuel points in a plane
   int clad_points_per_plane_; //!< number of cladding points in a plane
-  int points_per_plane_; //!< total number of points in a plane
+  int points_per_plane_;      //!< total number of points in a plane
 
-  /// MESH ELEMENTS \\\
+  // MESH ELEMENTS
+  unsigned long n_fuel_elements_; //!< number of fuel elements in mesh
+  unsigned long n_clad_elements_; //!< number of cladding elements in the mesh
+  unsigned long n_mesh_elements_; //!< total number of mesh elements
 
-  int n_fuel_elements_; //!< number of fuel elements in mesh
-  int n_clad_elements_; //!< number of cladding elements in the mesh
-  int n_mesh_elements_; //!< total number of mesh elements
-
-  /// CONNECTIVITY ENTRIES \\\
-
-  int n_fuel_entries_per_plane_; //!< number of fuel connectivity entries in a plane
-  int n_clad_entries_per_plane_; //!< number of cladding connectivity entries in a plane
-  int n_entries_per_plane_; //!< total number of connectivity entries in a plane
-  int n_entries_; //!< total number of connectivity entries in a plane
+  // CONNECTIVITY ENTRIES
+  unsigned long n_fuel_entries_per_plane_; //!< number of fuel connectivity entries in a plane
+  unsigned long n_clad_entries_per_plane_; //!< number of cladding connectivity entries in a plane
+  unsigned long n_entries_per_plane_;      //!< total number of connectivity entries in a plane
+  unsigned long n_entries_;                //!< total number of connectivity entries in a plane
 };
 
 } // stream
