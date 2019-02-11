@@ -39,7 +39,7 @@ public:
   std::size_t n_rings() { return n_fuel_rings_ + n_clad_rings_; }
 
   //! Write data to VTK
-  void to_vtk(int it = -1);
+  void to_vtk(int iteration = -1);
 
   // Data on fuel pins
   xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins
@@ -62,11 +62,11 @@ public:
   xt::xtensor<double, 1> r_grid_fuel_; //!< radii of each fuel ring in [cm]
 
   // visualization
-  std::string viz_basename;   //!< base filename for visualization files (default: magnolia)
-  std::string viz_iterations; //!< visualization iterations to write (none, all, final)
-  std::string viz_data;       //!< visualization data to write
-  std::string viz_regions;    //!< visualization regions to write
-  int vtk_radial_res;         //!< radial resolution of resulting vtk files
+  std::string viz_basename_{"magnolia"};   //!< base filename for visualization files (default: magnolia)
+  std::string viz_iterations_{"none"};     //!< visualization iterations to write (none, all, final)
+  std::string viz_data_;                   //!< visualization data to write
+  std::string viz_regions_;                //!< visualization regions to write
+  int vtk_radial_res_;                     //!< radial resolution of resulting vtk files
 
 private:
   //! Create internal arrays used for heat equation solver

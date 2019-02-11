@@ -12,7 +12,7 @@
 namespace stream {
 
 SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
-  : HeatFluidsDriver{comm}, viz_basename{"magnolia"}, viz_iterations{"none"}
+  : HeatFluidsDriver{comm}
 {
   // Determine heat transfer solver parameters
   clad_inner_radius_ = node.child("clad_inner_radius").text().as_double();
@@ -44,18 +44,18 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
 
   // Check for visualization intput
   if (node.child("viz")) {
-    // if a viz node is found, write final iteration by default
-    viz_iterations = "final";
     pugi::xml_node viz_node = node.child("viz");
     if (viz_node.attribute("filename")) {
-        viz_basename = viz_node.attribute("filename").value();
+        viz_basename_ = viz_node.attribute("filename").value();
     }
 
-    // set other values
-    vtk_radial_res = viz_node.child("resolution").text().as_int();
-    viz_iterations = viz_node.child("iterations").text().as_string();
-    viz_data = viz_node.child("data").text().as_string();
-    viz_regions = viz_node.child("regions").text().as_string();
+    // if a viz node is found, write final iteration by default
+    viz_iterations_ = "final";
+    viz_iterations_ = viz_node.child("iterations").text().as_string();
+    // set other viz values
+    vtk_radial_res_ = viz_node.child("resolution").text().as_int();
+    viz_data_ = viz_node.child("data").text().as_string();
+    viz_regions_ = viz_node.child("regions").text().as_string();
   }
 
   // Initialize heat transfer solver
@@ -105,7 +105,7 @@ void SurrogateHeatDriver::solve_step(int i_picard)
     }
   }
 
-  if(viz_iterations == "all") {
+  if (viz_iterations_ == "all") {
     to_vtk(i_picard);
   }
 }
@@ -113,18 +113,19 @@ void SurrogateHeatDriver::solve_step(int i_picard)
 void SurrogateHeatDriver::to_vtk(int iteration)
 {
   std::stringstream filename;
-  filename << viz_basename;
+  filename << viz_basename_;
   if (iteration >= 0) { filename << "_" << iteration; }
   filename << ".vtk";
 
-  SurrogateToVtk vtk_writer(this, vtk_radial_res, viz_regions, viz_data);
+  SurrogateToVtk vtk_writer(this, vtk_radial_res_, viz_regions_, viz_data_);
+
   std::cout << "Writing VTK file: " << filename.str() << "\n";
   vtk_writer.write_vtk(filename.str());
   return;
 }
 
 SurrogateHeatDriver::~SurrogateHeatDriver() {
-  if ("final" == viz_iterations) {
+  if ("final" == viz_iterations_) {
     to_vtk();
   }
 }

@@ -303,7 +303,7 @@ xtensor<double, 3> SurrogateToVtk::fuel_points() {
   xt::xarray<double> y = xt::zeros<double>({n_radial_fuel_sections_, radial_res_});
 
   // generate x/y points for each raidal section
-  for(int i = 0; i < n_radial_fuel_sections_; i++) {
+  for (int i = 0; i < n_radial_fuel_sections_; i++) {
     // first radius in r_grid_fuel_ is zero, start at one
     double ring_rad = sgate_->r_grid_fuel_(i + 1);
     // create a unit ring scaled by radius
@@ -338,7 +338,7 @@ xtensor<double, 3> SurrogateToVtk::clad_points() {
   xt::xarray<double> y = xt::zeros<double>({n_radial_clad_sections_ + 1, radial_res_});
 
   // generate x/y points for each radial ring
-  for(int i = 0; i < n_radial_clad_sections_ + 1; i++) {
+  for (int i = 0; i < n_radial_clad_sections_ + 1; i++) {
     double ring_rad = sgate_->r_grid_clad_(i);
     // create a unit ring scaled by radius
     xtensor<double, 2> ring = create_ring(ring_rad, radial_res_);
@@ -502,7 +502,7 @@ xtensor<int, 4> SurrogateToVtk::clad_conn() {
 
   // set all axial divs using base for the first layer and
   // shift by the number of points in a plane
-  for(int i = 0; i < n_axial_sections_; i++) {
+  for (int i = 0; i < n_axial_sections_; i++) {
     // set layer and increment connectivity by number of points in axial div
     xt::view(cells_out, i, xt::all(), xt::all(), xt::range(1, _)) = base;
     base += clad_points_per_plane_;
