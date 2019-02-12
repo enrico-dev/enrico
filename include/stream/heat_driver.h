@@ -62,11 +62,11 @@ public:
   xt::xtensor<double, 1> r_grid_fuel_; //!< radii of each fuel ring in [cm]
 
   // visualization
-  std::string viz_basename_{"magnolia"};   //!< base filename for visualization files (default: magnolia)
-  std::string viz_iterations_{"none"};     //!< visualization iterations to write (none, all, final)
-  std::string viz_data_;                   //!< visualization data to write
-  std::string viz_regions_;                //!< visualization regions to write
-  int vtk_radial_res_;                     //!< radial resolution of resulting vtk files
+  std::string viz_basename_{"magnolia"}; //!< base filename for visualization files (default: magnolia)
+  std::string viz_iterations_{"none"};   //!< visualization iterations to write (none, all, final)
+  std::string viz_data_{"all"};          //!< visualization data to write
+  std::string viz_regions_{"all"};       //!< visualization regions to write
+  int vtk_radial_res_{20};               //!< radial resolution of resulting vtk files
 
 private:
   //! Create internal arrays used for heat equation solver

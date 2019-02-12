@@ -51,11 +51,19 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
 
     // if a viz node is found, write final iteration by default
     viz_iterations_ = "final";
-    viz_iterations_ = viz_node.child("iterations").text().as_string();
+    if (viz_node.child("iterations")) {
+      viz_iterations_ = viz_node.child("iterations").text().as_string();
+    }
     // set other viz values
-    vtk_radial_res_ = viz_node.child("resolution").text().as_int();
-    viz_data_ = viz_node.child("data").text().as_string();
-    viz_regions_ = viz_node.child("regions").text().as_string();
+    if (viz_node.child("resolution")) {
+      vtk_radial_res_ = viz_node.child("resolution").text().as_int();
+    }
+    if (viz_node.child("data")) {
+      viz_data_ = viz_node.child("data").text().as_string();
+    }
+    if (viz_node.child("regions")) {
+      viz_regions_ = viz_node.child("regions").text().as_string();
+    }
   }
 
   // Initialize heat transfer solver
