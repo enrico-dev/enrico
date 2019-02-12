@@ -32,10 +32,10 @@ private:
   //!
   //! \param surrogate_ptr Pointer to the surrogate to write
   //! \param t_rad         Radial resolution of the generated VTK mesh
-SurrogateVtkWriter(const SurrogateHeatDriver *surrogate_ptr,
-               int t_res,
-               std::string regions_to_write,
-               std::string data_to_write);
+SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ptr,
+                   int t_res,
+                   std::string regions_to_write,
+                   std::string data_to_write);
 
 public:
   //! Write the surrogate model to VTK
@@ -92,7 +92,7 @@ public:
 private:
 
   // internal variables/parameters
-  const SurrogateHeatDriver* sgate_; //!< pointer to surrogate
+  const SurrogateHeatDriver& sgate_; //!< pointer to surrogate
   int radial_res_;                   //!< radial resolution;
   VizDataType data_out_;
   VizRegionType regions_out_;

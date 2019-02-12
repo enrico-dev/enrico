@@ -125,7 +125,7 @@ void SurrogateHeatDriver::to_vtk(int iteration)
   if (iteration >= 0) { filename << "_" << iteration; }
   filename << ".vtk";
 
-  SurrogateVtkWriter vtk_writer(this, vtk_radial_res_, viz_regions_, viz_data_);
+  SurrogateVtkWriter vtk_writer(*this, vtk_radial_res_, viz_regions_, viz_data_);
 
   std::cout << "Writing VTK file: " << filename.str() << "\n";
   vtk_writer.write_vtk(filename.str());
