@@ -22,9 +22,6 @@ public:
   //! \param node  XML node containing settings for surrogate
   explicit SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node);
 
-  //! Finalizes heat-fluids surrogate.
-  ~SurrogateHeatDriver();
-
   //! Initializes timestep for heat-fluids surrogate solver
   void init_step() { };
 

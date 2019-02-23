@@ -123,8 +123,11 @@ void OpenmcHeatDriver::solve_step()
 
       // Update temperature in OpenMC
       update_temperature();
+
+      to_vtk(i_picard);
     }
   }
+  to_vtk();
 }
 
 void OpenmcHeatDriver::update_heat_source()

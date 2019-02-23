@@ -112,14 +112,16 @@ void SurrogateHeatDriver::solve_step(int i_picard)
         n_fuel_rings_, n_clad_rings_, tol_, &temperature_(i, j, 0));
     }
   }
-
-  if (viz_iterations_ == "all") {
-    to_vtk(i_picard);
-  }
 }
 
 void SurrogateHeatDriver::to_vtk(int iteration)
 {
+  // if called, but viz isn't requested for the situation,
+  // exit early - no output
+  if (iteration < 0 && "final" != viz_iterations_ ||
+      iteration >= 0 && "all"   != viz_iterations_) { return; }
+
+  // otherwise construct an appropriate filename and write the data
   std::stringstream filename;
   filename << viz_basename_;
   if (iteration >= 0) { filename << "_" << iteration; }
@@ -130,12 +132,6 @@ void SurrogateHeatDriver::to_vtk(int iteration)
   std::cout << "Writing VTK file: " << filename.str() << "\n";
   vtk_writer.write(filename.str());
   return;
-}
-
-SurrogateHeatDriver::~SurrogateHeatDriver() {
-  if ("final" == viz_iterations_) {
-    to_vtk();
-  }
 }
 
 } // namespace stream
