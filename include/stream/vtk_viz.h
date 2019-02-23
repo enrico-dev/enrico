@@ -11,35 +11,38 @@ namespace stream {
 
 class SurrogateVtkWriter {
 
-friend SurrogateHeatDriver;
+  friend SurrogateHeatDriver;
 
-enum class VizDataType {
-  none = 0,
+  enum class VizDataType {
+    none   = 0,
     source = 1,
     temp   = 2,
     all    = 3
-};
+  };
 
-enum class VizRegionType {
-  none = 0,
-  fuel = 1,
-  clad = 2,
-  all  = 3
-};
+  enum class VizRegionType {
+    none = 0,
+    fuel = 1,
+    clad = 2,
+    all  = 3
+  };
 
 private:
-  //! Initializes the surrogate to VTK writer with a surrogate model. Can only be called withing the SurrogateHeatDriver.
-  //!
-  //! \param surrogate_ptr Pointer to the surrogate to write
-  //! \param t_rad         Radial resolution of the generated VTK mesh
-SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ptr,
-                   int t_res,
-                   std::string regions_to_write,
-                   std::string data_to_write);
 
 public:
   //! Write the surrogate model to VTK
-  void write_vtk(std::string filename = "magnolia.vtk");
+  void write(std::string filename = "magnolia.vtk");
+
+private:
+  //! Initializes the surrogate to VTK writer with a surrogate model.
+  //! Can only be called within the SurrogateHeatDriver.
+  //!
+  //! \param surrogate_ptr Pointer to the surrogate to write
+  //! \param t_rad         Radial resolution of the generated VTK mesh
+  SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
+                     int t_res,
+                     const std::string& regions_to_write,
+                     const std::string& data_to_write);
 
   //! Write a vtk header for an unstructured grid
   void write_header(ofstream& vtk_file);
@@ -89,11 +92,9 @@ public:
   //! \return 1-D array of types, one for each element (ordered radially, axially)
   xtensor<int, 1> types();
 
-private:
-
   // internal variables/parameters
-  const SurrogateHeatDriver& sgate_; //!< pointer to surrogate
-  int radial_res_;                   //!< radial resolution;
+  const SurrogateHeatDriver& surrogate_; //!< reference to surrogate
+  int radial_res_;                       //!< radial resolution;
   VizDataType data_out_;
   VizRegionType regions_out_;
 
@@ -112,9 +113,9 @@ private:
   int n_radial_sections_;      //!< total number of radial SECTIONS
 
   // POINTS
-  unsigned long n_fuel_points_; //!< number of points needed to represent the fuel regions
-  unsigned long n_clad_points_; //!< number of points needed to represent the cladding regions
-  unsigned long n_points_;      //!< total number of points in the vtk representation
+  size_t n_fuel_points_; //!< number of points needed to represent the fuel regions
+  size_t n_clad_points_; //!< number of points needed to represent the cladding regions
+  size_t n_points_;      //!< total number of points in the vtk representation
 
   // PER PLANE VALUES
   int n_sections_per_plane_;  //!< total number of radial sections in a plane
@@ -123,15 +124,15 @@ private:
   int points_per_plane_;      //!< total number of points in a plane
 
   // MESH ELEMENTS
-  unsigned long n_fuel_elements_; //!< number of fuel elements in mesh
-  unsigned long n_clad_elements_; //!< number of cladding elements in the mesh
-  unsigned long n_mesh_elements_; //!< total number of mesh elements
+  size_t n_fuel_elements_; //!< number of fuel elements in mesh
+  size_t n_clad_elements_; //!< number of cladding elements in the mesh
+  size_t n_mesh_elements_; //!< total number of mesh elements
 
   // CONNECTIVITY ENTRIES
-  unsigned long n_fuel_entries_per_plane_; //!< number of fuel connectivity entries in a plane
-  unsigned long n_clad_entries_per_plane_; //!< number of cladding connectivity entries in a plane
-  unsigned long n_entries_per_plane_;      //!< total number of connectivity entries in a plane
-  unsigned long n_entries_;                //!< total number of connectivity entries in a plane
+  size_t n_fuel_entries_per_plane_; //!< number of fuel connectivity entries in a plane
+  size_t n_clad_entries_per_plane_; //!< number of cladding connectivity entries in a plane
+  size_t n_entries_per_plane_;      //!< total number of connectivity entries in a plane
+  size_t n_entries_;                //!< total number of connectivity entries in a plane
 };
 
 } // stream

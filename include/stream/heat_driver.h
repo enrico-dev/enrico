@@ -62,7 +62,7 @@ public:
   xt::xtensor<double, 1> r_grid_fuel_; //!< radii of each fuel ring in [cm]
 
   // visualization
-  std::string viz_basename_{"magnolia"}; //!< base filename for visualization files (default: magnolia)
+  std::string viz_basename_{"heat_surrogate"}; //!< base filename for visualization files (default: magnolia)
   std::string viz_iterations_{"none"};   //!< visualization iterations to write (none, all, final)
   std::string viz_data_{"all"};          //!< visualization data to write
   std::string viz_regions_{"all"};       //!< visualization regions to write

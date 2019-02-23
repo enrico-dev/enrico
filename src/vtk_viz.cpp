@@ -1,3 +1,4 @@
+#include <cmath>
 
 #include "stream/vtk_viz.h"
 #include "xtensor/xtensor.hpp"
@@ -24,11 +25,11 @@ using std::ofstream;
 
 xtensor<double, 2> create_ring(double radius,
                                int t_resolution) {
-  xtensor<double, 1> x = xt::zeros<double>({t_resolution});
-  xtensor<double, 1> y = xt::zeros<double>({t_resolution});
+  xtensor<double, 1> x({t_resolution, 0.0});
+  xtensor<double, 1> y({t_resolution, 0.0});
 
   xtensor<double, 1> theta;
-  theta = xt::linspace<double>(0., 2.*openmc::PI, t_resolution + 1);
+  theta = xt::linspace<double>(0., 2.*M_PI, t_resolution + 1);
   theta = xt::view(theta, xt::range(0, -1)); // remove last value
   x = radius * xt::cos(theta);
   y = radius * xt::sin(theta);
@@ -67,11 +68,11 @@ hex_ring(int start_idx, int resolution, int z_shift) {
   return out;
 }
 
-SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ptr,
-                                       int t_res,
-                                       std::string regions_to_write,
-                                       std::string data_to_write) :
-  sgate_(surrogate_ptr), radial_res_(t_res) {
+  SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
+                                         int t_res,
+                                         const std::string& regions_to_write,
+                                         const std::string& data_to_write) :
+  surrogate_(surrogate_ref), radial_res_(t_res) {
 
   // read data specs
   data_out_ = VizDataType::all;
@@ -94,18 +95,18 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ptr,
   }
 
   // Set some necessary values ahead of time
-   n_axial_sections_ = sgate_.z_.size() - 1;
-   n_axial_points_ = sgate_.z_.size();
-   n_radial_fuel_sections_ = sgate_.r_grid_fuel_.size() - 1;
-   n_radial_clad_sections_ = sgate_.r_grid_clad_.size() - 1;
+   n_axial_sections_ = surrogate_.z_.size() - 1;
+   n_axial_points_ = surrogate_.z_.size();
+   n_radial_fuel_sections_ = surrogate_.r_grid_fuel_.size() - 1;
+   n_radial_clad_sections_ = surrogate_.r_grid_clad_.size() - 1;
    n_radial_sections_ = n_radial_fuel_sections_ + n_radial_clad_sections_;
    n_sections_per_plane_ = n_radial_sections_ * radial_res_;
   // fuel points
   fuel_points_per_plane_  = n_radial_fuel_sections_ * radial_res_ + 1;
-  n_fuel_points_ = fuel_points_per_plane_ * sgate_.z_.size();
+  n_fuel_points_ = fuel_points_per_plane_ * surrogate_.z_.size();
   // cladding points
-  clad_points_per_plane_ = sgate_.r_grid_clad_.size() * radial_res_;
-  n_clad_points_ = clad_points_per_plane_ * sgate_.r_grid_clad_.size();
+  clad_points_per_plane_ = surrogate_.r_grid_clad_.size() * radial_res_;
+  n_clad_points_ = clad_points_per_plane_ * surrogate_.r_grid_clad_.size();
 
   // fuel elements, entries
   n_fuel_elements_ = n_radial_fuel_sections_ * radial_res_ * n_axial_sections_;
@@ -133,7 +134,7 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ptr,
   }
 
   // totals
-  n_points_ = points_per_plane_ * sgate_.z_.size();
+  n_points_ = points_per_plane_ * surrogate_.z_.size();
   n_mesh_elements_ = n_radial_sections_ * radial_res_ * n_axial_sections_;
   n_entries_ = n_entries_per_plane_ * n_axial_sections_;
 
@@ -143,7 +144,7 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ptr,
   types_ = types();
 }
 
-void SurrogateVtkWriter::write_vtk(std::string filename) {
+void SurrogateVtkWriter::write(std::string filename) {
 
   // open file
   ofstream fh(filename, std::ofstream::out);
@@ -177,13 +178,13 @@ SurrogateVtkWriter::write_header(ofstream& vtk_file) {
 void
 SurrogateVtkWriter::write_points(ofstream& vtk_file) {
 
-  vtk_file << "POINTS " << sgate_.n_pins_ * n_points_ << " float\n";
-  for (int pin = 0; pin < sgate_.n_pins_; pin++) {
+  vtk_file << "POINTS " << surrogate_.n_pins_ * n_points_ << " float\n";
+  for (int pin = 0; pin < surrogate_.n_pins_; pin++) {
     // translate pin template to pin center
-    xtensor<double, 1> pnts = points_for_pin(sgate_.pin_centers_(pin,0),
-                                             sgate_.pin_centers_(pin,1));
+    xtensor<double, 1> pnts = points_for_pin(surrogate_.pin_centers_(pin,0),
+                                             surrogate_.pin_centers_(pin,1));
 
-    for (auto val = pnts.begin(); val != pnts.end(); val+=3) {
+    for (auto val = pnts.cbegin(); val != pnts.cend(); val+=3) {
       vtk_file << *val << " " << *(val+1) << " " << *(val+2) << "\n";
     }
   }
@@ -192,15 +193,15 @@ SurrogateVtkWriter::write_points(ofstream& vtk_file) {
 void
 SurrogateVtkWriter::write_element_connectivity(ofstream& vtk_file) {
   // write number of connectivity entries
-  vtk_file << "\nCELLS " << sgate_.n_pins_ * n_mesh_elements_ << " "
-           << sgate_.n_pins_ * n_entries_ << "\n";
+  vtk_file << "\nCELLS " << surrogate_.n_pins_ * n_mesh_elements_ << " "
+           << surrogate_.n_pins_ * n_entries_ << "\n";
   // pin loop
-  for (int pin = 0; pin < sgate_.n_pins_; pin++) {
+  for (int pin = 0; pin < surrogate_.n_pins_; pin++) {
     // get the connectivity for a given pin, using an
     // offset to get the connectivity values correct
     xtensor<int, 1> conn = conn_for_pin(pin * n_points_);
     // write the connectivity values to file for this pin
-    for (auto val = conn.begin(); val != conn.end(); val += CONN_STRIDE_) {
+    for (auto val = conn.cbegin(); val != conn.cend(); val += CONN_STRIDE_) {
       for (int i = 0; i < CONN_STRIDE_; i++) {
         auto v = *(val+i);
         // mask out any negative connectivity values
@@ -214,9 +215,9 @@ SurrogateVtkWriter::write_element_connectivity(ofstream& vtk_file) {
 void
 SurrogateVtkWriter::write_element_types(ofstream& vtk_file) {
   // write number of cell type entries
-  vtk_file << "\nCELL_TYPES " << sgate_.n_pins_ * n_mesh_elements_ << "\n";
+  vtk_file << "\nCELL_TYPES " << surrogate_.n_pins_ * n_mesh_elements_ << "\n";
   // pin loop
-  for (int pin = 0; pin < sgate_.n_pins_; pin++) {
+  for (int pin = 0; pin < surrogate_.n_pins_; pin++) {
     // write the template for each pin
     for (auto v : types_) {
       vtk_file << v << "\n";
@@ -232,7 +233,7 @@ SurrogateVtkWriter::write_data(ofstream& vtk_file) {
 
   // for each radial section, the data point for that radial ring
   // is repeated radial_res times
-  vtk_file << "CELL_DATA " << sgate_.n_pins_*n_mesh_elements_ << "\n";
+  vtk_file << "CELL_DATA " << surrogate_.n_pins_*n_mesh_elements_ << "\n";
 
   // check what data we're writing
   if (VizDataType::all == data_out_ || VizDataType::temp == data_out_) {
@@ -240,14 +241,14 @@ SurrogateVtkWriter::write_data(ofstream& vtk_file) {
     vtk_file << "SCALARS TEMPERATURE double 1\n";
     vtk_file << "LOOKUP_TABLE default\n";
     // write data for each pin
-    for (int pin = 0; pin < sgate_.n_pins_; pin++) {
+    for (int pin = 0; pin < surrogate_.n_pins_; pin++) {
       // write data for specified regions
       if (VizRegionType::fuel == regions_out_ || VizRegionType::all == regions_out_) {
         // write all fuel data first
         for (int i = 0; i < n_axial_sections_; i++) {
           for (int j = 0; j < n_radial_fuel_sections_; j++) {
             for (int k = 0; k < radial_res_; k++) {
-              vtk_file << sgate_.temperature_(pin, i, j) << "\n";
+              vtk_file << surrogate_.temperature_(pin, i, j) << "\n";
             }
           }
         }
@@ -258,7 +259,7 @@ SurrogateVtkWriter::write_data(ofstream& vtk_file) {
         for (int i = 0; i < n_axial_sections_; i++) {
           for (int j = 0; j < n_radial_clad_sections_; j++) {
             for (int k = 0; k < radial_res_; k++) {
-              vtk_file << sgate_.temperature_(pin, i, j + n_radial_fuel_sections_) << "\n";
+              vtk_file << surrogate_.temperature_(pin, i, j + n_radial_fuel_sections_) << "\n";
             }
           }
         }
@@ -271,13 +272,13 @@ SurrogateVtkWriter::write_data(ofstream& vtk_file) {
     // source data
     vtk_file << "SCALARS SOURCE double 1\n";
     vtk_file << "LOOKUP_TABLE default\n";
-    for (int pin = 0; pin < sgate_.n_pins_; pin++) {
+    for (int pin = 0; pin < surrogate_.n_pins_; pin++) {
       // write all fuel data first
       if (VizRegionType::fuel == regions_out_ || VizRegionType::all == regions_out_) {
         for (int i = 0; i < n_axial_sections_; i++) {
           for (int j = 0; j < n_radial_fuel_sections_; j++) {
             for (int k = 0; k < radial_res_; k++) {
-              vtk_file << sgate_.source_(pin, i, j) << "\n";
+              vtk_file << surrogate_.source_(pin, i, j) << "\n";
             }
           }
         }
@@ -288,7 +289,7 @@ SurrogateVtkWriter::write_data(ofstream& vtk_file) {
         for (int i = 0; i < n_axial_sections_; i++) {
           for (int j = 0; j < n_radial_clad_sections_; j++) {
             for (int k = 0; k < radial_res_; k++) {
-              vtk_file << sgate_.source_(pin, i, j + n_radial_fuel_sections_) << "\n";
+              vtk_file << surrogate_.source_(pin, i, j + n_radial_fuel_sections_) << "\n";
             }
           }
         }
@@ -346,7 +347,7 @@ xtensor<double, 3> SurrogateVtkWriter::fuel_points() {
   // generate x/y points for each raidal section
   for (int i = 0; i < n_radial_fuel_sections_; i++) {
     // first radius in r_grid_fuel_ is zero, start at one
-    double ring_rad = sgate_.r_grid_fuel_(i + 1);
+    double ring_rad = surrogate_.r_grid_fuel_(i + 1);
     // create a unit ring scaled by radius
     xtensor<double, 2> ring = create_ring(ring_rad, radial_res_);
     // set x/y values for this ring
@@ -363,7 +364,7 @@ xtensor<double, 3> SurrogateVtkWriter::fuel_points() {
     // set all but the center point, which is always (0,0,z)
     xt::view(pnts_out, i, xt::range(1,_), 0) = x;
     xt::view(pnts_out, i, xt::range(1,_), 1) = y;
-    xt::view(pnts_out, i, xt::all(), 2) = sgate_.z_(i);
+    xt::view(pnts_out, i, xt::all(), 2) = surrogate_.z_(i);
   }
 
   return pnts_out;
@@ -380,7 +381,7 @@ xtensor<double, 3> SurrogateVtkWriter::clad_points() {
 
   // generate x/y points for each radial ring
   for (int i = 0; i < n_radial_clad_sections_ + 1; i++) {
-    double ring_rad = sgate_.r_grid_clad_(i);
+    double ring_rad = surrogate_.r_grid_clad_(i);
     // create a unit ring scaled by radius
     xtensor<double, 2> ring = create_ring(ring_rad, radial_res_);
     // set x/y values for this ring
@@ -396,12 +397,12 @@ xtensor<double, 3> SurrogateVtkWriter::clad_points() {
     // set all points, no center point for cladding
     xt::view(pnts_out, i, xt::all(), 0) = x;
     xt::view(pnts_out, i, xt::all(), 1) = y;
-    xt::view(pnts_out, i, xt::all(), 2) = sgate_.z_[i];
+    xt::view(pnts_out, i, xt::all(), 2) = surrogate_.z_[i];
   }
 
   // translate to pin center
-  xt::view(pnts_out, 0) += sgate_.pin_centers_(0,0);
-  xt::view(pnts_out, 1) += sgate_.pin_centers_(0,1);
+  xt::view(pnts_out, 0) += surrogate_.pin_centers_(0,0);
+  xt::view(pnts_out, 1) += surrogate_.pin_centers_(0,1);
 
   return pnts_out;
 }
