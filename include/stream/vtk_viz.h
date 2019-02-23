@@ -13,6 +13,7 @@ class SurrogateVtkWriter {
 
   friend SurrogateHeatDriver;
 
+public:
   enum class VizDataType {
     none   = 0,
     source = 1,
@@ -26,8 +27,6 @@ class SurrogateVtkWriter {
     clad = 2,
     all  = 3
   };
-
-private:
 
 public:
   //! Write the surrogate model to VTK
