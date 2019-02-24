@@ -63,7 +63,7 @@ public:
   std::string viz_iterations_{"none"};   //!< visualization iterations to write (none, all, final)
   std::string viz_data_{"all"};          //!< visualization data to write
   std::string viz_regions_{"all"};       //!< visualization regions to write
-  int vtk_radial_res_{20};               //!< radial resolution of resulting vtk files
+  size_t vtk_radial_res_{20};            //!< radial resolution of resulting vtk files
 
 private:
   //! Create internal arrays used for heat equation solver
