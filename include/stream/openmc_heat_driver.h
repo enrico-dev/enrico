@@ -44,7 +44,9 @@ public:
   void solve_in_time();
 
   //! Write driver data to VTK file
-  void to_vtk(int iteration = -1) { heat_driver_->to_vtk(iteration); }
+  void to_vtk(int iteration = -1, int timestep = -1) {
+    heat_driver_->to_vtk(iteration, timestep);
+  }
 
   // Data
   Comm comm_;  //!< The communicator used to run this driver

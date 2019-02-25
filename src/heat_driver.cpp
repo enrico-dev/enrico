@@ -114,7 +114,7 @@ void SurrogateHeatDriver::solve_step(int i_picard)
   }
 }
 
-void SurrogateHeatDriver::to_vtk(int iteration)
+  void SurrogateHeatDriver::to_vtk(int iteration, int timestep)
 {
   // if called, but viz isn't requested for the situation,
   // exit early - no output
@@ -124,7 +124,9 @@ void SurrogateHeatDriver::to_vtk(int iteration)
   // otherwise construct an appropriate filename and write the data
   std::stringstream filename;
   filename << viz_basename_;
-  if (iteration >= 0) { filename << "_" << iteration; }
+  if (iteration >= 0 && timestep >=0 ) {
+    filename << "_" << timestep << "_" << iteration;
+  }
   filename << ".vtk";
 
   SurrogateVtkWriter vtk_writer(*this, vtk_radial_res_, viz_regions_, viz_data_);
