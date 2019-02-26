@@ -202,7 +202,7 @@ void OpenmcNekDriver::init_mappings()
     // Now, set the mapping values on the OpenMC processes...
     if (openmc_driver_->active()) {
       for (int i = 0; i < n_materials_; ++i) {
-        int32_t mat_index = openmc_driver_->cells_[i].material_index_ - 1;
+        int32_t mat_index = openmc_driver_->cells_[i].material_index_;
         heat_index_.at(mat_index) = i;
       }
     }
@@ -218,7 +218,7 @@ void OpenmcNekDriver::init_tallies()
     // Build vector of material indices
     std::vector<int32_t> mats;
     for (const auto& c : openmc_driver_->cells_) {
-      mats.push_back(c.material_index_ - 1);
+      mats.push_back(c.material_index_);
     }
     openmc_driver_->create_tallies(mats);
   }
@@ -298,7 +298,7 @@ void OpenmcNekDriver::update_heat_source()
 
       // get corresponding material
       int32_t mat_index = elem_to_mat_.at(global_index);
-      int i = get_heat_index(mat_index);
+      int i = heat_index_.at(mat_index);
 
       err_chk(nek_set_heat_source(local_elem, heat[i]),
           "Error setting heat source for local element " + std::to_string(i));

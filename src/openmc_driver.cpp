@@ -4,6 +4,8 @@
 #include "stream/error.h"
 
 #include "openmc/capi.h"
+#include "openmc/constants.h"
+#include "openmc/tallies/tally.h"
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xarray.hpp"
 #include "xtensor/xview.hpp"
@@ -27,8 +29,7 @@ void OpenmcDriver::create_tallies(gsl::span<int32_t> materials)
   openmc_get_filter_next_id(&filter_id);
   openmc_get_tally_next_id(&tally_id);
 
-  err_chk(openmc_extend_filters(1, &index_filter_, nullptr));
-  err_chk(openmc_filter_set_type(index_filter_, "material"));
+  err_chk(openmc_new_filter("material", &index_filter_));
   err_chk(openmc_filter_set_id(index_filter_, filter_id));
 
   // Set bins for filter
@@ -36,51 +37,26 @@ void OpenmcDriver::create_tallies(gsl::span<int32_t> materials)
                                           materials.data()));
 
   // Create tally and assign scores/filters
-  err_chk(openmc_extend_tallies(1, &index_tally_, nullptr));
-  err_chk(openmc_tally_allocate(index_tally_, "generic"));
-  err_chk(openmc_tally_set_id(index_tally_, tally_id));
-  char score_array[][20]{"kappa-fission"};
-  const char* scores[]{score_array[0]}; // OpenMC expects a const char**, ugh
-  err_chk(openmc_tally_set_scores(index_tally_, 1, scores));
-  err_chk(openmc_tally_set_filters(index_tally_, 1, &index_filter_));
-}
-
-xt::xtensor<double, 3> OpenmcDriver::tally_results()
-{
-  // Get material bins
-  int32_t* mats;
-  int32_t n_mats;
-  err_chk(openmc_material_filter_get_bins(index_filter_, &mats, &n_mats));
-
-  // Get tally results and number of realizations
-  double* results;
-  std::array<std::size_t, 3> shape;
-  err_chk(openmc_tally_results(index_tally_, &results, shape.data()));
-  int32_t m;
-  err_chk(openmc_tally_get_n_realizations(index_tally_, &m));
-
-  // Determine size
-  std::size_t size {shape[0] * shape[1] * shape[2]};
-
-  // Adapt array into xtensor with no ownership
-  return xt::adapt(results, size, xt::no_ownership(), shape);
+  int32_t index_tally;
+  err_chk(openmc_extend_tallies(1, &index_tally, nullptr));
+  err_chk(openmc_tally_set_id(index_tally, tally_id));
+  std::vector<std::string> scores {"kappa-fission"};
+  tally_ = openmc::model::tallies[index_tally].get();
+  tally_->set_scores(scores);
+  tally_->set_filters(&index_filter_, 1);
 }
 
 xt::xtensor<double, 1> OpenmcDriver::heat_source(double power)
 {
-  // Get tally results
-  auto results {tally_results()};
-
   // Determine number of realizatoins for normalizing tallies
-  int32_t m;
-  err_chk(openmc_tally_get_n_realizations(index_tally_, &m));
+  int m = tally_->n_realizations_;
 
   // Broadcast number of realizations
   // TODO: Change OpenMC so that it's correct on all ranks
-  comm_.Bcast(&m, 1, MPI_INT32_T);
+  comm_.Bcast(&m, 1, MPI_INT);
 
   // Determine energy production in each material
-  auto mean_value = xt::view(results, xt::all(), 0, 1);
+  auto mean_value = xt::view(tally_->results_, xt::all(), 0, openmc::RESULT_SUM);
   xt::xtensor<double, 1> heat = JOULE_PER_EV * mean_value / m;
 
   // Get total heat production [J/source]
@@ -103,18 +79,14 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power)
 void OpenmcDriver::init_step()
 {
   err_chk(openmc_simulation_init());
-  // TODO: OpenMC should properly reset tallies/realizations when initializing a
-  // simulation
-  err_chk(openmc_reset());
 }
 
 void OpenmcDriver::solve_step(int i){
   err_chk(openmc_run());
 
-  // TODO: Change statepoint_write to not expect a pointer to a const char*
+  // Write out statepoint
   std::string filename {"openmc_step" + std::to_string(i) + ".h5"};
-  const char* fp = filename.c_str();
-  err_chk(openmc_statepoint_write(&fp, nullptr));
+  err_chk(openmc_statepoint_write(filename.c_str(), nullptr));
 }
 
 void OpenmcDriver::finalize_step() { err_chk(openmc_simulation_finalize()); }

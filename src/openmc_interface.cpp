@@ -23,17 +23,17 @@ CellInstance::CellInstance(Position position)
 
   // TODO: Right now get_fill returns 0-based indices, but the material API
   // calls expects 1-based. Once those move to 0-based, change this.
-  material_index_ = indices[instance_] + 1;
+  material_index_ = indices[instance_];
 
   // Get volume of material (if non-void)
-  if (material_index_ > 0) {
+  if (material_index_ >= 0) {
     err_chk(openmc_material_get_volume(material_index_, &volume_));
   }
 }
 
 openmc::Material* CellInstance::material() const
 {
-  return openmc::materials[material_index_ - 1];
+  return openmc::model::materials[material_index_].get();
 }
 
 void CellInstance::set_temperature(double T) const

@@ -81,14 +81,6 @@ private:
   //! Currently, the density values are uninitialized.
   void init_densities();
 
-  //! Get the heat index for a given OpenMC material
-  //! \param mat_index An OpenMC material index
-  //! \return The heat index
-  int get_heat_index(int32_t mat_index) const
-  {
-    return heat_index_.at(mat_index - 1);
-  }
-
   //! Frees the MPI datatypes (currently, only position_mpi_datatype)
   void free_mpi_datatypes();
 

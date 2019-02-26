@@ -92,7 +92,7 @@ void OpenmcHeatDriver::init_tallies()
     // Build vector of material indices
     std::vector<int32_t> mats;
     for (const auto& c : openmc_driver_->cells_) {
-      mats.push_back(c.material_index_ - 1);
+      mats.push_back(c.material_index_);
     }
     openmc_driver_->create_tallies(mats);
   }

@@ -10,6 +10,7 @@
 #include <gsl/gsl>
 #include <mpi.h>
 #include "xtensor/xtensor.hpp"
+#include "openmc/tallies/tally.h"
 
 #include <vector>
 
@@ -28,13 +29,6 @@ public:
   //! Create energy production tallies for a list of materials
   //! \param[in] materials  Indices into OpenMC's materials array
   void create_tallies(gsl::span<int32_t> materials);
-
-  //! Get tally results array
-  //!
-  //! \return Internal tally results array. First dimension is filter
-  //!   combinations, second dimension is scores, third dimension is of size
-  //!   three (temporary value, sum of realizations, sum-squared)
-  xt::xtensor<double, 3> tally_results();
 
   //! Get energy deposition in each material
   //!
@@ -62,7 +56,7 @@ public:
   Position get_mat_centroid(int32_t mat_id) const;
 
   // Data
-  int32_t index_tally_;   //!< Index in tallies array for fission tally
+  openmc::Tally* tally_; //!< Fission energy deposition tally
   int32_t index_filter_;  //!< Index in filters arrays for material filter
   std::vector<CellInstance> cells_;  //!< Array of cell instances
 };
