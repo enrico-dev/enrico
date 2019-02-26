@@ -117,14 +117,17 @@ void OpenmcHeatDriver::solve_step()
 
       // Solve heat equation
       if (heat_driver_->active()) {
-        heat_driver_->solve_step();
+        heat_driver_->solve_step(i_picard);
       }
       comm_.Barrier();
 
       // Update temperature in OpenMC
       update_temperature();
+
+      to_vtk(i_picard, i_timestep);
     }
   }
+  to_vtk();
 }
 
 void OpenmcHeatDriver::update_heat_source()

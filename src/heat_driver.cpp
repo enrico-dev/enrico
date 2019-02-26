@@ -4,6 +4,7 @@
 #include "xtensor/xbuilder.hpp"
 #include "xtensor/xview.hpp"
 #include "heat_xfer_backend.h"
+#include "stream/vtk_viz.h"
 #include "openmc/xml_interface.h"
 
 #include <iostream>
@@ -41,6 +42,30 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   // Heat equation solver tolerance
   tol_ = node.child("tolerance").text().as_double();
 
+  // Check for visualization intput
+  if (node.child("viz")) {
+    pugi::xml_node viz_node = node.child("viz");
+    if (viz_node.attribute("filename")) {
+        viz_basename_ = viz_node.attribute("filename").value();
+    }
+
+    // if a viz node is found, write final iteration by default
+    viz_iterations_ = "final";
+    if (viz_node.child("iterations")) {
+      viz_iterations_ = viz_node.child("iterations").text().as_string();
+    }
+    // set other viz values
+    if (viz_node.child("resolution")) {
+      vtk_radial_res_ = viz_node.child("resolution").text().as_int();
+    }
+    if (viz_node.child("data")) {
+      viz_data_ = viz_node.child("data").text().as_string();
+    }
+    if (viz_node.child("regions")) {
+      viz_regions_ = viz_node.child("regions").text().as_string();
+    }
+  }
+
   // Initialize heat transfer solver
   generate_arrays();
 };
@@ -63,7 +88,7 @@ void SurrogateHeatDriver::generate_arrays()
   temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
 }
 
-void SurrogateHeatDriver::solve_step()
+void SurrogateHeatDriver::solve_step(int i_picard)
 {
   std::cout << "Solving heat equation...\n";
   // NuScale inlet temperature
@@ -87,6 +112,28 @@ void SurrogateHeatDriver::solve_step()
         n_fuel_rings_, n_clad_rings_, tol_, &temperature_(i, j, 0));
     }
   }
+}
+
+  void SurrogateHeatDriver::to_vtk(int iteration, int timestep)
+{
+  // if called, but viz isn't requested for the situation,
+  // exit early - no output
+  if (iteration < 0 && "final" != viz_iterations_ ||
+      iteration >= 0 && "all"   != viz_iterations_) { return; }
+
+  // otherwise construct an appropriate filename and write the data
+  std::stringstream filename;
+  filename << viz_basename_;
+  if (iteration >= 0 && timestep >=0 ) {
+    filename << "_" << timestep << "_" << iteration;
+  }
+  filename << ".vtk";
+
+  SurrogateVtkWriter vtk_writer(*this, vtk_radial_res_, viz_regions_, viz_data_);
+
+  std::cout << "Writing VTK file: " << filename.str() << "\n";
+  vtk_writer.write(filename.str());
+  return;
 }
 
 } // namespace stream

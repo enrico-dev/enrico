@@ -22,14 +22,11 @@ public:
   //! \param node  XML node containing settings for surrogate
   explicit SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node);
 
-  //! Finalizes heat-fluids surrogate.
-  ~SurrogateHeatDriver() { };
-
   //! Initializes timestep for heat-fluids surrogate solver
   void init_step() { };
 
   //! Solves the heat equation at a single timestep in each specified region
-  void solve_step();
+  void solve_step(int i_picard);
 
   //! Finalizes the timestep for the heat-fluids surrogate solver
   void finalize_step() { };
@@ -37,6 +34,9 @@ public:
   //! Number of rings in fuel and clad
   //! \return Number of rings
   std::size_t n_rings() { return n_fuel_rings_ + n_clad_rings_; }
+
+  //! Write data to VTK
+  void to_vtk(int iteration = -1, int timestep = -1);
 
   // Data on fuel pins
   xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins
@@ -58,10 +58,17 @@ public:
   xt::xtensor<double, 1> r_grid_clad_; //!< radii of each clad ring in [cm]
   xt::xtensor<double, 1> r_grid_fuel_; //!< radii of each fuel ring in [cm]
 
+  // visualization
+  std::string viz_basename_{"heat_surrogate"}; //!< base filename for visualization files (default: magnolia)
+  std::string viz_iterations_{"none"};   //!< visualization iterations to write (none, all, final)
+  std::string viz_data_{"all"};          //!< visualization data to write
+  std::string viz_regions_{"all"};       //!< visualization regions to write
+  size_t vtk_radial_res_{20};            //!< radial resolution of resulting vtk files
+
 private:
   //! Create internal arrays used for heat equation solver
   void generate_arrays();
-};
+}; // end SurrogateHeatDriver
 
 } // namespace stream
 
