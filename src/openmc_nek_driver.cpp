@@ -11,6 +11,7 @@
 #include "xtensor/xbuilder.hpp"
 #include "xtensor/xtensor.hpp"
 #include "xtensor/xnorm.hpp"
+#include <gsl/gsl>
 
 #include <string>
 
@@ -27,6 +28,14 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root)
   max_picard_iter_ = xml_root.child("max_picard_iter").text().as_int();
   openmc_procs_per_node_ = xml_root.child("openmc_procs_per_node").text().as_int();
   epsilon_ = xml_root.child("epsilon").text().as_double();
+
+  // Postcondition checks on user inputs
+  Ensures(power_ > 0.0);
+  Ensures(pressure_ > 0.0);
+  Ensures(max_timesteps_ > 0);
+  Ensures(max_picard_iter_ > 0);
+  Ensures(openmc_procs_per_node_ > 0);
+  Ensures(epsilon_ > 0.0);
 
   // Create communicator for OpenMC with 1 process per node
   MPI_Comm openmc_comm;

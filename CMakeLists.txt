@@ -90,6 +90,7 @@ add_library(libstream
 
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
 target_link_libraries(libstream PUBLIC libnek5000 libopenmc xtensor heat_xfer pugixml gsl-lite)
+target_compile_definitions(libstream PRIVATE GSL_THROW_ON_CONTRACT_VIOLATION)
 
 if (SCALE_FOUND)
   target_link_libraries(libstream PUBLIC ${SCALE_LIBRARIES})
