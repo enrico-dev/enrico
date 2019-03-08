@@ -1,0 +1,266 @@
+//---------------------------------*-C++-*-----------------------------------//
+/*!
+ * \file   Shift_Solver.cpp
+ * \author Steven Hamilton
+ * \date   Wed Aug 15 09:25:43 2018
+ * \brief  Shift_Solver class definitions.
+ * \note   Copyright (c) 2018 Oak Ridge National Laboratory, UT-Battelle, LLC.
+ */
+//---------------------------------------------------------------------------//
+
+#include <map>
+
+#include "smrt/Shift_Solver.h"
+
+#include "Teuchos_DefaultComm.hpp"
+#include "Teuchos_XMLParameterListHelpers.hpp"
+
+#include "Nemesis/comm/global.hh"
+#include "Shift/mc_tallies/Cell_Union_Tally.hh"
+#include "Omnibus/driver/Sequence_Shift.hh"
+#include "Omnibus/shift_managers/Shift_Tallies.hh"
+
+namespace stream
+{
+//---------------------------------------------------------------------------//
+// Constructor
+//---------------------------------------------------------------------------//
+Shift_Solver::Shift_Solver(SP_Assembly_Model          assembly,
+                           std::string                shift_input,
+                           const std::vector<double>& z_edges)
+    : d_assembly(assembly)
+    , d_power_tally_name("power")
+{
+    // Build a Teuchos communicator
+    const Teuchos::RCP<const Teuchos::Comm<int> > comm
+        = Teuchos::DefaultComm<int>::getComm();
+
+    // Make a temporary Parameter list
+    RCP_PL plist = RCP_PL(new Teuchos::ParameterList("Omnibus_plist_root"));
+
+    // Save the input XML path for later output
+    plist->set("input_path", shift_input);
+
+    // Load parameters from disk on processor zero and broadcast them
+    Teuchos::updateParametersFromXmlFileAndBroadcast(
+            shift_input, plist.ptr(), *comm);
+
+    // Build Problem
+    auto problem = std::make_shared<omnibus::Problem>(plist);
+
+    // Build driver
+    d_driver = std::make_shared<omnibus::Multiphysics_Driver>(problem);
+
+    // Store geometry
+    auto problem_geom = problem->geometry();
+    Check(problem_geom);
+    d_geometry = std::dynamic_pointer_cast<Geometry>(problem_geom);
+    Check(d_geometry);
+
+    // Create or validate power tally
+    add_power_tally(plist, z_edges);
+}
+
+//---------------------------------------------------------------------------//
+// Solve
+//---------------------------------------------------------------------------//
+void Shift_Solver::solve(
+        const std::vector<double>& th_temperature,
+        const std::vector<double>& coolant_density,
+              std::vector<double>& power)
+{
+    Require(th_temperature.size() == d_matids.size());
+    auto& comps = d_driver->compositions();
+
+    // Average T/H mesh temperatures onto Shift materials
+    std::vector<double> material_temperatures(d_num_materials, 0.0);
+    for (int elem = 0; elem < th_temperature.size(); ++elem)
+    {
+        material_temperatures[d_matids[elem]] +=
+            d_vfracs[elem] * th_temperature[elem];
+    }
+
+    nemesis::global_sum(material_temperatures.data(), d_num_materials);
+
+    for (int matid = 0; matid < d_num_materials; ++matid)
+    {
+        if (material_temperatures[matid] > 0.0)
+            comps[matid]->set_temperature(material_temperatures[matid]);
+    }
+
+    // Rebuild problem (loading any new data needed and run transport
+    d_driver->rebuild();
+    d_driver->run();
+
+    // Extract fission rate from Shift tally
+    auto sequence = d_driver->sequence();
+    auto shift_seq =
+        std::dynamic_pointer_cast<omnibus::Sequence_Shift>(sequence);
+    const auto& tallies = shift_seq->tallies();
+
+    const auto& cell_tallies = tallies.cell_tallies();
+    for (const auto& tally : cell_tallies)
+    {
+        if (tally->name() == d_power_tally_name)
+        {
+            // Tally results are volume-integrated,
+            // divide by volume to get volumetric power
+            const auto& result = tally->result();
+            auto mean = result.mean(0);
+            Check(result.num_multipliers() == 1);
+
+            // Compute global sum for normalization
+            double total_power =
+                std::accumulate(mean.begin(), mean.end(), 0.0);
+
+            for (int cellid = 0; cellid < mean.size(); ++cellid)
+            {
+                Check(cellid < d_power_map.size());
+                const auto& elem_list = d_power_map[cellid];
+                double tally_volume = d_geometry->cell_volume(cellid);
+
+                for (const auto& elem : elem_list)
+                {
+                    Check(elem < power.size());
+                    power[elem] = mean[cellid] / tally_volume / total_power;
+                }
+            }
+        }
+    }
+}
+//---------------------------------------------------------------------------//
+// Register list of centroids and cell volumes from T/H solver
+//---------------------------------------------------------------------------//
+void Shift_Solver::set_centroids_and_volumes(
+        const std::vector<stream::Position>& centroids,
+        const std::vector<double>&           volumes)
+{
+    assert(centroids.size() == volumes.size());
+
+    d_matids.resize(centroids.size());
+    std::vector<int> cells(centroids.size());
+    for (int elem = 0; elem < centroids.size(); ++elem)
+    {
+        const auto&c = centroids[elem];
+
+        // Find geometric cell and corresponding material
+        cells[elem] = d_geometry->find_cell({c.x, c.y, c.z});
+        d_matids[elem] = d_geometry->matid(cells[elem]);
+    }
+
+    // Compute per-material volume
+    d_num_materials = d_driver->compositions().size();
+    d_num_shift_cells = d_geometry->num_cells();
+    d_power_map.resize(d_num_shift_cells);
+    std::vector<double> mat_volumes(d_num_materials, 0.0);
+    for (int elem = 0; elem < volumes.size(); ++elem)
+    {
+        int matid = d_matids[elem];
+        assert(matid < d_num_materials);
+        mat_volumes[matid] += volumes[elem];
+        d_power_map[cells[elem]].push_back(elem);
+    }
+
+    // Perform global reduction of material volumes
+    nemesis::global_sum(mat_volumes.data(), d_num_materials);
+
+    // Convert volumes to volume fractions
+    d_vfracs.resize(volumes.size());
+    for (int elem = 0; elem < volumes.size(); ++elem)
+    {
+        int matid = d_matids[elem];
+        d_vfracs[elem] = volumes[elem] / mat_volumes[matid];
+    }
+
+    int num_cells = d_geometry->num_cells();
+    std::vector<double> cell_volumes(num_cells, 0.0);
+    for (int elem = 0; elem < centroids.size(); ++elem)
+    {
+        const auto&c = centroids[elem];
+        int cell = d_geometry->find_cell({c.x, c.y, c.z});
+        cell_volumes[cell] += volumes[elem];
+    }
+}
+
+//---------------------------------------------------------------------------//
+// Add power (fission rate) tally to shift problem
+//---------------------------------------------------------------------------//
+void Shift_Solver::add_power_tally(
+        RCP_PL&                    pl,
+        const std::vector<double>& z_edges)
+{
+    Require(d_assembly);
+    auto tally_pl = Teuchos::sublist(pl, "TALLY");
+    auto cell_pl = Teuchos::sublist(tally_pl, "CELL");
+
+    using Array_Int = Teuchos::Array<int>;
+    using Array_Dbl = Teuchos::Array<double>;
+    using Array_Str = Teuchos::Array<std::string>;
+
+    if (!cell_pl->isSublist("power"))
+    {
+        // If "power" tally doesn't exist, create it
+        auto power_pl = Teuchos::sublist(cell_pl, "power");
+        power_pl->set("name", d_power_tally_name);
+        power_pl->set("normalization", 1.0);
+        power_pl->set("description", std::string("power tally"));
+        Teuchos::Array<std::string> rxns(1, "fission");
+        power_pl->set("reactions", rxns);
+        power_pl->set("cycles", std::string("active"));
+        Array_Str cells(d_geometry->num_cells());
+        for (int cellid = 0; cellid < d_geometry->num_cells(); ++cellid)
+            cells[cellid] = std::to_string(cellid);
+        Array_Int counts(d_geometry->num_cells(), 1);
+        power_pl->set("union_cells",   cells);
+        power_pl->set("union_lengths", counts);
+    }
+    else
+    {
+        // If it exists, make sure it aligns with assembly
+        auto power_pl = Teuchos::sublist(cell_pl, "power");
+        Validate(d_power_tally_name == power_pl->get<std::string>("name"),
+                 "Incorrect power tally name");
+        auto rxns = power_pl->get<Array_Str>("reactions");
+        Validate(rxns.size() == 1,
+                 "Incorrect number of reactions in power tally");
+        Validate(rxns[0] == "fission",
+                 "Incorrect reaction in power tally");
+        Validate(power_pl->get<std::string>("cycles") == "active",
+                 "Incorrect cycle designation in power tally.");
+        Validate(power_pl->get<std::string>("type") == "grid",
+                 "Incorrect mesh type in power tally.");
+
+        // Check x edges
+        const auto& x_edges = d_assembly->x_edges();
+        const auto& x_tally = power_pl->get<Array_Dbl>("x");
+        Validate(x_tally.size() == x_edges.size(),
+                 "Tally specifies incorrect size of x edges");
+        for (int i = 0; i < x_edges.size(); ++i)
+            Validate(nemesis::soft_equiv(x_edges[i], x_tally[i]),
+                     "Tally specifies incorrect x edge");
+
+        // Check y edges
+        const auto& y_edges = d_assembly->y_edges();
+        const auto& y_tally = power_pl->get<Array_Dbl>("y");
+        Validate(y_tally.size() == y_edges.size(),
+                 "Tally specifies incorrect size of y edges");
+        for (int i = 0; i < y_edges.size(); ++i)
+            Validate(nemesis::soft_equiv(y_edges[i], y_tally[i]),
+                     "Tally specifies incorrect y edge");
+
+        // Check z edges
+        const auto& z_tally = power_pl->get<Array_Dbl>("z");
+        Validate(z_tally.size() == z_edges.size(),
+                 "Tally specifies incorrect size of z edges");
+        for (int i = 0; i < z_edges.size(); ++i)
+            Validate(nemesis::soft_equiv(z_edges[i], z_tally[i]),
+                     "Tally specifies incorrect z edge");
+    }
+}
+
+//---------------------------------------------------------------------------//
+} // end namespace stream
+
+//---------------------------------------------------------------------------//
+// end of Shift_Solver.cpp
+//---------------------------------------------------------------------------//

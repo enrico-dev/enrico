@@ -1,6 +1,7 @@
 *~
 *.mod
 *.h5
+*.swp
 tallies.out
 CMakeFiles/
 bin/
@@ -11,3 +12,4 @@ Makefile
 nek_mangling.h
 SESSION.NAME
 .idea
+compile_commands.json

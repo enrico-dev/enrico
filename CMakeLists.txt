@@ -2,6 +2,17 @@ cmake_minimum_required(VERSION 3.1)
 project(stream Fortran C CXX)
 
 # =============================================================================
+# Check for SCALE (optional) 
+# =============================================================================
+find_package(SCALE PATHS ${SCALE_DIR} COMPONENTS OmnibusDriver Tpetra)
+
+if (SCALE_FOUND)
+    MESSAGE(" SCALE_FOUND!")
+    MESSAGE(" SCALE_DIR = ${SCALE_DIR}")
+    MESSAGE(" SCALE_VERSION = ${SCALE_VERSION}")
+endif ()
+
+# =============================================================================
 # Discover name-mangling for routines in libnek5000
 # =============================================================================
 include(FortranCInterface)
@@ -25,6 +36,11 @@ include_directories(
     src/
     ${CMAKE_BINARY_DIR})
 
+if (SCALE_FOUND)
+    include_directories(${SCALE_INCLUDE_DIRS})
+    include_directories(${SCALE_TPL_INCLUDE_DIRS})
+endif ()
+
 # =============================================================================
 # Recursively build libnek5000 and libopenmc
 # =============================================================================
@@ -41,8 +57,8 @@ target_include_directories(heat_xfer PUBLIC vendor/surrogates/)
 # =============================================================================
 # Build libstream
 # =============================================================================
-# Build all compoments of libstream
-add_library(libstream
+
+set(SOURCES
     src/base_drivers.cpp
     src/heat_driver.cpp
     src/message_passing.cpp
@@ -52,8 +68,33 @@ add_library(libstream
     src/nek_driver.cpp
     src/vtk_viz.cpp
     src/openmc_heat_driver.cpp)
+
+if (SCALE_FOUND)
+    list(APPEND SOURCES
+        src/smrt/Assembly_Model.cpp
+        src/smrt/Coupled_Solver.cpp
+        src/smrt/Multiphysics_Driver.cpp
+        src/smrt/Multi_Pin_Conduction.cpp
+        src/smrt/Multi_Pin_Subchannel.cpp
+        src/smrt/Shift_Solver.cpp
+        src/smrt/Single_Pin_Conduction.cpp
+        src/smrt/Single_Pin_Subchannel.cpp
+        src/smrt/Two_Group_Cross_Sections.cpp
+        src/smrt/Two_Group_Diffusion.cpp
+        src/smrt/Water_Properties.cpp)
+endif ()
+
+# Build all compoments of libstream
+add_library(libstream
+            ${SOURCES})
+
 set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
 target_link_libraries(libstream PUBLIC libnek5000 libopenmc xtensor heat_xfer pugixml gsl-lite)
+
+if (SCALE_FOUND)
+  target_link_libraries(libstream PUBLIC ${SCALE_LIBRARIES})
+  target_link_libraries(libstream PUBLIC ${SCALE_TPL_LIBRARIES})
+endif ()
 
 # =============================================================================
 # Build STREAM driver
@@ -79,3 +120,14 @@ set_target_properties(
     test_nek5000_singlerod
     test_openmc_singlerod
     PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
+
+if (SCALE_FOUND)
+  add_executable(test_shift_singlerod tests/singlerod/short/test_shift_coupled.cpp)
+  target_link_libraries(test_shift_singlerod PUBLIC libstream)
+
+  # Ensure C++14 standard is used
+  set_target_properties(
+    test_shift_singlerod
+    PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
+endif ()
+
