@@ -1,8 +1,8 @@
-#include "stream/message_passing.h"
+#include "enrico/message_passing.h"
 
 #include <mpi.h>
 
-namespace stream {
+namespace enrico {
 
 void get_node_comms(MPI_Comm super_comm, int procs_per_node, MPI_Comm* sub_comm,
                     MPI_Comm* intranode_comm)
@@ -31,4 +31,4 @@ void get_node_comms(MPI_Comm super_comm, int procs_per_node, MPI_Comm* sub_comm,
     MPI_Comm_free(sub_comm);
 }
 
-} // namespace stream
+} // namespace enrico

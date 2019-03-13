@@ -10,7 +10,7 @@
 #include "BelosTpetraAdapter.hpp"
 #include "BelosSolverFactory.hpp"
 
-namespace stream
+namespace enrico
 {
 //---------------------------------------------------------------------------//
 // Constructor
@@ -543,7 +543,7 @@ void Two_Group_Diffusion::build_matrices(const std::vector<XS_Data>& xs_data)
 }
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 // end of Two_Group_Diffusion.cpp

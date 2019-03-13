@@ -22,7 +22,7 @@ input_patch:nek5000:
     - patch -N rodcht.rea ci_config/rodcht_rea.diff || true
     - patch -N SIZE ci_config/SIZE.diff || true
 
-build_singlerod:stream:
+build_singlerod:enrico:
   stage: build_singlerod
   dependencies:
     - input_patch:nek5000
@@ -34,7 +34,7 @@ build_singlerod:stream:
     - mkdir -p tests/singlerod/short/build
     - cd tests/singlerod/short/build
     - cmake -DUSR_LOC=../ ../../../..
-    - make -j -l4 stream
+    - make -j -l4 enrico
     - make -j -l4 test_nek5000_singlerod
     - make -j -l4 test_openmc_singlerod
 
@@ -42,7 +42,7 @@ test_singlerod:nek5000:
   stage: test_singlerod
   dependencies:
     - input_patch:nek5000
-    - build_singlerod:stream
+    - build_singlerod:enrico
   script:
     - cd tests/singlerod/short/openmc_nek5000
     - if [ -a rodcht.run01.gz ]; then gunzip -f rodcht.run01.gz ; fi
@@ -52,7 +52,7 @@ test_singlerod:openmc:
   stage: test_singlerod
   dependencies:
     - download:cross_sections
-    - build_singlerod:stream
+    - build_singlerod:enrico
   variables:
     OMP_NUM_THREADS: 4
   script:
@@ -64,21 +64,21 @@ test_singlerod:openmc_nek5000:
   dependencies:
     - download:cross_sections
     - input_patch:nek5000
-    - build_singlerod:stream
+    - build_singlerod:enrico
   variables:
     OMP_NUM_THREADS: 4
   script:
     - cd tests/singlerod/short/openmc_nek5000
     - if [ -a rodcht.run01.gz ]; then gunzip -f rodcht.run01.gz ; fi
-    - mpirun -np 8 ../build/stream
+    - mpirun -np 8 ../build/enrico
 
 test_singlerod:openmc_heat_surrogate:
   stage: test_singlerod
   dependencies:
     - download:cross_sections
-    - build_singlerod:stream
+    - build_singlerod:enrico
   variables:
     OMP_NUM_THREADS: 4
   script:
     - cd tests/singlerod/short/openmc_heat_surrogate
-    - mpirun -np 2 ../build/stream
+    - mpirun -np 2 ../build/enrico

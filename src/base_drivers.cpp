@@ -1,6 +1,6 @@
-#include "stream/base_drivers.h"
+#include "enrico/base_drivers.h"
 
-namespace stream {
+namespace enrico {
 
 bool HeatFluidsDriver::active() const
 {
@@ -12,4 +12,4 @@ bool TransportDriver::active() const
   return comm_.comm != MPI_COMM_NULL;
 }
 
-} // namespace stream
+} // namespace enrico

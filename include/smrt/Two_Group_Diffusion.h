@@ -18,12 +18,12 @@
 #include "Nemesis/harness/DBC.hh"
 #include "Nemesis/comm/global.hh"
 
-// stream includes
+// enrico includes
 #include "Assembly_Model.h"
 #include "Neutronics_Solver.h"
 #include "Two_Group_Cross_Sections.h"
 
-namespace stream
+namespace enrico
 {
 
 //===========================================================================//
@@ -135,7 +135,7 @@ class Two_Group_Diffusion : public Neutronics_Solver
 };
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 #endif // Two_Group_Diffusion_h

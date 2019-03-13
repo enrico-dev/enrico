@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<stream>
+<enrico>
   <driver_transport>openmc</driver_transport>
   <driver_heatfluids>nek5000</driver_heatfluids>
   <nek5000>
@@ -12,4 +12,4 @@
   <max_picard_iter>4</max_picard_iter>
   <openmc_procs_per_node>1</openmc_procs_per_node>
   <epsilon>0.5</epsilon>
-</stream>
+</enrico>

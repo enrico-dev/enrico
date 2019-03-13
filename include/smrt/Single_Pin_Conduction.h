@@ -11,7 +11,7 @@
 
 #include "Nemesis/harness/DBC.hh"
 
-namespace stream
+namespace enrico
 {
 
 //===========================================================================//
@@ -81,7 +81,7 @@ class Single_Pin_Conduction
 };
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 #endif // Single_Pin_Conduction_h

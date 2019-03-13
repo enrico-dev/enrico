@@ -1,7 +1,7 @@
 //! \file openmc_nek_driver.h
 //! Driver for coupled Nek5000/OpenMC simulations
-#ifndef STREAM_OPENMC_NEK_DRIVER_H
-#define STREAM_OPENMC_NEK_DRIVER_H
+#ifndef ENRICO_OPENMC_NEK_DRIVER_H
+#define ENRICO_OPENMC_NEK_DRIVER_H
 
 #include "base_drivers.h"
 #include "mpi.h"
@@ -11,7 +11,7 @@
 #include <memory> // for unique_ptr
 #include <unordered_set>
 
-namespace stream {
+namespace enrico {
 
 //! Driver for coupled Nek5000/OpenMC simulations
 //!
@@ -22,7 +22,7 @@ public:
   //! Given existing MPI comms, initialize drivers and geometry mappings
   //!
   //! Currently, openmc_comm and nek_comm must be subsets of coupled_comm.  The function
-  //! stream::get_node_comms() can be used to split a coupled_comm into suitable subcomms.
+  //! enrico::get_node_comms() can be used to split a coupled_comm into suitable subcomms.
   //!
   //! \param power Power in [W]
   //! \param coupled_comm An existing communicator for the coupled driver
@@ -140,6 +140,6 @@ private:
 
 };
 
-} // namespace stream
+} // namespace enrico
 
-#endif //STREAM_OPENMC_NEK_DRIVER_H
+#endif //ENRICO_OPENMC_NEK_DRIVER_H

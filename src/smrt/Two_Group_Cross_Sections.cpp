@@ -2,7 +2,7 @@
 
 #include "Nemesis/harness/DBC.hh"
 
-namespace stream
+namespace enrico
 {
 //---------------------------------------------------------------------------//
 // Get interpolated cross section data
@@ -77,7 +77,7 @@ auto Two_Group_Cross_Sections::get_data(
 }
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 // end of Two_Group_Cross_Sections.cpp

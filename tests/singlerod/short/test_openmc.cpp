@@ -1,11 +1,11 @@
-#include "stream/openmc_driver.h"
+#include "enrico/openmc_driver.h"
 #include <mpi.h>
 
 int main(int argc, char *argv[]) {
   MPI_Init(&argc, &argv);
 
   {
-    stream::OpenmcDriver test_driver(MPI_COMM_WORLD);
+    enrico::OpenmcDriver test_driver(MPI_COMM_WORLD);
     test_driver.init_step();
     test_driver.solve_step(0);
     test_driver.finalize_step();

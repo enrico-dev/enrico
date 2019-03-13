@@ -1,12 +1,12 @@
 //! \file message_passing.h
 //! Utility functions for constucting MPI communicators
-#ifndef STREAM_MESSAGE_PASSING_H
-#define STREAM_MESSAGE_PASSING_H
+#ifndef ENRICO_MESSAGE_PASSING_H
+#define ENRICO_MESSAGE_PASSING_H
 
 #include "mpi.h"
 
-//! The STREAM namespace
-namespace stream {
+//! The ENRICO namespace
+namespace enrico {
 
 //! Splits a given MPI comunicator into new inter- and intra-node communicators
 //!
@@ -35,6 +35,6 @@ namespace stream {
 void get_node_comms(MPI_Comm super_comm, int procs_per_node, MPI_Comm* sub_comm,
                     MPI_Comm* intranode_comm);
 
-} // namespace stream
+} // namespace enrico
 
-#endif //STREAM_MESSAGE_PASSING_H
+#endif //ENRICO_MESSAGE_PASSING_H

@@ -12,7 +12,7 @@
 #include "Multi_Pin_Subchannel.h"
 #include "Neutronics_Solver.h"
 
-namespace stream
+namespace enrico
 {
 
 //===========================================================================//
@@ -32,11 +32,11 @@ class Multiphysics_Driver
   public:
     //@{
     //! Typedefs
-    using Assembly      = stream::Assembly_Model;
+    using Assembly      = enrico::Assembly_Model;
     using SP_Assembly   = std::shared_ptr<Assembly>;
-    using SP_Subchannel = std::shared_ptr<stream::Multi_Pin_Subchannel>;
-    using SP_Conduction = std::shared_ptr<stream::Multi_Pin_Conduction>;
-    using SP_Neutronics = std::shared_ptr<stream::Neutronics_Solver>;
+    using SP_Subchannel = std::shared_ptr<enrico::Multi_Pin_Subchannel>;
+    using SP_Conduction = std::shared_ptr<enrico::Multi_Pin_Conduction>;
+    using SP_Neutronics = std::shared_ptr<enrico::Neutronics_Solver>;
     using RCP_PL        = Teuchos::RCP<Teuchos::ParameterList>;
     using Vec_Dbl       = std::vector<double>;
     //@}
@@ -79,7 +79,7 @@ class Multiphysics_Driver
 };
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 #endif // Multiphysics_Driver_h

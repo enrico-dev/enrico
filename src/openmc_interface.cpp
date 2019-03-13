@@ -1,13 +1,13 @@
-#include "stream/openmc_interface.h"
+#include "enrico/openmc_interface.h"
 
-#include "stream/error.h"
+#include "enrico/error.h"
 
 #include "openmc/capi.h"
 
 #include <stdexcept>
 #include <sstream>
 
-namespace stream {
+namespace enrico {
 
 CellInstance::CellInstance(Position position)
 {
@@ -51,4 +51,4 @@ bool CellInstance::operator==(const CellInstance& other) const
   return index_ == other.index_ && instance_ == other.instance_;
 }
 
-} // namespace stream
+} // namespace enrico

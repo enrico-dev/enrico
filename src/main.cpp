@@ -3,9 +3,9 @@
 #include <mpi.h>
 #include "pugixml.hpp"
 
-#include "stream/message_passing.h"
-#include "stream/openmc_nek_driver.h"
-#include "stream/openmc_heat_driver.h"
+#include "enrico/message_passing.h"
+#include "enrico/openmc_nek_driver.h"
+#include "enrico/openmc_heat_driver.h"
 
 int main(int argc, char* argv[])
 {
@@ -16,11 +16,11 @@ int main(int argc, char* argv[])
   enum class Transport { OpenMC, Shift, Surrogate };
   enum class HeatFluids { Nek5000, Surrogate };
 
-  // Parse stream.xml file
+  // Parse enrico.xml file
   pugi::xml_document doc;
-  auto result = doc.load_file("stream.xml");
+  auto result = doc.load_file("enrico.xml");
   if (!result) {
-    throw std::runtime_error{"Unable to load stream.xml file"};
+    throw std::runtime_error{"Unable to load enrico.xml file"};
   }
 
   // Get root element
@@ -57,14 +57,14 @@ int main(int argc, char* argv[])
     switch (driver_heatfluids) {
     case HeatFluids::Nek5000:
       {
-        stream::OpenmcNekDriver driver {MPI_COMM_WORLD, root};
+        enrico::OpenmcNekDriver driver {MPI_COMM_WORLD, root};
         driver.solve_in_time();
       }
       break;
     case HeatFluids::Surrogate:
       {
         // Pass XML node for reading settings
-        stream::OpenmcHeatDriver driver {MPI_COMM_WORLD, root};
+        enrico::OpenmcHeatDriver driver {MPI_COMM_WORLD, root};
         driver.solve_step();
       }
       break;

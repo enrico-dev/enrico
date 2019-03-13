@@ -4,7 +4,7 @@
 
 #include "Nemesis/harness/DBC.hh"
 
-namespace stream
+namespace enrico
 {
 
 namespace
@@ -192,7 +192,7 @@ double Water_Properties::Enthalpy(double T, double p)
 }
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 // end of Water_Properties.cpp

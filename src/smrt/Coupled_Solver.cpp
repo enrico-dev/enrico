@@ -2,35 +2,35 @@
 #include <iostream>
 
 #include "smrt/Coupled_Solver.h"
-#include "stream/nek_driver.h"
-#include "stream/error.h"
-#include "stream/nek_interface.h"
+#include "enrico/nek_driver.h"
+#include "enrico/error.h"
+#include "enrico/nek_interface.h"
 
-namespace stream
+namespace enrico
 {
 
 // Constructor
 Coupled_Solver::Coupled_Solver(std::shared_ptr<Assembly_Model> assembly,
                                const std::vector<double>&      z_edges,
                                const std::string&              shift_filename,
-                               const std::string&              stream_filename,
+                               const std::string&              enrico_filename,
                                double                          power_norm,
                                MPI_Comm                        neutronics_comm,
                                MPI_Comm                        th_comm)
     : d_power_norm(power_norm)
 {
-    d_shift_solver = std::make_shared<stream::Shift_Solver>(
+    d_shift_solver = std::make_shared<enrico::Shift_Solver>(
         assembly,
         shift_filename,
         z_edges);
 
     // Build Nek driver
     {
-        // Parse stream xml file
+        // Parse enrico xml file
         pugi::xml_document doc;
-        auto result = doc.load_file(stream_filename.c_str());
+        auto result = doc.load_file(enrico_filename.c_str());
         if (!result) {
-            throw std::runtime_error{"Unable to load stream.xml file"};
+            throw std::runtime_error{"Unable to load enrico.xml file"};
         }
 
         // Get root element
@@ -267,5 +267,4 @@ std::vector<T> Coupled_Solver::global_to_local(
     return local_field;
 }
 
-} // end namespace stream
-
+} // end namespace enrico

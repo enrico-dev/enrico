@@ -1,9 +1,9 @@
-# STREAM: Solution Transfers for REActor Multiphysics
+# ENRICO: Exascale Nuclear Reactor Investigative COde
 
 ## General Compilation
 
-STREAM can be configured and compiled in an arbitrary build directory.  However, at configure time, you must point to 
-the location of the Nek5000 input deck using the `-DUSR_LOC` flag.  Here is a sample workflow, for the compiling the  
+ENRICO can be configured and compiled in an arbitrary build directory.  However, at configure time, you must point to
+the location of the Nek5000 input deck using the `-DUSR_LOC` flag.  Here is a sample workflow, for the compiling the
 `tests/singlerod/short/` case:
 
   1. Create and enter a build directory anywhere.  For example:
@@ -17,14 +17,14 @@ the location of the Nek5000 input deck using the `-DUSR_LOC` flag.  Here is a sa
   ```
   3. Make it:
   ``` Console
-    $ make -j4 stream
+    $ make -j4 enrico
   ```
 
 # Library Targets
 
 In a given case directory, you may also compile coupled and single-physics libraries without a driver.  The available
 targets are:
-* `stream`: The STREAM library
+* `enrico`: The ENRICO executable
 * `libopenmc`: The OpenMC library
 * `libnek5000`: The Nek5000 library
 

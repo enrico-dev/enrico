@@ -1,7 +1,7 @@
 //! \file openmc_driver.h
 //! Driver to initialize and run OpenMC in stages
-#ifndef STREAM_OPENMC_DRIVER_H
-#define STREAM_OPENMC_DRIVER_H
+#ifndef ENRICO_OPENMC_DRIVER_H
+#define ENRICO_OPENMC_DRIVER_H
 
 #include "base_drivers.h"
 #include "openmc_interface.h"
@@ -14,7 +14,7 @@
 
 #include <vector>
 
-namespace stream {
+namespace enrico {
 
 //! Driver to initialize and run OpenMC in stages
 class OpenmcDriver : public TransportDriver {
@@ -61,6 +61,6 @@ public:
   std::vector<CellInstance> cells_;  //!< Array of cell instances
 };
 
-} // namespace stream
+} // namespace enrico
 
-#endif //STREAM_OPENMC_DRIVER_H
+#endif //ENRICO_OPENMC_DRIVER_H

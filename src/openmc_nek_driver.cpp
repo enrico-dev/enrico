@@ -1,9 +1,9 @@
-#include "stream/openmc_nek_driver.h"
+#include "enrico/openmc_nek_driver.h"
 
-#include "stream/const.h"
-#include "stream/error.h"
-#include "stream/nek_interface.h"
-#include "stream/message_passing.h"
+#include "enrico/const.h"
+#include "enrico/error.h"
+#include "enrico/nek_interface.h"
+#include "enrico/message_passing.h"
 
 #include "heat_xfer_backend.h"
 #include "openmc/capi.h"
@@ -15,12 +15,12 @@
 
 #include <string>
 
-namespace stream {
+namespace enrico {
 
 OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root) :
     comm_(coupled_comm)
 {
-  // Get parameters from stream.xml
+  // Get parameters from enrico.xml
   pugi::xml_node nek_node = xml_root.child("nek5000");
   power_ = xml_root.child("power").text().as_double();
   pressure_ = xml_root.child("pressure").text().as_double();
@@ -40,7 +40,7 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root)
   // Create communicator for OpenMC with 1 process per node
   MPI_Comm openmc_comm;
   MPI_Comm intranode_comm;
-  stream::get_node_comms(MPI_COMM_WORLD, openmc_procs_per_node_, &openmc_comm, &intranode_comm);
+  enrico::get_node_comms(MPI_COMM_WORLD, openmc_procs_per_node_, &openmc_comm, &intranode_comm);
 
   // Set intranode communicator
   intranode_comm_ = Comm(intranode_comm);
@@ -404,4 +404,4 @@ void OpenmcNekDriver::free_mpi_datatypes()
   MPI_Type_free(&position_mpi_datatype);
 }
 
-} // namespace stream
+} // namespace enrico

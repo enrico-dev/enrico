@@ -6,7 +6,7 @@
 
 #include "Nemesis/utils/String_Functions.hh"
 
-namespace stream
+namespace enrico
 {
 //---------------------------------------------------------------------------//
 // Constructor
@@ -155,7 +155,7 @@ void Single_Pin_Subchannel::solve(const std::vector<double>& power,
 }
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 // end of Single_Pin_Subchannel.cpp

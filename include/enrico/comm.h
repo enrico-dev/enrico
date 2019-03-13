@@ -1,13 +1,13 @@
 //! \file comm.h
 //! Info and function wrappers for a specified MPI communictor.
-#ifndef STREAM_COMM_H
-#define STREAM_COMM_H
+#ifndef ENRICO_COMM_H
+#define ENRICO_COMM_H
 
 #include "mpi.h"
 #include <string>
 #include <iostream>
 
-namespace stream {
+namespace enrico {
 
 //! Info and function wrappers for a specified MPI communictor.
 class Comm {
@@ -117,10 +117,10 @@ public:
   //! \param A message to display
   void message(const std::string& msg)
   {
-    if (rank == 0) std::cout << "[STREAM]: " << msg << std::endl;
+    if (rank == 0) std::cout << "[ENRICO]: " << msg << std::endl;
   }
 };
 
-} // namespace stream
+} // namespace enrico
 
-#endif //STREAM_COMM_H
+#endif //ENRICO_COMM_H
