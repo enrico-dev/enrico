@@ -11,6 +11,7 @@
 #include "xtensor/xbuilder.hpp"
 #include "xtensor/xtensor.hpp"
 #include "xtensor/xnorm.hpp"
+#include <gsl/gsl>
 
 #include <string>
 
@@ -27,6 +28,14 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root)
   max_picard_iter_ = xml_root.child("max_picard_iter").text().as_int();
   openmc_procs_per_node_ = xml_root.child("openmc_procs_per_node").text().as_int();
   epsilon_ = xml_root.child("epsilon").text().as_double();
+
+  // Postcondition checks on user inputs
+  Ensures(power_ > 0.0);
+  Ensures(pressure_ > 0.0);
+  Ensures(max_timesteps_ > 0);
+  Ensures(max_picard_iter_ > 0);
+  Ensures(openmc_procs_per_node_ > 0);
+  Ensures(epsilon_ > 0.0);
 
   // Create communicator for OpenMC with 1 process per node
   MPI_Comm openmc_comm;
@@ -202,7 +211,7 @@ void OpenmcNekDriver::init_mappings()
     // Now, set the mapping values on the OpenMC processes...
     if (openmc_driver_->active()) {
       for (int i = 0; i < n_materials_; ++i) {
-        int32_t mat_index = openmc_driver_->cells_[i].material_index_ - 1;
+        int32_t mat_index = openmc_driver_->cells_[i].material_index_;
         heat_index_.at(mat_index) = i;
       }
     }
@@ -218,7 +227,7 @@ void OpenmcNekDriver::init_tallies()
     // Build vector of material indices
     std::vector<int32_t> mats;
     for (const auto& c : openmc_driver_->cells_) {
-      mats.push_back(c.material_index_ - 1);
+      mats.push_back(c.material_index_);
     }
     openmc_driver_->create_tallies(mats);
   }
@@ -298,7 +307,7 @@ void OpenmcNekDriver::update_heat_source()
 
       // get corresponding material
       int32_t mat_index = elem_to_mat_.at(global_index);
-      int i = get_heat_index(mat_index);
+      int i = heat_index_.at(mat_index);
 
       err_chk(nek_set_heat_source(local_elem, heat[i]),
           "Error setting heat source for local element " + std::to_string(i));

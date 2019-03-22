@@ -1,0 +1,4 @@
+[submodule "vendor/openmc"]
+	path = vendor/openmc
+	url = https://github.com/openmc-dev/openmc
+	branch = develop

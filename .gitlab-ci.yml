@@ -1,4 +1,5 @@
 variables:
+  GIT_STRATEGY: none
   OPENMC_CROSS_SECTIONS: $CI_PROJECT_DIR/endf71_multitemp/cross_sections.xml
 
 stages:
@@ -10,13 +11,12 @@ download:cross_sections:
   stage: setup
   variables:
     GIT_STRATEGY: clone
+    GIT_SUBMODULE_STRATEGY: normal
   script:
     - wget https://anl.box.com/shared/static/46osfq56h4bd68r6e6pbhupsk4gbnvj2.xz -O - | tar -C $CI_PROJECT_DIR -xvJ
 
 input_patch:nek5000:
   stage: setup
-  variables:
-    GIT_STRATEGY: none
   script:
     - cd tests/singlerod/short
     - patch -N rodcht.rea ci_config/rodcht_rea.diff || true
@@ -27,7 +27,6 @@ build_singlerod:stream:
   dependencies:
     - input_patch:nek5000
   variables:
-    GIT_STRATEGY: none
     CC: mpicc
     CXX: mpicxx
     FC: mpif90
@@ -44,8 +43,6 @@ test_singlerod:nek5000:
   dependencies:
     - input_patch:nek5000
     - build_singlerod:stream
-  variables:
-    GIT_STRATEGY: none
   script:
     - cd tests/singlerod/short/openmc_nek5000
     - if [ -a rodcht.run01.gz ]; then gunzip -f rodcht.run01.gz ; fi
@@ -57,7 +54,6 @@ test_singlerod:openmc:
     - download:cross_sections
     - build_singlerod:stream
   variables:
-    GIT_STRATEGY: none
     OMP_NUM_THREADS: 4
   script:
     - cd tests/singlerod/short/openmc_nek5000
@@ -70,7 +66,6 @@ test_singlerod:openmc_nek5000:
     - input_patch:nek5000
     - build_singlerod:stream
   variables:
-    GIT_STRATEGY: none
     OMP_NUM_THREADS: 4
   script:
     - cd tests/singlerod/short/openmc_nek5000
@@ -83,7 +78,6 @@ test_singlerod:openmc_heat_surrogate:
     - download:cross_sections
     - build_singlerod:stream
   variables:
-    GIT_STRATEGY: none
     OMP_NUM_THREADS: 4
   script:
     - cd tests/singlerod/short/openmc_heat_surrogate
