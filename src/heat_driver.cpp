@@ -1,15 +1,15 @@
-#include "stream/heat_driver.h"
+#include "enrico/heat_driver.h"
 
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xbuilder.hpp"
 #include "xtensor/xview.hpp"
 #include "heat_xfer_backend.h"
-#include "stream/vtk_viz.h"
+#include "enrico/vtk_viz.h"
 #include "openmc/xml_interface.h"
 
 #include <iostream>
 
-namespace stream {
+namespace enrico {
 
 SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   : HeatFluidsDriver{comm}
@@ -136,4 +136,4 @@ void SurrogateHeatDriver::solve_step(int i_picard)
   return;
 }
 
-} // namespace stream
+} // namespace enrico

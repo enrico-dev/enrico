@@ -1,7 +1,7 @@
-#include "stream/openmc_driver.h"
+#include "enrico/openmc_driver.h"
 
-#include "stream/const.h"
-#include "stream/error.h"
+#include "enrico/const.h"
+#include "enrico/error.h"
 
 #include "openmc/capi.h"
 #include "openmc/constants.h"
@@ -12,7 +12,7 @@
 
 #include <string>
 
-namespace stream {
+namespace enrico {
 
 OpenmcDriver::OpenmcDriver(MPI_Comm comm) : TransportDriver(comm)
 {
@@ -99,4 +99,4 @@ OpenmcDriver::~OpenmcDriver()
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-} // namespace stream
+} // namespace enrico

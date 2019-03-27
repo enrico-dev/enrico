@@ -1,6 +1,6 @@
-#include "stream/openmc_heat_driver.h"
+#include "enrico/openmc_heat_driver.h"
 
-#include "stream/message_passing.h"
+#include "enrico/message_passing.h"
 
 #include <gsl/gsl>
 #include "openmc/constants.h"
@@ -9,7 +9,7 @@
 #include <cmath>
 #include <unordered_map>
 
-namespace stream {
+namespace enrico {
 
 OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
   : comm_{comm}
@@ -208,4 +208,4 @@ void OpenmcHeatDriver::update_temperature()
   }
 }
 
-} // namespace stream
+} // namespace enrico

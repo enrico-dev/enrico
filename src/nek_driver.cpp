@@ -1,14 +1,14 @@
-#include "stream/nek_driver.h"
+#include "enrico/nek_driver.h"
 
-#include "stream/nek_interface.h"
-#include "stream/error.h"
+#include "enrico/nek_interface.h"
+#include "enrico/error.h"
 
 #include <string>
 #include <fstream>
 #include <climits>
 #include <unistd.h>
 
-namespace stream {
+namespace enrico {
 
 NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node) : HeatFluidsDriver(comm)
 {
@@ -170,4 +170,4 @@ NekDriver::~NekDriver()
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-} // namespace stream
+} // namespace enrico

@@ -8,7 +8,7 @@
 
 #include "Nemesis/harness/DBC.hh"
 
-namespace stream
+namespace enrico
 {
 
 //===========================================================================//
@@ -112,7 +112,7 @@ class Assembly_Model
 };
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 #endif // Assembly_Model_h

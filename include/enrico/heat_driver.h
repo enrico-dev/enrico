@@ -1,7 +1,7 @@
 //! \file heat_driver.h
 //! Driver for Magnolia's heat transfer solver
-#ifndef STREAM_HEAT_DRIVER_H
-#define STREAM_HEAT_DRIVER_H
+#ifndef ENRICO_HEAT_DRIVER_H
+#define ENRICO_HEAT_DRIVER_H
 
 #include "base_drivers.h"
 
@@ -12,7 +12,7 @@
 
 #include <cstddef>
 
-namespace stream {
+namespace enrico {
 
 class SurrogateHeatDriver : public HeatFluidsDriver {
 public:
@@ -70,6 +70,6 @@ private:
   void generate_arrays();
 }; // end SurrogateHeatDriver
 
-} // namespace stream
+} // namespace enrico
 
-#endif // STREAM_HEAT_DRIVER_H
+#endif // ENRICO_HEAT_DRIVER_H

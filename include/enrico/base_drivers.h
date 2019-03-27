@@ -1,12 +1,12 @@
 //! \file base_drivers.h
 //! Base classes for single- and coupled-physics drivers
-#ifndef STREAM_DRIVERS_H
-#define STREAM_DRIVERS_H
+#ifndef ENRICO_DRIVERS_H
+#define ENRICO_DRIVERS_H
 
 #include "mpi.h"
 #include "comm.h"
 
-namespace stream {
+namespace enrico {
 
 //! Base class for heat/fluid physics driver
 class HeatFluidsDriver {
@@ -100,6 +100,6 @@ public:
   virtual ~TransportHeatFluidsDriver(){};
 };
 
-} // namespace stream
+} // namespace enrico
 
-#endif //STREAM_DRIVERS_H
+#endif //ENRICO_DRIVERS_H

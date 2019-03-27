@@ -20,7 +20,7 @@
 #include "smrt/Shift_Solver.h"
 #endif
 
-namespace stream
+namespace enrico
 {
 //---------------------------------------------------------------------------//
 // Constructor
@@ -193,7 +193,7 @@ void Multiphysics_Driver::solve()
 }
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 // end of Driver/Multiphysics_Driver.cc

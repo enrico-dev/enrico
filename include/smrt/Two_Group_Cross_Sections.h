@@ -3,7 +3,7 @@
 
 #include "Assembly_Model.h"
 
-namespace stream
+namespace enrico
 {
 
 //===========================================================================//
@@ -38,7 +38,7 @@ class Two_Group_Cross_Sections
 };
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 #endif // Two_Group_Cross_Sections_h

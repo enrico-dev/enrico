@@ -1,7 +1,7 @@
 //! \file nek_driver.h
 //! Driver to initialze and run Nek5000 in stages
-#ifndef STREAM_NEK_DRIVER_H
-#define STREAM_NEK_DRIVER_H
+#ifndef ENRICO_NEK_DRIVER_H
+#define ENRICO_NEK_DRIVER_H
 
 #include "base_drivers.h"
 #include "mpi.h"
@@ -11,7 +11,7 @@
 #include <vector>
 #include <pugixml.hpp>
 
-namespace stream {
+namespace enrico {
 
 //! Driver to initialze and run Nek5000 in stages.
 class NekDriver : public HeatFluidsDriver {
@@ -127,6 +127,6 @@ public:
 
 };
 
-} // namespace stream
+} // namespace enrico
 
-#endif //STREAM_NEK_DRIVER_H
+#endif //ENRICO_NEK_DRIVER_H

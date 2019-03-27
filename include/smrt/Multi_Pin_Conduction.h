@@ -7,11 +7,11 @@
 #include "Teuchos_RCP.hpp"
 #include "Teuchos_ParameterList.hpp"
 
-// stream includes
+// enrico includes
 #include "Assembly_Model.h"
 #include "Single_Pin_Conduction.h"
 
-namespace stream
+namespace enrico
 {
 
 //===========================================================================//
@@ -58,7 +58,7 @@ class Multi_Pin_Conduction
 };
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 #endif // Multi_Pin_Conduction_h

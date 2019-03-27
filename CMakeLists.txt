@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.1)
-project(stream Fortran C CXX)
+project(enrico Fortran C CXX)
 
 # =============================================================================
-# Check for SCALE (optional) 
+# Check for SCALE (optional)
 # =============================================================================
 find_package(SCALE PATHS ${SCALE_DIR} COMPONENTS OmnibusDriver Tpetra)
 
@@ -55,7 +55,7 @@ add_library(heat_xfer vendor/surrogates/heat_xfer_backend.cpp)
 target_include_directories(heat_xfer PUBLIC vendor/surrogates/)
 
 # =============================================================================
-# Build libstream
+# Build libenrico
 # =============================================================================
 
 set(SOURCES
@@ -84,39 +84,39 @@ if (SCALE_FOUND)
         src/smrt/Water_Properties.cpp)
 endif ()
 
-# Build all compoments of libstream
-add_library(libstream
+# Build all compoments of libenrico
+add_library(libenrico
             ${SOURCES})
 
-set_target_properties(libstream PROPERTIES OUTPUT_NAME stream)
-target_link_libraries(libstream PUBLIC libnek5000 libopenmc xtensor heat_xfer pugixml gsl-lite)
-target_compile_definitions(libstream PRIVATE GSL_THROW_ON_CONTRACT_VIOLATION)
+set_target_properties(libenrico PROPERTIES OUTPUT_NAME enrico)
+target_link_libraries(libenrico PUBLIC libnek5000 libopenmc xtensor heat_xfer pugixml gsl-lite)
+target_compile_definitions(libenrico PRIVATE GSL_THROW_ON_CONTRACT_VIOLATION)
 
 if (SCALE_FOUND)
-  target_link_libraries(libstream PUBLIC ${SCALE_LIBRARIES})
-  target_link_libraries(libstream PUBLIC ${SCALE_TPL_LIBRARIES})
+  target_link_libraries(libenrico PUBLIC ${SCALE_LIBRARIES})
+  target_link_libraries(libenrico PUBLIC ${SCALE_TPL_LIBRARIES})
 endif ()
 
 # =============================================================================
-# Build STREAM driver
+# Build enrico driver
 # =============================================================================
-add_executable(stream src/main.cpp)
-target_link_libraries(stream PUBLIC libstream)
+add_executable(enrico src/main.cpp)
+target_link_libraries(enrico PUBLIC libenrico)
 
 # =============================================================================
-# Build STREAM tests and demos
+# Build enrico tests and demos
 # =============================================================================
 add_executable(comm_split_demo tests/comm_split_demo/main.cpp)
 
 add_executable(test_nek5000_singlerod tests/singlerod/short/test_nek5000.cpp)
-target_link_libraries(test_nek5000_singlerod PUBLIC libstream)
+target_link_libraries(test_nek5000_singlerod PUBLIC libenrico)
 
 add_executable(test_openmc_singlerod tests/singlerod/short/test_openmc.cpp)
-target_link_libraries(test_openmc_singlerod PUBLIC libstream)
+target_link_libraries(test_openmc_singlerod PUBLIC libenrico)
 
 # Ensure C++14 standard is used
 set_target_properties(
-    stream libstream
+    enrico libenrico
     comm_split_demo
     test_nek5000_singlerod
     test_openmc_singlerod
@@ -124,11 +124,10 @@ set_target_properties(
 
 if (SCALE_FOUND)
   add_executable(test_shift_singlerod tests/singlerod/short/test_shift_coupled.cpp)
-  target_link_libraries(test_shift_singlerod PUBLIC libstream)
+  target_link_libraries(test_shift_singlerod PUBLIC libenrico)
 
   # Ensure C++14 standard is used
   set_target_properties(
     test_shift_singlerod
     PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
 endif ()
-

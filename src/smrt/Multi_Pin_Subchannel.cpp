@@ -4,7 +4,7 @@
 
 #include "Nemesis/harness/Soft_Equivalence.hh"
 
-namespace stream
+namespace enrico
 {
 //---------------------------------------------------------------------------//
 // Constructor
@@ -166,7 +166,7 @@ void Multi_Pin_Subchannel::solve(
 }
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 // end of Multi_Pin_Subchannel.cpp

@@ -2,12 +2,12 @@
 #include <iostream>
 #include <fstream>
 
-#include "stream/heat_driver.h"
+#include "enrico/heat_driver.h"
 
 using xt::xtensor;
 using std::ofstream;
 
-namespace stream {
+namespace enrico {
 
 class SurrogateVtkWriter {
 
@@ -134,4 +134,4 @@ private:
   size_t n_entries_;                //!< total number of connectivity entries in a plane
 };
 
-} // stream
+} // namespace enrico

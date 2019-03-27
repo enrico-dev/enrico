@@ -10,9 +10,9 @@
 
 #include "Assembly_Model.h"
 #include "Neutronics_Solver.h"
-#include "stream/geom.h"
+#include "enrico/geom.h"
 
-namespace stream
+namespace enrico
 {
 
 //===========================================================================//
@@ -72,7 +72,7 @@ class Shift_Solver : public Neutronics_Solver
 
     // Locate centroids from fluids problem
     void set_centroids_and_volumes(
-        const std::vector<stream::Position>& centroids,
+        const std::vector<enrico::Position>& centroids,
         const std::vector<double>&           volumes);
 
     // Solve for new power distribution given temperatures and densities
@@ -87,7 +87,7 @@ private:
 };
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 #endif // Shift_Solver_h

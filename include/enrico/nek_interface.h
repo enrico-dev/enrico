@@ -1,7 +1,7 @@
 //! \file nek_interface.h
 //! Functions for accessing Nek5000 routines and data structures
-#ifndef STREAM_NEK_INTERFACE_H
-#define STREAM_NEK_INTERFACE_H
+#ifndef ENRICO_NEK_INTERFACE_H
+#define ENRICO_NEK_INTERFACE_H
 
 #include "nek_mangling.h"
 #include "geom.h"
@@ -38,7 +38,7 @@ void nek_reset_counters();
 //! \param[in] global_elem A global element ID
 //! \param[out] centroid The **dimensionless* position of the global element's centroid
 //! \return Error value
-int nek_get_global_elem_centroid(int global_elem, stream::Position* centroid);
+int nek_get_global_elem_centroid(int global_elem, enrico::Position* centroid);
 
 //! Get the coordinates of a local element's centroid
 //!
@@ -48,7 +48,7 @@ int nek_get_global_elem_centroid(int global_elem, stream::Position* centroid);
 //! \param[in] local_elem A local element ID
 //! \param[out] centroid The **dimensionless* position of the local element's centroid
 //! \return Error value
-int nek_get_local_elem_centroid(int local_elem, stream::Position* centroid);
+int nek_get_local_elem_centroid(int local_elem, enrico::Position* centroid);
 
 //! Get the volume of a local element
 //!
@@ -152,4 +152,4 @@ void nek_step();
 void nek_finalize_step();
 };
 
-#endif // STREAM_NEK_INTERFACE_H
+#endif // ENRICO_NEK_INTERFACE_H

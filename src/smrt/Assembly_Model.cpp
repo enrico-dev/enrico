@@ -2,7 +2,7 @@
 
 #include "Nemesis/utils/Constants.hh"
 
-namespace stream
+namespace enrico
 {
 //---------------------------------------------------------------------------//
 // Constructor
@@ -97,7 +97,7 @@ double Assembly_Model::flow_area(int i, int j) const
 }
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 // end of Assembly_Model.cpp

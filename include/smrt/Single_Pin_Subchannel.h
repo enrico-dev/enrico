@@ -10,7 +10,7 @@
 // SCALE includes
 #include "Nemesis/harness/DBC.hh"
 
-namespace stream
+namespace enrico
 {
 
 //===========================================================================//
@@ -99,7 +99,7 @@ class Single_Pin_Subchannel
 };
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 #endif // Single_Pin_Subchannel_h

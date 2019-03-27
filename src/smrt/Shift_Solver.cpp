@@ -20,7 +20,7 @@
 #include "Omnibus/driver/Sequence_Shift.hh"
 #include "Omnibus/shift_managers/Shift_Tallies.hh"
 
-namespace stream
+namespace enrico
 {
 //---------------------------------------------------------------------------//
 // Constructor
@@ -132,7 +132,7 @@ void Shift_Solver::solve(
 // Register list of centroids and cell volumes from T/H solver
 //---------------------------------------------------------------------------//
 void Shift_Solver::set_centroids_and_volumes(
-        const std::vector<stream::Position>& centroids,
+        const std::vector<enrico::Position>& centroids,
         const std::vector<double>&           volumes)
 {
     assert(centroids.size() == volumes.size());
@@ -259,7 +259,7 @@ void Shift_Solver::add_power_tally(
 }
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 // end of Shift_Solver.cpp

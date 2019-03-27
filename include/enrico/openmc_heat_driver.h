@@ -1,7 +1,7 @@
 //! \file openmc_heat_driver.h
 //! Driver to run a surrogate finite difference heat equation solver
-#ifndef STREAM_OPENMC_HEAT_DRIVER_H
-#define STREAM_OPENMC_HEAT_DRIVER_H
+#ifndef ENRICO_OPENMC_HEAT_DRIVER_H
+#define ENRICO_OPENMC_HEAT_DRIVER_H
 
 #include "comm.h"
 #include "openmc_driver.h"
@@ -14,7 +14,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace stream {
+namespace enrico {
 
 class OpenmcHeatDriver {
 public:
@@ -68,6 +68,6 @@ private:
   void init_tallies();
 };
 
-} // namespace stream
+} // namespace enrico
 
-#endif // STREAM_OPENMC_HEAT_DRIVER_H
+#endif // ENRICO_OPENMC_HEAT_DRIVER_H

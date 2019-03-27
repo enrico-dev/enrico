@@ -1,9 +1,9 @@
 //! \file geom.h
-//! For describing STREAM geometries
-#ifndef STREAM_GEOM_H
-#define STREAM_GEOM_H
+//! For describing ENRICO geometries
+#ifndef ENRICO_GEOM_H
+#define ENRICO_GEOM_H
 
-namespace stream {
+namespace enrico {
 
 //! Describes an (x,y,z) coordinate in 3D space.
 struct Position {
@@ -12,6 +12,6 @@ struct Position {
   double z;  //!< z-coordinate
 };
 
-} // namespace stream
+} // namespace enrico
 
-#endif // STREAM_GEOM_H
+#endif // ENRICO_GEOM_H

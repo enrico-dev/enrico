@@ -1,8 +1,8 @@
 #include <cmath>
 
-#include "stream/vtk_viz.h"
-#include "xtensor/xtensor.hpp"
+#include "enrico/vtk_viz.h"
 
+#include "xtensor/xtensor.hpp"
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xbuilder.hpp"
 #include "xtensor/xview.hpp"
@@ -17,7 +17,7 @@ const size_t HEX_SIZE_ = 8;
 const int INVALID_CONN_ = -1;
 const size_t CONN_STRIDE_ = HEX_SIZE_ + 1;
 
-namespace stream {
+namespace enrico {
 
 using xt::placeholders::_;
 using xt::xtensor;
@@ -604,4 +604,4 @@ xtensor<int, 3> SurrogateVtkWriter::clad_types() {
   return clad_types_out;
 }
 
-} // stream
+} // namespace enrico

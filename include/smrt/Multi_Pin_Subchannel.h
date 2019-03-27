@@ -8,11 +8,11 @@
 #include "Teuchos_RCP.hpp"
 #include "Teuchos_ParameterList.hpp"
 
-// stream includes
+// enrico includes
 #include "Assembly_Model.h"
 #include "Single_Pin_Subchannel.h"
 
-namespace stream
+namespace enrico
 {
 
 //===========================================================================//
@@ -71,7 +71,7 @@ class Multi_Pin_Subchannel
 };
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 #endif // Multi_Pin_Subchannel_h

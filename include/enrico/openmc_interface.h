@@ -1,7 +1,7 @@
 //! \file openmc_interface.h
 //! Classes to access OpenMC data
-#ifndef STREAM_OPENMC_INTERFACE_H
-#define STREAM_OPENMC_INTERFACE_H
+#ifndef ENRICO_OPENMC_INTERFACE_H
+#define ENRICO_OPENMC_INTERFACE_H
 
 #include <cstdint>
 #include <functional> // for hash
@@ -9,7 +9,7 @@
 #include "openmc/material.h"
 #include "geom.h"
 
-namespace stream {
+namespace enrico {
 
 //! Get/set a cell's data, including data linked to its material
 class CellInstance {
@@ -41,14 +41,14 @@ public:
   double volume_ {0.0}; //!< volume of cell instance in [cm^3]
 };
 
-} // namespace stream
+} // namespace enrico
 
 namespace std {
 
 template<>
-struct hash<stream::CellInstance> {
+struct hash<enrico::CellInstance> {
   // Taken from https://stackoverflow.com/a/17017281
-  std::size_t operator()(const stream::CellInstance& k) const
+  std::size_t operator()(const enrico::CellInstance& k) const
   {
     std::size_t res = 17;
     res = 31*res + std::hash<int32_t>()(k.index_);
@@ -59,4 +59,4 @@ struct hash<stream::CellInstance> {
 
 } // namespace std
 
-#endif // STREAM_OPENMC_INTERFACE_H
+#endif // ENRICO_OPENMC_INTERFACE_H

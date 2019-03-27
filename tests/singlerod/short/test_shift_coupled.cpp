@@ -6,7 +6,7 @@
 #include "smrt/Coupled_Solver.h"
 #include <mpi.h>
 
-using AM = stream::Assembly_Model;
+using AM = enrico::Assembly_Model;
 
 int main(int argc, char *argv[]) {
 
@@ -14,7 +14,7 @@ int main(int argc, char *argv[]) {
 
   {
   std::string shift_filename  = "singlerod_short.inp.xml";
-  std::string stream_filename = "stream.xml";
+  std::string enrico_filename = "enrico.xml";
 
   // Build assembly model
   std::vector<double> x_edges = {-0.63, 0.63};
@@ -33,11 +33,11 @@ int main(int argc, char *argv[]) {
   assembly->set_guide_radius(0.61214);
 
   double power_norm = 1800.0;
-  auto coupled_solver = std::make_shared<stream::Coupled_Solver>(
+  auto coupled_solver = std::make_shared<enrico::Coupled_Solver>(
       assembly,
       z_edges,
       shift_filename,
-      stream_filename,
+      enrico_filename,
       power_norm,
       MPI_COMM_WORLD,
       MPI_COMM_WORLD);

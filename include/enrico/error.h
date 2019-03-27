@@ -1,10 +1,10 @@
-#ifndef STREAM_ERROR_H
-#define STREAM_ERROR_H
+#ifndef ENRICO_ERROR_H
+#define ENRICO_ERROR_H
 #include <stdexcept>
 #include <string>
 #include "openmc/capi.h"
 
-namespace stream {
+namespace enrico {
 
 constexpr int E_SUCCESS = 0;
 
@@ -33,5 +33,4 @@ inline void err_chk(int err)
 }
 
 }
-#endif //STREAM_ERROR_H
-
+#endif //ENRICO_ERROR_H

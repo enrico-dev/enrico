@@ -9,12 +9,12 @@
 
 #include "Shift_Solver.h"
 #include "Assembly_Model.h"
-#include "stream/message_passing.h"
-#include "stream/nek_driver.h"
-#include "stream/nek_interface.h"
-#include "stream/error.h"
+#include "enrico/message_passing.h"
+#include "enrico/nek_driver.h"
+#include "enrico/nek_interface.h"
+#include "enrico/error.h"
 
-namespace stream
+namespace enrico
 {
 //===========================================================================//
 /*!
@@ -59,7 +59,7 @@ class Coupled_Solver
     Coupled_Solver(std::shared_ptr<Assembly_Model> assembly,
                    const std::vector<double>&      z_edges,
                    const std::string&              shift_filename,
-                   const std::string&              stream_filename,
+                   const std::string&              enrico_filename,
                    double                          power_norm,
                    MPI_Comm                        neutronics_comm,
                    MPI_Comm                        th_comm);
@@ -101,6 +101,6 @@ class Coupled_Solver
 };
 
 
-} // end namespace stream
+} // end namespace enrico
 
 #endif // Coupled_Solver_h

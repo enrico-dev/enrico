@@ -1,7 +1,7 @@
 #ifndef Water_Properties_h
 #define Water_Properties_h
 
-namespace stream
+namespace enrico
 {
 
 //===========================================================================//
@@ -21,7 +21,7 @@ class Water_Properties
 };
 
 //---------------------------------------------------------------------------//
-} // end namespace stream
+} // end namespace enrico
 
 //---------------------------------------------------------------------------//
 #endif // Water_Properties_h
