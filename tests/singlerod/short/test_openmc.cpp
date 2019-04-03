@@ -7,7 +7,8 @@ int main(int argc, char *argv[]) {
   {
     enrico::OpenmcDriver test_driver(MPI_COMM_WORLD);
     test_driver.init_step();
-    test_driver.solve_step(0);
+    test_driver.solve_step();
+    test_driver.write_step(0, 0);
     test_driver.finalize_step();
   }
 

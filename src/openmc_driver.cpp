@@ -14,7 +14,7 @@
 
 namespace enrico {
 
-OpenmcDriver::OpenmcDriver(MPI_Comm comm) : TransportDriver(comm)
+OpenmcDriver::OpenmcDriver(MPI_Comm comm) : Driver(comm)
 {
   if (active()) {
     err_chk(openmc_init(0, nullptr, &comm));
@@ -81,15 +81,22 @@ void OpenmcDriver::init_step()
   err_chk(openmc_simulation_init());
 }
 
-void OpenmcDriver::solve_step(int i){
+void OpenmcDriver::solve_step()
+{
   err_chk(openmc_run());
+}
 
-  // Write out statepoint
-  std::string filename {"openmc_step" + std::to_string(i) + ".h5"};
+void OpenmcDriver::write_step(unsigned int timestep, unsigned int iteration)
+{
+  std::string filename {"openmc_" + std::to_string(timestep) +
+    "_" + std::to_string(iteration) + ".h5"};
   err_chk(openmc_statepoint_write(filename.c_str(), nullptr));
 }
 
-void OpenmcDriver::finalize_step() { err_chk(openmc_simulation_finalize()); }
+void OpenmcDriver::finalize_step()
+{
+  err_chk(openmc_simulation_finalize());
+}
 
 OpenmcDriver::~OpenmcDriver()
 {

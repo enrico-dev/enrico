@@ -2,12 +2,7 @@
 
 namespace enrico {
 
-bool HeatFluidsDriver::active() const
-{
-  return comm_.comm != MPI_COMM_NULL;
-}
-
-bool TransportDriver::active() const
+bool Driver::active() const
 {
   return comm_.comm != MPI_COMM_NULL;
 }

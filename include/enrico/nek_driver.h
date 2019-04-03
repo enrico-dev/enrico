@@ -14,7 +14,7 @@
 namespace enrico {
 
 //! Driver to initialze and run Nek5000 in stages.
-class NekDriver : public HeatFluidsDriver {
+class NekDriver : public Driver {
 public:
 
   //! Initializes Nek5000 with the given MPI communicator.
@@ -32,26 +32,12 @@ public:
 
   void init_session_name();
 
-  //! Does nothing; its functionality is not necessary for NekDriver.
-  //!
-  //! This must be implemented since the virtual method HeatFluidsDriver::init_step() is declared
-  //! in the base class.  However, all the actual work for initializing a solve is done in
-  //! NekDriver::solve_step().
-  void init_step();
-
   //! Runs all timesteps for a heat/fluid solve in Nek5000.
   //!
   //! A wraper for the nek_solve() routine in libnek5000.  This includes the necessary
   //! initialization/finalization, so NekDriver::init_step() and NekDriver::solve_step() need not
   //! do anything.
   void solve_step();
-
-  //! Does nothing; its functionality is not necessary for NekDriver.
-  //!
-  //! This must be implemented since the virtual method HeatFluidsDriver::init_step() is declared
-  //! in the base class.  However, all the actual work for finalizing a solve is done in
-  //! NekDriver::solve_step().
-  void finalize_step();
 
   //! Get the coordinate of a global element's centroid.
   //!

@@ -14,7 +14,7 @@
 
 namespace enrico {
 
-class SurrogateHeatDriver : public HeatFluidsDriver {
+class SurrogateHeatDriver : public Driver {
 public:
   //! Initializes heat-fluids surrogate with the given MPI communicator.
   //!
@@ -22,14 +22,8 @@ public:
   //! \param node  XML node containing settings for surrogate
   explicit SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node);
 
-  //! Initializes timestep for heat-fluids surrogate solver
-  void init_step() { };
-
-  //! Solves the heat equation at a single timestep in each specified region
-  void solve_step(int i_picard);
-
-  //! Finalizes the timestep for the heat-fluids surrogate solver
-  void finalize_step() { };
+  //! Solves the heat-fluids surrogate solver
+  virtual void solve_step() override;
 
   //! Number of rings in fuel and clad
   //! \return Number of rings
