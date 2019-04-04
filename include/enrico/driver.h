@@ -13,8 +13,6 @@ class Driver {
 
 public:
 
-  Comm comm_; //!< The MPI communicator used to run the solver
-
   //! Initializes the solver with the given MPI communicator.
   //! \param comm An existing MPI communicator used to initialize the solver
   explicit Driver(MPI_Comm comm) : comm_(comm) {};
@@ -34,7 +32,7 @@ public:
   //! Write results for physics solve for given timestep and iteration
   //! \param timestep timestep index
   //! \param iteration iteration index
-  virtual void write_step(unsigned int timestep, unsigned int iteration) {};
+  virtual void write_step(int timestep = -1, int iteration = -1) {};
 
   //! Performs the necessary finalization for this solver in one Picard iteration
   virtual void finalize_step() {};
@@ -42,6 +40,8 @@ public:
   //! Queries whether the comm for this solver is active
   //! \return True if this comm's solver is not MPI_COMM_NULL
   bool active() const;
+
+  Comm comm_; //!< The MPI communicator used to run the solver
 };
 
 } // namespace enrico
