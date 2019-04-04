@@ -59,7 +59,7 @@ target_include_directories(heat_xfer PUBLIC vendor/surrogates/)
 # =============================================================================
 
 set(SOURCES
-    src/base_drivers.cpp
+    src/driver.cpp
     src/heat_driver.cpp
     src/message_passing.cpp
     src/openmc_driver.cpp

@@ -3,7 +3,7 @@
 #ifndef ENRICO_NEK_DRIVER_H
 #define ENRICO_NEK_DRIVER_H
 
-#include "base_drivers.h"
+#include "driver.h"
 #include "mpi.h"
 #include "geom.h"
 

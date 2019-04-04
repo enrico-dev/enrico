@@ -3,7 +3,7 @@
 #ifndef ENRICO_HEAT_DRIVER_H
 #define ENRICO_HEAT_DRIVER_H
 
-#include "base_drivers.h"
+#include "driver.h"
 
 #include <gsl/gsl>
 #include <mpi.h>

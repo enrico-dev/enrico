@@ -3,7 +3,7 @@
 #ifndef ENRICO_OPENMC_NEK_DRIVER_H
 #define ENRICO_OPENMC_NEK_DRIVER_H
 
-#include "base_drivers.h"
+#include "driver.h"
 #include "mpi.h"
 #include "nek_driver.h"
 #include "openmc_driver.h"

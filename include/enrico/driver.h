@@ -44,31 +44,6 @@ public:
   bool active() const;
 };
 
-//! Base class for coupled particle transport and heat/fluids physics
-class TransportHeatFluidsDriver {
-public:
-  Comm comm_; //!< The MPI communicator used to run the solver
-
-  Driver transport_driver_; //!< Driver for particle transport physics
-  Driver heat_fluids_driver_; //!< Driver for heat/fluids physics
-
-  //! Initializes this driver and its member drivers from existing MPI communicators
-  //! \param coupled_comm An existing comm for this coupled-physics driver
-  //! \param neutron_comm An existing comm for the member transport driver
-  //! \param heat_fluids_comm  An existing comm for the member heat/fluids driver
-  explicit TransportHeatFluidsDriver(MPI_Comm coupled_comm, MPI_Comm neutron_comm, MPI_Comm heat_fluids_comm);
-
-  //! Default constructor
-  TransportHeatFluidsDriver() {};
-
-  virtual void update_heat_source() = 0;
-
-  virtual void update_temperature() = 0;
-
-  //! Virtual desctructor
-  virtual ~TransportHeatFluidsDriver(){};
-};
-
 } // namespace enrico
 
 #endif //ENRICO_DRIVERS_H

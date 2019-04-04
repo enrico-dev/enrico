@@ -3,7 +3,7 @@
 #ifndef ENRICO_OPENMC_DRIVER_H
 #define ENRICO_OPENMC_DRIVER_H
 
-#include "base_drivers.h"
+#include "driver.h"
 #include "openmc_interface.h"
 #include "geom.h"
 
