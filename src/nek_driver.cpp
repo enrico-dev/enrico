@@ -10,7 +10,7 @@
 
 namespace enrico {
 
-NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node) : HeatFluidsDriver(comm)
+NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node) : Driver(comm)
 {
   lelg_ = nek_get_lelg();
   lelt_ = nek_get_lelt();
@@ -105,15 +105,11 @@ void NekDriver::init_displs() {
   }
 }
 
-void NekDriver::init_step() {}
-
 void NekDriver::solve_step()
 {
   nek_reset_counters();
   C2F_nek_solve();
 }
-
-void NekDriver::finalize_step() {}
 
 Position NekDriver::get_global_elem_centroid(int global_elem) const
 {

@@ -17,10 +17,10 @@
 namespace enrico {
 
 //! Driver to initialize and run OpenMC in stages
-class OpenmcDriver : public TransportDriver {
+class OpenmcDriver : public Driver {
 public:
   //! One-time initalization of OpenMC and member variables
-  //! \param comm An exiting MPI communicator used to inialize OpenMC
+  //! \param comm An existing MPI communicator used to inialize OpenMC
   OpenmcDriver(MPI_Comm comm);
 
   //! One-time finalization of OpenMC
@@ -36,16 +36,19 @@ public:
   //! \return Heat source in each material as [W/cm3]
   xt::xtensor<double, 1> heat_source(double power);
 
-  //! Initalization required in each Picard iteration
-  void init_step();
+  //! Initialization required in each Picard iteration
+  virtual void init_step() override;
 
   //! Runs OpenMC for one Picard iteration
-  //!
-  //! \param i Iteration number
-  void solve_step(int i);
+  virtual void solve_step() override;
 
-  //! Finaliztion required in each Picard iteration
-  void finalize_step();
+  //! Writes OpenMC output for given timestep and iteration
+  //! \param timestep timestep index
+  //! \param iteration iteration index
+  virtual void write_step(unsigned int timestep, unsigned int iteration) override;
+
+  //! Finalization required in each Picard iteration
+  virtual void finalize_step() override;
 
   //! Get the coordinate of a given material's centroid
   //!

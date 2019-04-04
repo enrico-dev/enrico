@@ -106,8 +106,8 @@ void OpenmcHeatDriver::solve_step()
       // Solve neutron transport
       if (openmc_driver_->active()) {
         openmc_driver_->init_step();
-        int i = i_timestep*max_timesteps_ + i_picard;
-        openmc_driver_->solve_step(i);
+        openmc_driver_->solve_step();
+        openmc_driver_->write_step(i_timestep, i_picard);
         openmc_driver_->finalize_step();
       }
       comm_.Barrier();
@@ -117,7 +117,7 @@ void OpenmcHeatDriver::solve_step()
 
       // Solve heat equation
       if (heat_driver_->active()) {
-        heat_driver_->solve_step(i_picard);
+        heat_driver_->solve_step();
       }
       comm_.Barrier();
 

@@ -12,7 +12,7 @@
 namespace enrico {
 
 SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
-  : HeatFluidsDriver{comm}
+  : Driver(comm)
 {
   // Determine heat transfer solver parameters
   clad_inner_radius_ = node.child("clad_inner_radius").text().as_double();
@@ -88,7 +88,7 @@ void SurrogateHeatDriver::generate_arrays()
   temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
 }
 
-void SurrogateHeatDriver::solve_step(int i_picard)
+void SurrogateHeatDriver::solve_step()
 {
   std::cout << "Solving heat equation...\n";
   // NuScale inlet temperature
@@ -114,7 +114,7 @@ void SurrogateHeatDriver::solve_step(int i_picard)
   }
 }
 
-  void SurrogateHeatDriver::to_vtk(int iteration, int timestep)
+void SurrogateHeatDriver::to_vtk(int iteration, int timestep)
 {
   // if called, but viz isn't requested for the situation,
   // exit early - no output

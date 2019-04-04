@@ -8,25 +8,22 @@
 
 namespace enrico {
 
-//! Base class for heat/fluid physics driver
-class HeatFluidsDriver {
+//! Base class for driver that controls a physics solve
+class Driver {
+
 public:
 
   Comm comm_; //!< The MPI communicator used to run the solver
 
-  //! Initializes the solver with the given MPI communicator
-  //!
-  //! This should do one-time initialization for the solver, not the initialization that needs to
-  //! happen in each Picard iteration.
-  //!
+  //! Initializes the solver with the given MPI communicator.
   //! \param comm An existing MPI communicator used to initialize the solver
-  explicit HeatFluidsDriver(MPI_Comm comm) : comm_(comm) {};
+  explicit Driver(MPI_Comm comm) : comm_(comm) {};
 
   //! Default constructor
-  HeatFluidsDriver() {};
+  Driver();
 
-  //! Virtual destructor
-  virtual ~HeatFluidsDriver() {};
+  //! Execute the driver
+  virtual void execute() {};
 
   //! Performs the necessary initialization for this solver in one Picard iteration
   virtual void init_step() {};
@@ -34,38 +31,10 @@ public:
   //! Performs the solve in one Picard iteration
   virtual void solve_step() {};
 
-  //! Performs the necessary finalization for this solver in one Picard iteration
-  virtual void finalize_step() {};
-
-  //! Queries whether the comm for this solver is active
-  //! \return True if this comm's solver is not MPI_COMM_NULL
-  bool active() const;
-};
-
-//! Base class for particle transport physics driver
-class TransportDriver {
-public:
-  Comm comm_; //!< The MPI communicator used to run the solver
-
-  //! Initializes the solver with the given MPI communicator
-  //!
-  //! This should do one-time initialization for the solver, not the initialization that needs to
-  //! happen in each Picard iteration.
-  //!
-  //! \param comm An existing MPI communicator used to initialize the solver
-  explicit TransportDriver(MPI_Comm comm) : comm_(comm) {};
-
-  //! Default constructor
-  TransportDriver() {};
-
-  //! Virtual destructor
-  virtual ~TransportDriver() {};
-
-  //! Performs the necessary initialization for this solver in one Picard iteration
-  virtual void init_step() {};
-
-  //! Performs the solve in one Picard iteration
-  virtual void solve_step() {};
+  //! Write results for physics solve for given timestep and iteration
+  //! \param timestep timestep index
+  //! \param iteration iteration index
+  virtual void write_step(unsigned int timestep, unsigned int iteration) {};
 
   //! Performs the necessary finalization for this solver in one Picard iteration
   virtual void finalize_step() {};
@@ -80,8 +49,8 @@ class TransportHeatFluidsDriver {
 public:
   Comm comm_; //!< The MPI communicator used to run the solver
 
-  TransportDriver transport_driver_; //!< Driver for particle transport physics
-  HeatFluidsDriver heat_fluids_driver_; //!< Driver for heat/fluids physics
+  Driver transport_driver_; //!< Driver for particle transport physics
+  Driver heat_fluids_driver_; //!< Driver for heat/fluids physics
 
   //! Initializes this driver and its member drivers from existing MPI communicators
   //! \param coupled_comm An existing comm for this coupled-physics driver
