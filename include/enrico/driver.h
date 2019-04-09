@@ -20,9 +20,6 @@ public:
   //! Default constructor
   Driver();
 
-  //! Execute the driver
-  virtual void execute() {};
-
   //! Performs the necessary initialization for this solver in one Picard iteration
   virtual void init_step() {};
 
@@ -41,7 +38,7 @@ public:
   //! \return True if this comm's solver is not MPI_COMM_NULL
   bool active() const;
 
-  Comm comm_; //!< The MPI communicator used to run the solver
+  Comm comm_; //! The MPI communicator used to run the solver
 };
 
 } // namespace enrico

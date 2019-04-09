@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
       {
         // Pass XML node for reading settings
         enrico::OpenmcHeatDriver driver {MPI_COMM_WORLD, root};
-        driver.solve_step();
+        driver.execute();
       }
       break;
     }
