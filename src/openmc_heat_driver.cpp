@@ -24,12 +24,12 @@ OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
   init_tallies();
 }
 
-Driver & OpenmcHeatDriver::getNeutronicsDriver() const
+Driver& OpenmcHeatDriver::getNeutronicsDriver() const
 {
   return *openmc_driver_;
 }
 
-Driver & OpenmcHeatDriver::getHeatDriver() const
+Driver& OpenmcHeatDriver::getHeatDriver() const
 {
   return *heat_driver_;
 }

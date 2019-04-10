@@ -37,18 +37,18 @@ public:
   xt::xtensor<double, 1> heat_source(double power);
 
   //! Initialization required in each Picard iteration
-  virtual void init_step() override;
+  void init_step() final;
 
   //! Runs OpenMC for one Picard iteration
-  virtual void solve_step() override;
+  void solve_step() final;
 
   //! Writes OpenMC output for given timestep and iteration
   //! \param timestep timestep index
   //! \param iteration iteration index
-  virtual void write_step(int timestep = -1, int iteration = -1) override;
+  void write_step(int timestep = -1, int iteration = -1) final;
 
   //! Finalization required in each Picard iteration
-  virtual void finalize_step() override;
+  void finalize_step() final;
 
   //! Get the coordinate of a given material's centroid
   //!
