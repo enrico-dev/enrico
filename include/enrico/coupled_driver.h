@@ -44,7 +44,7 @@ public:
 
   //! Get reference to thermal-fluids driver
   //! \return reference to driver
-  virtual Driver & getHeatDriver() const = 0;
+  virtual Driver& getHeatDriver() const = 0;
 
   Comm comm_; //! The MPI communicator used to run the driver
 
