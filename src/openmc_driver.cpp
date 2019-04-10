@@ -86,7 +86,7 @@ void OpenmcDriver::solve_step()
   err_chk(openmc_run());
 }
 
-void OpenmcDriver::write_step(unsigned int timestep, unsigned int iteration)
+void OpenmcDriver::write_step(int timestep, int iteration)
 {
   std::string filename {"openmc_" + std::to_string(timestep) +
     "_" + std::to_string(iteration) + ".h5"};

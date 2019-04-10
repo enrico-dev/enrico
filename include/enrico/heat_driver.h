@@ -3,7 +3,7 @@
 #ifndef ENRICO_HEAT_DRIVER_H
 #define ENRICO_HEAT_DRIVER_H
 
-#include "base_drivers.h"
+#include "driver.h"
 
 #include <gsl/gsl>
 #include <mpi.h>
@@ -30,7 +30,7 @@ public:
   std::size_t n_rings() { return n_fuel_rings_ + n_clad_rings_; }
 
   //! Write data to VTK
-  void to_vtk(int iteration = -1, int timestep = -1);
+  void write_step(int timestep = -1, int iteration = -1) override;
 
   // Data on fuel pins
   xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins

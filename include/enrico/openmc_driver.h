@@ -3,7 +3,7 @@
 #ifndef ENRICO_OPENMC_DRIVER_H
 #define ENRICO_OPENMC_DRIVER_H
 
-#include "base_drivers.h"
+#include "driver.h"
 #include "openmc_interface.h"
 #include "geom.h"
 
@@ -45,7 +45,7 @@ public:
   //! Writes OpenMC output for given timestep and iteration
   //! \param timestep timestep index
   //! \param iteration iteration index
-  virtual void write_step(unsigned int timestep, unsigned int iteration) override;
+  virtual void write_step(int timestep = -1, int iteration = -1) override;
 
   //! Finalization required in each Picard iteration
   virtual void finalize_step() override;

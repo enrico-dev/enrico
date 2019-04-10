@@ -114,7 +114,7 @@ void SurrogateHeatDriver::solve_step()
   }
 }
 
-void SurrogateHeatDriver::to_vtk(int iteration, int timestep)
+void SurrogateHeatDriver::write_step(int timestep, int iteration)
 {
   // if called, but viz isn't requested for the situation,
   // exit early - no output

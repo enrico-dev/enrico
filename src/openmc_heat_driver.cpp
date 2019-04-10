@@ -12,13 +12,8 @@
 namespace enrico {
 
 OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
-  : comm_{comm}
+  : CoupledDriver(comm, node)
 {
-  // Get coupling parameters
-  power_ = node.child("power").text().as_double();
-  max_timesteps_ = node.child("max_timesteps").text().as_int();
-  max_picard_iter_ = node.child("max_picard_iter").text().as_int();
-
   // Initialize OpenMC and surrogate heat drivers
   openmc_driver_ = std::make_unique<OpenmcDriver>(comm);
   pugi::xml_node surr_node = node.child("heat_surrogate");
@@ -27,7 +22,16 @@ OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
   // Create mappings for fuel pins and setup tallies for OpenMC
   init_mappings();
   init_tallies();
+}
 
+Driver & OpenmcHeatDriver::getNeutronicsDriver() const
+{
+  return *openmc_driver_;
+}
+
+Driver & OpenmcHeatDriver::getHeatDriver() const
+{
+  return *heat_driver_;
 }
 
 void OpenmcHeatDriver::init_mappings()
@@ -98,44 +102,11 @@ void OpenmcHeatDriver::init_tallies()
   }
 }
 
-void OpenmcHeatDriver::solve_step()
-{
-  for (int i_timestep = 0; i_timestep < max_timesteps_; ++i_timestep) {
-    for (int i_picard = 0; i_picard < max_picard_iter_; ++i_picard) {
-
-      // Solve neutron transport
-      if (openmc_driver_->active()) {
-        openmc_driver_->init_step();
-        openmc_driver_->solve_step();
-        openmc_driver_->write_step(i_timestep, i_picard);
-        openmc_driver_->finalize_step();
-      }
-      comm_.Barrier();
-
-      // Update heat source
-      update_heat_source();
-
-      // Solve heat equation
-      if (heat_driver_->active()) {
-        heat_driver_->solve_step();
-      }
-      comm_.Barrier();
-
-      // Update temperature in OpenMC
-      update_temperature();
-
-      to_vtk(i_picard, i_timestep);
-    }
-  }
-  to_vtk();
-}
-
 void OpenmcHeatDriver::update_heat_source()
 {
   // zero out heat source
-  for (auto& val : heat_driver_->source_) {
+  for (auto& val : heat_driver_->source_)
     val = 0.0;
-  }
 
   // Determine heat source based on OpenMC tally results
   auto Q = openmc_driver_->heat_source(power_);
