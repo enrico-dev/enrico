@@ -35,9 +35,9 @@ public:
   void update_heat_source();
 
   //! Transfers temperatures from Nek5000 to OpenMC
-  void update_temperature_and_density();
+  void update_temperature();
 
-  //! Transfers densities from Nek5000 to OpenMC
+  //! Transfer densities from Nek5000 to OpenMC
   void update_density();
 
   //! Run one timstep

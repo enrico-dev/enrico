@@ -38,6 +38,10 @@ public:
   //! Update the density for the neutronics solver
   virtual void update_density() {};
 
+  //! Check convergence of the coupled solve for the current Picard iteration.
+  //! By default, derived classes will run up to the maximum number of Picard iterations.
+  virtual bool is_converged() {return false;};
+
   //! Get reference to neutronics driver
   //! \return reference to driver
   virtual Driver& getNeutronicsDriver() const = 0;

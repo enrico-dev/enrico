@@ -95,7 +95,8 @@ void OpenmcNekDriver::solve_in_time()
       }
       comm_.Barrier();
 
-      update_temperature_and_density();
+      update_temperature();
+      update_density();
 
       if (is_converged_()) {
         std::string msg = "converged at i_picard = " + std::to_string(i_picard);
@@ -315,7 +316,7 @@ void OpenmcNekDriver::update_heat_source()
   }
 }
 
-void OpenmcNekDriver::update_temperature_and_density()
+void OpenmcNekDriver::update_temperature()
 {
   if (nek_driver_->active()) {
     if (openmc_driver_->active()) {
@@ -342,42 +343,64 @@ void OpenmcNekDriver::update_temperature_and_density()
         // Get corresponding global elements
         const auto& global_elems = mat_to_elems_.at(c.material_index_);
 
-        bool any_in_fluid = false;
-        for (int elem : global_elems) {
-          if (elem_is_in_fluid_[elem] == 1) {
-            any_in_fluid = true;
-            break;
-          }
-        }
-
         // Get volume-average temperature for this material
         double average_temp = 0.0;
         double total_vol = 0.0;
-        double average_density = 0.0;
-        double total_vol_density = 0.0;
         for (int elem : global_elems) {
           double T = elem_temperatures_[elem];
           double V = elem_volumes_[elem];
           average_temp += T*V;
           total_vol += V;
-
-          if (any_in_fluid) {
-            // nu1 returns specific volume in [m^3/kg]
-            double density = 1.0e-3/nu1(pressure_, T);
-            average_density += density*V;
-            total_vol_density += V;
-          }
         }
 
         // Set temperature for cell instance
         average_temp /= total_vol;
         c.set_temperature(average_temp);
+      }
+    }
+  }
+}
+
+void OpenmcNekDriver::update_density()
+{
+  if (nek_driver_->active())
+  {
+    if (openmc_driver_->active())
+    {
+      for (const auto& c: openmc_driver_->cells_)
+      {
+        // Get corresponding global elements
+        const auto& global_elems = mat_to_elems_.at(c.material_index_);
+
+        bool any_in_fluid = false;
+        for (int elem : global_elems)
+        {
+          if (elem_is_in_fluid_[elem] == 1)
+          {
+            any_in_fluid = true;
+            break;
+          }
+        }
+
+        double average_density = 0.0;
+        double total_vol = 0.0;
+        for (int elem : global_elems)
+        {
+          double T = elem_temperatures_[elem];
+          double V = elem_volumes_[elem];
+
+          if (any_in_fluid)
+          {
+            // nu1 returns specific volume in [m^3/kg]
+            double density = 1.0e-3/nu1(pressure_, T);
+            average_density += density*V;
+            total_vol += V;
+          }
+        }
 
         // Set density for cell instance
-        if (any_in_fluid) {
-          average_density /= total_vol_density;
-          c.set_density(average_density);
-        }
+        if (any_in_fluid)
+          c.set_density(average_density / total_vol);
       }
     }
   }

@@ -1,5 +1,6 @@
 #include "enrico/coupled_driver.h"
 #include "enrico/driver.h"
+#include <gsl/gsl>
 
 namespace enrico {
 
@@ -11,14 +12,9 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node) :
   max_timesteps_ = node.child("max_timesteps").text().as_int();
   max_picard_iter_ = node.child("max_picard_iter").text().as_int();
 
-  if (power_ < 0)
-    throw std::runtime_error("Power must be non-negative!");
-
-  if (max_timesteps_ < 0)
-    throw std::runtime_error("Maximum number of timesteps must be non-negative!");
-
-  if (max_picard_iter_ < 0)
-    throw std::runtime_error("Maximum number of Picard iterations must be non-negative!");
+  Expects(power_ > 0);
+  Expects(max_timesteps_ >= 0);
+  Expects(max_picard_iter_ >= 0);
 }
 
 void CoupledDriver::execute()
@@ -29,9 +25,15 @@ void CoupledDriver::execute()
   // loop over time steps
   for (int i_timestep = 0; i_timestep < max_timesteps_; ++i_timestep)
   {
+    std::string msg = "i_timstep: " + std::to_string(i_timestep);
+    comm_.message(msg);
+
     // loop over picard iterations
     for (int i_picard = 0; i_picard < max_picard_iter_; ++i_picard)
     {
+      std::string msg = "i_picard: " + std::to_string(i_picard);
+      comm_.message(msg);
+
       if (neutronics.active())
       {
         neutronics.init_step();
@@ -58,9 +60,16 @@ void CoupledDriver::execute()
       // Update temperature and density
       update_temperature();
       update_density();
-    }
-  }
 
+      if (is_converged())
+      {
+        std::string msg = "converged at i_picard = " + std::to_string(i_picard);
+        comm_.message(msg);
+        break;
+      }
+    }
+    comm_.Barrier();
+  }
   heat.write_step();
 }
 
