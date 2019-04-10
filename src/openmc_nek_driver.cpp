@@ -17,25 +17,17 @@
 
 namespace enrico {
 
-OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root) :
-    comm_(coupled_comm)
+OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node) :
+  CoupledDriver{comm, node}
 {
   // Get parameters from enrico.xml
-  pugi::xml_node nek_node = xml_root.child("nek5000");
-  power_ = xml_root.child("power").text().as_double();
-  pressure_ = xml_root.child("pressure").text().as_double();
-  max_timesteps_ = xml_root.child("max_timesteps").text().as_int();
-  max_picard_iter_ = xml_root.child("max_picard_iter").text().as_int();
-  openmc_procs_per_node_ = xml_root.child("openmc_procs_per_node").text().as_int();
-  epsilon_ = xml_root.child("epsilon").text().as_double();
+  pugi::xml_node nek_node = node.child("nek5000");
+  pressure_ = node.child("pressure").text().as_double();
+  openmc_procs_per_node_ = node.child("openmc_procs_per_node").text().as_int();
 
   // Postcondition checks on user inputs
-  Ensures(power_ > 0.0);
-  Ensures(pressure_ > 0.0);
-  Ensures(max_timesteps_ > 0);
-  Ensures(max_picard_iter_ > 0);
-  Ensures(openmc_procs_per_node_ > 0);
-  Ensures(epsilon_ > 0.0);
+  Expects(pressure_ > 0.0);
+  Expects(openmc_procs_per_node_ > 0);
 
   // Create communicator for OpenMC with 1 process per node
   MPI_Comm openmc_comm;
@@ -47,7 +39,7 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root)
 
   // Instantiate OpenMC and Nek drivers
   openmc_driver_ = std::make_unique<OpenmcDriver>(openmc_comm);
-  nek_driver_ = std::make_unique<NekDriver>(coupled_comm, nek_node);
+  nek_driver_ = std::make_unique<NekDriver>(comm, nek_node);
 
   // Determine number of local/global elements for each rank
   n_local_elem_ = nek_driver_->active() ? nek_driver_->nelt_ : 0;
@@ -66,46 +58,14 @@ OpenmcNekDriver::~OpenmcNekDriver()
   free_mpi_datatypes();
 }
 
-void OpenmcNekDriver::solve_in_time()
+Driver& OpenmcNekDriver::getNeutronicsDriver() const
 {
-  for (int i_timestep = 0; i_timestep < max_timesteps_; ++i_timestep) {
+  return *openmc_driver_;
+}
 
-    std::string msg = "i_timestep: " + std::to_string(i_timestep);
-    comm_.message(msg);
-
-    for (int i_picard = 0; i_picard < max_picard_iter_; ++i_picard) {
-
-      std::string msg = "i_picard: " + std::to_string(i_picard);
-      comm_.message(msg);
-
-      if (openmc_driver_->active()) {
-        openmc_driver_->init_step();
-        openmc_driver_->solve_step();
-        openmc_driver_->write_step(i_timestep, i_picard);
-        openmc_driver_->finalize_step();
-      }
-      comm_.Barrier();
-
-      update_heat_source();
-
-      if (nek_driver_->active()) {
-        nek_driver_->init_step();
-        nek_driver_->solve_step();
-        nek_driver_->finalize_step();
-      }
-      comm_.Barrier();
-
-      update_temperature();
-      update_density();
-
-      if (is_converged_()) {
-        std::string msg = "converged at i_picard = " + std::to_string(i_picard);
-        comm_.message(msg);
-        break;
-      }
-    }
-    comm_.Barrier();
-  }
+Driver& OpenmcNekDriver::getHeatDriver() const
+{
+  return *nek_driver_;
 }
 
 void OpenmcNekDriver::init_mpi_datatypes()
@@ -406,7 +366,7 @@ void OpenmcNekDriver::update_density()
   }
 }
 
-bool OpenmcNekDriver::is_converged_()
+bool OpenmcNekDriver::is_converged()
 {
   bool converged;
   // WARNING: Assumes that OpenmcNekDriver rank 0 is in openmc_driver_->comm

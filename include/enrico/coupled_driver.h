@@ -57,6 +57,8 @@ public:
   int max_timesteps_; //! Maximum number of time steps
 
   int max_picard_iter_; //! Maximum number of Picard iterations
+
+  double epsilon_ {1e-3}; //! Picard iteration convergence tolerance, defaults to 1e-3 if not set
 };
 
 } // namespace enrico

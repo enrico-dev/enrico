@@ -7,14 +7,19 @@ namespace enrico {
 CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node) :
   comm_(comm)
 {
-  // get coupling parameters
+  // get required coupling parameters
   power_ = node.child("power").text().as_double();
   max_timesteps_ = node.child("max_timesteps").text().as_int();
   max_picard_iter_ = node.child("max_picard_iter").text().as_int();
 
+  // get optional coupling parameters, and set defaults if not provided
+  if (node.child("epsilon"))
+    epsilon_ = node.child("epsilon").text().as_double();
+
   Expects(power_ > 0);
   Expects(max_timesteps_ >= 0);
   Expects(max_picard_iter_ >= 0);
+  Expects(epsilon_ > 0);
 }
 
 void CoupledDriver::execute()
@@ -25,7 +30,7 @@ void CoupledDriver::execute()
   // loop over time steps
   for (int i_timestep = 0; i_timestep < max_timesteps_; ++i_timestep)
   {
-    std::string msg = "i_timstep: " + std::to_string(i_timestep);
+    std::string msg = "i_timestep: " + std::to_string(i_timestep);
     comm_.message(msg);
 
     // loop over picard iterations

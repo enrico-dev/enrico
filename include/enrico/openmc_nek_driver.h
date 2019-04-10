@@ -3,63 +3,55 @@
 #ifndef ENRICO_OPENMC_NEK_DRIVER_H
 #define ENRICO_OPENMC_NEK_DRIVER_H
 
-#include "driver.h"
+#include "coupled_driver.h"
 #include "mpi.h"
 #include "nek_driver.h"
 #include "openmc_driver.h"
 
-#include <memory> // for unique_ptr
 #include <unordered_set>
 
 namespace enrico {
 
 //! Driver for coupled Nek5000/OpenMC simulations
-//!
-//! \todo This is not actually derived from CoupledDriver.  Currently, it is unclear how or if the
-//! base class will be implemented.  The issue will be revisited
-class OpenmcNekDriver {
+class OpenmcNekDriver : public CoupledDriver {
+
 public:
-  //! Given existing MPI comms, initialize drivers and geometry mappings
+  //! Initializes coupled OpenMC-Nek5000 driver with the given MPI communicator and
+  //! sets up geometry mappings.
   //!
-  //! Currently, openmc_comm and nek_comm must be subsets of coupled_comm.  The function
+  //! Currently, openmc_comm and nek_comm must be subsets of comm.  The function
   //! enrico::get_node_comms() can be used to split a coupled_comm into suitable subcomms.
   //!
-  //! \param power Power in [W]
-  //! \param coupled_comm An existing communicator for the coupled driver
-  OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root);
+  //! \param comm The MPI communicator used for the coupled driver
+  //! \param node XML node containing settings
+  explicit OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node);
 
   //! Frees any data structures that need manual freeing.
   ~OpenmcNekDriver();
 
-  //! Transfers heat source terms from OpenMC to Nek5000
-  void update_heat_source();
+  void update_heat_source() override;
 
-  //! Transfers temperatures from Nek5000 to OpenMC
-  void update_temperature();
+  void update_temperature() override;
 
-  //! Transfer densities from Nek5000 to OpenMC
-  void update_density();
+  void update_density() override;
 
-  //! Run one timstep
-  void solve_in_time();
+  Driver& getNeutronicsDriver() const override;
+
+  Driver& getHeatDriver() const override;
 
   //! Check convergence based on temperature field and specified epsilon
   //!
-  //! Curreuntly compares L_inf norm of temperature data between iterations
+  //! Currently compares L_inf norm of temperature data between iterations
   //!
   //! \return true if L_inf norm of temperature data is less than epsilon
-  bool is_converged_();
+  bool is_converged() override;
 
-  Comm comm_; //!< The communicator used to run this driver
   Comm intranode_comm_;  //!< The communicator reprsenting intranode ranks
   std::unique_ptr<OpenmcDriver> openmc_driver_;  //!< The OpenMC driver
   std::unique_ptr<NekDriver> nek_driver_;  //!< The Nek5000 driver
-  double power_; //!< Power in [W]
   double pressure_; //!< System pressure in [MPa]
-  int max_timesteps_; //! Maximum of timesteps
-  int max_picard_iter_; //! Maximum number of Picard iterations per timestep
   int openmc_procs_per_node_; //! Number of MPI ranks per (shared-memory) node in OpenMC comm
-  double epsilon_; //! The tolerance for convergence
+
 private:
 
   //! Initialize MPI datatypes (currently, only position_mpi_datatype)

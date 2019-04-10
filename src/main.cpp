@@ -55,7 +55,7 @@ int main(int argc, char* argv[])
     case HeatFluids::Nek5000:
       {
         enrico::OpenmcNekDriver driver {MPI_COMM_WORLD, root};
-        driver.solve_in_time();
+        driver.execute();
       }
       break;
     case HeatFluids::Surrogate:
