@@ -32,7 +32,7 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node) :
   // Create communicator for OpenMC with 1 process per node
   MPI_Comm openmc_comm;
   MPI_Comm intranode_comm;
-  enrico::get_node_comms(MPI_COMM_WORLD, openmc_procs_per_node_, &openmc_comm, &intranode_comm);
+  enrico::get_node_comms(comm_.comm, openmc_procs_per_node_, &openmc_comm, &intranode_comm);
 
   // Set intranode communicator
   intranode_comm_ = Comm(intranode_comm);
