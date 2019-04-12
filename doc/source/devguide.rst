@@ -13,6 +13,14 @@ No pull request may be merged without being independently reviewed.
 Style Guidelines
 ----------------
 
+.. important:: To ensure consistent styling with little effort, this project
+    uses `clang-format <https://clang.llvm.org/docs/ClangFormat.html>`_. The
+    repository contains a ``.clang-format`` file that can be used to
+    automatically apply the style rules that are described below. The easiest
+    way to use clang-format is through a plugin/extension for your editor/IDE
+    that automatically runs clang-format using the ``.clang-format`` file
+    whenever a file is saved.
+
 Follow the `C++ Core Guidelines
 <http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines>`_ except when they
 conflict with another guideline listed here.
