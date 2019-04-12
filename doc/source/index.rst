@@ -9,15 +9,17 @@ computational fluid dynamics code. In addition, several simplified surrogate
 physics models are available for obtaining approximate solutions that can be
 used either to accelerate convergence or for testing.
 
+Documentation
+-------------
 
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
-
+   quickstart
+   devguide
 
 Indices and tables
-==================
+------------------
 
 * :ref:`genindex`
 * :ref:`modindex`
