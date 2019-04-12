@@ -38,6 +38,10 @@ public:
   //! Update the density for the neutronics solver
   virtual void update_density() {};
 
+  //! Check convergence of the coupled solve for the current Picard iteration.
+  //! By default, derived classes will run up to the maximum number of Picard iterations.
+  virtual bool is_converged() {return false;};
+
   //! Get reference to neutronics driver
   //! \return reference to driver
   virtual Driver& getNeutronicsDriver() const = 0;
@@ -53,6 +57,8 @@ public:
   int max_timesteps_; //! Maximum number of time steps
 
   int max_picard_iter_; //! Maximum number of Picard iterations
+
+  double epsilon_ {1e-3}; //! Picard iteration convergence tolerance, defaults to 1e-3 if not set
 };
 
 } // namespace enrico

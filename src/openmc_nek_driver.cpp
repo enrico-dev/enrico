@@ -17,37 +17,29 @@
 
 namespace enrico {
 
-OpenmcNekDriver::OpenmcNekDriver(MPI_Comm coupled_comm, pugi::xml_node xml_root) :
-    comm_(coupled_comm)
+OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node) :
+  CoupledDriver{comm, node}
 {
   // Get parameters from enrico.xml
-  pugi::xml_node nek_node = xml_root.child("nek5000");
-  power_ = xml_root.child("power").text().as_double();
-  pressure_ = xml_root.child("pressure").text().as_double();
-  max_timesteps_ = xml_root.child("max_timesteps").text().as_int();
-  max_picard_iter_ = xml_root.child("max_picard_iter").text().as_int();
-  openmc_procs_per_node_ = xml_root.child("openmc_procs_per_node").text().as_int();
-  epsilon_ = xml_root.child("epsilon").text().as_double();
+  pugi::xml_node nek_node = node.child("nek5000");
+  pressure_ = node.child("pressure").text().as_double();
+  openmc_procs_per_node_ = node.child("openmc_procs_per_node").text().as_int();
 
   // Postcondition checks on user inputs
-  Ensures(power_ > 0.0);
-  Ensures(pressure_ > 0.0);
-  Ensures(max_timesteps_ > 0);
-  Ensures(max_picard_iter_ > 0);
-  Ensures(openmc_procs_per_node_ > 0);
-  Ensures(epsilon_ > 0.0);
+  Expects(pressure_ > 0.0);
+  Expects(openmc_procs_per_node_ > 0);
 
   // Create communicator for OpenMC with 1 process per node
   MPI_Comm openmc_comm;
   MPI_Comm intranode_comm;
-  enrico::get_node_comms(MPI_COMM_WORLD, openmc_procs_per_node_, &openmc_comm, &intranode_comm);
+  enrico::get_node_comms(comm_.comm, openmc_procs_per_node_, &openmc_comm, &intranode_comm);
 
   // Set intranode communicator
   intranode_comm_ = Comm(intranode_comm);
 
   // Instantiate OpenMC and Nek drivers
   openmc_driver_ = std::make_unique<OpenmcDriver>(openmc_comm);
-  nek_driver_ = std::make_unique<NekDriver>(coupled_comm, nek_node);
+  nek_driver_ = std::make_unique<NekDriver>(comm, nek_node);
 
   // Determine number of local/global elements for each rank
   n_local_elem_ = nek_driver_->active() ? nek_driver_->nelt_ : 0;
@@ -66,45 +58,14 @@ OpenmcNekDriver::~OpenmcNekDriver()
   free_mpi_datatypes();
 }
 
-void OpenmcNekDriver::solve_in_time()
+Driver& OpenmcNekDriver::getNeutronicsDriver() const
 {
-  for (int i_timestep = 0; i_timestep < max_timesteps_; ++i_timestep) {
+  return *openmc_driver_;
+}
 
-    std::string msg = "i_timestep: " + std::to_string(i_timestep);
-    comm_.message(msg);
-
-    for (int i_picard = 0; i_picard < max_picard_iter_; ++i_picard) {
-
-      std::string msg = "i_picard: " + std::to_string(i_picard);
-      comm_.message(msg);
-
-      if (openmc_driver_->active()) {
-        openmc_driver_->init_step();
-        openmc_driver_->solve_step();
-        openmc_driver_->write_step(i_timestep, i_picard);
-        openmc_driver_->finalize_step();
-      }
-      comm_.Barrier();
-
-      update_heat_source();
-
-      if (nek_driver_->active()) {
-        nek_driver_->init_step();
-        nek_driver_->solve_step();
-        nek_driver_->finalize_step();
-      }
-      comm_.Barrier();
-
-      update_temperature_and_density();
-
-      if (is_converged_()) {
-        std::string msg = "converged at i_picard = " + std::to_string(i_picard);
-        comm_.message(msg);
-        break;
-      }
-    }
-    comm_.Barrier();
-  }
+Driver& OpenmcNekDriver::getHeatDriver() const
+{
+  return *nek_driver_;
 }
 
 void OpenmcNekDriver::init_mpi_datatypes()
@@ -315,7 +276,7 @@ void OpenmcNekDriver::update_heat_source()
   }
 }
 
-void OpenmcNekDriver::update_temperature_and_density()
+void OpenmcNekDriver::update_temperature()
 {
   if (nek_driver_->active()) {
     if (openmc_driver_->active()) {
@@ -342,48 +303,70 @@ void OpenmcNekDriver::update_temperature_and_density()
         // Get corresponding global elements
         const auto& global_elems = mat_to_elems_.at(c.material_index_);
 
-        bool any_in_fluid = false;
-        for (int elem : global_elems) {
-          if (elem_is_in_fluid_[elem] == 1) {
-            any_in_fluid = true;
-            break;
-          }
-        }
-
         // Get volume-average temperature for this material
         double average_temp = 0.0;
         double total_vol = 0.0;
-        double average_density = 0.0;
-        double total_vol_density = 0.0;
         for (int elem : global_elems) {
           double T = elem_temperatures_[elem];
           double V = elem_volumes_[elem];
           average_temp += T*V;
           total_vol += V;
-
-          if (any_in_fluid) {
-            // nu1 returns specific volume in [m^3/kg]
-            double density = 1.0e-3/nu1(pressure_, T);
-            average_density += density*V;
-            total_vol_density += V;
-          }
         }
 
         // Set temperature for cell instance
         average_temp /= total_vol;
         c.set_temperature(average_temp);
-
-        // Set density for cell instance
-        if (any_in_fluid) {
-          average_density /= total_vol_density;
-          c.set_density(average_density);
-        }
       }
     }
   }
 }
 
-bool OpenmcNekDriver::is_converged_()
+void OpenmcNekDriver::update_density()
+{
+  if (nek_driver_->active())
+  {
+    if (openmc_driver_->active())
+    {
+      for (const auto& c: openmc_driver_->cells_)
+      {
+        // Get corresponding global elements
+        const auto& global_elems = mat_to_elems_.at(c.material_index_);
+
+        bool any_in_fluid = false;
+        for (int elem : global_elems)
+        {
+          if (elem_is_in_fluid_[elem] == 1)
+          {
+            any_in_fluid = true;
+            break;
+          }
+        }
+
+        double average_density = 0.0;
+        double total_vol = 0.0;
+        for (int elem : global_elems)
+        {
+          double T = elem_temperatures_[elem];
+          double V = elem_volumes_[elem];
+
+          if (any_in_fluid)
+          {
+            // nu1 returns specific volume in [m^3/kg]
+            double density = 1.0e-3/nu1(pressure_, T);
+            average_density += density*V;
+            total_vol += V;
+          }
+        }
+
+        // Set density for cell instance
+        if (any_in_fluid)
+          c.set_density(average_density / total_vol);
+      }
+    }
+  }
+}
+
+bool OpenmcNekDriver::is_converged()
 {
   bool converged;
   // WARNING: Assumes that OpenmcNekDriver rank 0 is in openmc_driver_->comm

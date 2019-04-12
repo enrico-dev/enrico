@@ -1,5 +1,5 @@
 //! \file openmc_heat_driver.h
-//! Driver to run a surrogate finite difference heat equation solver
+//! Driver for coupled surrogate heat transfer/OpenMC simulations
 #ifndef ENRICO_OPENMC_HEAT_DRIVER_H
 #define ENRICO_OPENMC_HEAT_DRIVER_H
 
@@ -9,7 +9,6 @@
 #include "heat_driver.h"
 
 #include <mpi.h>
-#include "pugixml.hpp"
 
 #include <unordered_map>
 #include <vector>

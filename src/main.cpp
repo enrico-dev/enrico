@@ -48,9 +48,6 @@ int main(int argc, char* argv[])
     throw std::runtime_error{"Invalid value for <driver_heatfluids>"};
   }
 
-  // Determine power
-  double power = root.child("power").text().as_double();
-
   // Create driver according to selections
   switch (driver_transport) {
   case Transport::OpenMC:
@@ -58,7 +55,7 @@ int main(int argc, char* argv[])
     case HeatFluids::Nek5000:
       {
         enrico::OpenmcNekDriver driver {MPI_COMM_WORLD, root};
-        driver.solve_in_time();
+        driver.execute();
       }
       break;
     case HeatFluids::Surrogate:
