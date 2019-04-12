@@ -1,22 +1,23 @@
 variables:
   GIT_STRATEGY: none
+  GIT_SUBMODULE_STRATEGY: recursive
   OPENMC_CROSS_SECTIONS: $CI_PROJECT_DIR/endf71_multitemp/cross_sections.xml
 
 stages:
-  - setup
+  - download
+  - patch
   - build_singlerod
   - test_singlerod
 
 download:cross_sections:
-  stage: setup
+  stage: download
   variables:
-    GIT_STRATEGY: clone
-    GIT_SUBMODULE_STRATEGY: normal
+    GIT_STRATEGY: fetch
   script:
     - wget https://anl.box.com/shared/static/46osfq56h4bd68r6e6pbhupsk4gbnvj2.xz -O - | tar -C $CI_PROJECT_DIR -xvJ
 
 input_patch:nek5000:
-  stage: setup
+  stage: patch
   script:
     - cd tests/singlerod/short
     - patch -N rodcht.rea ci_config/rodcht_rea.diff || true
