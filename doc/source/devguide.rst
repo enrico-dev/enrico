@@ -54,7 +54,7 @@ Header files should always use include guards with the following style (See
     #endif // ENRICO_MODULE_NAME_H
 
 Avoid hidden dependencies by always including a related header file first,
-followed by C/C++ library includes, other library includes, and then local
+followed by local includes, other library includes, and then C/C++ library
 includes. For example:
 
 .. code-block:: C++
@@ -62,15 +62,14 @@ includes. For example:
    // foo.cpp
    #include "foo.h"
 
+   #include "bar.h"
+   #include "baz.h"
+
+   #include <gsl/gsl>
+
    #include <cstddef>
    #include <iostream>
    #include <vector>
-
-   #include "hdf5.h"
-   #include "pugixml.hpp"
-
-   #include "error.h"
-   #include "random_lcg.h"
 
 Naming
 ~~~~~~
@@ -108,81 +107,6 @@ single declaration to avoid confusion:
    T& p; // good
    T *p; // bad
    T* p, q; // misleading
-
-Curly braces
-~~~~~~~~~~~~
-
-For a class declaration, the opening brace should be on the same line that
-lists the name of the class.
-
-.. code-block:: C++
-
-    class Matrix {
-      ...
-    };
-
-For a function definition, the opening and closing braces should each be on
-their own lines.  This helps distinguish function code from the argument list.
-If the entire function fits on one or two lines, then the braces can be on the
-same line. e.g.:
-
-.. code-block:: C++
-
-    return_type function(type1 arg1, type2 arg2)
-    {
-      content();
-    }
-
-    return_type
-    function_with_many_args(type1 arg1, type2 arg2, type3 arg3,
-                            type4 arg4)
-    {
-      content();
-    }
-
-    int return_one() {return 1;}
-
-    int return_one()
-    {return 1;}
-
-For a conditional, the opening brace should be on the same line as the end of
-the conditional statement. If there is a following ``else if`` or ``else``
-statement, the closing brace should be on the same line as that following
-statement. Otherwise, the closing brace should be on its own line. A one-line
-conditional can have the closing brace on the same line or it can omit the
-braces entirely e.g.:
-
-.. code-block:: C++
-
-    if (condition) {
-      content();
-    }
-
-    if (condition1) {
-      content();
-    } else if (condition 2) {
-      more_content();
-    } else {
-      further_content();
-    }
-
-    if (condition) {content()};
-
-    if (condition) content();
-
-For loops similarly have an opening brace on the same line as the statement and
-a closing brace on its own line. One-line loops may have the closing brace on
-the same line or omit the braces entirely.
-
-.. code-block:: C++
-
-    for (int i = 0; i < 5; i++) {
-      content();
-    }
-
-    for (int i = 0; i < 5; i++) {content();}
-
-    for (int i = 0; i < 5; i++) content();
 
 Documentation
 ~~~~~~~~~~~~~
