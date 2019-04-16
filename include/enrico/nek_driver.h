@@ -92,6 +92,16 @@ public:
   //! \return 1 if the local element is in fluid; 0 otherwise
   int local_elem_is_in_fluid(int local_elem) const;
 
+  //! Set the heat source for a given local element
+  //!
+  //! The units of heat must match on the unit system that was used to setup the Nek5000
+  //! problem (presumably W/cm^3). The caller must handle any necessary conversions.
+  //!
+  //! \param local_elem A local element ID
+  //! \param heat A heat source term
+  //! \return Error code
+  int set_heat_source(int local_elem, double heat) const;
+
   //! Initialize the counts and displacements of local elements for each MPI Rank.
   void init_displs();
 

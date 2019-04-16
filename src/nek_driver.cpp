@@ -162,6 +162,11 @@ int NekDriver::local_elem_is_in_fluid(int local_elem) const
   return nek_local_elem_is_in_fluid(local_elem);
 }
 
+int NekDriver::set_heat_source(int local_elem, double heat) const
+{
+  return nek_set_heat_source(local_elem, heat);
+}
+
 NekDriver::~NekDriver()
 {
   if (active())
