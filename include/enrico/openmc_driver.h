@@ -3,9 +3,9 @@
 #ifndef ENRICO_OPENMC_DRIVER_H
 #define ENRICO_OPENMC_DRIVER_H
 
+#include "cell_instance.h"
 #include "driver.h"
 #include "geom.h"
-#include "openmc_interface.h"
 
 #include "openmc/tallies/tally.h"
 #include "xtensor/xtensor.hpp"

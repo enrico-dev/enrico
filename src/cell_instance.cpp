@@ -1,4 +1,4 @@
-#include "enrico/openmc_interface.h"
+#include "enrico/cell_instance.h"
 
 #include "enrico/error.h"
 
