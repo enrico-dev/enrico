@@ -119,6 +119,7 @@ target_link_libraries(test_openmc_singlerod PUBLIC libenrico)
 set_target_properties(
     enrico libenrico
     comm_split_demo
+    heat_xfer
     test_nek5000_singlerod
     test_openmc_singlerod
     PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
