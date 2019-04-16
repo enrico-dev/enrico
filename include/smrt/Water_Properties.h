@@ -1,8 +1,7 @@
 #ifndef Water_Properties_h
 #define Water_Properties_h
 
-namespace enrico
-{
+namespace enrico {
 
 //===========================================================================//
 /*!
@@ -11,13 +10,11 @@ namespace enrico
  */
 //===========================================================================//
 
-class Water_Properties
-{
-  public:
-
-    static double Density(double h, double p);
-    static double Enthalpy(double T, double p);
-    static double Temperature(double h, double p);
+class Water_Properties {
+public:
+  static double Density(double h, double p);
+  static double Enthalpy(double T, double p);
+  static double Temperature(double h, double p);
 };
 
 //---------------------------------------------------------------------------//

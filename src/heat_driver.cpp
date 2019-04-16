@@ -1,11 +1,11 @@
 #include "enrico/heat_driver.h"
 
+#include "enrico/vtk_viz.h"
+#include "heat_xfer_backend.h"
+#include "openmc/xml_interface.h"
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xbuilder.hpp"
 #include "xtensor/xview.hpp"
-#include "heat_xfer_backend.h"
-#include "enrico/vtk_viz.h"
-#include "openmc/xml_interface.h"
 
 #include <iostream>
 
@@ -30,7 +30,7 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
 
   // Convert to xtensor
   n_pins_ = pin_locations.size() / 2;
-  std::vector<std::size_t> shape {n_pins_, 2};
+  std::vector<std::size_t> shape{n_pins_, 2};
   pin_centers_ = xt::adapt(pin_locations, shape);
 
   // Get z values
@@ -46,7 +46,7 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   if (node.child("viz")) {
     pugi::xml_node viz_node = node.child("viz");
     if (viz_node.attribute("filename")) {
-        viz_basename_ = viz_node.attribute("filename").value();
+      viz_basename_ = viz_node.attribute("filename").value();
     }
 
     // if a viz node is found, write final iteration by default
@@ -73,15 +73,11 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
 void SurrogateHeatDriver::generate_arrays()
 {
   // Make a radial grid for the fuel with equal spacing.
-  r_grid_clad_ = xt::linspace<double>(
-    clad_inner_radius_,
-    clad_outer_radius_,
-    n_clad_rings_ + 1
-  );
+  r_grid_clad_ =
+    xt::linspace<double>(clad_inner_radius_, clad_outer_radius_, n_clad_rings_ + 1);
 
   // Make a radial grid for the clad with equal spacing.
-  r_grid_fuel_ = xt::linspace<double>(
-    0, pellet_radius_, n_fuel_rings_ + 1);
+  r_grid_fuel_ = xt::linspace<double>(0, pellet_radius_, n_fuel_rings_ + 1);
 
   // Create empty arrays for source term and temperature
   source_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
@@ -100,16 +96,22 @@ void SurrogateHeatDriver::solve_step()
   }
 
   // Convert source to [W/m^3] as expected by Magnolia
-  xt::xtensor<double, 3> q = 1e6*source_;
+  xt::xtensor<double, 3> q = 1e6 * source_;
 
   // Convert radial grids to [m] as expected by Magnolia
-  xt::xtensor<double, 1> r_fuel = 0.01*r_grid_fuel_;
-  xt::xtensor<double, 1> r_clad = 0.01*r_grid_clad_;
+  xt::xtensor<double, 1> r_fuel = 0.01 * r_grid_fuel_;
+  xt::xtensor<double, 1> r_clad = 0.01 * r_grid_clad_;
 
   for (int i = 0; i < n_pins_; ++i) {
     for (int j = 0; j < n_axial_; ++j) {
-      solve_steady_nonlin(&q(i, j, 0), T_co, r_fuel.data(), r_clad.data(),
-        n_fuel_rings_, n_clad_rings_, tol_, &temperature_(i, j, 0));
+      solve_steady_nonlin(&q(i, j, 0),
+                          T_co,
+                          r_fuel.data(),
+                          r_clad.data(),
+                          n_fuel_rings_,
+                          n_clad_rings_,
+                          tol_,
+                          &temperature_(i, j, 0));
     }
   }
 }
@@ -119,12 +121,14 @@ void SurrogateHeatDriver::write_step(int timestep, int iteration)
   // if called, but viz isn't requested for the situation,
   // exit early - no output
   if (iteration < 0 && "final" != viz_iterations_ ||
-      iteration >= 0 && "all"   != viz_iterations_) { return; }
+      iteration >= 0 && "all" != viz_iterations_) {
+    return;
+  }
 
   // otherwise construct an appropriate filename and write the data
   std::stringstream filename;
   filename << viz_basename_;
-  if (iteration >= 0 && timestep >=0 ) {
+  if (iteration >= 0 && timestep >= 0) {
     filename << "_" << timestep << "_" << iteration;
   }
   filename << ".vtk";

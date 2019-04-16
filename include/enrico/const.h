@@ -9,4 +9,4 @@ constexpr double JOULE_PER_EV = 1.6021766208e-19;
 
 }
 
-#endif //ENRICO_CONST_H
+#endif // ENRICO_CONST_H

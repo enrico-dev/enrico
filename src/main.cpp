@@ -1,11 +1,11 @@
 #include <stdexcept>
 
-#include <mpi.h>
 #include "pugixml.hpp"
+#include <mpi.h>
 
 #include "enrico/message_passing.h"
-#include "enrico/openmc_nek_driver.h"
 #include "enrico/openmc_heat_driver.h"
+#include "enrico/openmc_nek_driver.h"
 
 int main(int argc, char* argv[])
 {
@@ -52,19 +52,15 @@ int main(int argc, char* argv[])
   switch (driver_transport) {
   case Transport::OpenMC:
     switch (driver_heatfluids) {
-    case HeatFluids::Nek5000:
-      {
-        enrico::OpenmcNekDriver driver {MPI_COMM_WORLD, root};
-        driver.execute();
-      }
-      break;
-    case HeatFluids::Surrogate:
-      {
-        // Pass XML node for reading settings
-        enrico::OpenmcHeatDriver driver {MPI_COMM_WORLD, root};
-        driver.execute();
-      }
-      break;
+    case HeatFluids::Nek5000: {
+      enrico::OpenmcNekDriver driver{MPI_COMM_WORLD, root};
+      driver.execute();
+    } break;
+    case HeatFluids::Surrogate: {
+      // Pass XML node for reading settings
+      enrico::OpenmcHeatDriver driver{MPI_COMM_WORLD, root};
+      driver.execute();
+    } break;
     }
     break;
   case Transport::Shift:

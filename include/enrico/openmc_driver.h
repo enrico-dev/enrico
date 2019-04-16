@@ -4,13 +4,13 @@
 #define ENRICO_OPENMC_DRIVER_H
 
 #include "driver.h"
-#include "openmc_interface.h"
 #include "geom.h"
+#include "openmc_interface.h"
 
+#include "openmc/tallies/tally.h"
+#include "xtensor/xtensor.hpp"
 #include <gsl/gsl>
 #include <mpi.h>
-#include "xtensor/xtensor.hpp"
-#include "openmc/tallies/tally.h"
 
 #include <vector>
 
@@ -59,11 +59,11 @@ public:
   Position get_mat_centroid(int32_t mat_id) const;
 
   // Data
-  openmc::Tally* tally_; //!< Fission energy deposition tally
-  int32_t index_filter_;  //!< Index in filters arrays for material filter
-  std::vector<CellInstance> cells_;  //!< Array of cell instances
+  openmc::Tally* tally_;            //!< Fission energy deposition tally
+  int32_t index_filter_;            //!< Index in filters arrays for material filter
+  std::vector<CellInstance> cells_; //!< Array of cell instances
 };
 
 } // namespace enrico
 
-#endif //ENRICO_OPENMC_DRIVER_H
+#endif // ENRICO_OPENMC_DRIVER_H

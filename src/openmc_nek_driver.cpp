@@ -2,23 +2,23 @@
 
 #include "enrico/const.h"
 #include "enrico/error.h"
-#include "enrico/nek_interface.h"
 #include "enrico/message_passing.h"
+#include "enrico/nek_interface.h"
 
 #include "heat_xfer_backend.h"
 #include "openmc/capi.h"
 #include "pugixml.hpp"
 #include "xtensor/xbuilder.hpp"
-#include "xtensor/xtensor.hpp"
 #include "xtensor/xnorm.hpp"
+#include "xtensor/xtensor.hpp"
 #include <gsl/gsl>
 
 #include <string>
 
 namespace enrico {
 
-OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node) :
-  CoupledDriver{comm, node}
+OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
+  : CoupledDriver{comm, node}
 {
   // Get parameters from enrico.xml
   pugi::xml_node nek_node = node.child("nek5000");
@@ -32,7 +32,8 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node) :
   // Create communicator for OpenMC with 1 process per node
   MPI_Comm openmc_comm;
   MPI_Comm intranode_comm;
-  enrico::get_node_comms(comm_.comm, openmc_procs_per_node_, &openmc_comm, &intranode_comm);
+  enrico::get_node_comms(
+    comm_.comm, openmc_procs_per_node_, &openmc_comm, &intranode_comm);
 
   // Set intranode communicator
   intranode_comm_ = Comm(intranode_comm);
@@ -106,20 +107,28 @@ void OpenmcNekDriver::init_mappings()
     Position local_element_centroids[n_local_elem_];
     int local_element_is_in_fluid[n_local_elem_];
     for (int i = 0; i < n_local_elem_; ++i) {
-      local_element_centroids[i] = nek_driver_->get_local_elem_centroid(i+1);
-      local_element_is_in_fluid[i] = nek_driver_->local_elem_is_in_fluid(i+1);
+      local_element_centroids[i] = nek_driver_->get_local_elem_centroid(i + 1);
+      local_element_is_in_fluid[i] = nek_driver_->local_elem_is_in_fluid(i + 1);
     }
     // Gather all the local element centroids/fluid-identities on the Nek5000/OpenMC root
-    nek_driver_->comm_.Gatherv(local_element_centroids, n_local_elem_, position_mpi_datatype,
-                              elem_centroids_.data(), nek_driver_->local_counts_.data(),
-                              nek_driver_->local_displs_.data(), position_mpi_datatype);
-    nek_driver_->comm_.Gatherv(local_element_is_in_fluid, n_local_elem_, MPI_INT,
-                               elem_is_in_fluid_.data(), nek_driver_->local_counts_.data(),
-                               nek_driver_->local_displs_.data(), MPI_INT);
+    nek_driver_->comm_.Gatherv(local_element_centroids,
+                               n_local_elem_,
+                               position_mpi_datatype,
+                               elem_centroids_.data(),
+                               nek_driver_->local_counts_.data(),
+                               nek_driver_->local_displs_.data(),
+                               position_mpi_datatype);
+    nek_driver_->comm_.Gatherv(local_element_is_in_fluid,
+                               n_local_elem_,
+                               MPI_INT,
+                               elem_is_in_fluid_.data(),
+                               nek_driver_->local_counts_.data(),
+                               nek_driver_->local_displs_.data(),
+                               MPI_INT);
     // Broadcast global_element_centroids/fluid-identities onto all the OpenMC procs
     if (openmc_driver_->active()) {
-      openmc_driver_->comm_.Bcast(elem_centroids_.data(), n_global_elem_,
-                                 position_mpi_datatype);
+      openmc_driver_->comm_.Bcast(
+        elem_centroids_.data(), n_global_elem_, position_mpi_datatype);
       openmc_driver_->comm_.Bcast(elem_is_in_fluid_.data(), n_global_elem_, MPI_INT);
     }
 
@@ -135,7 +144,7 @@ void OpenmcNekDriver::init_mappings()
       for (int i = 0; i < n_global_elem_; ++i) {
         // Determine cell instance corresponding to global element
         Position elem_pos = elem_centroids_[i];
-        CellInstance c {elem_pos};
+        CellInstance c{elem_pos};
         if (tracked.find(c.material_index_) == tracked.end()) {
           openmc_driver_->cells_.push_back(c);
           tracked.insert(c.material_index_);
@@ -222,9 +231,13 @@ void OpenmcNekDriver::init_volumes()
       local_elem_volumes[i] = nek_driver_->get_local_elem_volume(i + 1);
     }
     // Gather all the local element volumes on the Nek5000/OpenMC root
-    nek_driver_->comm_.Gatherv(local_elem_volumes, n_local_elem_, MPI_DOUBLE,
-                              elem_volumes_.data(), nek_driver_->local_counts_.data(),
-                              nek_driver_->local_displs_.data(), MPI_DOUBLE);
+    nek_driver_->comm_.Gatherv(local_elem_volumes,
+                               n_local_elem_,
+                               MPI_DOUBLE,
+                               elem_volumes_.data(),
+                               nek_driver_->local_counts_.data(),
+                               nek_driver_->local_displs_.data(),
+                               MPI_DOUBLE);
     // Broadcast global_element_volumes onto all the OpenMC procs
     if (openmc_driver_->active()) {
       openmc_driver_->comm_.Bcast(elem_volumes_.data(), n_global_elem_, MPI_DOUBLE);
@@ -271,7 +284,7 @@ void OpenmcNekDriver::update_heat_source()
       int i = heat_index_.at(mat_index);
 
       err_chk(nek_set_heat_source(local_elem, heat[i]),
-          "Error setting heat source for local element " + std::to_string(i));
+              "Error setting heat source for local element " + std::to_string(i));
     }
   }
 }
@@ -280,8 +293,9 @@ void OpenmcNekDriver::update_temperature()
 {
   if (nek_driver_->active()) {
     if (openmc_driver_->active()) {
-      std::copy(elem_temperatures_.begin(), elem_temperatures_.end(),
-          elem_temperatures_prev_.begin());
+      std::copy(elem_temperatures_.begin(),
+                elem_temperatures_.end(),
+                elem_temperatures_prev_.begin());
     }
     // Each Nek proc finds the temperatures of its local elements
     double local_elem_temperatures[n_local_elem_];
@@ -289,9 +303,13 @@ void OpenmcNekDriver::update_temperature()
       local_elem_temperatures[i] = nek_driver_->get_local_elem_temperature(i + 1);
     }
     // Gather all the local element temperatures on the Nek5000/OpenMC root
-    nek_driver_->comm_.Gatherv(local_elem_temperatures, n_local_elem_, MPI_DOUBLE,
-                              elem_temperatures_.data(), nek_driver_->local_counts_.data(),
-                              nek_driver_->local_displs_.data(), MPI_DOUBLE);
+    nek_driver_->comm_.Gatherv(local_elem_temperatures,
+                               n_local_elem_,
+                               MPI_DOUBLE,
+                               elem_temperatures_.data(),
+                               nek_driver_->local_counts_.data(),
+                               nek_driver_->local_displs_.data(),
+                               MPI_DOUBLE);
 
     if (openmc_driver_->active()) {
       // Broadcast global_element_temperatures onto all the OpenMC procs
@@ -309,7 +327,7 @@ void OpenmcNekDriver::update_temperature()
         for (int elem : global_elems) {
           double T = elem_temperatures_[elem];
           double V = elem_volumes_[elem];
-          average_temp += T*V;
+          average_temp += T * V;
           total_vol += V;
         }
 
@@ -323,20 +341,15 @@ void OpenmcNekDriver::update_temperature()
 
 void OpenmcNekDriver::update_density()
 {
-  if (nek_driver_->active())
-  {
-    if (openmc_driver_->active())
-    {
-      for (const auto& c: openmc_driver_->cells_)
-      {
+  if (nek_driver_->active()) {
+    if (openmc_driver_->active()) {
+      for (const auto& c : openmc_driver_->cells_) {
         // Get corresponding global elements
         const auto& global_elems = mat_to_elems_.at(c.material_index_);
 
         bool any_in_fluid = false;
-        for (int elem : global_elems)
-        {
-          if (elem_is_in_fluid_[elem] == 1)
-          {
+        for (int elem : global_elems) {
+          if (elem_is_in_fluid_[elem] == 1) {
             any_in_fluid = true;
             break;
           }
@@ -344,16 +357,14 @@ void OpenmcNekDriver::update_density()
 
         double average_density = 0.0;
         double total_vol = 0.0;
-        for (int elem : global_elems)
-        {
+        for (int elem : global_elems) {
           double T = elem_temperatures_[elem];
           double V = elem_volumes_[elem];
 
-          if (any_in_fluid)
-          {
+          if (any_in_fluid) {
             // nu1 returns specific volume in [m^3/kg]
-            double density = 1.0e-3/nu1(pressure_, T);
-            average_density += density*V;
+            double density = 1.0e-3 / nu1(pressure_, T);
+            average_density += density * V;
             total_vol += V;
           }
         }

@@ -4,8 +4,8 @@
 #ifndef ENRICO_COUPLED_DRIVER_H
 #define ENRICO_COUPLED_DRIVER_H
 
-#include "pugixml.hpp"
 #include "enrico/driver.h"
+#include "pugixml.hpp"
 
 #include <memory> // for unique_ptr
 
@@ -16,7 +16,6 @@ namespace enrico {
 class CoupledDriver {
 
 public:
-
   //! Initializes coupled neutron transport and thermal-hydraulics solver with
   //! the given MPI communicator
   //!
@@ -24,23 +23,23 @@ public:
   //! \param node XML node containing settings
   explicit CoupledDriver(MPI_Comm comm, pugi::xml_node node);
 
-  ~CoupledDriver() {};
+  ~CoupledDriver(){};
 
   //! Execute the coupled driver
   virtual void execute();
 
   //! Update the heat source for the thermal-hydraulics solver
-  virtual void update_heat_source() {};
+  virtual void update_heat_source(){};
 
   //! Update the temperature for the neutronics solver
-  virtual void update_temperature() {};
+  virtual void update_temperature(){};
 
   //! Update the density for the neutronics solver
-  virtual void update_density() {};
+  virtual void update_density(){};
 
   //! Check convergence of the coupled solve for the current Picard iteration.
   //! By default, derived classes will run up to the maximum number of Picard iterations.
-  virtual bool is_converged() {return false;};
+  virtual bool is_converged() { return false; };
 
   //! Get reference to neutronics driver
   //! \return reference to driver
@@ -58,9 +57,10 @@ public:
 
   int max_picard_iter_; //! Maximum number of Picard iterations
 
-  double epsilon_ {1e-3}; //! Picard iteration convergence tolerance, defaults to 1e-3 if not set
+  double epsilon_{
+    1e-3}; //! Picard iteration convergence tolerance, defaults to 1e-3 if not set
 };
 
 } // namespace enrico
 
-#endif //ENRICO_COUPLED_DRIVER_H
+#endif // ENRICO_COUPLED_DRIVER_H

@@ -1,8 +1,8 @@
 #ifndef ENRICO_ERROR_H
 #define ENRICO_ERROR_H
+#include "openmc/capi.h"
 #include <stdexcept>
 #include <string>
-#include "openmc/capi.h"
 
 namespace enrico {
 
@@ -33,4 +33,4 @@ inline void err_chk(int err)
 }
 
 }
-#endif //ENRICO_ERROR_H
+#endif // ENRICO_ERROR_H
