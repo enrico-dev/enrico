@@ -37,7 +37,7 @@ public:
   //! A wraper for the nek_solve() routine in libnek5000.  This includes the necessary
   //! initialization/finalization, so NekDriver::init_step() and NekDriver::solve_step()
   //! need not do anything.
-  void solve_step();
+  void solve_step() final;
 
   //! Get the coordinate of a global element's centroid.
   //!
