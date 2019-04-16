@@ -35,8 +35,7 @@ public:
   //! Runs all timesteps for a heat/fluid solve in Nek5000.
   //!
   //! A wraper for the nek_solve() routine in libnek5000.  This includes the necessary
-  //! initialization/finalization, so NekDriver::init_step() and NekDriver::solve_step()
-  //! need not do anything.
+  //! initialization and finalization for each step.
   void solve_step() final;
 
   //! Get the coordinate of a global element's centroid.
