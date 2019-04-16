@@ -21,7 +21,7 @@ class OpenmcDriver : public Driver {
 public:
   //! One-time initalization of OpenMC and member variables
   //! \param comm An existing MPI communicator used to inialize OpenMC
-  OpenmcDriver(MPI_Comm comm);
+  explicit OpenmcDriver(MPI_Comm comm);
 
   //! One-time finalization of OpenMC
   ~OpenmcDriver();
