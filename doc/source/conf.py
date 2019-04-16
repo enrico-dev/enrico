@@ -31,6 +31,7 @@ release = '0.1'
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
 extensions = [
+    'breathe',
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -58,3 +59,8 @@ html_static_path = ['_static']
 
 def setup(app):
     app.add_stylesheet('theme_overrides.css')
+
+# -- Breathe configuration ---------------------------------------------------
+
+breathe_projects = {"enrico": "../xml"}
+breathe_default_project = "enrico"
