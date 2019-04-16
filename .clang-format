@@ -28,8 +28,8 @@ BraceWrapping:
   AfterNamespace:  false
   AfterObjCDeclaration: false
   AfterStruct:     false
-  AfterUnion:      true
-  AfterExternBlock: true
+  AfterUnion:      false
+  AfterExternBlock: false
   BeforeCatch:     false
   BeforeElse:      false
   IndentBraces:    false
@@ -37,7 +37,7 @@ BraceWrapping:
   SplitEmptyRecord: false
   SplitEmptyNamespace: true
 BreakBeforeBinaryOperators: None
-BreakBeforeBraces: Mozilla
+BreakBeforeBraces: Custom
 BreakBeforeInheritanceComma: false
 BreakInheritanceList: BeforeComma
 BreakBeforeTernaryOperators: true
