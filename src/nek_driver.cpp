@@ -125,7 +125,6 @@ Position NekDriver::get_global_elem_centroid(int global_elem) const
 Position NekDriver::get_local_elem_centroid(int local_elem) const
 {
   Position centroid;
-  int ierr = nek_get_local_elem_centroid(local_elem, &centroid);
   err_chk(nek_get_local_elem_centroid(local_elem, &centroid),
           "Could not find centroid of local element " + std::to_string(local_elem));
   return centroid;
