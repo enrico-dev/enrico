@@ -1,7 +1,7 @@
 //! \file openmc_interface.h
-//! Classes to access OpenMC data
-#ifndef ENRICO_OPENMC_INTERFACE_H
-#define ENRICO_OPENMC_INTERFACE_H
+//! Class to get/set a cell's data, including data linked to its material
+#ifndef ENRICO_CELL_INSTANCE_H
+#define ENRICO_CELL_INSTANCE_H
 
 #include <cstdint>
 #include <functional> // for hash
@@ -11,7 +11,6 @@
 
 namespace enrico {
 
-//! Get/set a cell's data, including data linked to its material
 class CellInstance {
 public:
   //! Given a position, find the cell and material IDs of the bounding cell
@@ -58,4 +57,4 @@ struct hash<enrico::CellInstance> {
 
 } // namespace std
 
-#endif // ENRICO_OPENMC_INTERFACE_H
+#endif // ENRICO_CELL_INSTANCE_H

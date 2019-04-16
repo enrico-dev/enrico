@@ -64,7 +64,7 @@ set(SOURCES
     src/heat_driver.cpp
     src/message_passing.cpp
     src/openmc_driver.cpp
-    src/openmc_interface.cpp
+    src/cell_instance.cpp
     src/openmc_nek_driver.cpp
     src/nek_driver.cpp
     src/vtk_viz.cpp
