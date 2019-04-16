@@ -2,9 +2,9 @@
 
 #include "enrico/message_passing.h"
 
-#include <gsl/gsl>
 #include "openmc/constants.h"
 #include "xtensor/xstrided_view.hpp"
+#include <gsl/gsl>
 
 #include <cmath>
 #include <unordered_map>
@@ -53,26 +53,26 @@ void OpenmcHeatDriver::init_mappings()
   for (int i = 0; i < npins; ++i) {
     for (int j = 0; j < nz; ++j) {
       // Get average z value
-      double zavg = 0.5*(z(j) + z(j + 1));
+      double zavg = 0.5 * (z(j) + z(j + 1));
 
       // Loop over radial rings
       for (int k = 0; k < heat_driver_->n_rings(); ++k) {
         double ravg;
         if (k < heat_driver_->n_fuel_rings_) {
-          ravg = 0.5*(r_fuel(k) + r_fuel(k + 1));
+          ravg = 0.5 * (r_fuel(k) + r_fuel(k + 1));
         } else {
           int m = k - heat_driver_->n_fuel_rings_;
-          ravg = 0.5*(r_clad(m) + r_clad(m + 1));
+          ravg = 0.5 * (r_clad(m) + r_clad(m + 1));
         }
 
         for (int m = 0; m < n_azimuthal; ++m) {
-          double theta = 2.0*m*PI/n_azimuthal + 0.01;
+          double theta = 2.0 * m * PI / n_azimuthal + 0.01;
           double x = ravg * std::cos(theta);
           double y = ravg * std::sin(theta);
 
           // Determine cell instance corresponding to given pin location
-          Position r {x, y, zavg};
-          CellInstance c {r};
+          Position r{x, y, zavg};
+          CellInstance c{r};
           if (tracked.find(c) == tracked.end()) {
             openmc_driver_->cells_.push_back(c);
             tracked[c] = openmc_driver_->cells_.size() - 1;
@@ -163,10 +163,10 @@ void OpenmcHeatDriver::update_temperature()
       int j = ring_index % heat_driver_->n_rings();
       double vol;
       if (j < heat_driver_->n_fuel_rings_) {
-        vol = r_fuel(j+1)*r_fuel(j+1) - r_fuel(j)*r_fuel(j);
+        vol = r_fuel(j + 1) * r_fuel(j + 1) - r_fuel(j) * r_fuel(j);
       } else {
         j -= heat_driver_->n_fuel_rings_;
-        vol = r_clad(j+1)*r_clad(j+1) - r_clad(j)*r_clad(j);
+        vol = r_clad(j + 1) * r_clad(j + 1) - r_clad(j) * r_clad(j);
       }
 
       average_temp += temperature(ring_index) * vol;

@@ -3,16 +3,15 @@
 
 #include <vector>
 
-#include "Teuchos_RCP.hpp"
 #include "Teuchos_ParameterList.hpp"
+#include "Teuchos_RCP.hpp"
 #include "Teuchos_SerialDenseMatrix.hpp"
 #include "Teuchos_SerialDenseSolver.hpp"
 #include "Teuchos_SerialDenseVector.hpp"
 
 #include "Nemesis/harness/DBC.hh"
 
-namespace enrico
-{
+namespace enrico {
 
 //===========================================================================//
 /*!
@@ -26,58 +25,54 @@ namespace enrico
  */
 //===========================================================================//
 
-class Single_Pin_Conduction
-{
-  public:
-    //@{
-    //! Typedefs
-    using RCP_PL = Teuchos::RCP<Teuchos::ParameterList>;
-    using Matrix = Teuchos::SerialDenseMatrix<int,double>;
-    using Vector = Teuchos::SerialDenseVector<int,double>;
-    using Solver = Teuchos::SerialDenseSolver<int,double>;
-    //@}
+class Single_Pin_Conduction {
+public:
+  //@{
+  //! Typedefs
+  using RCP_PL = Teuchos::RCP<Teuchos::ParameterList>;
+  using Matrix = Teuchos::SerialDenseMatrix<int, double>;
+  using Vector = Teuchos::SerialDenseVector<int, double>;
+  using Solver = Teuchos::SerialDenseSolver<int, double>;
+  //@}
 
-  private:
+private:
+  // >>> DATA
 
-    // >>> DATA
+  // Geometry
+  double d_fuel_radius;
+  double d_clad_radius;
+  double d_delta_r_fuel;
+  double d_delta_r_clad;
+  std::vector<double> d_delta_z;
 
-    // Geometry
-    double d_fuel_radius;
-    double d_clad_radius;
-    double d_delta_r_fuel;
-    double d_delta_r_clad;
-    std::vector<double> d_delta_z;
+  // Thermal conductivities
+  double d_k_fuel;
+  double d_k_clad;
 
-    // Thermal conductivities
-    double d_k_fuel;
-    double d_k_clad;
+public:
+  // Constructor
+  Single_Pin_Conduction(RCP_PL& parameters, const std::vector<double>& delta_z);
 
-  public:
+  // Set fuel radius (cm)
+  void set_fuel_radius(double r)
+  {
+    Require(r > 0.0);
+    Require(r < 2.0);
+    d_fuel_radius = r;
+  }
 
-    // Constructor
-    Single_Pin_Conduction(RCP_PL&                    parameters,
-                          const std::vector<double>& delta_z);
+  // Set clad radius (cm)
+  void set_clad_radius(double r)
+  {
+    Require(r > 0.0);
+    Require(r < 2.0);
+    d_clad_radius = r;
+  }
 
-    // Set fuel radius (cm)
-    void set_fuel_radius(double r)
-    {
-        Require(r > 0.0);
-        Require(r < 2.0);
-        d_fuel_radius = r;
-    }
-
-    // Set clad radius (cm)
-    void set_clad_radius(double r)
-    {
-        Require(r > 0.0);
-        Require(r < 2.0);
-        d_clad_radius = r;
-    }
-
-    // Solve conduction equation at each axial level
-    void solve(const std::vector<double>& power,
-               const std::vector<double>& channel_temperature,
-               std::vector<double>&       fuel_temperature);
+  // Solve conduction equation at each axial level
+  void solve(const std::vector<double>& power,
+             const std::vector<double>& channel_temperature,
+             std::vector<double>& fuel_temperature);
 };
 
 //---------------------------------------------------------------------------//

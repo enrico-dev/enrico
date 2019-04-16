@@ -46,14 +46,14 @@ public:
   //! \return true if L_inf norm of temperature data is less than epsilon
   bool is_converged() override;
 
-  Comm intranode_comm_;  //!< The communicator reprsenting intranode ranks
-  std::unique_ptr<OpenmcDriver> openmc_driver_;  //!< The OpenMC driver
-  std::unique_ptr<NekDriver> nek_driver_;  //!< The Nek5000 driver
-  double pressure_; //!< System pressure in [MPa]
-  int openmc_procs_per_node_; //! Number of MPI ranks per (shared-memory) node in OpenMC comm
+  Comm intranode_comm_; //!< The communicator reprsenting intranode ranks
+  std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
+  std::unique_ptr<NekDriver> nek_driver_;       //!< The Nek5000 driver
+  double pressure_;                             //!< System pressure in [MPa]
+  int openmc_procs_per_node_; //! Number of MPI ranks per (shared-memory) node in OpenMC
+                              //! comm
 
 private:
-
   //! Initialize MPI datatypes (currently, only position_mpi_datatype)
   void init_mpi_datatypes();
 
@@ -80,43 +80,44 @@ private:
   MPI_Datatype position_mpi_datatype;
 
   //! Gives a Position of a global element's centroid
-  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
-  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are
+  //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
   std::vector<Position> elem_centroids_;
 
   //! States whether a global element is in the fluid region
-  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
-  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are
+  //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
   std::vector<int> elem_is_in_fluid_;
 
   //! The dimensionless temperatures of Nek's global elements
-  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
-  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are
+  //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
   xt::xtensor<double, 1> elem_temperatures_;
 
-  //! From the previous Picard iter, the dimensionless temperatures of Nek's global elements
-  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
-  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  //! From the previous Picard iter, the dimensionless temperatures of Nek's global
+  //! elements These are **not** ordered by Nek's global element indices.  Rather, these
+  //! are ordered according to an MPI_Gatherv operation on Nek5000's local elements.
   xt::xtensor<double, 1> elem_temperatures_prev_;
 
   //! The dimensionless volumes of Nek's global elements
-  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
-  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are
+  //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
   xt::xtensor<double, 1> elem_volumes_;
 
   //! The dimensionless densities of Nek's global elements
-  //! These are **not** ordered by Nek's global element indices.  Rather, these are ordered
-  //! according to an MPI_Gatherv operation on Nek5000's local elements.
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are
+  //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
   xt::xtensor<double, 1> elem_densities_;
 
-  //! Map that gives a list of Nek element global indices for a given OpenMC material index
+  //! Map that gives a list of Nek element global indices for a given OpenMC material
+  //! index
   std::unordered_map<int32_t, std::vector<int>> mat_to_elems_;
 
   //! Map that gives the OpenMC material index for a given Nek global element index
   std::unordered_map<int, int32_t> elem_to_mat_;
 
-  //! Mapping of material indices (minus 1) to positions in array of heat sources that is used
-  //! during update_heat_source
+  //! Mapping of material indices (minus 1) to positions in array of heat sources that is
+  //! used during update_heat_source
   std::vector<int> heat_index_;
 
   //! Number of materials in OpenMC model
@@ -129,9 +130,8 @@ private:
   //! Number of Nek global elements across all ranks.
   //! Always equals nek_driver_.nelgt_.
   size_t n_global_elem_;
-
 };
 
 } // namespace enrico
 
-#endif //ENRICO_OPENMC_NEK_DRIVER_H
+#endif // ENRICO_OPENMC_NEK_DRIVER_H

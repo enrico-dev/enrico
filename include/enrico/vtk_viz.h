@@ -1,11 +1,11 @@
-#include <string>
-#include <iostream>
 #include <fstream>
+#include <iostream>
+#include <string>
 
 #include "enrico/heat_driver.h"
 
-using xt::xtensor;
 using std::ofstream;
+using xt::xtensor;
 
 namespace enrico {
 
@@ -14,19 +14,9 @@ class SurrogateVtkWriter {
   friend SurrogateHeatDriver;
 
 public:
-  enum class VizDataType {
-    none   = 0,
-    source = 1,
-    temp   = 2,
-    all    = 3
-  };
+  enum class VizDataType { none = 0, source = 1, temp = 2, all = 3 };
 
-  enum class VizRegionType {
-    none = 0,
-    fuel = 1,
-    clad = 2,
-    all  = 3
-  };
+  enum class VizRegionType { none = 0, fuel = 1, clad = 2, all = 3 };
 
 public:
   //! Write the surrogate model to VTK
@@ -79,7 +69,8 @@ private:
   //! \return cladding element connectivity (axial, radial, res, conn)
   xtensor<int, 4> clad_conn();
   //! Return all connectivity values for writing
-  //! \return 1-D array of connectivity, strided by CONN_STRIDE_ per element (ordered radially, axially)
+  //! \return 1-D array of connectivity, strided by CONN_STRIDE_ per element (ordered
+  //! radially, axially)
   xtensor<int, 1> conn();
   //! Generate fuel vtk mesh element (cell) types
   //! \return fuel cell types (axia, radial, azimuthal)
@@ -98,9 +89,10 @@ private:
   VizRegionType regions_out_;
 
   // pin templates
-  xtensor<double, 1> points_; //!< template of xyz values for the mesh, centerd on the origin
-  xtensor<int, 1> conn_;      //!< template of mesh element connectivity for a single pin
-  xtensor<int, 1> types_;     //!< template of mesh element types for a single pin
+  xtensor<double, 1>
+    points_;              //!< template of xyz values for the mesh, centerd on the origin
+  xtensor<int, 1> conn_;  //!< template of mesh element connectivity for a single pin
+  xtensor<int, 1> types_; //!< template of mesh element types for a single pin
 
   // SECTIONS
   // axial
@@ -129,9 +121,10 @@ private:
 
   // CONNECTIVITY ENTRIES
   size_t n_fuel_entries_per_plane_; //!< number of fuel connectivity entries in a plane
-  size_t n_clad_entries_per_plane_; //!< number of cladding connectivity entries in a plane
-  size_t n_entries_per_plane_;      //!< total number of connectivity entries in a plane
-  size_t n_entries_;                //!< total number of connectivity entries in a plane
+  size_t
+    n_clad_entries_per_plane_; //!< number of cladding connectivity entries in a plane
+  size_t n_entries_per_plane_; //!< total number of connectivity entries in a plane
+  size_t n_entries_;           //!< total number of connectivity entries in a plane
 };
 
 } // namespace enrico

@@ -3,8 +3,7 @@
 
 #include <vector>
 
-namespace enrico
-{
+namespace enrico {
 
 //===========================================================================//
 /*!
@@ -13,24 +12,23 @@ namespace enrico
  */
 //===========================================================================//
 
-class Neutronics_Solver
-{
-  public:
-    //@{
-    //! Public type aliases
-    using Vec_Dbl = std::vector<double>;
-    //@}
+class Neutronics_Solver {
+public:
+  //@{
+  //! Public type aliases
+  using Vec_Dbl = std::vector<double>;
+  //@}
 
-    // Constructor
-    Neutronics_Solver(){}
+  // Constructor
+  Neutronics_Solver() {}
 
-    // Virtual destructor
-    virtual ~Neutronics_Solver(){}
+  // Virtual destructor
+  virtual ~Neutronics_Solver() {}
 
-    // Solve for power given fuel temperature and coolant density
-    virtual void solve(const Vec_Dbl& fuel_temperature,
-	       	           const Vec_Dbl& coolant_density,
-	       	                 Vec_Dbl& power) = 0;
+  // Solve for power given fuel temperature and coolant density
+  virtual void solve(const Vec_Dbl& fuel_temperature,
+                     const Vec_Dbl& coolant_density,
+                     Vec_Dbl& power) = 0;
 };
 
 //---------------------------------------------------------------------------//

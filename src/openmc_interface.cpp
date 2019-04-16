@@ -4,8 +4,8 @@
 
 #include "openmc/capi.h"
 
-#include <stdexcept>
 #include <sstream>
+#include <stdexcept>
 
 namespace enrico {
 

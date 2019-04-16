@@ -7,15 +7,14 @@
 
 #include "Nemesis/comm/global.hh"
 
-#include "Shift_Solver.h"
 #include "Assembly_Model.h"
+#include "Shift_Solver.h"
+#include "enrico/error.h"
 #include "enrico/message_passing.h"
 #include "enrico/nek_driver.h"
 #include "enrico/nek_interface.h"
-#include "enrico/error.h"
 
-namespace enrico
-{
+namespace enrico {
 //===========================================================================//
 /*!
  * \class Coupled_Solver
@@ -25,81 +24,79 @@ namespace enrico
  * coupled nonlinear system.
  */
 //===========================================================================//
-class Coupled_Solver
-{
-  private:
-    //
-    // Data
-    //
+class Coupled_Solver {
+private:
+  //
+  // Data
+  //
 
-    // Shift solver
-    std::shared_ptr<Shift_Solver> d_shift_solver;
+  // Shift solver
+  std::shared_ptr<Shift_Solver> d_shift_solver;
 
-    // Nek solver
-    std::shared_ptr<NekDriver> d_nek_solver;
+  // Nek solver
+  std::shared_ptr<NekDriver> d_nek_solver;
 
-    // Number of local and global T/H elements
-    int d_th_num_local;
-    int d_th_num_global;
+  // Number of local and global T/H elements
+  int d_th_num_local;
+  int d_th_num_global;
 
-    // MPI datatype for Position objects
-    MPI_Datatype d_position_mpi_type;
+  // MPI datatype for Position objects
+  MPI_Datatype d_position_mpi_type;
 
-    // Field data
-    std::vector<double> d_temperatures;
-    std::vector<double> d_densities;
-    std::vector<double> d_powers;
+  // Field data
+  std::vector<double> d_temperatures;
+  std::vector<double> d_densities;
+  std::vector<double> d_powers;
 
-    // Normalization factor for power (average
-    double d_power_norm;
+  // Normalization factor for power (average
+  double d_power_norm;
 
-  public:
+public:
+  // Constructor
+  Coupled_Solver(std::shared_ptr<Assembly_Model> assembly,
+                 const std::vector<double>& z_edges,
+                 const std::string& shift_filename,
+                 const std::string& enrico_filename,
+                 double power_norm,
+                 MPI_Comm neutronics_comm,
+                 MPI_Comm th_comm);
 
-    // Constructor
-    Coupled_Solver(std::shared_ptr<Assembly_Model> assembly,
-                   const std::vector<double>&      z_edges,
-                   const std::string&              shift_filename,
-                   const std::string&              enrico_filename,
-                   double                          power_norm,
-                   MPI_Comm                        neutronics_comm,
-                   MPI_Comm                        th_comm);
+  // Destructor
+  ~Coupled_Solver();
 
-    // Destructor
-    ~Coupled_Solver();
+  // Solve coupled problem
+  void solve();
 
-    // Solve coupled problem
-    void solve();
+private:
+  // Normalize power distribution to appropriate value
+  void normalize_power();
 
-  private:
+  // Map "standard" types to corresponding MPI types
+  template<typename T>
+  MPI_Datatype get_mpi_type() const
+  {
+    return MPI_DATATYPE_NULL;
+  }
 
-    // Normalize power distribution to appropriate value
-    void normalize_power();
+  // Set up MPI types (i.e., Position)
+  void init_mpi_datatypes();
 
-    // Map "standard" types to corresponding MPI types
-    template <typename T>
-    MPI_Datatype get_mpi_type() const {return MPI_DATATYPE_NULL;}
+  // Free MPI types
+  void free_mpi_datatypes();
 
-    // Set up MPI types (i.e., Position)
-    void init_mpi_datatypes();
+  //
+  // T/H communication operations -- ultimately we want to avoid storing
+  // the entire T/H solution on a single rank
+  //
 
-    // Free MPI types
-    void free_mpi_datatypes();
+  // Gather local distributed field into global replicated field
+  template<typename T>
+  std::vector<T> local_to_global(const std::vector<T>& local_field) const;
 
-    //
-    // T/H communication operations -- ultimately we want to avoid storing
-    // the entire T/H solution on a single rank
-    //
-
-    // Gather local distributed field into global replicated field
-    template <typename T>
-    std::vector<T> local_to_global(const std::vector<T>& local_field) const;
-
-    // Scatter global replicated field into local distributed field
-    template <typename T>
-    std::vector<T> global_to_local(const std::vector<T>& global_field) const;
-
+  // Scatter global replicated field into local distributed field
+  template<typename T>
+  std::vector<T> global_to_local(const std::vector<T>& global_field) const;
 };
-
 
 } // end namespace enrico
 

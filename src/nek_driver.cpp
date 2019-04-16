@@ -1,16 +1,17 @@
 #include "enrico/nek_driver.h"
 
-#include "enrico/nek_interface.h"
 #include "enrico/error.h"
+#include "enrico/nek_interface.h"
 
-#include <string>
-#include <fstream>
 #include <climits>
+#include <fstream>
+#include <string>
 #include <unistd.h>
 
 namespace enrico {
 
-NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node) : Driver(comm)
+NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node)
+  : Driver(comm)
 {
   lelg_ = nek_get_lelg();
   lelt_ = nek_get_lelt();
@@ -33,9 +34,9 @@ NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node) : Driver(comm)
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-// This version sets the local-to-global element ordering, as ensured by a Gatherv operation.
-// It is currently unused, as the coupling does not need to know the local-global ordering.
-// void NekDriver::init_mappings() {
+// This version sets the local-to-global element ordering, as ensured by a Gatherv
+// operation. It is currently unused, as the coupling does not need to know the
+// local-global ordering. void NekDriver::init_mappings() {
 //   if(active()) {
 //
 //     // These arrays are only gathered on the root process
@@ -81,18 +82,20 @@ NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node) : Driver(comm)
 //   }
 // }
 
-void NekDriver::init_session_name() {
+void NekDriver::init_session_name()
+{
   char path_buffer[PATH_MAX];
   err_chk(getcwd(path_buffer, PATH_MAX) == path_buffer ? 0 : -1,
-      "Error writing SESSION.NAME in NekDriver");
+          "Error writing SESSION.NAME in NekDriver");
 
   std::ofstream session_name("SESSION.NAME");
   session_name << casename_ << std::endl << path_buffer << std::endl;
   session_name.close();
 }
 
-void NekDriver::init_displs() {
-  if(active()) {
+void NekDriver::init_displs()
+{
+  if (active()) {
     local_counts_.resize(comm_.size);
     local_displs_.resize(comm_.size);
 
@@ -115,7 +118,7 @@ Position NekDriver::get_global_elem_centroid(int global_elem) const
 {
   Position centroid;
   err_chk(nek_get_global_elem_centroid(global_elem, &centroid),
-      "Could not find centroid of global element " + std::to_string(global_elem));
+          "Could not find centroid of global element " + std::to_string(global_elem));
   return centroid;
 }
 
@@ -124,7 +127,7 @@ Position NekDriver::get_local_elem_centroid(int local_elem) const
   Position centroid;
   int ierr = nek_get_local_elem_centroid(local_elem, &centroid);
   err_chk(nek_get_local_elem_centroid(local_elem, &centroid),
-      "Could not find centroid of local element " + std::to_string(local_elem));
+          "Could not find centroid of local element " + std::to_string(local_elem));
   return centroid;
 }
 
@@ -132,7 +135,7 @@ double NekDriver::get_local_elem_volume(int local_elem) const
 {
   double volume;
   err_chk(nek_get_local_elem_volume(local_elem, &volume),
-      "Could not find volume of local element " + std::to_string(local_elem));
+          "Could not find volume of local element " + std::to_string(local_elem));
   return volume;
 }
 
@@ -140,7 +143,7 @@ double NekDriver::get_local_elem_temperature(int local_elem) const
 {
   double temperature;
   err_chk(nek_get_local_elem_temperature(local_elem, &temperature),
-      "Could not find temperature of local element " + std::to_string(local_elem));
+          "Could not find temperature of local element " + std::to_string(local_elem));
   return temperature;
 }
 

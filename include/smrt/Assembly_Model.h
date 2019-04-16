@@ -3,13 +3,12 @@
 
 #include <vector>
 
-#include "Teuchos_RCP.hpp"
 #include "Teuchos_ParameterList.hpp"
+#include "Teuchos_RCP.hpp"
 
 #include "Nemesis/harness/DBC.hh"
 
-namespace enrico
-{
+namespace enrico {
 
 //===========================================================================//
 /*!
@@ -18,97 +17,94 @@ namespace enrico
  */
 //===========================================================================//
 
-class Assembly_Model
-{
-  public:
+class Assembly_Model {
+public:
+  enum PIN_TYPE { FUEL, GUIDE };
 
-    enum PIN_TYPE {FUEL, GUIDE};
+private:
+  // >>> DATA
+  int d_Nx;
+  int d_Ny;
+  std::vector<PIN_TYPE> d_pin_map;
+  std::vector<double> d_x_edges;
+  std::vector<double> d_y_edges;
+  double d_height;
 
-  private:
-    // >>> DATA
-    int d_Nx;
-    int d_Ny;
-    std::vector<PIN_TYPE> d_pin_map;
-    std::vector<double> d_x_edges;
-    std::vector<double> d_y_edges;
-    double d_height;
+  // Cylinder radii
+  double d_fuel_radius;
+  double d_clad_radius;
+  double d_guide_radius;
 
-    // Cylinder radii
-    double d_fuel_radius;
-    double d_clad_radius;
-    double d_guide_radius;
+public:
+  // Constructor
+  Assembly_Model(const std::vector<PIN_TYPE>& pin_map,
+                 const std::vector<double>& x_edges,
+                 const std::vector<double>& y_edges,
+                 double height);
 
-  public:
+  // Constructor from Teuchos ParameterList
+  Assembly_Model(Teuchos::RCP<Teuchos::ParameterList> params);
 
-    // Constructor
-    Assembly_Model(const std::vector<PIN_TYPE>& pin_map,
-                   const std::vector<double>&   x_edges,
-                   const std::vector<double>&   y_edges,
-                   double                       height);
+  // Set fuel pin radius
+  void set_fuel_radius(double fr)
+  {
+    Require(fr > 0);
+    d_fuel_radius = fr;
+  }
 
-    // Constructor from Teuchos ParameterList
-    Assembly_Model(Teuchos::RCP<Teuchos::ParameterList> params);
+  // Set clad outer radius
+  void set_clad_radius(double cr)
+  {
+    Require(cr > 0);
+    d_clad_radius = cr;
+  }
 
-    // Set fuel pin radius
-    void set_fuel_radius(double fr)
-    {
-        Require(fr > 0);
-        d_fuel_radius = fr;
-    }
+  // Set guide tube outer radius
+  void set_guide_radius(double gr)
+  {
+    Require(gr > 0);
+    d_guide_radius = gr;
+  }
 
-    // Set clad outer radius
-    void set_clad_radius(double cr)
-    {
-        Require(cr > 0);
-        d_clad_radius = cr;
-    }
+  // Accessors
+  double fuel_radius() const { return d_fuel_radius; }
+  double clad_radius() const { return d_clad_radius; }
+  double guide_radius() const { return d_guide_radius; }
+  const std::vector<double>& x_edges() const { return d_x_edges; }
+  const std::vector<double>& y_edges() const { return d_y_edges; }
+  int num_pins_x() const { return d_Nx; }
+  int num_pins_y() const { return d_Ny; }
+  int num_pins() const { return d_Nx * d_Ny; }
 
-    // Set guide tube outer radius
-    void set_guide_radius(double gr)
-    {
-        Require(gr > 0);
-        d_guide_radius = gr;
-    }
+  // Convert (i,j) to cardinal pin index
+  int pin_id(int i, int j) const
+  {
+    Require(i < d_Nx);
+    Require(j < d_Ny);
+    return i + d_Nx * j;
+  }
 
-    // Accessors
-    double fuel_radius() const {return d_fuel_radius;}
-    double clad_radius() const {return d_clad_radius;}
-    double guide_radius() const {return d_guide_radius;}
-    const std::vector<double>& x_edges() const {return d_x_edges;}
-    const std::vector<double>& y_edges() const {return d_y_edges;}
-    int num_pins_x() const {return d_Nx;}
-    int num_pins_y() const {return d_Ny;}
-    int num_pins() const {return d_Nx * d_Ny;}
+  // Convert (i,j,k) to cardinal index
+  int index(int i, int j, int k) const
+  {
+    Require(i < d_Nx);
+    Require(j < d_Ny);
+    return pin_id(i, j) + num_pins() * k;
+  }
 
-    // Convert (i,j) to cardinal pin index
-    int pin_id(int i, int j) const
-    {
-        Require(i < d_Nx);
-        Require(j < d_Ny);
-        return i + d_Nx * j;
-    }
+  // Type of pin at (i,j) location
+  PIN_TYPE pin_type(int i, int j) const
+  {
+    Require(i < d_Nx);
+    Require(j < d_Ny);
+    return d_pin_map[pin_id(i, j)];
+  }
 
-    // Convert (i,j,k) to cardinal index
-    int index(int i, int j, int k) const
-    {
-        Require(i < d_Nx);
-        Require(j < d_Ny);
-        return pin_id(i, j) + num_pins() * k;
-    }
+  // Assembly height
+  double height() const { return d_height; }
 
-    // Type of pin at (i,j) location
-    PIN_TYPE pin_type(int i, int j) const
-    {
-        Require(i < d_Nx);
-        Require(j < d_Ny);
-        return d_pin_map[pin_id(i,j)];
-    }
-
-    // Assembly height
-    double height() const {return d_height;}
-
-    // Flow area (cm^2)
-    double flow_area(int i, int j) const;
+  // Flow area (cm^2)
+  double flow_area(int i, int j) const;
 };
 
 //---------------------------------------------------------------------------//

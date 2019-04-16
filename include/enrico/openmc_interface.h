@@ -6,15 +6,14 @@
 #include <cstdint>
 #include <functional> // for hash
 
-#include "openmc/material.h"
 #include "geom.h"
+#include "openmc/material.h"
 
 namespace enrico {
 
 //! Get/set a cell's data, including data linked to its material
 class CellInstance {
 public:
-
   //! Given a position, find the cell and material IDs of the bounding cell
   //!
   //! The position should be in OpenMC's units (cm).
@@ -35,10 +34,10 @@ public:
   //! Check for equality
   bool operator==(const CellInstance& other) const;
 
-  int32_t index_; //!< Index in global cells array
-  int32_t instance_; //!< Index of cell instance
+  int32_t index_;          //!< Index in global cells array
+  int32_t instance_;       //!< Index of cell instance
   int32_t material_index_; //!< Index of material in this instance
-  double volume_ {0.0}; //!< volume of cell instance in [cm^3]
+  double volume_{0.0};     //!< volume of cell instance in [cm^3]
 };
 
 } // namespace enrico
@@ -51,8 +50,8 @@ struct hash<enrico::CellInstance> {
   std::size_t operator()(const enrico::CellInstance& k) const
   {
     std::size_t res = 17;
-    res = 31*res + std::hash<int32_t>()(k.index_);
-    res = 31*res + std::hash<int32_t>()(k.instance_);
+    res = 31 * res + std::hash<int32_t>()(k.index_);
+    res = 31 * res + std::hash<int32_t>()(k.instance_);
     return res;
   }
 };

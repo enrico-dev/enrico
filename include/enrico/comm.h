@@ -4,25 +4,27 @@
 #define ENRICO_COMM_H
 
 #include "mpi.h"
-#include <string>
 #include <iostream>
+#include <string>
 
 namespace enrico {
 
 //! Info and function wrappers for a specified MPI communictor.
 class Comm {
 public:
-  MPI_Comm comm = MPI_COMM_NULL; //!< The MPI communicator described by this instance of Comm.
+  MPI_Comm comm =
+    MPI_COMM_NULL; //!< The MPI communicator described by this instance of Comm.
   MPI_Group group = MPI_GROUP_NULL; //!< The group associated with Comm::comm.
-  int size = 0; //!< The size of Comm::comm.
-  int rank = MPI_PROC_NULL; //!< The calling process's rank in Comm:comm
+  int size = 0;                     //!< The size of Comm::comm.
+  int rank = MPI_PROC_NULL;         //!< The calling process's rank in Comm:comm
 
   //! Default constructor
-  Comm() {};
+  Comm(){};
 
   //! Retrieves info about a given MPI communicator.
   //! \param comm An exisiting or null MPI communicator.
-  explicit Comm(MPI_Comm comm) : comm(comm)
+  explicit Comm(MPI_Comm comm)
+    : comm(comm)
   {
     if (comm != MPI_COMM_NULL) {
       MPI_Comm_group(comm, &group);
@@ -34,12 +36,10 @@ public:
   //! Block until all processes have reached this call
   //!
   //! \return Error value
-  int Barrier() const
-  {
-    return MPI_Barrier(comm);
-  }
+  int Barrier() const { return MPI_Barrier(comm); }
 
-  //! Broadcasts a message from the process with rank "root" to all other processes in this comm.
+  //! Broadcasts a message from the process with rank "root" to all other processes in
+  //! this comm.
   //!
   //! Currently, a wrapper for MPI_Bcast.
   //!
@@ -65,12 +65,16 @@ public:
   //! \param[in] recvtype Data type of recv buffer elements
   //! \param[in] root Rank of receiving process
   //! \return Error value
-  int Gather(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
-             void* recvbuf, int recvcount, MPI_Datatype recvtype,
+  int Gather(const void* sendbuf,
+             int sendcount,
+             MPI_Datatype sendtype,
+             void* recvbuf,
+             int recvcount,
+             MPI_Datatype recvtype,
              int root = 0) const
   {
-    return MPI_Gather(sendbuf, sendcount, sendtype, recvbuf, recvcount,
-                      recvtype, root, comm);
+    return MPI_Gather(
+      sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, root, comm);
   }
 
   //! Gathers into specified locations from all processes onto a given root
@@ -81,19 +85,27 @@ public:
   //! \param[in] sendcount Number of elements in send buffer
   //! \param[in] sendtype Data type of send buffer elements
   //! \param[out] recvbuf Address of receive buffer
-  //! \param[in] recvcounts Integer array (of length group size) containing the number of elements
+  //! \param[in] recvcounts Integer array (of length group size) containing the number of
+  //! elements
   //!                       that are received from each process
-  //! \param[in] displs Integer array (of length group size). Entry i specifies the displacement
-  //!                   relative to recvbuf at which to place the incoming data from process i.
+  //! \param[in] displs Integer array (of length group size). Entry i specifies the
+  //! displacement
+  //!                   relative to recvbuf at which to place the incoming data from
+  //!                   process i.
   //! \param[in] recvtype Data type of recv buffer elements
   //! \param[in] root Rank of receiving process
   //! \return Error value
-  int Gatherv(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
-              void* recvbuf, const int recvcounts[], const int displs[],
-              MPI_Datatype recvtype, int root = 0) const
+  int Gatherv(const void* sendbuf,
+              int sendcount,
+              MPI_Datatype sendtype,
+              void* recvbuf,
+              const int recvcounts[],
+              const int displs[],
+              MPI_Datatype recvtype,
+              int root = 0) const
   {
-    return MPI_Gatherv(sendbuf, sendcount, sendtype, recvbuf, recvcounts,
-                       displs, recvtype, root, comm);
+    return MPI_Gatherv(
+      sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, root, comm);
   }
 
   //! Gathers data from all tasks and distribute the combined data to all tasks.
@@ -107,20 +119,26 @@ public:
   //! \param[in] recvcount Number of elements received from any process
   //! \param[in] recvtype Data type of receive buffer elements
   //! \return
-  int Allgather(const void* sendbuf, int sendcount, MPI_Datatype sendtype,
-                void* recvbuf, int recvcount, MPI_Datatype recvtype) const
+  int Allgather(const void* sendbuf,
+                int sendcount,
+                MPI_Datatype sendtype,
+                void* recvbuf,
+                int recvcount,
+                MPI_Datatype recvtype) const
   {
-    return MPI_Allgather(sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
+    return MPI_Allgather(
+      sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, comm);
   }
 
   //! Displays a message from rank 0
   //! \param A message to display
   void message(const std::string& msg)
   {
-    if (rank == 0) std::cout << "[ENRICO]: " << msg << std::endl;
+    if (rank == 0)
+      std::cout << "[ENRICO]: " << msg << std::endl;
   }
 };
 
 } // namespace enrico
 
-#endif //ENRICO_COMM_H
+#endif // ENRICO_COMM_H

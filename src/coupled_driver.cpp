@@ -4,8 +4,8 @@
 
 namespace enrico {
 
-CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node) :
-  comm_(comm)
+CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
+  : comm_(comm)
 {
   // get required coupling parameters
   power_ = node.child("power").text().as_double();
@@ -28,19 +28,16 @@ void CoupledDriver::execute()
   auto& heat = getHeatDriver();
 
   // loop over time steps
-  for (int i_timestep = 0; i_timestep < max_timesteps_; ++i_timestep)
-  {
+  for (int i_timestep = 0; i_timestep < max_timesteps_; ++i_timestep) {
     std::string msg = "i_timestep: " + std::to_string(i_timestep);
     comm_.message(msg);
 
     // loop over picard iterations
-    for (int i_picard = 0; i_picard < max_picard_iter_; ++i_picard)
-    {
+    for (int i_picard = 0; i_picard < max_picard_iter_; ++i_picard) {
       std::string msg = "i_picard: " + std::to_string(i_picard);
       comm_.message(msg);
 
-      if (neutronics.active())
-      {
+      if (neutronics.active()) {
         neutronics.init_step();
         neutronics.solve_step();
         neutronics.write_step(i_timestep, i_picard);
@@ -52,8 +49,7 @@ void CoupledDriver::execute()
       // Update heat source
       update_heat_source();
 
-      if (heat.active())
-      {
+      if (heat.active()) {
         heat.init_step();
         heat.solve_step();
         heat.write_step(i_timestep, i_picard);
@@ -66,8 +62,7 @@ void CoupledDriver::execute()
       update_temperature();
       update_density();
 
-      if (is_converged())
-      {
+      if (is_converged()) {
         std::string msg = "converged at i_picard = " + std::to_string(i_picard);
         comm_.message(msg);
         break;

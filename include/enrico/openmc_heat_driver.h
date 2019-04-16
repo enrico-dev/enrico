@@ -5,8 +5,8 @@
 
 #include "comm.h"
 #include "coupled_driver.h"
-#include "openmc_driver.h"
 #include "heat_driver.h"
+#include "openmc_driver.h"
 
 #include <mpi.h>
 
@@ -18,7 +18,6 @@ namespace enrico {
 class OpenmcHeatDriver : public CoupledDriver {
 
 public:
-
   //! Initializes coupled OpenMC-surrogate driver with the given MPI communicator
   //!
   //! \param comm  The MPI communicator used for the coupled driver
@@ -42,7 +41,6 @@ public:
   std::unordered_map<int, std::vector<int>> cell_inst_to_ring_;
 
 private:
-
   //! Initialize mapping between OpenMC regions and surrogate fuel pin rings
   void init_mappings();
 

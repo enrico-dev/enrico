@@ -3,8 +3,7 @@
 
 #include "Assembly_Model.h"
 
-namespace enrico
-{
+namespace enrico {
 
 //===========================================================================//
 /*!
@@ -13,28 +12,24 @@ namespace enrico
  */
 //===========================================================================//
 
-class Two_Group_Cross_Sections
-{
-  public:
+class Two_Group_Cross_Sections {
+public:
+  struct XS_Data {
+    double diffusion[2];
+    double absorption[2];
+    double scatter;
+    double nu_fission[2];
+  };
 
-    struct XS_Data
-    {
-        double diffusion[2];
-        double absorption[2];
-        double scatter;
-        double nu_fission[2];
-    };
+private:
+  // >>> DATA
 
-  private:
-    // >>> DATA
+public:
+  // Constructor
+  Two_Group_Cross_Sections() {}
 
-  public:
-
-    // Constructor
-    Two_Group_Cross_Sections(){}
-
-    // Get XS data at given temperature and density
-    XS_Data get_data(Assembly_Model::PIN_TYPE type, double T, double rho);
+  // Get XS data at given temperature and density
+  XS_Data get_data(Assembly_Model::PIN_TYPE type, double T, double rho);
 };
 
 //---------------------------------------------------------------------------//
