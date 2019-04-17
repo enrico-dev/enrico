@@ -3,7 +3,7 @@
 #include "enrico/const.h"
 #include "enrico/error.h"
 #include "enrico/message_passing.h"
-#include "enrico/nek_interface.h"
+#include "nek_interface.h"
 
 #include "heat_xfer_backend.h"
 #include "openmc/capi.h"
