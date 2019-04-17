@@ -31,8 +31,8 @@ FortranCInterface_HEADER(${CMAKE_BINARY_DIR}/nek_mangling.h
 include_directories(
     include/
     vendor/openmc/include
-    vendor/nek5000/core
     vendor/nek5000/3rd_party/gslib/gslib-1.0.1/src
+    vendor
     src/
     ${CMAKE_BINARY_DIR})
 

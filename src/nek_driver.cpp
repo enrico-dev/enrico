@@ -1,7 +1,7 @@
 #include "enrico/nek_driver.h"
 
 #include "enrico/error.h"
-#include "nek_interface.h"
+#include "nek5000/core/nek_interface.h"
 
 #include <climits>
 #include <fstream>
