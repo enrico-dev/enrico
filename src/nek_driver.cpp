@@ -1,7 +1,7 @@
 #include "enrico/nek_driver.h"
 
 #include "enrico/error.h"
-#include "enrico/nek_interface.h"
+#include "nek5000/core/nek_interface.h"
 
 #include <climits>
 #include <fstream>
@@ -116,18 +116,18 @@ void NekDriver::solve_step()
 
 Position NekDriver::get_global_elem_centroid(int global_elem) const
 {
-  Position centroid;
-  err_chk(nek_get_global_elem_centroid(global_elem, &centroid),
+  double x, y, z;
+  err_chk(nek_get_global_elem_centroid(global_elem, &x, &y, &z),
           "Could not find centroid of global element " + std::to_string(global_elem));
-  return centroid;
+  return {x, y, z};
 }
 
 Position NekDriver::get_local_elem_centroid(int local_elem) const
 {
-  Position centroid;
-  err_chk(nek_get_local_elem_centroid(local_elem, &centroid),
+  double x, y, z;
+  err_chk(nek_get_local_elem_centroid(local_elem, &x, &y, &z),
           "Could not find centroid of local element " + std::to_string(local_elem));
-  return centroid;
+  return {x, y, z};
 }
 
 double NekDriver::get_local_elem_volume(int local_elem) const
