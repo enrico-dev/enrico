@@ -53,6 +53,13 @@ public:
   int openmc_procs_per_node_; //! Number of MPI ranks per (shared-memory) node in OpenMC
                               //! comm
 
+protected:
+  //! Initialize global temperature buffers for OpenMC ranks. These arrays store
+  //! the dimensionless temperatures of Nek's global elements. These are **not**
+  //! ordered by Nek's global element indices. Rather, these are ordered according
+  //! to an MPI_Gatherv operation on Nek5000's local elements.
+  void init_temperatures() override;
+
 private:
   //! Initialize MPI datatypes (currently, only position_mpi_datatype)
   void init_mpi_datatypes();
@@ -62,9 +69,6 @@ private:
 
   //! Initialize the tallies for all OpenMC materials
   void init_tallies();
-
-  //! Initialize global temperature buffers for OpenMC ranks
-  void init_temperatures();
 
   //! Initialize global volume buffers for OpenMC ranks
   void init_volumes();
@@ -88,16 +92,6 @@ private:
   //! These are **not** ordered by Nek's global element indices.  Rather, these are
   //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
   std::vector<int> elem_is_in_fluid_;
-
-  //! The dimensionless temperatures of Nek's global elements
-  //! These are **not** ordered by Nek's global element indices.  Rather, these are
-  //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
-  xt::xtensor<double, 1> elem_temperatures_;
-
-  //! From the previous Picard iter, the dimensionless temperatures of Nek's global
-  //! elements These are **not** ordered by Nek's global element indices.  Rather, these
-  //! are ordered according to an MPI_Gatherv operation on Nek5000's local elements.
-  xt::xtensor<double, 1> elem_temperatures_prev_;
 
   //! The dimensionless volumes of Nek's global elements
   //! These are **not** ordered by Nek's global element indices.  Rather, these are

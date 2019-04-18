@@ -208,11 +208,11 @@ void OpenmcNekDriver::init_temperatures()
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
   // Only the OpenMC procs get the global temperatures
   if (nek_driver_->active() and openmc_driver_->active()) {
-    elem_temperatures_.resize({n_global_elem_});
-    elem_temperatures_prev_.resize({n_global_elem_});
+    temperatures_.resize({n_global_elem_});
+    temperatures_prev_.resize({n_global_elem_});
 
-    std::fill(elem_temperatures_.begin(), elem_temperatures_.end(), 293.6);
-    std::fill(elem_temperatures_prev_.begin(), elem_temperatures_prev_.end(), 293.6);
+    std::fill(temperatures_.begin(), temperatures_.end(), 293.6);
+    std::fill(temperatures_prev_.begin(), temperatures_prev_.end(), 293.6);
   }
 }
 
@@ -293,9 +293,9 @@ void OpenmcNekDriver::update_temperature()
 {
   if (nek_driver_->active()) {
     if (openmc_driver_->active()) {
-      std::copy(elem_temperatures_.begin(),
-                elem_temperatures_.end(),
-                elem_temperatures_prev_.begin());
+      std::copy(temperatures_.begin(),
+                temperatures_.end(),
+                temperatures_prev_.begin());
     }
     // Each Nek proc finds the temperatures of its local elements
     double local_elem_temperatures[n_local_elem_];
@@ -306,14 +306,14 @@ void OpenmcNekDriver::update_temperature()
     nek_driver_->comm_.Gatherv(local_elem_temperatures,
                                n_local_elem_,
                                MPI_DOUBLE,
-                               elem_temperatures_.data(),
+                               temperatures_.data(),
                                nek_driver_->local_counts_.data(),
                                nek_driver_->local_displs_.data(),
                                MPI_DOUBLE);
 
     if (openmc_driver_->active()) {
       // Broadcast global_element_temperatures onto all the OpenMC procs
-      openmc_driver_->comm_.Bcast(elem_temperatures_.data(), n_global_elem_, MPI_DOUBLE);
+      openmc_driver_->comm_.Bcast(temperatures_.data(), n_global_elem_, MPI_DOUBLE);
 
       // For each OpenMC material, volume average temperatures and set
       for (const auto& c : openmc_driver_->cells_) {
@@ -325,7 +325,7 @@ void OpenmcNekDriver::update_temperature()
         double average_temp = 0.0;
         double total_vol = 0.0;
         for (int elem : global_elems) {
-          double T = elem_temperatures_[elem];
+          double T = temperatures_[elem];
           double V = elem_volumes_[elem];
           average_temp += T * V;
           total_vol += V;
@@ -358,7 +358,7 @@ void OpenmcNekDriver::update_density()
         double average_density = 0.0;
         double total_vol = 0.0;
         for (int elem : global_elems) {
-          double T = elem_temperatures_[elem];
+          double T = temperatures_[elem];
           double V = elem_volumes_[elem];
 
           if (any_in_fluid) {
@@ -382,7 +382,7 @@ bool OpenmcNekDriver::is_converged()
   bool converged;
   // WARNING: Assumes that OpenmcNekDriver rank 0 is in openmc_driver_->comm
   if (comm_.rank == 0) {
-    auto n_expr = xt::norm_linf(elem_temperatures_ - elem_temperatures_prev_);
+    auto n_expr = xt::norm_linf(temperatures_ - temperatures_prev_);
     auto n_scalar = n_expr();
     converged = (n_scalar < epsilon_);
 

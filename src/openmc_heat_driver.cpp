@@ -22,6 +22,7 @@ OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
   // Create mappings for fuel pins and setup tallies for OpenMC
   init_mappings();
   init_tallies();
+  init_temperatures();
 }
 
 Driver& OpenmcHeatDriver::getNeutronicsDriver() const
@@ -102,6 +103,16 @@ void OpenmcHeatDriver::init_tallies()
   }
 }
 
+void OpenmcHeatDriver::init_temperatures()
+{
+  std::size_t n = heat_driver_->n_pins_ * heat_driver_->n_axial_ * heat_driver_->n_rings();
+  temperatures_.resize({n});
+  temperatures_prev_.resize({n});
+
+  std::fill(temperatures_.begin(), temperatures_.end(), 293.6);
+  std::fill(temperatures_prev_.begin(), temperatures_prev_.end(), 293.6);
+}
+
 void OpenmcHeatDriver::update_heat_source()
 {
   // zero out heat source
@@ -137,14 +148,16 @@ void OpenmcHeatDriver::update_heat_source()
 
 void OpenmcHeatDriver::update_temperature()
 {
+  std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
+
   int nrings = heat_driver_->n_fuel_rings_;
   const auto& r_fuel = heat_driver_->r_grid_fuel_;
   const auto& r_clad = heat_driver_->r_grid_clad_;
 
-  // The temperatures array normally has three dimensions, but the mapping we
+  // The temperature array normally has three dimensions, but the mapping we
   // have gives a flattened index, so we need to get a flattened view of the
   // temperature array
-  auto temperature = xt::flatten(heat_driver_->temperature_);
+  temperatures_ = xt::flatten(heat_driver_->temperature_);
 
   // For each OpenMC material, volume average temperatures and set
   for (int i = 0; i < openmc_driver_->cells_.size(); ++i) {
@@ -169,7 +182,7 @@ void OpenmcHeatDriver::update_temperature()
         vol = r_clad(j + 1) * r_clad(j + 1) - r_clad(j) * r_clad(j);
       }
 
-      average_temp += temperature(ring_index) * vol;
+      average_temp += temperatures_(ring_index) * vol;
       total_vol += vol;
     }
     average_temp /= total_vol;

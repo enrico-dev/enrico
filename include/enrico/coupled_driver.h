@@ -6,8 +6,9 @@
 
 #include "enrico/driver.h"
 #include "pugixml.hpp"
+#include "xtensor/xtensor.hpp"
 
-#include <memory> // for unique_ptr
+#include <memory>
 
 namespace enrico {
 
@@ -59,6 +60,14 @@ public:
 
   double epsilon_{
     1e-3}; //! Picard iteration convergence tolerance, defaults to 1e-3 if not set
+
+protected:
+  //! Initialize current and previous Picard temperature fields
+  virtual void init_temperatures() {};
+
+  xt::xtensor<double, 1> temperatures_; //! Current Picard iteration temperature
+
+  xt::xtensor<double, 1> temperatures_prev_; //! Previous Picard iteration temperature
 };
 
 } // namespace enrico

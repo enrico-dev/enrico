@@ -40,6 +40,9 @@ public:
   std::unordered_map<int, std::vector<int>> ring_to_cell_inst_;
   std::unordered_map<int, std::vector<int>> cell_inst_to_ring_;
 
+protected:
+  void init_temperatures() override;
+
 private:
   //! Initialize mapping between OpenMC regions and surrogate fuel pin rings
   void init_mappings();
