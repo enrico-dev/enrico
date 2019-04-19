@@ -100,7 +100,7 @@ slice_univ = openmc.Universe(cells=cells)
 
 lattice = openmc.RectLattice()
 lattice.lower_left = (-pitch/2, -pitch/2, 0.0)
-lattice.pitch = (pitch, pitch, 1.0)
+lattice.pitch = (pitch, pitch, fuel_length/n_axial)
 lattice.universes = np.full((n_axial, 1, 1), slice_univ)
 
 # model boundaries
