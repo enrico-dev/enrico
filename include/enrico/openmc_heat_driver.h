@@ -28,6 +28,8 @@ public:
 
   void update_temperature() override;
 
+  bool is_converged() override;
+
   Driver& getNeutronicsDriver() const override;
 
   Driver& getHeatDriver() const override;

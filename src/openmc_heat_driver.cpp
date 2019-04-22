@@ -5,6 +5,7 @@
 #include "openmc/constants.h"
 #include "xtensor/xstrided_view.hpp"
 #include <gsl/gsl>
+#include "enrico/error.h"
 
 #include <cmath>
 #include <unordered_map>
@@ -190,6 +191,20 @@ void OpenmcHeatDriver::update_temperature()
     // Set temperature for cell instance
     c.set_temperature(average_temp);
   }
+}
+
+bool OpenmcHeatDriver::is_converged()
+{
+  bool converged;
+  if (comm_.rank == 0) {
+    double norm;
+    compute_temperature_norm(Norm::LINF, norm, converged);
+
+    std::string msg = "temperature norm_linf: " + std::to_string(norm);
+    comm_.message(msg);
+  }
+  err_chk(comm_.Bcast(&converged, 1, MPI_CXX_BOOL));
+  return converged;
 }
 
 } // namespace enrico

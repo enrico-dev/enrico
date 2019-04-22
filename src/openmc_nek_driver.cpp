@@ -9,7 +9,6 @@
 #include "openmc/capi.h"
 #include "pugixml.hpp"
 #include "xtensor/xbuilder.hpp"
-#include "xtensor/xnorm.hpp"
 #include "xtensor/xtensor.hpp"
 #include <gsl/gsl>
 
@@ -382,11 +381,10 @@ bool OpenmcNekDriver::is_converged()
   bool converged;
   // WARNING: Assumes that OpenmcNekDriver rank 0 is in openmc_driver_->comm
   if (comm_.rank == 0) {
-    auto n_expr = xt::norm_linf(temperatures_ - temperatures_prev_);
-    auto n_scalar = n_expr();
-    converged = (n_scalar < epsilon_);
+    double norm;
+    compute_temperature_norm(Norm::LINF, norm, converged);
 
-    std::string msg = "temperature norm_linf: " + std::to_string(n_scalar);
+    std::string msg = "temperature norm_linf: " + std::to_string(norm);
     comm_.message(msg);
   }
   err_chk(comm_.Bcast(&converged, 1, MPI_CXX_BOOL));

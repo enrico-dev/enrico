@@ -1,5 +1,6 @@
 #include "enrico/coupled_driver.h"
 #include "enrico/driver.h"
+#include "xtensor/xnorm.hpp"
 #include <gsl/gsl>
 
 namespace enrico {
@@ -71,6 +72,29 @@ void CoupledDriver::execute()
     comm_.Barrier();
   }
   heat.write_step();
+}
+
+void CoupledDriver::compute_temperature_norm(const CoupledDriver::Norm& n, double& norm, bool& converged)
+{
+  switch (n) {
+    case Norm::L1: {
+      auto n_expr = xt::norm_l1(temperatures_ - temperatures_prev_);
+      norm = n_expr();
+      break;
+    }
+    case Norm::L2: {
+      auto n_expr = xt::norm_l2(temperatures_ - temperatures_prev_);
+      norm = n_expr();
+      break;
+    }
+    default: {
+      auto n_expr = xt::norm_linf(temperatures_ - temperatures_prev_);
+      norm = n_expr();
+      break;
+    }
+  }
+
+  converged = norm < epsilon_;
 }
 
 } // namespace enrico
