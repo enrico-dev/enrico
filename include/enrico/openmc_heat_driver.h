@@ -45,12 +45,16 @@ public:
 protected:
   void init_temperatures() override;
 
+  void init_heat_source() override;
+
 private:
   //! Initialize mapping between OpenMC regions and surrogate fuel pin rings
   void init_mappings();
 
   //! Initialize tallies in OpenMC
   void init_tallies();
+
+  int32_t n_materials_; //! Number of materials in OpenMC model
 };
 
 } // namespace enrico

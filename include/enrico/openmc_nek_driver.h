@@ -60,6 +60,8 @@ protected:
   //! to an MPI_Gatherv operation on Nek5000's local elements.
   void init_temperatures() override;
 
+  void init_heat_source() override;
+
 private:
   //! Initialize MPI datatypes (currently, only position_mpi_datatype)
   void init_mpi_datatypes();

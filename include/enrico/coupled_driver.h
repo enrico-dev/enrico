@@ -85,9 +85,19 @@ protected:
   //! Initialize current and previous Picard temperature fields
   virtual void init_temperatures() {};
 
+  //! Initialize current and previous Picard heat source fields. Note that
+  //! because the neutronics solver is assumed to run first, that no initial
+  //! condition is required for the heat source. So, unlike init_temperatures(),
+  //! this method does not set any initial values.
+  virtual void init_heat_source() {};
+
   xt::xtensor<double, 1> temperatures_; //! Current Picard iteration temperature
 
   xt::xtensor<double, 1> temperatures_prev_; //! Previous Picard iteration temperature
+
+  xt::xtensor<double, 1> heat_source_; //! Current Picard iteration heat source
+
+  xt::xtensor<double, 1> heat_source_prev_; //! Previous Picard iteration heat source
 
 private:
   int i_timestep_; //! Index pertaining to current timestep
