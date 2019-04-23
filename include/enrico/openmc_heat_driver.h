@@ -24,7 +24,7 @@ public:
   //! \param node  XML node containing settings
   explicit OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node);
 
-  void update_heat_source() override;
+  void set_heat_source() override;
 
   void update_temperature() override;
 

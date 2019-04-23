@@ -29,7 +29,7 @@ public:
   //! Frees any data structures that need manual freeing.
   ~OpenmcNekDriver();
 
-  void update_heat_source() override;
+  void set_heat_source() override;
 
   void update_temperature() override;
 

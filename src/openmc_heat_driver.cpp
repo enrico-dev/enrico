@@ -126,7 +126,7 @@ void OpenmcHeatDriver::init_heat_source()
   heat_source_prev_ = xt::empty<double>({n_materials_});
 }
 
-void OpenmcHeatDriver::update_heat_source()
+void OpenmcHeatDriver::set_heat_source()
 {
   // zero out heat source in single-physics heat solver
   for (auto& val : heat_driver_->source_)

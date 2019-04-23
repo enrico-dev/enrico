@@ -262,7 +262,7 @@ void OpenmcNekDriver::init_heat_source()
   heat_source_prev_ = xt::empty<double>({n_materials_});
 }
 
-void OpenmcNekDriver::update_heat_source()
+void OpenmcNekDriver::set_heat_source()
 {
   // OpenMC has heat source on each of its ranks. We need to make heat
   // source available on each Nek rank.

@@ -31,7 +31,10 @@ public:
   virtual void execute();
 
   //! Update the heat source for the thermal-hydraulics solver
-  virtual void update_heat_source(){};
+  virtual void update_heat_source() final;
+
+  //! Set the heat source in the thermal-hydraulics solver
+  virtual void set_heat_source(){};
 
   //! Update the temperature for the neutronics solver
   virtual void update_temperature(){};
@@ -80,6 +83,9 @@ public:
 
   double epsilon_{
     1e-3}; //! Picard iteration convergence tolerance, defaults to 1e-3 if not set
+
+  double alpha_{
+    1.0}; //! Constant relaxation factor, defaults to 1.0 (standard Picard) if not set
 
 protected:
   //! Initialize current and previous Picard temperature fields
