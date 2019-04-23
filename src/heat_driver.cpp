@@ -72,11 +72,11 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
 
 void SurrogateHeatDriver::generate_arrays()
 {
-  // Make a radial grid for the fuel with equal spacing.
+  // Make a radial grid for the clad with equal spacing.
   r_grid_clad_ =
     xt::linspace<double>(clad_inner_radius_, clad_outer_radius_, n_clad_rings_ + 1);
 
-  // Make a radial grid for the clad with equal spacing.
+  // Make a radial grid for the fuel with equal spacing.
   r_grid_fuel_ = xt::linspace<double>(0, pellet_radius_, n_fuel_rings_ + 1);
 
   // Create empty arrays for source term and temperature

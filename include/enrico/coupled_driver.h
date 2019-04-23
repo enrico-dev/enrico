@@ -6,8 +6,9 @@
 
 #include "enrico/driver.h"
 #include "pugixml.hpp"
+#include "xtensor/xtensor.hpp"
 
-#include <memory> // for unique_ptr
+#include <memory>
 
 namespace enrico {
 
@@ -41,6 +42,14 @@ public:
   //! By default, derived classes will run up to the maximum number of Picard iterations.
   virtual bool is_converged() { return false; };
 
+  enum class Norm {L1, L2, LINF}; //! Types of norms
+
+  //! Compute the norm of the temperature between two successive Picard iterations
+  //! \param n enumeration of norm to compute
+  //! \return norm of the temperature between two iterations
+  //! \return whether norm is less than convergence tolerance
+  void compute_temperature_norm(const Norm& n, double& norm, bool& converged);
+
   //! Get reference to neutronics driver
   //! \return reference to driver
   virtual Driver& getNeutronicsDriver() const = 0;
@@ -59,6 +68,14 @@ public:
 
   double epsilon_{
     1e-3}; //! Picard iteration convergence tolerance, defaults to 1e-3 if not set
+
+protected:
+  //! Initialize current and previous Picard temperature fields
+  virtual void init_temperatures() {};
+
+  xt::xtensor<double, 1> temperatures_; //! Current Picard iteration temperature
+
+  xt::xtensor<double, 1> temperatures_prev_; //! Previous Picard iteration temperature
 };
 
 } // namespace enrico
