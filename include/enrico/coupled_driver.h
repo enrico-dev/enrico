@@ -58,6 +58,17 @@ public:
   //! \return reference to driver
   virtual Driver& getHeatDriver() const = 0;
 
+  //! Get timestep iteration index
+  //! \return timestep iteration index
+  int get_timestep_index() const { return i_timestep_; };
+
+  //! Get Picard iteration index within current timestep
+  //! \return Picard iteration index within current timestep
+  int get_picard_index() const { return i_picard_; };
+
+  //! Whether solve is for first Picard iteration of first timestep
+  bool is_first_iteration() const { return get_timestep_index() == 0 and get_picard_index() == 0; };
+
   Comm comm_; //! The MPI communicator used to run the driver
 
   double power_; //! Power in [W]
@@ -76,6 +87,11 @@ protected:
   xt::xtensor<double, 1> temperatures_; //! Current Picard iteration temperature
 
   xt::xtensor<double, 1> temperatures_prev_; //! Previous Picard iteration temperature
+
+private:
+  int i_timestep_; //! Index pertaining to current timestep
+
+  int i_picard_; //! Index pertaining to current Picard iteration
 };
 
 } // namespace enrico

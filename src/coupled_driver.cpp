@@ -29,19 +29,19 @@ void CoupledDriver::execute()
   auto& heat = getHeatDriver();
 
   // loop over time steps
-  for (int i_timestep = 0; i_timestep < max_timesteps_; ++i_timestep) {
-    std::string msg = "i_timestep: " + std::to_string(i_timestep);
+  for (i_timestep_ = 0; i_timestep_ < max_timesteps_; ++i_timestep_) {
+    std::string msg = "i_timestep: " + std::to_string(i_timestep_);
     comm_.message(msg);
 
     // loop over picard iterations
-    for (int i_picard = 0; i_picard < max_picard_iter_; ++i_picard) {
-      std::string msg = "i_picard: " + std::to_string(i_picard);
+    for (i_picard_ = 0; i_picard_ < max_picard_iter_; ++i_picard_) {
+      std::string msg = "i_picard: " + std::to_string(i_picard_);
       comm_.message(msg);
 
       if (neutronics.active()) {
         neutronics.init_step();
         neutronics.solve_step();
-        neutronics.write_step(i_timestep, i_picard);
+        neutronics.write_step(i_timestep_, i_picard_);
         neutronics.finalize_step();
       }
 
@@ -53,7 +53,7 @@ void CoupledDriver::execute()
       if (heat.active()) {
         heat.init_step();
         heat.solve_step();
-        heat.write_step(i_timestep, i_picard);
+        heat.write_step(i_timestep_, i_picard_);
         heat.finalize_step();
       }
 
@@ -64,7 +64,7 @@ void CoupledDriver::execute()
       update_density();
 
       if (is_converged()) {
-        std::string msg = "converged at i_picard = " + std::to_string(i_picard);
+        std::string msg = "converged at i_picard = " + std::to_string(i_picard_);
         comm_.message(msg);
         break;
       }
