@@ -58,7 +58,7 @@ OpenmcNekDriver::~OpenmcNekDriver()
   free_mpi_datatypes();
 }
 
-Driver& OpenmcNekDriver::getNeutronicsDriver() const
+NeutronicsDriver& OpenmcNekDriver::getNeutronicsDriver() const
 {
   return *openmc_driver_;
 }

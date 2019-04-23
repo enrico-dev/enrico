@@ -26,7 +26,7 @@ OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
   init_temperatures();
 }
 
-Driver& OpenmcHeatDriver::getNeutronicsDriver() const
+NeutronicsDriver& OpenmcHeatDriver::getNeutronicsDriver() const
 {
   return *openmc_driver_;
 }

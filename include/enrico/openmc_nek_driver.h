@@ -35,7 +35,7 @@ public:
 
   void update_density() override;
 
-  Driver& getNeutronicsDriver() const override;
+  NeutronicsDriver& getNeutronicsDriver() const override;
 
   Driver& getHeatDriver() const override;
 

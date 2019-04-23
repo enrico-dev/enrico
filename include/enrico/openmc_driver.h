@@ -4,11 +4,10 @@
 #define ENRICO_OPENMC_DRIVER_H
 
 #include "cell_instance.h"
-#include "driver.h"
+#include "neutronics_driver.h"
 #include "geom.h"
 
 #include "openmc/tallies/tally.h"
-#include "xtensor/xtensor.hpp"
 #include <gsl/gsl>
 #include <mpi.h>
 
@@ -17,7 +16,7 @@
 namespace enrico {
 
 //! Driver to initialize and run OpenMC in stages
-class OpenmcDriver : public Driver {
+class OpenmcDriver : public NeutronicsDriver {
 public:
   //! One-time initalization of OpenMC and member variables
   //! \param comm An existing MPI communicator used to inialize OpenMC
@@ -30,11 +29,7 @@ public:
   //! \param[in] materials  Indices into OpenMC's materials array
   void create_tallies(gsl::span<int32_t> materials);
 
-  //! Get energy deposition in each material
-  //!
-  //! \param power User-specified power in [W]
-  //! \return Heat source in each material as [W/cm3]
-  xt::xtensor<double, 1> heat_source(double power);
+  xt::xtensor<double, 1> heat_source(double power) const final;
 
   //! Initialization required in each Picard iteration
   void init_step() final;

@@ -5,6 +5,7 @@
 #define ENRICO_COUPLED_DRIVER_H
 
 #include "enrico/driver.h"
+#include "enrico/neutronics_driver.h"
 #include "pugixml.hpp"
 #include "xtensor/xtensor.hpp"
 
@@ -52,7 +53,7 @@ public:
 
   //! Get reference to neutronics driver
   //! \return reference to driver
-  virtual Driver& getNeutronicsDriver() const = 0;
+  virtual NeutronicsDriver& getNeutronicsDriver() const = 0;
 
   //! Get reference to thermal-fluids driver
   //! \return reference to driver

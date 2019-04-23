@@ -30,7 +30,7 @@ public:
 
   bool is_converged() override;
 
-  Driver& getNeutronicsDriver() const override;
+  NeutronicsDriver& getNeutronicsDriver() const override;
 
   Driver& getHeatDriver() const override;
 
