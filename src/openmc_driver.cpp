@@ -15,7 +15,7 @@
 namespace enrico {
 
 OpenmcDriver::OpenmcDriver(MPI_Comm comm)
-  : Driver(comm)
+  : NeutronicsDriver(comm)
 {
   if (active()) {
     err_chk(openmc_init(0, nullptr, &comm));
@@ -47,7 +47,7 @@ void OpenmcDriver::create_tallies(gsl::span<int32_t> materials)
   tally_->set_filters(&index_filter_, 1);
 }
 
-xt::xtensor<double, 1> OpenmcDriver::heat_source(double power)
+xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
 {
   // Determine number of realizatoins for normalizing tallies
   int m = tally_->n_realizations_;

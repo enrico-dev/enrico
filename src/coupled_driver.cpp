@@ -13,14 +13,17 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   max_timesteps_ = node.child("max_timesteps").text().as_int();
   max_picard_iter_ = node.child("max_picard_iter").text().as_int();
 
-  // get optional coupling parameters, and set defaults if not provided
+  // get optional coupling parameters, using defaults if not provided
   if (node.child("epsilon"))
     epsilon_ = node.child("epsilon").text().as_double();
+  if (node.child("alpha"))
+    alpha_ = node.child("alpha").text().as_double();
 
   Expects(power_ > 0);
   Expects(max_timesteps_ >= 0);
   Expects(max_picard_iter_ >= 0);
   Expects(epsilon_ > 0);
+  Expects(alpha_ > 0);
 }
 
 void CoupledDriver::execute()
@@ -29,19 +32,19 @@ void CoupledDriver::execute()
   auto& heat = getHeatDriver();
 
   // loop over time steps
-  for (int i_timestep = 0; i_timestep < max_timesteps_; ++i_timestep) {
-    std::string msg = "i_timestep: " + std::to_string(i_timestep);
+  for (i_timestep_ = 0; i_timestep_ < max_timesteps_; ++i_timestep_) {
+    std::string msg = "i_timestep: " + std::to_string(i_timestep_);
     comm_.message(msg);
 
     // loop over picard iterations
-    for (int i_picard = 0; i_picard < max_picard_iter_; ++i_picard) {
-      std::string msg = "i_picard: " + std::to_string(i_picard);
+    for (i_picard_ = 0; i_picard_ < max_picard_iter_; ++i_picard_) {
+      std::string msg = "i_picard: " + std::to_string(i_picard_);
       comm_.message(msg);
 
       if (neutronics.active()) {
         neutronics.init_step();
         neutronics.solve_step();
-        neutronics.write_step(i_timestep, i_picard);
+        neutronics.write_step(i_timestep_, i_picard_);
         neutronics.finalize_step();
       }
 
@@ -53,7 +56,7 @@ void CoupledDriver::execute()
       if (heat.active()) {
         heat.init_step();
         heat.solve_step();
-        heat.write_step(i_timestep, i_picard);
+        heat.write_step(i_timestep_, i_picard_);
         heat.finalize_step();
       }
 
@@ -64,7 +67,7 @@ void CoupledDriver::execute()
       update_density();
 
       if (is_converged()) {
-        std::string msg = "converged at i_picard = " + std::to_string(i_picard);
+        std::string msg = "converged at i_picard = " + std::to_string(i_picard_);
         comm_.message(msg);
         break;
       }
@@ -95,6 +98,29 @@ void CoupledDriver::compute_temperature_norm(const CoupledDriver::Norm& n, doubl
   }
 
   converged = norm < epsilon_;
+}
+
+void CoupledDriver::update_heat_source()
+{
+  // Store previous heat source solution if more than one iteration has been performed
+  // (otherwise there is not an initial condition for the heat source)
+  if (!is_first_iteration()) {
+    std::copy(heat_source_.begin(), heat_source_.end(), heat_source_prev_.begin());
+  }
+
+  // Compute the next iterate of the heat source
+  auto& neutronics = getNeutronicsDriver();
+  if (neutronics.active()) {
+    if (!is_first_iteration()) {
+      heat_source_ = alpha_ * neutronics.heat_source(power_) + (1.0 - alpha_) * heat_source_prev_;
+    }
+    else {
+      heat_source_ = neutronics.heat_source(power_);
+    }
+  }
+
+  // Set heat source in the thermal-hydraulics solver
+  set_heat_source();
 }
 
 } // namespace enrico

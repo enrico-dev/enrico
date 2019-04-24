@@ -24,13 +24,13 @@ public:
   //! \param node  XML node containing settings
   explicit OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node);
 
-  void update_heat_source() override;
+  void set_heat_source() override;
 
   void update_temperature() override;
 
   bool is_converged() override;
 
-  Driver& getNeutronicsDriver() const override;
+  NeutronicsDriver& getNeutronicsDriver() const override;
 
   Driver& getHeatDriver() const override;
 
@@ -45,12 +45,16 @@ public:
 protected:
   void init_temperatures() override;
 
+  void init_heat_source() override;
+
 private:
   //! Initialize mapping between OpenMC regions and surrogate fuel pin rings
   void init_mappings();
 
   //! Initialize tallies in OpenMC
   void init_tallies();
+
+  int32_t n_materials_; //! Number of materials in OpenMC model
 };
 
 } // namespace enrico

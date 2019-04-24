@@ -51,6 +51,7 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
   init_volumes();
   init_temperatures();
   init_densities();
+  init_heat_source();
 };
 
 OpenmcNekDriver::~OpenmcNekDriver()
@@ -58,7 +59,7 @@ OpenmcNekDriver::~OpenmcNekDriver()
   free_mpi_datatypes();
 }
 
-Driver& OpenmcNekDriver::getNeutronicsDriver() const
+NeutronicsDriver& OpenmcNekDriver::getNeutronicsDriver() const
 {
   return *openmc_driver_;
 }
@@ -255,19 +256,17 @@ void OpenmcNekDriver::init_densities()
   }
 }
 
-void OpenmcNekDriver::update_heat_source()
+void OpenmcNekDriver::init_heat_source()
 {
-  // Create array to store volumetric heat deposition in each material
-  xt::xtensor<double, 1> heat = xt::empty<double>({n_materials_});
+  heat_source_ = xt::empty<double>({n_materials_});
+  heat_source_prev_ = xt::empty<double>({n_materials_});
+}
 
-  if (openmc_driver_->active()) {
-    // Get heat source normalized by user-specified power
-    heat = openmc_driver_->heat_source(power_);
-  }
-
+void OpenmcNekDriver::set_heat_source()
+{
   // OpenMC has heat source on each of its ranks. We need to make heat
   // source available on each Nek rank.
-  intranode_comm_.Bcast(heat.data(), n_materials_, MPI_DOUBLE);
+  intranode_comm_.Bcast(heat_source_.data(), n_materials_, MPI_DOUBLE);
 
   if (nek_driver_->active()) {
     // Determine displacement for this rank
@@ -282,7 +281,7 @@ void OpenmcNekDriver::update_heat_source()
       int32_t mat_index = elem_to_mat_.at(global_index);
       int i = heat_index_.at(mat_index);
 
-      err_chk(nek_driver_->set_heat_source(local_elem, heat[i]),
+      err_chk(nek_driver_->set_heat_source(local_elem, heat_source_[i]),
               "Error setting heat source for local element " + std::to_string(i));
     }
   }

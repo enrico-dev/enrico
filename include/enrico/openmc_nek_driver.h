@@ -29,13 +29,13 @@ public:
   //! Frees any data structures that need manual freeing.
   ~OpenmcNekDriver();
 
-  void update_heat_source() override;
+  void set_heat_source() override;
 
   void update_temperature() override;
 
   void update_density() override;
 
-  Driver& getNeutronicsDriver() const override;
+  NeutronicsDriver& getNeutronicsDriver() const override;
 
   Driver& getHeatDriver() const override;
 
@@ -59,6 +59,8 @@ protected:
   //! ordered by Nek's global element indices. Rather, these are ordered according
   //! to an MPI_Gatherv operation on Nek5000's local elements.
   void init_temperatures() override;
+
+  void init_heat_source() override;
 
 private:
   //! Initialize MPI datatypes (currently, only position_mpi_datatype)

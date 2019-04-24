@@ -23,10 +23,12 @@ OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
   // Create mappings for fuel pins and setup tallies for OpenMC
   init_mappings();
   init_tallies();
+
   init_temperatures();
+  init_heat_source();
 }
 
-Driver& OpenmcHeatDriver::getNeutronicsDriver() const
+NeutronicsDriver& OpenmcHeatDriver::getNeutronicsDriver() const
 {
   return *openmc_driver_;
 }
@@ -90,6 +92,10 @@ void OpenmcHeatDriver::init_mappings()
       }
     }
   }
+
+  if (openmc_driver_->active()) {
+    n_materials_ = openmc_driver_->cells_.size();
+  }
 }
 
 void OpenmcHeatDriver::init_tallies()
@@ -114,14 +120,17 @@ void OpenmcHeatDriver::init_temperatures()
   std::fill(temperatures_prev_.begin(), temperatures_prev_.end(), 293.6);
 }
 
-void OpenmcHeatDriver::update_heat_source()
+void OpenmcHeatDriver::init_heat_source()
 {
-  // zero out heat source
+  heat_source_ = xt::empty<double>({n_materials_});
+  heat_source_prev_ = xt::empty<double>({n_materials_});
+}
+
+void OpenmcHeatDriver::set_heat_source()
+{
+  // zero out heat source in single-physics heat solver
   for (auto& val : heat_driver_->source_)
     val = 0.0;
-
-  // Determine heat source based on OpenMC tally results
-  auto Q = openmc_driver_->heat_source(power_);
 
   int ring_index = 0;
   for (int i = 0; i < heat_driver_->n_pins_; ++i) {
@@ -134,7 +143,7 @@ void OpenmcHeatDriver::update_heat_source()
           const auto& cell_instances = ring_to_cell_inst_[ring_index];
           double q_avg = 0.0;
           for (auto idx : cell_instances) {
-            q_avg += Q(idx);
+            q_avg += heat_source_(idx);
           }
           q_avg /= cell_instances.size();
 
