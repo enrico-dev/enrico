@@ -138,11 +138,9 @@ endif ()
 # Build Doxygen
 # =============================================================================
 
-find_package(Doxygen REQUIRED dot)
+find_package(Doxygen COMPONENTS dot)
 
 if (DOXYGEN_FOUND)
     doxygen_add_docs(doxygen include src)
-else()
-    message(AUTHOR_WARNING "Doxygen package not found. You will not be able to generate documentation.")
 endif()
 
