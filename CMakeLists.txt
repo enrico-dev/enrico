@@ -133,3 +133,16 @@ if (SCALE_FOUND)
     test_shift_singlerod
     PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
 endif ()
+
+# =============================================================================
+# Build Doxygen
+# =============================================================================
+
+find_package(Doxygen REQUIRED dot)
+
+if (DOXYGEN_FOUND)
+    doxygen_add_docs(doxygen include src)
+else()
+    message(AUTHOR_WARNING "Doxygen package not found. You will not be able to generate documentation.")
+endif()
+
