@@ -6,6 +6,8 @@ variables:
 stages:
   - download
   - patch
+  - cmake_singlerod
+  - build_docs
   - build_singlerod
   - test_singlerod
 
@@ -23,8 +25,8 @@ input_patch:nek5000:
     - patch -N rodcht.rea ci_config/rodcht_rea.diff || true
     - patch -N SIZE ci_config/SIZE.diff || true
 
-build_singlerod:enrico:
-  stage: build_singlerod
+cmake_singlerod:cmake:
+  stage: cmake_singlerod
   dependencies:
     - input_patch:nek5000
   variables:
@@ -35,6 +37,25 @@ build_singlerod:enrico:
     - mkdir -p tests/singlerod/short/build
     - cd tests/singlerod/short/build
     - cmake -DUSR_LOC=../ ../../../..
+
+build_docs:doxygen:
+  stage: build_docs
+  dependencies:
+    - cmake_singlerod:cmake
+  script:
+    - cd tests/singlerod/short/build
+    - make doxygen
+
+build_singlerod:enrico:
+  stage: build_singlerod
+  dependencies:
+    - cmake_singlerod:cmake
+  variables:
+    CC: mpicc
+    CXX: mpicxx
+    FC: mpif90
+  script:
+    - cd tests/singlerod/short/build
     - make -j -l4 enrico
     - make -j -l4 test_nek5000_singlerod
     - make -j -l4 test_openmc_singlerod
@@ -42,7 +63,6 @@ build_singlerod:enrico:
 test_singlerod:nek5000:
   stage: test_singlerod
   dependencies:
-    - input_patch:nek5000
     - build_singlerod:enrico
   script:
     - cd tests/singlerod/short/openmc_nek5000
