@@ -42,20 +42,17 @@ void OpenmcHeatDriver::init_mappings()
 {
   using openmc::PI;
 
-  int nrings = heat_driver_->n_fuel_rings_;
   const auto& r_fuel = heat_driver_->r_grid_fuel_;
   const auto& r_clad = heat_driver_->r_grid_clad_;
-  const auto& centers = heat_driver_->pin_centers_;
   const auto& z = heat_driver_->z_;
-  auto nz = heat_driver_->n_axial_;
-  auto npins = centers.shape()[0];
 
   std::unordered_map<CellInstance, int> tracked;
   int ring_index = 0;
   // TODO: Don't hardcode number of azimuthal segments
   int n_azimuthal = 4;
-  for (int i = 0; i < npins; ++i) {
-    for (int j = 0; j < nz; ++j) {
+
+  for (int i = 0; i < heat_driver_->n_pins_; ++i) {
+    for (int j = 0; j < heat_driver_->n_axial_; ++j) {
       // Get average z value
       double zavg = 0.5 * (z(j) + z(j + 1));
 
@@ -70,7 +67,8 @@ void OpenmcHeatDriver::init_mappings()
         }
 
         for (int m = 0; m < n_azimuthal; ++m) {
-          double theta = 2.0 * m * PI / n_azimuthal + 0.01;
+          double m_avg = m + 0.5;
+          double theta = 2.0 * m_avg * PI / n_azimuthal;
           double x = ravg * std::cos(theta);
           double y = ravg * std::sin(theta);
 
