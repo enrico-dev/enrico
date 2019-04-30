@@ -34,3 +34,7 @@ Nek5000 provides several utilities for working with mesh data.  These may be com
 targets:
 * `genmap`: The Nek5000 tool for mesh partitioning (generates a .map file)
 * `genbox`: The Nek5000 tool for generating a simple box mesh (generates a .box file)
+
+# License
+
+ENRICO is distributed under the BSD-3 [license](LICENSE).
