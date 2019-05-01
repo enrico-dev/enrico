@@ -24,6 +24,7 @@ Documentation
 
    quickstart
    devguide
+   license
 
 Acknowledgment
 --------------

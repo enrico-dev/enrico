@@ -18,7 +18,7 @@
 # -- Project information -----------------------------------------------------
 
 project = 'ENRICO'
-copyright = '2018-2019, ENRICO Development Team'
+copyright = '2019, UChicago Argonne, LLC'
 author = 'ENRICO Development Team'
 
 # The full version, including alpha/beta/rc tags
