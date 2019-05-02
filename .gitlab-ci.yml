@@ -13,6 +13,8 @@ stages:
 
 build_docs:sphinx_html:
   stage: build_docs
+  variables:
+    GIT_STRATEGY: fetch
   script:
     - cd doc
     - make html
@@ -20,8 +22,6 @@ build_docs:sphinx_html:
 
 download:cross_sections:
   stage: download
-  variables:
-    GIT_STRATEGY: fetch
   script:
     - wget https://anl.box.com/shared/static/46osfq56h4bd68r6e6pbhupsk4gbnvj2.xz -O - | tar -C $CI_PROJECT_DIR -xvJ
 
