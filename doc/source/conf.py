@@ -79,7 +79,7 @@ def build_doxygen(app):
     with open('../Doxyfile') as f:
         doxy_opts = re.sub(r'(\bOUTPUT_DIRECTORY\b\s*=\s*)".*"', r'\1"{}"'.format(doxygen_outdir),
                            f.read())
-    subprocess.run(['doxygen', '-'], cwd='..', input=doxy_opts, text=True, check=True)
+    subprocess.run(['doxygen', '-'], cwd='..', input=doxy_opts, universal_newlines=True, check=True)
 
 
 # -- Setup hooks -------------------------------------------------------------
