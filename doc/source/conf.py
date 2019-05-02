@@ -14,7 +14,7 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
-import os
+from os import makedirs, path
 import subprocess
 import re
 
@@ -67,27 +67,34 @@ breathe_default_project = "enrico"
 # -- Build Doxygen ---------------------------------------------------
 
 def build_doxygen(app):
+
     # XML goes in Sphinx source dir, and HTML goes in Sphinx output dir
 
-    doxygen_xmldir = os.path.abspath(os.path.join(app.srcdir, 'doxygen', 'xml'))
-    doxygen_htmldir = os.path.abspath(os.path.join(app.outdir, 'doxygen', 'html'))
+    doxygen_xmldir = path.abspath(path.join(app.srcdir, 'doxygen', 'xml'))
+    doxygen_htmldir = path.abspath(path.join(app.outdir, 'doxygen', 'html'))
 
     # Doxygen won't create *nested* output dirs, so we do it ourselves.
 
     for d in (doxygen_xmldir, doxygen_htmldir):
-        os.makedirs(d, exist_ok=True)
+        makedirs(d, exist_ok=True)
+
+    # Need to know location of Doxyfile, so we'll assume its location relative to Sphinx srcdir
+
+    doxyfile_dir = path.dirname(path.dirname(app.srcdir))
 
     # To pass output dirs to Doxygen, we follow this advice:
     # http://www.doxygen.nl/manual/faq.html#faq_cmdline
     # Here we read the Doxyfile into a string, replace the *_OUTPUT vars, and pass the string as
     # stdin to the doxygen subprocess
 
-    with open('../Doxyfile') as f:
+    with open(path.join(doxyfile_dir, 'Doxyfile')) as f:
         doxy_opts = f.read()
     doxy_opts = re.sub(r'(\bHTML_OUTPUT\b\s*=\s*).*', r'\1"{}"'.format(doxygen_htmldir),
                        doxy_opts)
     doxy_opts = re.sub(r'(\bXML_OUTPUT\b\s*=\s*).*', r'\1"{}"'.format(doxygen_xmldir), doxy_opts)
-    subprocess.run(['doxygen', '-'], cwd='..', input=doxy_opts, universal_newlines=True, check=True)
+
+    subprocess.run(['doxygen', '-'], cwd=doxyfile_dir, input=doxy_opts, universal_newlines=True,
+                   check=True)
 
 
 # -- Setup hooks -------------------------------------------------------------
