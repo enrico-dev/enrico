@@ -14,6 +14,9 @@
 # import sys
 # sys.path.insert(0, os.path.abspath('.'))
 
+import os
+import subprocess
+import re
 
 # -- Project information -----------------------------------------------------
 
@@ -23,7 +26,6 @@ author = 'ENRICO Development Team'
 
 # The full version, including alpha/beta/rc tags
 release = '0.1'
-
 
 # -- General configuration ---------------------------------------------------
 
@@ -42,7 +44,6 @@ templates_path = ['_templates']
 # This pattern also affects html_static_path and html_extra_path.
 exclude_patterns = []
 
-
 # -- Options for HTML output -------------------------------------------------
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
@@ -57,10 +58,32 @@ html_show_sphinx = False
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ['_static']
 
-def setup(app):
-    app.add_stylesheet('theme_overrides.css')
-
 # -- Breathe configuration ---------------------------------------------------
 
-breathe_projects = {"enrico": "../xml"}
+breathe_projects = {"enrico": "doxygen/xml"}
 breathe_default_project = "enrico"
+
+
+# -- Build Doxygen ---------------------------------------------------
+
+def build_doxygen(app):
+    # We want Doxygen's outdir to be a subdir of Sphinx's outdir
+
+    doxygen_outdir = os.path.join(app.outdir, 'doxygen')
+
+    # To run doxygen with the correct output dir, we follow the suggestion at
+    # http://www.doxygen.nl/manual/faq.html#faq_cmdline
+    # 1. Read Doxyfile and set OUTPUT_DIRECTORY to doxygen_outdir.  The resulting str is doxy_opts
+    # 2. Run doxygen as a subprocess, using doxy_opts as stdin
+
+    with open('../Doxyfile') as f:
+        doxy_opts = re.sub(r'(\bOUTPUT_DIRECTORY\b\s*=\s*)".*"', r'\1"{}"'.format(doxygen_outdir),
+                           f.read())
+    subprocess.run(['doxygen', '-'], cwd='..', input=doxy_opts, text=True, check=True)
+
+
+# -- Setup hooks -------------------------------------------------------------
+
+def setup(app):
+    app.add_stylesheet('theme_overrides.css')
+    app.connect("builder-inited", build_doxygen)

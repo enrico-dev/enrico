@@ -97,7 +97,7 @@ e.g., ``SQRT_PI``.
 
 Use C++-style declarator layout (see `NL.18
 <http://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines#nl18-use-c-style-declarator-layout>`_):
-pointer and reference operators in declarations should be placed adject to the
+pointer and reference operators in declarations should be placed adjacent to the
 base type rather than the variable name. Avoid declaring multiple names in a
 single declaration to avoid confusion:
 
@@ -108,9 +108,15 @@ single declaration to avoid confusion:
    T *p; // bad
    T* p, q; // misleading
 
-Documentation
-~~~~~~~~~~~~~
+Source Annotation
+~~~~~~~~~~~~~~~~~
 
 Classes, structs, and functions are to be annotated for the `Doxygen
 <http://www.stack.nl/~dimitri/doxygen/>`_ documentation generation tool. Use the
 ``\`` form of Doxygen commands, e.g., ``\brief`` instead of ``@brief``.
+
+Doxygen
+-------
+
+The Doxygen documentation (including a full description of the class hierarchies) can be found
+`here <doxygen/html/index.html>`_.
