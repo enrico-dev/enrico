@@ -4,12 +4,19 @@ variables:
   OPENMC_CROSS_SECTIONS: $CI_PROJECT_DIR/endf71_multitemp/cross_sections.xml
 
 stages:
+  - build_docs
   - download
   - patch
   - cmake_singlerod
-  - build_docs
   - build_singlerod
   - test_singlerod
+
+build_docs:sphinx_html:
+  stage: build_docs
+  script:
+    - cd doc
+    - make html
+  allow_failure: true
 
 download:cross_sections:
   stage: download
@@ -37,14 +44,6 @@ cmake_singlerod:cmake:
     - mkdir -p tests/singlerod/short/build
     - cd tests/singlerod/short/build
     - cmake -DUSR_LOC=../ ../../../..
-
-build_docs:doxygen:
-  stage: build_docs
-  dependencies:
-    - cmake_singlerod:cmake
-  script:
-    - cd tests/singlerod/short/build
-    - make doxygen
 
 build_singlerod:enrico:
   stage: build_singlerod
