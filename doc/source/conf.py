@@ -32,9 +32,9 @@ release = '0.1'
 # Add any Sphinx extension module names here, as strings. They can be
 # extensions coming with Sphinx (named 'sphinx.ext.*') or your custom
 # ones.
-extensions = [
-    'breathe',
-]
+# extensions = [
+#     'breathe',
+# ]
 
 # Add any paths that contain templates here, relative to this directory.
 templates_path = ['_templates']
@@ -60,8 +60,8 @@ html_static_path = ['_static']
 
 # -- Breathe configuration ---------------------------------------------------
 
-breathe_projects = {"enrico": "doxygen/xml"}
-breathe_default_project = "enrico"
+# breathe_projects = {"enrico": "doxygen/xml"}
+# breathe_default_project = "enrico"
 
 
 # -- Build Doxygen ---------------------------------------------------
