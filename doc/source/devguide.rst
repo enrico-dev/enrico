@@ -114,9 +114,3 @@ Source Annotation
 Classes, structs, and functions are to be annotated for the `Doxygen
 <http://www.stack.nl/~dimitri/doxygen/>`_ documentation generation tool. Use the
 ``\`` form of Doxygen commands, e.g., ``\brief`` instead of ``@brief``.
-
-Doxygen
--------
-
-The Doxygen documentation (including a full description of the class hierarchies) can be found
-`here <doxygen/html/index.html>`_.

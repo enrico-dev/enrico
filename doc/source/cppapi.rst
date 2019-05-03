@@ -1,5 +1,4 @@
 C++ API
 =======
 
-.. doxygenindex::
-    :project: enrico
+The C++ API is documented via Doxygen, found `here <doxygen/html/index.html>`_.
