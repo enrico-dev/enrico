@@ -23,6 +23,7 @@ Documentation
    :maxdepth: 2
 
    quickstart
+   cppapi
    devguide
    license
 
@@ -38,3 +39,4 @@ technology, to support the nation’s exascale computing imperative.
 .. image:: ecp.png
     :height: 100px
     :align: center
+
