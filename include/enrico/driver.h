@@ -15,30 +15,31 @@ public:
   //! Initializes the solver with the given MPI communicator.
   //! \param comm An existing MPI communicator used to initialize the solver
   explicit Driver(MPI_Comm comm)
-    : comm_(comm){};
+    : comm_(comm)
+  {}
 
   //! Default constructor
   Driver();
 
   //! Performs the necessary initialization for this solver in one Picard iteration
-  virtual void init_step(){};
+  virtual void init_step() {}
 
   //! Performs the solve in one Picard iteration
-  virtual void solve_step(){};
+  virtual void solve_step() {}
 
   //! Write results for physics solve for given timestep and iteration
   //! \param timestep timestep index
   //! \param iteration iteration index
-  virtual void write_step(int timestep = -1, int iteration = -1){};
+  virtual void write_step(int timestep = -1, int iteration = -1) {}
 
   //! Performs the necessary finalization for this solver in one Picard iteration
-  virtual void finalize_step(){};
+  virtual void finalize_step() {}
 
   //! Queries whether the comm for this solver is active
   //! \return True if this comm's solver is not MPI_COMM_NULL
   bool active() const;
 
-  Comm comm_; //! The MPI communicator used to run the solver
+  Comm comm_; //!< The MPI communicator used to run the solver
 };
 
 } // namespace enrico

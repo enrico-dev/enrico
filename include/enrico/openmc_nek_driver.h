@@ -35,9 +35,9 @@ public:
 
   void update_density() override;
 
-  NeutronicsDriver& getNeutronicsDriver() const override;
+  NeutronicsDriver& get_neutronics_driver() const override;
 
-  Driver& getHeatDriver() const override;
+  Driver& get_heat_driver() const override;
 
   //! Check convergence based on temperature field and specified epsilon
   //!
@@ -50,8 +50,8 @@ public:
   std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
   std::unique_ptr<NekDriver> nek_driver_;       //!< The Nek5000 driver
   double pressure_;                             //!< System pressure in [MPa]
-  int openmc_procs_per_node_; //! Number of MPI ranks per (shared-memory) node in OpenMC
-                              //! comm
+  int openmc_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in OpenMC
+                              //!< comm
 
 protected:
   //! Initialize global temperature buffers for OpenMC ranks. These arrays store

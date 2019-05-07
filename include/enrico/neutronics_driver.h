@@ -11,7 +11,9 @@ namespace enrico {
 //! Base class for driver that controls a neutronics solve
 class NeutronicsDriver : public Driver {
 public:
-  explicit NeutronicsDriver(MPI_Comm comm) : Driver(comm){};
+  explicit NeutronicsDriver(MPI_Comm comm)
+    : Driver(comm)
+  {}
 
   //! Default constructor
   NeutronicsDriver();

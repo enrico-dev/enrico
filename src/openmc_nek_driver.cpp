@@ -59,12 +59,12 @@ OpenmcNekDriver::~OpenmcNekDriver()
   free_mpi_datatypes();
 }
 
-NeutronicsDriver& OpenmcNekDriver::getNeutronicsDriver() const
+NeutronicsDriver& OpenmcNekDriver::get_neutronics_driver() const
 {
   return *openmc_driver_;
 }
 
-Driver& OpenmcNekDriver::getHeatDriver() const
+Driver& OpenmcNekDriver::get_heat_driver() const
 {
   return *nek_driver_;
 }
@@ -291,9 +291,7 @@ void OpenmcNekDriver::update_temperature()
 {
   if (nek_driver_->active()) {
     if (openmc_driver_->active()) {
-      std::copy(temperatures_.begin(),
-                temperatures_.end(),
-                temperatures_prev_.begin());
+      std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
     }
     // Each Nek proc finds the temperatures of its local elements
     double local_elem_temperatures[n_local_elem_];

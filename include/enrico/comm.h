@@ -19,7 +19,7 @@ public:
   int rank = MPI_PROC_NULL;         //!< The calling process's rank in Comm:comm
 
   //! Default constructor
-  Comm(){};
+  Comm() {}
 
   //! Retrieves info about a given MPI communicator.
   //! \param comm An exisiting or null MPI communicator.

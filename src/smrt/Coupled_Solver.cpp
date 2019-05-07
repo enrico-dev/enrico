@@ -3,7 +3,7 @@
 
 #include "enrico/error.h"
 #include "enrico/nek_driver.h"
-#include "enrico/nek_interface.h"
+#include "nek5000/core/nek_interface.h"
 #include "smrt/Coupled_Solver.h"
 
 namespace enrico {

@@ -2,10 +2,10 @@
 
 #include "enrico/message_passing.h"
 
+#include "enrico/error.h"
 #include "openmc/constants.h"
 #include "xtensor/xstrided_view.hpp"
 #include <gsl/gsl>
-#include "enrico/error.h"
 
 #include <cmath>
 #include <unordered_map>
@@ -28,12 +28,12 @@ OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
   init_heat_source();
 }
 
-NeutronicsDriver& OpenmcHeatDriver::getNeutronicsDriver() const
+NeutronicsDriver& OpenmcHeatDriver::get_neutronics_driver() const
 {
   return *openmc_driver_;
 }
 
-Driver& OpenmcHeatDriver::getHeatDriver() const
+Driver& OpenmcHeatDriver::get_heat_driver() const
 {
   return *heat_driver_;
 }
@@ -110,7 +110,8 @@ void OpenmcHeatDriver::init_tallies()
 
 void OpenmcHeatDriver::init_temperatures()
 {
-  std::size_t n = heat_driver_->n_pins_ * heat_driver_->n_axial_ * heat_driver_->n_rings();
+  std::size_t n =
+    heat_driver_->n_pins_ * heat_driver_->n_axial_ * heat_driver_->n_rings();
   temperatures_.resize({n});
   temperatures_prev_.resize({n});
 
