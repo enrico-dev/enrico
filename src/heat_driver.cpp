@@ -116,6 +116,16 @@ void SurrogateHeatDriver::solve_step()
   }
 }
 
+xt::xtensor<double, 1> SurrogateHeatDriver::temperature() const
+{
+  return xt::flatten(temperature_);
+}
+
+double SurrogateHeatDriver::temperature(int pin, int axial, int ring) const
+{
+  return temperature_(pin, axial, ring);
+}
+
 void SurrogateHeatDriver::write_step(int timestep, int iteration)
 {
   // if called, but viz isn't requested for the situation,

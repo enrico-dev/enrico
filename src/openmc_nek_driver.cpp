@@ -295,19 +295,11 @@ void OpenmcNekDriver::update_temperature()
                 temperatures_.end(),
                 temperatures_prev_.begin());
     }
-    // Each Nek proc finds the temperatures of its local elements
-    double local_elem_temperatures[n_local_elem_];
-    for (int i = 0; i < n_local_elem_; ++i) {
-      local_elem_temperatures[i] = nek_driver_->get_local_elem_temperature(i + 1);
+
+    xt::xtensor<double, 1> t = nek_driver_->temperature();
+    if (nek_driver_->comm_.rank == 0) {
+      temperatures_ = t;
     }
-    // Gather all the local element temperatures on the Nek5000/OpenMC root
-    nek_driver_->comm_.Gatherv(local_elem_temperatures,
-                               n_local_elem_,
-                               MPI_DOUBLE,
-                               temperatures_.data(),
-                               nek_driver_->local_counts_.data(),
-                               nek_driver_->local_displs_.data(),
-                               MPI_DOUBLE);
 
     if (openmc_driver_->active()) {
       // Broadcast global_element_temperatures onto all the OpenMC procs

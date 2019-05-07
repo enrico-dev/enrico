@@ -7,6 +7,8 @@
 #include "geom.h"
 #include "mpi.h"
 
+#include "xtensor/xtensor.hpp"
+
 #include <pugixml.hpp>
 #include <string>
 #include <vector>
@@ -37,6 +39,8 @@ public:
   //! A wraper for the nek_solve() routine in libnek5000.  This includes the necessary
   //! initialization and finalization for each step.
   void solve_step() final;
+
+  xt::xtensor<double, 1> temperature() const;
 
   //! Get the coordinate of a global element's centroid.
   //!

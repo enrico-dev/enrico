@@ -3,6 +3,8 @@
 #include "enrico/error.h"
 #include "nek5000/core/nek_interface.h"
 
+#include <gsl/gsl>
+
 #include <climits>
 #include <fstream>
 #include <string>
@@ -106,6 +108,34 @@ void NekDriver::init_displs()
       local_displs_.at(i) = local_displs_.at(i - 1) + local_counts_.at(i - 1);
     }
   }
+}
+
+xt::xtensor<double, 1> NekDriver::temperature() const
+{
+  // Each Nek proc finds the temperatures of its local elements
+  double local_elem_temperatures[nelt_];
+  for (int i = 0; i < nelt_; ++i) {
+    local_elem_temperatures[i] = get_local_elem_temperature(i + 1);
+  }
+
+  xt::xtensor<double, 1> global_elem_temperatures = xt::xtensor<double, 1>();
+
+  // only the rank 0 process allocates the size for the receive buffer
+  if (comm_.rank == 0) {
+    global_elem_temperatures.resize({gsl::narrow<std::size_t>(nelgt_)});
+  }
+
+  // Gather all the local element temperatures onto the root
+  comm_.Gatherv(local_elem_temperatures,
+                nelt_,
+                MPI_DOUBLE,
+                global_elem_temperatures.data(),
+                local_counts_.data(),
+                local_displs_.data(),
+                MPI_DOUBLE);
+
+  // only the return value from root should be used, or else a broadcast added here
+  return global_elem_temperatures;
 }
 
 void NekDriver::solve_step()
