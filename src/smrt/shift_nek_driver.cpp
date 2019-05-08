@@ -1,15 +1,14 @@
-
 #include <iostream>
 
 #include "enrico/error.h"
 #include "enrico/nek_driver.h"
 #include "nek5000/core/nek_interface.h"
-#include "smrt/Coupled_Solver.h"
+#include "smrt/shift_nek_driver.h"
 
 namespace enrico {
 
 // Constructor
-Coupled_Solver::Coupled_Solver(std::shared_ptr<Assembly_Model> assembly,
+ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
                                const std::vector<double>& z_edges,
                                const std::string& shift_filename,
                                const std::string& enrico_filename,
@@ -87,10 +86,10 @@ Coupled_Solver::Coupled_Solver(std::shared_ptr<Assembly_Model> assembly,
 }
 
 // Destructor
-Coupled_Solver::~Coupled_Solver() {}
+ShiftNekDriver::~ShiftNekDriver() {}
 
 // Solve coupled problem by iterating between neutronics and T/H
-void Coupled_Solver::solve()
+void ShiftNekDriver::solve()
 {
   // Loop to convergence or fixed iteration count
   for (int iteration = 0; iteration < 3; ++iteration) {
@@ -146,7 +145,7 @@ void Coupled_Solver::solve()
 //
 
 // Apply power normalization
-void Coupled_Solver::normalize_power()
+void ShiftNekDriver::normalize_power()
 {
   double total_power = 0.0;
   for (int elem = 0; elem < d_th_num_local; ++elem) {
@@ -162,7 +161,7 @@ void Coupled_Solver::normalize_power()
 
 // Set up MPI datatype
 // Currently, this sets up only position_mpi_datatype
-void Coupled_Solver::init_mpi_datatypes()
+void ShiftNekDriver::init_mpi_datatypes()
 {
   Position p;
   int blockcounts[3] = {1, 1, 1};
@@ -185,26 +184,26 @@ void Coupled_Solver::init_mpi_datatypes()
 }
 
 // Free user-defined MPI types
-void Coupled_Solver::free_mpi_datatypes()
+void ShiftNekDriver::free_mpi_datatypes()
 {
   MPI_Type_free(&d_position_mpi_type);
 }
 
 // Traits for mapping plain types to corresponding MPI types
 template<>
-MPI_Datatype Coupled_Solver::get_mpi_type<double>() const
+MPI_Datatype ShiftNekDriver::get_mpi_type<double>() const
 {
   return MPI_DOUBLE;
 }
 template<>
-MPI_Datatype Coupled_Solver::get_mpi_type<Position>() const
+MPI_Datatype ShiftNekDriver::get_mpi_type<Position>() const
 {
   return d_position_mpi_type;
 }
 
 // Gather local distributed field into global replicated field
 template<typename T>
-std::vector<T> Coupled_Solver::local_to_global(const std::vector<T>& local_field) const
+std::vector<T> ShiftNekDriver::local_to_global(const std::vector<T>& local_field) const
 {
   assert(local_field.size() == d_th_num_local);
   const auto& th_comm = d_nek_solver->comm_;
@@ -226,7 +225,7 @@ std::vector<T> Coupled_Solver::local_to_global(const std::vector<T>& local_field
 
 // Scatter global replicated field into local distributed field
 template<typename T>
-std::vector<T> Coupled_Solver::global_to_local(const std::vector<T>& global_field) const
+std::vector<T> ShiftNekDriver::global_to_local(const std::vector<T>& global_field) const
 {
   const auto& th_comm = d_nek_solver->comm_;
 

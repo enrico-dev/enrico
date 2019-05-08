@@ -73,7 +73,7 @@ set(SOURCES
 if (SCALE_FOUND)
     list(APPEND SOURCES
         src/smrt/Assembly_Model.cpp
-        src/smrt/Coupled_Solver.cpp
+        src/smrt/shift_nek_driver.cpp
         src/smrt/Multiphysics_Driver.cpp
         src/smrt/Multi_Pin_Conduction.cpp
         src/smrt/Multi_Pin_Subchannel.cpp

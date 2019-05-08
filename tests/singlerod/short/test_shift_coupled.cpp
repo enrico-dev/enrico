@@ -3,7 +3,7 @@
 
 #include "Nemesis/comm/global.hh"
 #include "smrt/Assembly_Model.h"
-#include "smrt/Coupled_Solver.h"
+#include "smrt/shift_nek_driver.h"
 #include <mpi.h>
 
 using AM = enrico::Assembly_Model;
@@ -33,7 +33,7 @@ int main(int argc, char *argv[]) {
   assembly->set_guide_radius(0.61214);
 
   double power_norm = 1800.0;
-  auto coupled_solver = std::make_shared<enrico::Coupled_Solver>(
+  auto coupled_solver = std::make_shared<enrico::ShiftNekDriver>(
       assembly,
       z_edges,
       shift_filename,

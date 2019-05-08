@@ -1,6 +1,5 @@
-
-#ifndef Coupled_Solver_h
-#define Coupled_Solver_h
+#ifndef SHIFT_NEK_DRIVER_H
+#define SHIFT_NEK_DRIVER_H
 
 #include <memory>
 #include <vector>
@@ -17,14 +16,14 @@
 namespace enrico {
 //===========================================================================//
 /*!
- * \class Coupled_Solver
- * \brief Class for coupling a neutronics solver with a TH solver.
+ * \class ShiftNekDriver
+ * \brief Class for coupling Shift and Nek.
  *
  * This class will perform dampled Picard iteration to converge the
  * coupled nonlinear system.
  */
 //===========================================================================//
-class Coupled_Solver {
+class ShiftNekDriver {
 private:
   //
   // Data
@@ -53,7 +52,7 @@ private:
 
 public:
   // Constructor
-  Coupled_Solver(std::shared_ptr<Assembly_Model> assembly,
+  ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
                  const std::vector<double>& z_edges,
                  const std::string& shift_filename,
                  const std::string& enrico_filename,
@@ -62,7 +61,7 @@ public:
                  MPI_Comm th_comm);
 
   // Destructor
-  ~Coupled_Solver();
+  ~ShiftNekDriver();
 
   // Solve coupled problem
   void solve();
@@ -100,4 +99,4 @@ private:
 
 } // end namespace enrico
 
-#endif // Coupled_Solver_h
+#endif // SHIFT_NEK_DRIVER_H
