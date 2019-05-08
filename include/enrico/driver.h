@@ -26,7 +26,10 @@ public:
   //! Write results for physics solve for given timestep and iteration
   //! \param timestep timestep index
   //! \param iteration iteration index
-  virtual void write_step(int timestep = -1, int iteration = -1) {}
+  virtual void write_step(int timestep, int iteration) {}
+
+  //! Write results for a physics solve at the end of the coupled simulation
+  void write_step() { this->write_step(-1, -1); }
 
   //! Performs the necessary finalization for this solver in one Picard iteration
   virtual void finalize_step() {}
