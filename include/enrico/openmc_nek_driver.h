@@ -46,7 +46,7 @@ public:
   //! \return true if L_inf norm of temperature data is less than epsilon
   bool is_converged() override;
 
-  Comm intranode_comm_; //!< The communicator reprsenting intranode ranks
+  Comm intranode_comm_; //!< The communicator representing intranode ranks
   std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
   std::unique_ptr<NekDriver> nek_driver_;       //!< The Nek5000 driver
   double pressure_;                             //!< System pressure in [MPa]

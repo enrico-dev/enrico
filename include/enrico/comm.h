@@ -12,14 +12,8 @@ namespace enrico {
 //! Info and function wrappers for a specified MPI communictor.
 class Comm {
 public:
-  MPI_Comm comm =
-    MPI_COMM_NULL; //!< The MPI communicator described by this instance of Comm.
-  MPI_Group group = MPI_GROUP_NULL; //!< The group associated with Comm::comm.
-  int size = 0;                     //!< The size of Comm::comm.
-  int rank = MPI_PROC_NULL;         //!< The calling process's rank in Comm:comm
-
   //! Default constructor
-  Comm() {}
+  Comm() = default;
 
   //! Retrieves info about a given MPI communicator.
   //! \param comm An exisiting or null MPI communicator.
@@ -137,6 +131,13 @@ public:
     if (rank == 0)
       std::cout << "[ENRICO]: " << msg << std::endl;
   }
+
+  // Data members
+  MPI_Comm comm =
+    MPI_COMM_NULL; //!< The MPI communicator described by this instance of Comm.
+  MPI_Group group = MPI_GROUP_NULL; //!< The group associated with Comm::comm.
+  int size = 0;                     //!< The size of Comm::comm.
+  int rank = MPI_PROC_NULL;         //!< The calling process's rank in Comm:comm
 };
 
 } // namespace enrico

@@ -10,16 +10,12 @@ namespace enrico {
 
 //! Base class for driver that controls a physics solve
 class Driver {
-
 public:
   //! Initializes the solver with the given MPI communicator.
   //! \param comm An existing MPI communicator used to initialize the solver
   explicit Driver(MPI_Comm comm)
     : comm_(comm)
   {}
-
-  //! Default constructor
-  Driver();
 
   //! Performs the necessary initialization for this solver in one Picard iteration
   virtual void init_step() {}

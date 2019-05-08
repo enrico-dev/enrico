@@ -15,9 +15,6 @@ public:
     : Driver(comm)
   {}
 
-  //! Default constructor
-  NeutronicsDriver();
-
   //! Get energy deposition in each material
   //! \param power User-specified power in [W]
   //! \return Heat source in each material as [W/cm3]
