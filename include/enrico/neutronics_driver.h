@@ -11,10 +11,9 @@ namespace enrico {
 //! Base class for driver that controls a neutronics solve
 class NeutronicsDriver : public Driver {
 public:
-  explicit NeutronicsDriver(MPI_Comm comm) : Driver(comm){};
-
-  //! Default constructor
-  NeutronicsDriver();
+  explicit NeutronicsDriver(MPI_Comm comm)
+    : Driver(comm)
+  {}
 
   //! Get energy deposition in each material
   //! \param power User-specified power in [W]

@@ -28,8 +28,8 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
 
 void CoupledDriver::execute()
 {
-  auto& neutronics = getNeutronicsDriver();
-  auto& heat = getHeatDriver();
+  auto& neutronics = get_neutronics_driver();
+  auto& heat = get_heat_driver();
 
   // loop over time steps
   for (i_timestep_ = 0; i_timestep_ < max_timesteps_; ++i_timestep_) {
@@ -77,24 +77,26 @@ void CoupledDriver::execute()
   heat.write_step();
 }
 
-void CoupledDriver::compute_temperature_norm(const CoupledDriver::Norm& n, double& norm, bool& converged)
+void CoupledDriver::compute_temperature_norm(const CoupledDriver::Norm& n,
+                                             double& norm,
+                                             bool& converged)
 {
   switch (n) {
-    case Norm::L1: {
-      auto n_expr = xt::norm_l1(temperatures_ - temperatures_prev_);
-      norm = n_expr();
-      break;
-    }
-    case Norm::L2: {
-      auto n_expr = xt::norm_l2(temperatures_ - temperatures_prev_);
-      norm = n_expr();
-      break;
-    }
-    default: {
-      auto n_expr = xt::norm_linf(temperatures_ - temperatures_prev_);
-      norm = n_expr();
-      break;
-    }
+  case Norm::L1: {
+    auto n_expr = xt::norm_l1(temperatures_ - temperatures_prev_);
+    norm = n_expr();
+    break;
+  }
+  case Norm::L2: {
+    auto n_expr = xt::norm_l2(temperatures_ - temperatures_prev_);
+    norm = n_expr();
+    break;
+  }
+  default: {
+    auto n_expr = xt::norm_linf(temperatures_ - temperatures_prev_);
+    norm = n_expr();
+    break;
+  }
   }
 
   converged = norm < epsilon_;
@@ -109,12 +111,12 @@ void CoupledDriver::update_heat_source()
   }
 
   // Compute the next iterate of the heat source
-  auto& neutronics = getNeutronicsDriver();
+  auto& neutronics = get_neutronics_driver();
   if (neutronics.active()) {
     if (!is_first_iteration()) {
-      heat_source_ = alpha_ * neutronics.heat_source(power_) + (1.0 - alpha_) * heat_source_prev_;
-    }
-    else {
+      heat_source_ =
+        alpha_ * neutronics.heat_source(power_) + (1.0 - alpha_) * heat_source_prev_;
+    } else {
       heat_source_ = neutronics.heat_source(power_);
     }
   }

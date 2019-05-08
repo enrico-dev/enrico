@@ -4,8 +4,8 @@
 #define ENRICO_OPENMC_DRIVER_H
 
 #include "cell_instance.h"
-#include "neutronics_driver.h"
 #include "geom.h"
+#include "neutronics_driver.h"
 
 #include "openmc/tallies/tally.h"
 #include <gsl/gsl>
@@ -40,7 +40,7 @@ public:
   //! Writes OpenMC output for given timestep and iteration
   //! \param timestep timestep index
   //! \param iteration iteration index
-  void write_step(int timestep = -1, int iteration = -1) final;
+  void write_step(int timestep, int iteration) final;
 
   //! Finalization required in each Picard iteration
   void finalize_step() final;

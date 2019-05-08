@@ -30,13 +30,13 @@ public:
 
   bool is_converged() override;
 
-  NeutronicsDriver& getNeutronicsDriver() const override;
+  NeutronicsDriver& get_neutronics_driver() const override;
 
-  Driver& getHeatDriver() const override;
+  Driver& get_heat_driver() const override;
 
-  std::unique_ptr<OpenmcDriver> openmc_driver_; //! The OpenMC driver
+  std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
 
-  std::unique_ptr<SurrogateHeatDriver> heat_driver_; //! The heat surrogate driver
+  std::unique_ptr<SurrogateHeatDriver> heat_driver_; //!< The heat surrogate driver
 
   // Mapping of surrogate rings to OpenMC cell instances and vice versa
   std::unordered_map<int, std::vector<int>> ring_to_cell_inst_;

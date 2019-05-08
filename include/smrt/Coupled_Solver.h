@@ -12,7 +12,7 @@
 #include "enrico/error.h"
 #include "enrico/message_passing.h"
 #include "enrico/nek_driver.h"
-#include "enrico/nek_interface.h"
+#include "nek5000/core/nek_interface.h"
 
 namespace enrico {
 //===========================================================================//
