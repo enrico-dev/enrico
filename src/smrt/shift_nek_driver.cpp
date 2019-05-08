@@ -11,26 +11,27 @@ namespace enrico {
 ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
                                const std::vector<double>& z_edges,
                                const std::string& shift_filename,
-                               const std::string& enrico_filename,
-                               double power_norm,
                                MPI_Comm neutronics_comm,
                                MPI_Comm th_comm)
-  : d_power_norm(power_norm)
 {
   d_shift_solver =
     std::make_shared<enrico::ShiftDriver>(assembly, shift_filename, z_edges);
 
   // Build Nek driver
   {
-    // Parse enrico xml file
+    // TODO: Belongs to main.cpp
     pugi::xml_document doc;
-    auto result = doc.load_file(enrico_filename.c_str());
+    auto result = doc.load_file("enrico.xml");
     if (!result) {
       throw std::runtime_error{"Unable to load enrico.xml file"};
     }
 
     // Get root element
     auto root = doc.document_element();
+
+    // TODO: Belongs to CoupledDriver base class
+    power_ = root.child("power").text().as_double();
+    max_picard_iter_ = root.child("max_picard_iter").text().as_int();
 
     d_nek_solver = std::make_shared<NekDriver>(th_comm, root.child("nek5000"));
   }
@@ -43,7 +44,7 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
   // Allocate fields (on global T/H mesh for now)
   d_temperatures.resize(d_th_num_local, 565.0);
   d_densities.resize(d_th_num_local, 0.75);
-  d_powers.resize(d_th_num_local, power_norm);
+  d_powers.resize(d_th_num_local, power_);
 
   std::vector<Position> local_centroids(d_th_num_local);
   std::vector<double> local_volumes(d_th_num_local);
@@ -92,7 +93,7 @@ ShiftNekDriver::~ShiftNekDriver() {}
 void ShiftNekDriver::solve()
 {
   // Loop to convergence or fixed iteration count
-  for (int iteration = 0; iteration < 3; ++iteration) {
+  for (int iteration = 0; iteration < max_picard_iter_; ++iteration) {
     // Set heat source in Nek
     for (int elem = 0; elem < d_th_num_local; ++elem) {
       err_chk(nek_set_heat_source(elem + 1, d_powers[elem]),
@@ -154,7 +155,7 @@ void ShiftNekDriver::normalize_power()
   nemesis::global_sum(total_power);
 
   // Apply normalization factor
-  double norm_factor = d_power_norm / total_power;
+  double norm_factor = power_ / total_power;
   for (auto& val : d_powers)
     val *= norm_factor;
 }

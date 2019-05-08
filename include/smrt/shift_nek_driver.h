@@ -24,6 +24,13 @@ namespace enrico {
  */
 //===========================================================================//
 class ShiftNekDriver {
+public:
+  //! Power in [W]
+  double power_;
+
+  //! Maximum number of Picard iterations
+  int max_picard_iter_;
+
 private:
   //
   // Data
@@ -47,16 +54,12 @@ private:
   std::vector<double> d_densities;
   std::vector<double> d_powers;
 
-  // Normalization factor for power (average
-  double d_power_norm;
 
 public:
   // Constructor
   ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
                  const std::vector<double>& z_edges,
                  const std::string& shift_filename,
-                 const std::string& enrico_filename,
-                 double power_norm,
                  MPI_Comm neutronics_comm,
                  MPI_Comm th_comm);
 
