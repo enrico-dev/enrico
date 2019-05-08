@@ -28,7 +28,7 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
   Expects(pressure_ > 0.0);
   Expects(openmc_procs_per_node_ > 0);
 
-  // Create communicator for OpenMC with 1 process per node
+  // Create communicator for OpenMC with requested processes per node
   MPI_Comm openmc_comm;
   MPI_Comm intranode_comm;
   enrico::get_node_comms(
