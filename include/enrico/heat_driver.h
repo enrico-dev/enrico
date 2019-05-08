@@ -32,6 +32,10 @@ public:
   //! Write data to VTK
   void write_step(int timestep, int iteration) final;
 
+  xt::xtensor<double, 1> temperature() const;
+
+  double temperature(int pin, int axial, int ring) const;
+
   // Data on fuel pins
   xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins
   xt::xtensor<double, 1> z_;           //!< Bounding z-values for axial segments
@@ -48,8 +52,6 @@ public:
   // solver variables and settings
   double tol_;                    //!< tolerance on convergence
   xt::xtensor<double, 3> source_; //!< heat source for each (axial segment, ring)
-  xt::xtensor<double, 3>
-    temperature_; //!< temperature in [K] for each (axial segment, ring)
   xt::xtensor<double, 1> r_grid_clad_; //!< radii of each clad ring in [cm]
   xt::xtensor<double, 1> r_grid_fuel_; //!< radii of each fuel ring in [cm]
 
@@ -65,6 +67,10 @@ public:
 private:
   //! Create internal arrays used for heat equation solver
   void generate_arrays();
+
+  //!< temperature in [K] for each (axial segment, ring)
+  xt::xtensor<double, 3> temperature_;
+
 }; // end SurrogateHeatDriver
 
 } // namespace enrico

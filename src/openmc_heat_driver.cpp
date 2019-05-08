@@ -163,10 +163,7 @@ void OpenmcHeatDriver::update_temperature()
   const auto& r_fuel = heat_driver_->r_grid_fuel_;
   const auto& r_clad = heat_driver_->r_grid_clad_;
 
-  // The temperature array normally has three dimensions, but the mapping we
-  // have gives a flattened index, so we need to get a flattened view of the
-  // temperature array
-  temperatures_ = xt::flatten(heat_driver_->temperature_);
+  temperatures_ = heat_driver_->temperature();
 
   // For each OpenMC material, volume average temperatures and set
   for (int i = 0; i < openmc_driver_->cells_.size(); ++i) {
