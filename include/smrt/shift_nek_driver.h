@@ -7,7 +7,7 @@
 #include "Nemesis/comm/global.hh"
 
 #include "Assembly_Model.h"
-#include "Shift_Solver.h"
+#include "shift_driver.h"
 #include "enrico/error.h"
 #include "enrico/message_passing.h"
 #include "enrico/nek_driver.h"
@@ -30,7 +30,7 @@ private:
   //
 
   // Shift solver
-  std::shared_ptr<Shift_Solver> d_shift_solver;
+  std::shared_ptr<ShiftDriver> d_shift_solver;
 
   // Nek solver
   std::shared_ptr<NekDriver> d_nek_solver;

@@ -18,7 +18,7 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
   : d_power_norm(power_norm)
 {
   d_shift_solver =
-    std::make_shared<enrico::Shift_Solver>(assembly, shift_filename, z_edges);
+    std::make_shared<enrico::ShiftDriver>(assembly, shift_filename, z_edges);
 
   // Build Nek driver
   {

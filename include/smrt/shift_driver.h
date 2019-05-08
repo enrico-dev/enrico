@@ -1,5 +1,5 @@
-#ifndef Shift_Solver_h
-#define Shift_Solver_h
+#ifndef SHIFT_DRIVER_H
+#define SHIFT_DRIVER_H
 
 #include <memory>
 #include <vector>
@@ -16,17 +16,17 @@ namespace enrico {
 
 //===========================================================================//
 /*!
- * \class Shift_Solver
+ * \class ShiftDriver
  * \brief Neutronics solver running Shift problem
  */
 /*!
  * \example shift/test/tstShift_Solver.cc
  *
- * Test of Shift_Solver.
+ * Test of ShiftDriver.
  */
 //===========================================================================//
 
-class Shift_Solver : public Neutronics_Solver {
+class ShiftDriver : public Neutronics_Solver {
 public:
   //@{
   //! Public type aliases
@@ -47,7 +47,6 @@ private:
   SP_Omn_Driver d_driver;
 
   std::vector<double> d_z_edges;
-  double d_power_norm;
   std::string d_power_tally_name;
 
   // Matids corresponding to T/H mesh elements
@@ -63,7 +62,7 @@ private:
 
 public:
   // Constructor
-  Shift_Solver(SP_Assembly_Model assembly,
+  ShiftDriver(SP_Assembly_Model assembly,
                std::string shift_input,
                const std::vector<double>& z_edges);
 
@@ -85,8 +84,8 @@ private:
 } // end namespace enrico
 
 //---------------------------------------------------------------------------//
-#endif // Shift_Solver_h
+#endif // SHIFT_DRIVER_H
 
 //---------------------------------------------------------------------------//
-// end of Shift_Solver.h
+// end of shift_driver.h
 //---------------------------------------------------------------------------//
