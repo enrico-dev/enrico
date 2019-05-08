@@ -83,9 +83,20 @@ public:
 
   int max_picard_iter_; //!< Maximum number of Picard iterations
 
-  double epsilon_{1e-3}; //!< Picard iteration convergence tolerance
+  //! Picard iteration convergence tolerance, defaults to 1e-3 if not set
+  double epsilon_{1e-3};
 
-  double alpha_{1.0}; //!< Constant relaxation factor
+  //! Constant relaxation factor, defaults to 1.0 (standard Picard) if not set
+  double alpha_{1.0};
+
+  //! Enumeration of available temperature initial condition specifications.
+  //! 'neutronics' sets temperature condition from the neutronics input files,
+  //! while 'heat' sets temperature based on a thermal-fluids input (or restart) file.
+  enum class Initial {neutronics, heat};
+
+  //! Where to obtain the temperature initial condition from. Defaults to the
+  //! temperatures in the neutronics input file.
+  Initial temperature_ic_{Initial::neutronics};
 
 protected:
   //! Initialize current and previous Picard temperature fields

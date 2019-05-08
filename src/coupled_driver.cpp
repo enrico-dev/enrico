@@ -16,8 +16,21 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   // get optional coupling parameters, using defaults if not provided
   if (node.child("epsilon"))
     epsilon_ = node.child("epsilon").text().as_double();
+
   if (node.child("alpha"))
     alpha_ = node.child("alpha").text().as_double();
+
+  if (node.child("temperature_ic")) {
+    auto s = std::string{node.child_value("temperature_ic")};
+
+    if (s == "neutronics") {
+      temperature_ic_ = Initial::neutronics;
+    } else if (s == "heat") {
+      temperature_ic_ = Initial::heat;
+    } else {
+      throw std::runtime_error{"Invalid value for <temperature_ic>"};
+    }
+  }
 
   Expects(power_ > 0);
   Expects(max_timesteps_ >= 0);

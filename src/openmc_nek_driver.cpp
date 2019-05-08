@@ -211,8 +211,19 @@ void OpenmcNekDriver::init_temperatures()
     temperatures_.resize({n_global_elem_});
     temperatures_prev_.resize({n_global_elem_});
 
-    std::fill(temperatures_.begin(), temperatures_.end(), 293.6);
-    std::fill(temperatures_prev_.begin(), temperatures_prev_.end(), 293.6);
+    if (temperature_ic_ == Initial::neutronics) {
+      std::string msg = "WARNING: Temperature initial conditions from OpenMC input file "
+        "for coupled OpenMC-Nek runs not yet supported. Setting initial temperatures to 293.6 K";
+      comm_.message(msg);
+
+      std::fill(temperatures_.begin(), temperatures_.end(), 293.6);
+      std::fill(temperatures_prev_.begin(), temperatures_prev_.end(), 293.6);
+    }
+
+    if (temperature_ic_ == Initial::heat) {
+      throw std::runtime_error{"Temperature initial conditions from Nek5000 restart file "
+        "not supported."};
+    }
   }
 }
 

@@ -115,8 +115,54 @@ void OpenmcHeatDriver::init_temperatures()
   temperatures_.resize({n});
   temperatures_prev_.resize({n});
 
-  std::fill(temperatures_.begin(), temperatures_.end(), 293.6);
-  std::fill(temperatures_prev_.begin(), temperatures_prev_.end(), 293.6);
+  if (temperature_ic_ == Initial::neutronics) {
+    // Loop over all of the rings in the heat transfer model and set the temperature IC
+    // based on temperatures used in the OpenMC input file. More than one OpenMC cell may
+    // correspond to a particular ring, so the initial temperature set for that ring should
+    // be a volume average of the OpenMC cell temperatures.
+
+    // TODO: This initial condition used in the coupled driver does not truly represent
+    // the actual initial condition used in the OpenMC input file, since the surrogate heat
+    // solver only includes a radial dependence, though the various azimuthal segments
+    // corresponding to a single heat transfer ring may run with different initial
+    // temperatures. For this reading of the initial condition to be completely accurate,
+    // the heat solver must either be modified to include an azimuthal dependence, or
+    // a check inserted here to ensure that the initial temperatures in the azimuthal
+    // segments in the OpenMC model are all the same (i.e. no initial azimuthal dependence).
+
+    int ring_index = 0;
+    for (int i = 0; i < heat_driver_->n_pins_; ++i) {
+      for (int j = 0; j < heat_driver_->n_axial_; ++j) {
+        for (int k = 0; k < heat_driver_->n_rings(); ++k) {
+          const auto& cell_instances = ring_to_cell_inst_[ring_index];
+
+          double T_avg = 0.0;
+          double total_vol = 0.0;
+
+          for (auto idx : cell_instances) {
+            const auto& c = openmc_driver_->cells_[idx];
+            double vol = c.volume_;
+
+            total_vol += vol;
+            T_avg += c.get_temperature() * vol;
+          }
+
+          T_avg /= total_vol;
+
+          int t_index = (i * heat_driver_->n_axial_ + j) * heat_driver_->n_rings() + k;
+          temperatures_prev_[t_index] = T_avg;
+          temperatures_[t_index] = T_avg;
+
+          ++ring_index;
+        }
+      }
+    }
+  }
+
+  if (temperature_ic_ == Initial::heat) {
+    throw std::runtime_error{"Temperature initial conditions from surrogate heat-fluids "
+      "solver not supported."};
+  }
 }
 
 void OpenmcHeatDriver::init_heat_source()
@@ -159,7 +205,6 @@ void OpenmcHeatDriver::update_temperature()
 {
   std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
 
-  int nrings = heat_driver_->n_fuel_rings_;
   const auto& r_fuel = heat_driver_->r_grid_fuel_;
   const auto& r_clad = heat_driver_->r_grid_clad_;
 
