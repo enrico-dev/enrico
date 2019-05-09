@@ -212,12 +212,20 @@ void OpenmcNekDriver::init_temperatures()
     temperatures_prev_.resize({n_global_elem_});
 
     if (temperature_ic_ == Initial::neutronics) {
-      std::string msg = "WARNING: Temperature initial conditions from OpenMC input file "
-        "for coupled OpenMC-Nek runs not yet supported. Setting initial temperatures to 293.6 K";
-      comm_.message(msg);
+      // Loop over the OpenMC cells, then loop over the global Nek elements
+      // corresponding to that cell and assign the OpenMC cell temperature to
+      // the correct index in the temperatures_ array. This mapping assumes that
+      // each Nek element is fully contained within an OpenMC cell, i.e. Nek elements
+      // are not split between multiple OpenMC cells.
+      for (const auto& c : openmc_driver_->cells_) {
+        const auto& global_elems = mat_to_elems_.at(c.material_index_);
 
-      std::fill(temperatures_.begin(), temperatures_.end(), 293.6);
-      std::fill(temperatures_prev_.begin(), temperatures_prev_.end(), 293.6);
+        for (int elem : global_elems) {
+          double T = c.get_temperature();
+          temperatures_[elem] = T;
+          temperatures_prev_[elem] = T;
+        }
+      }
     }
 
     if (temperature_ic_ == Initial::heat) {
