@@ -21,6 +21,12 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   n_fuel_rings_ = node.child("fuel_rings").text().as_int();
   n_clad_rings_ = node.child("clad_rings").text().as_int();
 
+  Expects(clad_inner_radius_ > 0);
+  Expects(clad_outer_radius_ > clad_inner_radius_);
+  Expects(pellet_radius_ < clad_inner_radius_);
+  Expects(n_fuel_rings_ > 0);
+  Expects(n_clad_rings_ > 0);
+
   // Get pin locations
   // TODO: Switch to get_node_xarray on OpenMC update
   auto pin_locations = openmc::get_node_array<double>(node, "pin_centers");

@@ -30,6 +30,10 @@ public:
   //! Set the temperature of this cell
   void set_temperature(double T) const;
 
+  //! Get the temperature of this cell
+  //! \return cell temperature in [K]
+  double get_temperature() const;
+
   //! Check for equality
   bool operator==(const CellInstance& other) const;
 

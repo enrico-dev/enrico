@@ -41,6 +41,13 @@ void CellInstance::set_temperature(double T) const
   err_chk(openmc_cell_set_temperature(index_, T, &instance_));
 }
 
+double CellInstance::get_temperature() const
+{
+  double T;
+  err_chk(openmc_cell_get_temperature(index_, &instance_, &T));
+  return T;
+}
+
 void CellInstance::set_density(double rho) const
 {
   err_chk(openmc_material_set_density(material_index_, rho, "g/cm3"));

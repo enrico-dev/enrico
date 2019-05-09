@@ -48,7 +48,10 @@ protected:
   void init_heat_source() override;
 
 private:
-  //! Initialize mapping between OpenMC regions and surrogate fuel pin rings
+  //! Initialize mapping between OpenMC regions and surrogate fuel pin rings.
+  //! TODO: The mapping bewteen OpenMC cells and heat transfer cells is rather rigid in
+  //! that the same number of fuel rings in the OpenMC model must be set in the heat
+  //! transfer model.
   void init_mappings();
 
   //! Initialize tallies in OpenMC

@@ -106,10 +106,13 @@ private:
   xt::xtensor<double, 1> elem_densities_;
 
   //! Map that gives a list of Nek element global indices for a given OpenMC material
-  //! index
+  //! index. The Nek global element indices refer to indices defined by the MPI_Gatherv
+  //! operation, and do not reflect Nek's internal global element indexing.
   std::unordered_map<int32_t, std::vector<int>> mat_to_elems_;
 
-  //! Map that gives the OpenMC material index for a given Nek global element index
+  //! Map that gives the OpenMC material index for a given Nek global element index.
+  //! The Nek global element indices refer to indices defined by the MPI_Gatherv
+  //! operation, and do not reflect Nek's internal global element indexing.
   std::unordered_map<int, int32_t> elem_to_mat_;
 
   //! Mapping of material indices (minus 1) to positions in array of heat sources that is

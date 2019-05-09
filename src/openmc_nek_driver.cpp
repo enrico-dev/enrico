@@ -28,7 +28,7 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
   Expects(pressure_ > 0.0);
   Expects(openmc_procs_per_node_ > 0);
 
-  // Create communicator for OpenMC with 1 process per node
+  // Create communicator for OpenMC with requested processes per node
   MPI_Comm openmc_comm;
   MPI_Comm intranode_comm;
   enrico::get_node_comms(
@@ -211,8 +211,33 @@ void OpenmcNekDriver::init_temperatures()
     temperatures_.resize({n_global_elem_});
     temperatures_prev_.resize({n_global_elem_});
 
-    std::fill(temperatures_.begin(), temperatures_.end(), 293.6);
-    std::fill(temperatures_prev_.begin(), temperatures_prev_.end(), 293.6);
+    if (temperature_ic_ == Initial::neutronics) {
+      // Loop over the OpenMC cells, then loop over the global Nek elements
+      // corresponding to that cell and assign the OpenMC cell temperature to
+      // the correct index in the temperatures_ array. This mapping assumes that
+      // each Nek element is fully contained within an OpenMC cell, i.e. Nek elements
+      // are not split between multiple OpenMC cells.
+      for (const auto& c : openmc_driver_->cells_) {
+        const auto& global_elems = mat_to_elems_.at(c.material_index_);
+
+        for (int elem : global_elems) {
+          double T = c.get_temperature();
+          temperatures_[elem] = T;
+          temperatures_prev_[elem] = T;
+        }
+      }
+    }
+
+    if (temperature_ic_ == Initial::heat) {
+      // Use whatever temperature is in Nek's internal arrays, either from a restart
+      // file or from a useric fortran routine.
+      update_temperature();
+
+      // update_temperautre() begins by saving temperatures_ to temperatures_prev_, and
+      // then changes temperatures_. We need to save temperatures_ here to temperatures_prev_
+      // manually because init_temperatures() initializes both temperatures_ and temperatures_prev_.
+      std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
+    }
   }
 }
 
