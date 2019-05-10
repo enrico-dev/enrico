@@ -5,7 +5,7 @@
 
 #include "comm.h"
 #include "coupled_driver.h"
-#include "heat_driver.h"
+#include "surrogate_heat_driver.h"
 #include "openmc_driver.h"
 
 #include <mpi.h>

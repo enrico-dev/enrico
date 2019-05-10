@@ -1,7 +1,7 @@
 //! \file heat_driver.h
 //! Driver for Magnolia's heat transfer solver
-#ifndef ENRICO_HEAT_DRIVER_H
-#define ENRICO_HEAT_DRIVER_H
+#ifndef ENRICO_SURROGATE_HEAT_DRIVER_H
+#define ENRICO_SURROGATE_HEAT_DRIVER_H
 
 #include "driver.h"
 
@@ -75,4 +75,4 @@ private:
 
 } // namespace enrico
 
-#endif // ENRICO_HEAT_DRIVER_H
+#endif //ENRICO_SURROGATE_HEAT_DRIVER_H

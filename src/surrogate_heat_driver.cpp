@@ -1,4 +1,4 @@
-#include "enrico/heat_driver.h"
+#include "enrico/surrogate_heat_driver.h"
 
 #include "enrico/vtk_viz.h"
 #include "heat_xfer_backend.h"

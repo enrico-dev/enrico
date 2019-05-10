@@ -2,7 +2,7 @@
 #include <iostream>
 #include <string>
 
-#include "enrico/heat_driver.h"
+#include "enrico/surrogate_heat_driver.h"
 
 using std::ofstream;
 using xt::xtensor;
