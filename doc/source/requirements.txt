@@ -1,1 +1,2 @@
 astropy-sphinx-theme
+sphinxcontrib-katex

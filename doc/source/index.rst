@@ -20,9 +20,10 @@ Documentation
 -------------
 
 .. toctree::
-   :maxdepth: 2
+   :maxdepth: 1
 
    quickstart
+   input
    cppapi
    devguide
    license
@@ -39,4 +40,3 @@ technology, to support the nation’s exascale computing imperative.
 .. image:: ecp.png
     :height: 100px
     :align: center
-
