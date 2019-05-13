@@ -12,25 +12,27 @@ addons:
       retries: true
 cache:
   directories:
-    - $HOME/nndc_hdf5
-    - $HOME/endf-b-vii.1
+    - $HOME/endf71_multitemp
 env:
   global:
     - HDF5_ROOT=/usr
     - OMP_NUM_THREADS=2
-    - OPENMC_CROSS_SECTIONS=$HOME/nndc_hdf5/cross_sections.xml
-    - OPENMC_ENDF_DATA=$HOME/endf-b-vii.1
+    - OPENMC_CROSS_SECTIONS=$HOME/endf71_multitemp/cross_sections.xml
+matrix:
+  include:
+    - env: MODE="openmc"
+    - env: MODE="nek5000"
+    - env: MODE="openmc_nek5000"
+    - env: MODE="openmc_heat_surrogate"
 
 before_script:
-  - bash vendor/openmc/tools/ci/download-xs.sh
+  - bash ci/download_xs.sh
   - bash ci/patch_singlerod_rea.sh
+  - bash ci/unzip_singlerod_statefile.sh
 
 install:
   - bash ci/cmake_singlerod.sh
   - bash ci/build_singlerod.sh
 
 script:
-  - bash ci/test_singlerod_nek5000.sh
-  - bash ci/test_singlerod_openmc.sh
-  - bash ci/test_singlerod_openmc_nek5000.sh
-  - bash ci/test_singlerod_openmc_heat_surrogate.sh
+  - bash ci/singlerod_matrix.sh
