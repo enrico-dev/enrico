@@ -1,55 +1,36 @@
 language: cpp
 sudo: required
 dist: xenial
-# addons:
-#   apt:
-#     packages:
-#       - gfortran
-#       - mpich
-#       - libmpich-dev
-#       - libhdf5-mpich-dev
-#     config:
-#       retries: true
+addons:
+  apt:
+    packages:
+      - gfortran
+      - mpich
+      - libmpich-dev
+      - libhdf5-mpich-dev
+    config:
+      retries: true
 cache:
   directories:
     - $HOME/nndc_hdf5
     - $HOME/endf-b-vii.1
 env:
   global:
-    - CC=mpicc
-    - CXX=mpicxx
-    - FC=mpif90
     - HDF5_ROOT=/usr
     - OMP_NUM_THREADS=2
     - OPENMC_CROSS_SECTIONS=$HOME/nndc_hdf5/cross_sections.xml
     - OPENMC_ENDF_DATA=$HOME/endf-b-vii.1
 
 before_script:
-  - sudo apt-get update -qq
-  - sudo apt-get install -y gfortran mpich libmpich-dev libhdf5-mpich-dev
   - bash vendor/openmc/tools/ci/download-xs.sh
   - bash ci/patch_singlerod_rea.sh
 
-jobs:
-  include:
-    - stage: cmake_singlerod
-      script: bash ci/cmake_singlerod.sh
+install:
+  - bash ci/cmake_singlerod.sh
+  - bash ci/build_singlerod.sh
 
-    - stage: build_singlerod
-      script: bash ci/build_singlerod.sh
-
-    - stage: test_singlerod_nek5000
-      script: bash ci/test_singlerod_nek5000.sh
-
-    - stage: test_singlerod_openmc
-      script: bash ci/test_singlerod_openmc.sh
-
-    - stage: test_singlerod_coupled
-      script: bash ci/test_singlerod_openmc_nek5000.sh
-    - script: bash ci/test_singlerod_openmc_heat_surrogate.sh
-
-
-
-
-
-
+script:
+  - bash ci/test_singlerod_nek5000.sh
+  - bash ci/test_singlerod_openmc.sh
+  - bash ci/test_singlerod_openmc_nek5000.sh
+  - bash ci/test_singlerod_openmc_heat_surrogate.sh
