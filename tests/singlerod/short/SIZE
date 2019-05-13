@@ -4,7 +4,7 @@ C     HCUBE array dimensions
 C
       integer ldim,lx1,ly1,lz1,lelt,lelv,lxd,lyd,lzd,lelx,lely,lelz
       parameter (ldim=3)
-      parameter (lx1=6,ly1=lx1,lz1=lx1,lelt=500,lelv=lelt)
+      parameter (lx1=6,ly1=lx1,lz1=lx1,lelt=2600,lelv=lelt)
       parameter (lxd=10,lyd=lxd,lzd=lxd)
       parameter (lelx=1,lely=1,lelz=1)
  
@@ -20,7 +20,7 @@ C
       parameter (lz3=lz1)
 
       integer lp,lelg
-      parameter (lp = 32)
+      parameter (lp = 2)
       parameter (lelg = 5000)
 c
 c     parameter (lpelv=lelv,lpelt=lelt,lpert=3)  ! perturbation

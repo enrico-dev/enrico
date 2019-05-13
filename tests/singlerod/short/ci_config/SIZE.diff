@@ -7,7 +7,7 @@ index aaf330e..ed38876 100644
        integer ldim,lx1,ly1,lz1,lelt,lelv,lxd,lyd,lzd,lelx,lely,lelz
        parameter (ldim=3)
 -      parameter (lx1=6,ly1=lx1,lz1=lx1,lelt=500,lelv=lelt)
-+      parameter (lx1=6,ly1=lx1,lz1=lx1,lelt=650,lelv=lelt)
++      parameter (lx1=6,ly1=lx1,lz1=lx1,lelt=2600,lelv=lelt)
        parameter (lxd=10,lyd=lxd,lzd=lxd)
        parameter (lelx=1,lely=1,lelz=1)
   
@@ -16,7 +16,7 @@ index aaf330e..ed38876 100644
  
        integer lp,lelg
 -      parameter (lp = 32)
-+      parameter (lp = 8)
++      parameter (lp = 2)
        parameter (lelg = 5000)
  c
  c     parameter (lpelv=lelv,lpelt=lelt,lpert=3)  ! perturbation
