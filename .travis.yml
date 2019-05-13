@@ -24,15 +24,17 @@ matrix:
     - env: MODE="nek5000"
     - env: MODE="openmc_nek5000"
     - env: MODE="openmc_heat_surrogate"
-
-before_script:
-  - bash ci/download_xs.sh
+      
+before_install:
   - bash ci/patch_singlerod_rea.sh
-  - bash ci/unzip_singlerod_statefile.sh
 
 install:
   - bash ci/cmake_singlerod.sh
   - bash ci/build_singlerod.sh
+
+before_script:
+  - bash ci/download_xs.sh
+  - bash ci/unzip_singlerod_statefile.sh
 
 script:
   - bash ci/singlerod_matrix.sh
