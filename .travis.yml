@@ -20,8 +20,6 @@ env:
     - OPENMC_CROSS_SECTIONS=$HOME/endf71_multitemp/cross_sections.xml
 matrix:
   include:
-    - env: MODE="openmc"
-    - env: MODE="nek5000"
     - env: MODE="openmc_nek5000"
     - env: MODE="openmc_heat_surrogate"
       
