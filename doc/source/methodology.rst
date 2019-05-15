@@ -1,8 +1,11 @@
 Methodology
 ===========
 
-MPI Communicators for Coupling Nek5000 and OpenMC
--------------------------------------------------
+OpenMC and Nek5000 Coupling
+---------------------------
+
+MPI Communicators
+~~~~~~~~~~~~~~~~~
 
 The coupled Nek5000/OpenMC driver must account for the fact that the two single physics codes have
 different parallelization schemes:
@@ -13,7 +16,7 @@ different parallelization schemes:
   MPI threads to occupy all CPU cores.
 
 To handle this, ENRICO creates the MPI communicators shown in :numref:`openmc-nek-comms`.  Black
-rectangles represent a physical node [#f1]_, and black circles represent MPI ranks.  Numbers
+rectangles represent a physical node [#f1]_.  Black circles represent MPI ranks.  Numbers
 represent MPI rank IDs; for our implementation, the actual numbering can be arbitrary.
 
 * The OpenMC communicator (in green) encompasses 1 rank in every node, by default.  An alternate
@@ -27,21 +30,66 @@ represent MPI rank IDs; for our implementation, the actual numbering can be arbi
 .. _openmc-nek-comms:
 
 .. figure:: img/mpi_comm_scheme/openmc_nek_comms.png
-    :height: 400px
+    :height: 350px
     :align: center
     :figclass: align-center
 
-    Caption
+    Communicators used by ENRICO for coupled Nek5000/OpenMC simulations.
 
-.. only:: html
+Message Passing Patterns
+~~~~~~~~~~~~~~~~~~~~~~~~
 
-   .. rubric:: Footnotes
+Nek5000 and OpenMC also differ with respect to data decomposition:
+
+* Nek5000 is domain-decomposed.  Hence, data fields (such as temperature) are distributed across
+  among MPI ranks in the Nek5000 communicator.  For most of these fields (including temperature),
+  there is no arrays that contain data for the entire domain.
+* OpenMC is not domain-decomposed.  Hence, the data fields of interest (such as heat sources) are
+  replicated on each MPI rank in the OpenMC communicator.
+
+To transfer this data, ENRICO employs a MPI gather and scatter routines.
+
+Figure :numref:`data_exchange_01` shows the general pattern for gathering distributed data from Nek5000
+to OpenMC.
+
+* In the Nek5000 ranks (bottom), each rank contains a data buffer for its local subdomain.
+  The size of each buffer is equal to the number of local elements (``nelt``).  Because the size
+  of each subdomain can differ, the size of each data buffer can likewise differ in a given rank.
+* In the OpenMC ranks (top), there are receive buffers to gather data from Nek5000's subdomains.
+  The size of each data buffer is equal to the number of global elements in Nek5000 (``nelg``)
+  and is the same in each rank.
+
+To gather Nek5000's data buffers into OpenMC's data buffers, the
+`MPI_Gatherv <https://www.open-mpi.org/doc/v3.0/man3/MPI_Gatherv.3.php>`_ function is used.
+This allows ENRICO to gather local buffers of various sizes [#f2]_.
+
+.. _data_exchange_01:
+
+.. figure:: img/mpi_coupling_scheme/01.png
+    :height: 450px
+    :align: center
+    :figclass: align-center
+
+    General pattern for gathering distributed data from Nek5000 to OpenMC
+
+To scatter OpenMC's data buffers into Nek5000, the
+`MPI_Scatterv <https://www.open-mpi.org/doc/v3.0/man3/MPI_Scatterv.3.php>`_ is used.  The MPI
+standard ensures that, in a given run of the simulation, the Scatterv will respect the same
+ordering of the Gatherv.
+
+
+
+.. rubric:: Footnotes
 
 .. [#f1] The nodes are inferred by the ``MPI_COMM_SPLIT_TYPE`` option in the `MPI_Comm_split_type <https://www.open-mpi.org/doc/v3.0/man3/MPI_Comm_split_type.3 .php>`_ function.  Typically, this splits a communicator based on physical nodes, but the exact results may vary by MPI implementation.
 
-   .. rubric:: References
+.. [#f2] Though Figure :numref:`data_exchange_01` shows a Gatherv operation for each OpenMC rank, the current version of ENRICO will call a single Gatherv on one OpenMC rank and then a single broadcast to the other MPI ranks.
+
+.. rubric:: References
 
 .. [Romano2015] Paul Romano, Andrew Siegel, Ronald Rahaman.  *Influence of the Memory Subsystem on
                 Monte Carlo Code Performance*  ANS MC2015 -- Joint International Conference on
                 Mathematics and Computation (M&C), Supercomputing in Nuclear Applications (SNA),
                 and the Monte Carlo (MC) Method
+
+

@@ -24,9 +24,9 @@ Documentation
 
    quickstart
    input
-   cppapi
    methodology
    devguide
+   cppapi
    license
 
 Acknowledgment
