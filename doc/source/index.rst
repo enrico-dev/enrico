@@ -23,9 +23,9 @@ Documentation
    :maxdepth: 2
 
    quickstart
-   cppapi
    methodology
    devguide
+   cppapi
    license
 
 Acknowledgment
