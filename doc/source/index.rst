@@ -36,7 +36,7 @@ Science and National Nuclear Security Administration, responsible for delivering
 a capable exascale ecosystem, including software, applications, and hardware
 technology, to support the nation’s exascale computing imperative.
 
-.. image:: ecp.png
+.. image:: img/ecp.png
     :height: 100px
     :align: center
 
