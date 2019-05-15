@@ -24,6 +24,7 @@ Documentation
 
    quickstart
    cppapi
+   methodology
    devguide
    license
 
