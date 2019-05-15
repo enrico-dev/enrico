@@ -1,5 +1,8 @@
 # ENRICO: Exascale Nuclear Reactor Investigative COde
 
+[![License](https://img.shields.io/github/license/enrico-dev/enrico.svg)](http://enrico-docs.readthedocs.io/en/latest/license.html)
+[![Travis CI build status (Linux)](https://travis-ci.org/enrico-dev/enrico.svg?branch=master)](https://travis-ci.org/enrico-dev/enrico)
+
 ## General Compilation
 
 ENRICO can be configured and compiled in an arbitrary build directory.  However, at configure time, you must point to
