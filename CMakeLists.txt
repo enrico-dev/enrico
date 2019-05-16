@@ -32,7 +32,6 @@ include_directories(
     include/
     vendor/iapws/include
     vendor/openmc/include
-    vendor/nek5000/3rd_party/gslib/gslib-1.0.1/src
     vendor
     src/
     ${CMAKE_BINARY_DIR})
