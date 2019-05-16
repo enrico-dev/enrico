@@ -5,7 +5,7 @@
 #include "enrico/message_passing.h"
 #include "nek5000/core/nek_interface.h"
 
-#include "heat_xfer_backend.h"
+#include "iapws/iapws.h"
 #include "openmc/capi.h"
 #include "pugixml.hpp"
 #include "xtensor/xbuilder.hpp"
@@ -376,7 +376,7 @@ void OpenmcNekDriver::update_density()
 
           if (any_in_fluid) {
             // nu1 returns specific volume in [m^3/kg]
-            double density = 1.0e-3 / nu1(pressure_, T);
+            double density = 1.0e-3 / iapws::nu1(pressure_, T);
             average_density += density * V;
             total_vol += V;
           }

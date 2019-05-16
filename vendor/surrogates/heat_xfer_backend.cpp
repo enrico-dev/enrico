@@ -2,7 +2,9 @@
 #include <iostream>
 #include <stdlib.h>
 
-#include "iapws.cpp"
+#include "iapws/iapws.h"
+
+using namespace iapws;
 
 const double PI = 3.1415926535898;
 

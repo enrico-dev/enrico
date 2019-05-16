@@ -30,6 +30,7 @@ FortranCInterface_HEADER(${CMAKE_BINARY_DIR}/nek_mangling.h
 # =============================================================================
 include_directories(
     include/
+    vendor/iapws/include
     vendor/openmc/include
     vendor/nek5000/3rd_party/gslib/gslib-1.0.1/src
     vendor
@@ -49,10 +50,16 @@ add_subdirectory(vendor/openmc)
 add_subdirectory(vendor/gsl)
 
 # =============================================================================
+# IAPWS Correlations
+# =============================================================================
+add_library(iapws vendor/iapws/iapws.cpp)
+
+# =============================================================================
 # Heat transfer surrogate
 # =============================================================================
 add_library(heat_xfer vendor/surrogates/heat_xfer_backend.cpp)
 target_include_directories(heat_xfer PUBLIC vendor/surrogates/)
+target_link_libraries(heat_xfer PUBLIC iapws)
 
 # =============================================================================
 # Build libenrico
@@ -90,7 +97,7 @@ add_library(libenrico
             ${SOURCES})
 
 set_target_properties(libenrico PROPERTIES OUTPUT_NAME enrico)
-target_link_libraries(libenrico PUBLIC libnek5000 libopenmc xtensor heat_xfer pugixml gsl-lite)
+target_link_libraries(libenrico PUBLIC iapws libnek5000 libopenmc xtensor heat_xfer pugixml gsl-lite)
 target_compile_definitions(libenrico PRIVATE GSL_THROW_ON_CONTRACT_VIOLATION)
 
 if (SCALE_FOUND)
@@ -120,6 +127,7 @@ set_target_properties(
     enrico libenrico
     comm_split_demo
     heat_xfer
+    iapws
     test_nek5000_singlerod
     test_openmc_singlerod
     PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
