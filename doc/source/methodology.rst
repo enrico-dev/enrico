@@ -43,13 +43,13 @@ Nek5000 and OpenMC also differ with respect to data decomposition:
 
 * Nek5000 is domain-decomposed.  Hence, data fields (such as temperature) are distributed across
   among MPI ranks in the Nek5000 communicator.  For most of these fields (including temperature),
-  there is no arrays that contain data for the entire domain.
-* OpenMC is not domain-decomposed.  Hence, the data fields of interest (such as heat sources) are
+  there are no arrays that contain data for the entire domain.
+* OpenMC is domain-replicated.  Hence, the data fields of interest (such as heat sources) are
   replicated on each MPI rank in the OpenMC communicator.
 
-To transfer this data, ENRICO employs a MPI gather and scatter routines.
+To transfer this data, ENRICO employs MPI gather and scatter routines.
 
-Figure :numref:`data_exchange_01` shows the general pattern for gathering distributed data from Nek5000
+:numref:`data_exchange_01` shows the general pattern for gathering distributed data from Nek5000
 to OpenMC.
 
 * In the Nek5000 ranks (bottom), each rank contains a data buffer for its local subdomain.
@@ -83,7 +83,7 @@ ordering of the Gatherv.
 
 .. [#f1] The nodes are inferred by the ``MPI_COMM_SPLIT_TYPE`` option in the `MPI_Comm_split_type <https://www.open-mpi.org/doc/v3.0/man3/MPI_Comm_split_type.3 .php>`_ function.  Typically, this splits a communicator based on physical nodes, but the exact results may vary by MPI implementation.
 
-.. [#f2] Though Figure :numref:`data_exchange_01` shows a Gatherv operation for each OpenMC rank, the current version of ENRICO will call a single Gatherv on one OpenMC rank and then a single broadcast to the other MPI ranks.
+.. [#f2] Though :numref:`data_exchange_01` shows a Gatherv operation for each OpenMC rank, the current version of ENRICO will call a single Gatherv on one OpenMC rank and then a single broadcast to the other MPI ranks.
 
 .. rubric:: References
 
