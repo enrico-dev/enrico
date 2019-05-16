@@ -3,7 +3,7 @@
 #ifndef ENRICO_NEK_DRIVER_H
 #define ENRICO_NEK_DRIVER_H
 
-#include "driver.h"
+#include "heat_fluids_driver.h"
 #include "geom.h"
 #include "mpi.h"
 
@@ -16,7 +16,7 @@
 namespace enrico {
 
 //! Driver to initialze and run Nek5000 in stages.
-class NekDriver : public Driver {
+class NekDriver : public HeatFluidsDriver {
 public:
   //! Initializes Nek5000 with the given MPI communicator.
   //!
@@ -40,16 +40,14 @@ public:
   //! initialization and finalization for each step.
   void solve_step() final;
 
-  xt::xtensor<double, 1> temperature() const;
+  // TODO:  Unitialized!
+  double pressure_;   //!< System pressure in [MPa]
 
-  //! Get the coordinate of a global element's centroid.
-  //!
-  //! The coordinate is dimensionless.  Its units depend on the unit system used that was
-  //! used to setup the Nek problem. The user must handle any necessary conversions.
-  //!
-  //! \param global_elem The global index of the desired element
-  //! \return The dimensionless coordinate of the element's centroid
-  Position get_global_elem_centroid(int global_elem) const;
+  xt::xtensor<double, 1> temperature() const final;
+
+  xt::xtensor<double, 1> density() const final;
+
+  xt::xtensor<int, 1> fluid_mask() const;
 
   //! Get the coordinate of a local element's centroid.
   //!
@@ -58,7 +56,7 @@ public:
   //!
   //! \param local_elem The local index of the desired element
   //! \return The dimensionless coordinate of the element's centroid
-  Position get_local_elem_centroid(int local_elem) const;
+  Position centroid(int local_elem) const;
 
   //! Get the volume of a local element
   //!
@@ -67,7 +65,7 @@ public:
   //!
   //! \param local_elem The local index of the desired element
   //! \return The dimensionless Volume of the element
-  double get_local_elem_volume(int local_elem) const;
+  double volume(int local_elem) const;
 
   //! Get the volume-averaged temperature of a local element
   //!
@@ -77,23 +75,12 @@ public:
   //!
   //! \param local_elem A local element ID
   //! \return The volume-averaged temperature of the element
-  double get_local_elem_temperature(int local_elem) const;
-
-  //! Return true if a global element is in a given MPI rank
-  //! \param A global element ID
-  //! \param An MPI rank
-  //! \return True if the global element ID is in the given rank
-  bool global_elem_is_in_rank(int global_elem) const;
-
-  //! Return true if a global element is in the fluid region
-  //! \param global_elem  A global element ID
-  //! \return 1 if the global element is in fluid; 0 otherwise
-  int global_elem_is_in_fluid(int global_elem) const;
+  double temperature(int local_elem) const;
 
   //! Return true if a local element is in the fluid region
   //! \param local_elem  A local element ID
   //! \return 1 if the local element is in fluid; 0 otherwise
-  int local_elem_is_in_fluid(int local_elem) const;
+  int is_in_fluid(int local_elem) const;
 
   //! Set the heat source for a given local element
   //!

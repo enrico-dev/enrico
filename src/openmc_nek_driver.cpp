@@ -107,8 +107,8 @@ void OpenmcNekDriver::init_mappings()
     Position local_element_centroids[n_local_elem_];
     int local_element_is_in_fluid[n_local_elem_];
     for (int i = 0; i < n_local_elem_; ++i) {
-      local_element_centroids[i] = nek_driver_->get_local_elem_centroid(i + 1);
-      local_element_is_in_fluid[i] = nek_driver_->local_elem_is_in_fluid(i + 1);
+      local_element_centroids[i] = nek_driver_->centroid(i + 1);
+      local_element_is_in_fluid[i] = nek_driver_->is_in_fluid(i + 1);
     }
     // Gather all the local element centroids/fluid-identities on the Nek5000/OpenMC root
     nek_driver_->comm_.Gatherv(local_element_centroids,
@@ -253,7 +253,7 @@ void OpenmcNekDriver::init_volumes()
     // Every Nek proc gets its local element volumes (lev)
     double local_elem_volumes[n_local_elem_];
     for (int i = 0; i < n_local_elem_; ++i) {
-      local_elem_volumes[i] = nek_driver_->get_local_elem_volume(i + 1);
+      local_elem_volumes[i] = nek_driver_->volume(i + 1);
     }
     // Gather all the local element volumes on the Nek5000/OpenMC root
     nek_driver_->comm_.Gatherv(local_elem_volumes,

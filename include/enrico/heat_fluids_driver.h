@@ -16,6 +16,10 @@ public:
   //! Get the temperature in each element
   //! \return Temperature in each element as [K]
   virtual xt::xtensor<double, 1> temperature() const = 0;
+
+  virtual xt::xtensor<double, 1> density() const = 0;
+
+  virtual ~HeatFluidsDriver() = default;
 };
 
 } // namespace enrico
