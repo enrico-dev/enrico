@@ -127,6 +127,7 @@ set_target_properties(
     enrico libenrico
     comm_split_demo
     heat_xfer
+    iapws
     test_nek5000_singlerod
     test_openmc_singlerod
     PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
