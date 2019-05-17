@@ -3,7 +3,7 @@
 #ifndef ENRICO_SURROGATE_HEAT_DRIVER_H
 #define ENRICO_SURROGATE_HEAT_DRIVER_H
 
-#include "driver.h"
+#include "enrico/heat_fluids_driver.h"
 
 #include "pugixml.hpp"
 #include "xtensor/xtensor.hpp"
@@ -14,7 +14,7 @@
 
 namespace enrico {
 
-class SurrogateHeatDriver : public Driver {
+class SurrogateHeatDriver : public HeatFluidsDriver {
 public:
   //! Initializes heat-fluids surrogate with the given MPI communicator.
   //!
@@ -32,7 +32,9 @@ public:
   //! Write data to VTK
   void write_step(int timestep, int iteration) final;
 
-  xt::xtensor<double, 1> temperature() const;
+  xt::xtensor<double, 1> temperature() const final;
+
+  xt::xtensor<double, 1> density() const final;
 
   double temperature(int pin, int axial, int ring) const;
 
@@ -70,6 +72,8 @@ private:
 
   //!< temperature in [K] for each (axial segment, ring)
   xt::xtensor<double, 3> temperature_;
+
+  xt::xtensor<double, 3> density_;
 
 }; // end SurrogateHeatDriver
 

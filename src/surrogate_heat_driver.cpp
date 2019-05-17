@@ -12,7 +12,7 @@
 namespace enrico {
 
 SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
-  : Driver(comm)
+  : HeatFluidsDriver(comm)
 {
   // Determine heat transfer solver parameters
   clad_inner_radius_ = node.child("clad_inner_radius").text().as_double();
@@ -88,6 +88,7 @@ void SurrogateHeatDriver::generate_arrays()
   // Create empty arrays for source term and temperature
   source_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
   temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
+  density_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
 }
 
 void SurrogateHeatDriver::solve_step()
@@ -130,6 +131,10 @@ xt::xtensor<double, 1> SurrogateHeatDriver::temperature() const
 double SurrogateHeatDriver::temperature(int pin, int axial, int ring) const
 {
   return temperature_(pin, axial, ring);
+}
+
+xt::xtensor<double, 1> SurrogateHeatDriver::density() const {
+  return xt::flatten(density_);
 }
 
 void SurrogateHeatDriver::write_step(int timestep, int iteration)
