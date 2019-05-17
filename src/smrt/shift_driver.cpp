@@ -1,16 +1,16 @@
 //---------------------------------*-C++-*-----------------------------------//
 /*!
- * \file   Shift_Solver.cpp
+ * \file   shift_driver.cpp
  * \author Steven Hamilton
  * \date   Wed Aug 15 09:25:43 2018
- * \brief  Shift_Solver class definitions.
+ * \brief  ShiftDriver class definitions.
  * \note   Copyright (c) 2018 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //---------------------------------------------------------------------------//
 
 #include <map>
 
-#include "smrt/Shift_Solver.h"
+#include "smrt/shift_driver.h"
 
 #include "Teuchos_DefaultComm.hpp"
 #include "Teuchos_XMLParameterListHelpers.hpp"
@@ -24,7 +24,7 @@ namespace enrico {
 //---------------------------------------------------------------------------//
 // Constructor
 //---------------------------------------------------------------------------//
-Shift_Solver::Shift_Solver(SP_Assembly_Model assembly,
+ShiftDriver::ShiftDriver(SP_Assembly_Model assembly,
                            std::string shift_input,
                            const std::vector<double>& z_edges)
   : d_assembly(assembly)
@@ -62,7 +62,7 @@ Shift_Solver::Shift_Solver(SP_Assembly_Model assembly,
 //---------------------------------------------------------------------------//
 // Solve
 //---------------------------------------------------------------------------//
-void Shift_Solver::solve(const std::vector<double>& th_temperature,
+void ShiftDriver::solve(const std::vector<double>& th_temperature,
                          const std::vector<double>& coolant_density,
                          std::vector<double>& power)
 {
@@ -119,7 +119,7 @@ void Shift_Solver::solve(const std::vector<double>& th_temperature,
 //---------------------------------------------------------------------------//
 // Register list of centroids and cell volumes from T/H solver
 //---------------------------------------------------------------------------//
-void Shift_Solver::set_centroids_and_volumes(
+void ShiftDriver::set_centroids_and_volumes(
   const std::vector<enrico::Position>& centroids,
   const std::vector<double>& volumes)
 {
@@ -169,7 +169,7 @@ void Shift_Solver::set_centroids_and_volumes(
 //---------------------------------------------------------------------------//
 // Add power (fission rate) tally to shift problem
 //---------------------------------------------------------------------------//
-void Shift_Solver::add_power_tally(RCP_PL& pl, const std::vector<double>& z_edges)
+void ShiftDriver::add_power_tally(RCP_PL& pl, const std::vector<double>& z_edges)
 {
   Require(d_assembly);
   auto tally_pl = Teuchos::sublist(pl, "TALLY");
@@ -239,5 +239,5 @@ void Shift_Solver::add_power_tally(RCP_PL& pl, const std::vector<double>& z_edge
 } // end namespace enrico
 
 //---------------------------------------------------------------------------//
-// end of Shift_Solver.cpp
+// end of shift_driver.cpp
 //---------------------------------------------------------------------------//

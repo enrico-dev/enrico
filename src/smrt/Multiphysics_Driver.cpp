@@ -17,7 +17,7 @@
 #include "Omnibus/config.h"
 #include "smrt/Two_Group_Diffusion.h"
 #ifdef USE_SHIFT
-#include "smrt/Shift_Solver.h"
+#include "smrt/shift_driver.h"
 #endif
 
 namespace enrico {
@@ -78,7 +78,7 @@ Multiphysics_Driver::Multiphysics_Driver(SP_Assembly assembly,
              "Neutronics type set to 'shift', "
              "but no 'shift_input' specified.");
     auto shift_input = neutronics_params->get<std::string>("shift_input");
-    d_neutronics = std::make_shared<Shift_Solver>(assembly, shift_input, z_edges);
+    d_neutronics = std::make_shared<ShiftDriver>(assembly, shift_input, z_edges);
 #else
     Validate(false,
              "Neutronics type set to 'shift', but Shift is not "

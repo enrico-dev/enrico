@@ -1,6 +1,5 @@
-
-#ifndef Coupled_Solver_h
-#define Coupled_Solver_h
+#ifndef SHIFT_NEK_DRIVER_H
+#define SHIFT_NEK_DRIVER_H
 
 #include <memory>
 #include <vector>
@@ -8,7 +7,7 @@
 #include "Nemesis/comm/global.hh"
 
 #include "Assembly_Model.h"
-#include "Shift_Solver.h"
+#include "shift_driver.h"
 #include "enrico/error.h"
 #include "enrico/message_passing.h"
 #include "enrico/nek_driver.h"
@@ -17,21 +16,28 @@
 namespace enrico {
 //===========================================================================//
 /*!
- * \class Coupled_Solver
- * \brief Class for coupling a neutronics solver with a TH solver.
+ * \class ShiftNekDriver
+ * \brief Class for coupling Shift and Nek.
  *
  * This class will perform dampled Picard iteration to converge the
  * coupled nonlinear system.
  */
 //===========================================================================//
-class Coupled_Solver {
+class ShiftNekDriver {
+public:
+  //! Power in [W]
+  double power_;
+
+  //! Maximum number of Picard iterations
+  int max_picard_iter_;
+
 private:
   //
   // Data
   //
 
   // Shift solver
-  std::shared_ptr<Shift_Solver> d_shift_solver;
+  std::shared_ptr<ShiftDriver> d_shift_solver;
 
   // Nek solver
   std::shared_ptr<NekDriver> d_nek_solver;
@@ -48,21 +54,17 @@ private:
   std::vector<double> d_densities;
   std::vector<double> d_powers;
 
-  // Normalization factor for power (average
-  double d_power_norm;
 
 public:
   // Constructor
-  Coupled_Solver(std::shared_ptr<Assembly_Model> assembly,
+  ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
                  const std::vector<double>& z_edges,
                  const std::string& shift_filename,
-                 const std::string& enrico_filename,
-                 double power_norm,
                  MPI_Comm neutronics_comm,
                  MPI_Comm th_comm);
 
   // Destructor
-  ~Coupled_Solver();
+  ~ShiftNekDriver();
 
   // Solve coupled problem
   void solve();
@@ -100,4 +102,4 @@ private:
 
 } // end namespace enrico
 
-#endif // Coupled_Solver_h
+#endif // SHIFT_NEK_DRIVER_H
