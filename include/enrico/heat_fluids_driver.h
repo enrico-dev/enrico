@@ -19,6 +19,8 @@ public:
 
   virtual xt::xtensor<double, 1> density() const = 0;
 
+  virtual xt::xtensor<int, 1> fluid_mask() const = 0;
+
   virtual ~HeatFluidsDriver() = default;
 };
 

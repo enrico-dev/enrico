@@ -89,6 +89,7 @@ void SurrogateHeatDriver::generate_arrays()
   source_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
   temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
   density_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
+  fluid_mask_ = xt::zeros<int>({n_pins_, n_axial_, n_rings()});
 }
 
 void SurrogateHeatDriver::solve_step()
@@ -135,6 +136,10 @@ double SurrogateHeatDriver::temperature(int pin, int axial, int ring) const
 
 xt::xtensor<double, 1> SurrogateHeatDriver::density() const {
   return xt::flatten(density_);
+}
+
+xt::xtensor<int, 1> SurrogateHeatDriver::fluid_mask() const {
+  return xt::flatten(fluid_mask_);
 }
 
 void SurrogateHeatDriver::write_step(int timestep, int iteration)

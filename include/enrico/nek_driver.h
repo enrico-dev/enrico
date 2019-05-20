@@ -47,7 +47,7 @@ public:
 
   xt::xtensor<double, 1> density() const final;
 
-  xt::xtensor<int, 1> fluid_mask() const;
+  xt::xtensor<int, 1> fluid_mask() const final;
 
   //! Get the coordinate of a local element's centroid.
   //!

@@ -36,6 +36,8 @@ public:
 
   xt::xtensor<double, 1> density() const final;
 
+  xt::xtensor<int, 1> fluid_mask() const final;
+
   double temperature(int pin, int axial, int ring) const;
 
   // Data on fuel pins
@@ -74,6 +76,8 @@ private:
   xt::xtensor<double, 3> temperature_;
 
   xt::xtensor<double, 3> density_;
+
+  xt::xtensor<int, 3> fluid_mask_;
 
 }; // end SurrogateHeatDriver
 
