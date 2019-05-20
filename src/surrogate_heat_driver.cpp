@@ -11,8 +11,8 @@
 
 namespace enrico {
 
-SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
-  : HeatFluidsDriver(comm)
+SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, double pressure, pugi::xml_node node)
+  : HeatFluidsDriver(comm, pressure)
 {
   // Determine heat transfer solver parameters
   clad_inner_radius_ = node.child("clad_inner_radius").text().as_double();

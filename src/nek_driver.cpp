@@ -13,8 +13,8 @@
 
 namespace enrico {
 
-NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node)
-  : HeatFluidsDriver(comm)
+NekDriver::NekDriver(MPI_Comm comm, double pressure, pugi::xml_node node)
+  : HeatFluidsDriver(comm, pressure)
 {
   lelg_ = nek_get_lelg();
   lelt_ = nek_get_lelt();

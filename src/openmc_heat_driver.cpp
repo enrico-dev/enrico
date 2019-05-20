@@ -18,7 +18,8 @@ OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
   // Initialize OpenMC and surrogate heat drivers
   openmc_driver_ = std::make_unique<OpenmcDriver>(comm);
   pugi::xml_node surr_node = node.child("heat_surrogate");
-  heat_driver_ = std::make_unique<SurrogateHeatDriver>(comm, surr_node);
+  double pressure = {node.child("pressure").text().as_double()};
+  heat_driver_ = std::make_unique<SurrogateHeatDriver>(comm, pressure, surr_node);
 
   // Create mappings for fuel pins and setup tallies for OpenMC
   init_mappings();

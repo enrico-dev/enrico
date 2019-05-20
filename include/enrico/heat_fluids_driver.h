@@ -11,7 +11,9 @@ namespace enrico {
 //! Base class for driver that controls a heat-fluids solve
 class HeatFluidsDriver : public Driver {
 public:
-  explicit HeatFluidsDriver(MPI_Comm comm) : Driver(comm){};
+  explicit HeatFluidsDriver(MPI_Comm comm, double pressure) : Driver(comm), pressure_(pressure){};
+
+  double pressure_;  //! System pressure in [MPa]
 
   //! Get the temperature in each element
   //! \return Temperature in each element as [K]

@@ -39,7 +39,7 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
 
   // Instantiate OpenMC and Nek drivers
   openmc_driver_ = std::make_unique<OpenmcDriver>(openmc_comm);
-  nek_driver_ = std::make_unique<NekDriver>(comm, nek_node);
+  nek_driver_ = std::make_unique<NekDriver>(comm, pressure_, nek_node);
 
   // Determine number of local/global elements for each rank
   n_local_elem_ = nek_driver_->active() ? nek_driver_->nelt_ : 0;
