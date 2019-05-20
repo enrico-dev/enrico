@@ -105,7 +105,7 @@ void OpenmcNekDriver::init_mappings()
     // Only the OpenMC procs get the global element centroids/fluid-identities
     if (openmc_driver_->active()) {
       elem_centroids_.resize(n_global_elem_);
-      elem_fluid_mask_.resize(n_global_elem_);
+      elem_fluid_mask_.resize({n_global_elem_});
     }
     // Step 1: Get global element centroids/fluid-identities on all OpenMC ranks
     // Each Nek proc finds the centroids/fluid-identities of its local elements
