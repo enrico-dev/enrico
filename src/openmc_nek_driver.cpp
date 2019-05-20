@@ -49,8 +49,13 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
   init_mappings();
   init_tallies();
   init_volumes();
+
+  // elem_fluid_mask_ must be initialized before cell_fluid_mask_!
+  init_elem_fluid_mask();
+  init_cell_fluid_mask();
+
   init_temperatures();
-  init_densities();
+  init_elem_densities();
   init_heat_source();
 };
 
@@ -100,7 +105,7 @@ void OpenmcNekDriver::init_mappings()
     // Only the OpenMC procs get the global element centroids/fluid-identities
     if (openmc_driver_->active()) {
       elem_centroids_.resize(n_global_elem_);
-      elem_is_in_fluid_.resize(n_global_elem_);
+      elem_fluid_mask_.resize(n_global_elem_);
     }
     // Step 1: Get global element centroids/fluid-identities on all OpenMC ranks
     // Each Nek proc finds the centroids/fluid-identities of its local elements
@@ -121,15 +126,15 @@ void OpenmcNekDriver::init_mappings()
     nek_driver_->comm_.Gatherv(local_element_is_in_fluid,
                                n_local_elem_,
                                MPI_INT,
-                               elem_is_in_fluid_.data(),
+                               elem_fluid_mask_.data(),
                                nek_driver_->local_counts_.data(),
                                nek_driver_->local_displs_.data(),
                                MPI_INT);
     // Broadcast global_element_centroids/fluid-identities onto all the OpenMC procs
     if (openmc_driver_->active()) {
       openmc_driver_->comm_.Bcast(
-        elem_centroids_.data(), n_global_elem_, position_mpi_datatype);
-      openmc_driver_->comm_.Bcast(elem_is_in_fluid_.data(), n_global_elem_, MPI_INT);
+          elem_centroids_.data(), n_global_elem_, position_mpi_datatype);
+      openmc_driver_->comm_.Bcast(elem_fluid_mask_.data(), n_global_elem_, MPI_INT);
     }
 
     // Step 2: Set element->material and material->element mappings
@@ -270,14 +275,41 @@ void OpenmcNekDriver::init_volumes()
   }
 }
 
-void OpenmcNekDriver::init_densities()
+void OpenmcNekDriver::init_elem_densities()
 {
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
-
-  // Only the OpenMC procs get space for the global densities
-  // Note that the values of the densities are not initialized!
   if (nek_driver_->active() and openmc_driver_->active()) {
     elem_densities_.resize({n_global_elem_});
+  }
+  update_elem_densities();
+}
+
+void OpenmcNekDriver::init_elem_fluid_mask() {
+  // TODO: This won't work if the Nek/OpenMC communicators are disjoint
+  if (nek_driver_->active() and openmc_driver_->active()) {
+    elem_fluid_mask_.resize({n_global_elem_});
+    if (nek_driver_->comm_.rank == 0) {
+      elem_fluid_mask_ = nek_driver_->fluid_mask();
+    }
+    openmc_driver_->comm_.Bcast(elem_fluid_mask_.data(), n_global_elem_, MPI_INT);
+  }
+}
+
+void OpenmcNekDriver::init_cell_fluid_mask() {
+  if (nek_driver_->active() and openmc_driver_->active()) {
+    auto &cells = openmc_driver_->cells_;
+    cell_fluid_mask_.resize({cells.size()});
+
+    for (int i = 0; i < cells.size(); ++i) {
+      auto elems = mat_to_elems_.at(cells[i].material_index_);
+      for (const auto &j : elems) {
+        if (elem_fluid_mask_[j] == 1) {
+          cell_fluid_mask_[i] = 1;
+          break;
+        }
+      }
+    }
+
   }
 }
 
@@ -354,37 +386,39 @@ void OpenmcNekDriver::update_temperature()
 
 void OpenmcNekDriver::update_density()
 {
-  if (nek_driver_->active()) {
-    if (openmc_driver_->active()) {
-      for (const auto& c : openmc_driver_->cells_) {
-        // Get corresponding global elements
-        const auto& global_elems = mat_to_elems_.at(c.material_index_);
+  // Must be done in this order. Hence, update_density is public, whereas update_elem_densities
+  // and update_cell_densities are private
+  update_elem_densities();
+  update_cell_densities();
+}
 
-        bool any_in_fluid = false;
-        for (int elem : global_elems) {
-          if (elem_is_in_fluid_[elem] == 1) {
-            any_in_fluid = true;
-            break;
-          }
-        }
+void OpenmcNekDriver::update_elem_densities() {
+  // Update element densities on all OpenMC ranks
+  // Recall that NekDriver sets the densities of non-fluid elements to 0
+  if (nek_driver_->active() and openmc_driver_->active()) {
+    // Update element densities on all OpenMC ranks
+    // Recall that NekDriver sets the densities of non-fluid elements to 0
+    if (nek_driver_->comm_.rank == 0) {
+      elem_densities_ = nek_driver_->density();
+    }
+    openmc_driver_->comm_.Bcast(elem_densities_.data(), n_global_elem_, MPI_DOUBLE);
+  }
+}
 
+void OpenmcNekDriver::update_cell_densities() {
+  if (nek_driver_->active() and openmc_driver_->active()) {
+    // Update cell densities for fluid cells.  Use cell_fluid_mask_ to do this
+    // TODO:  Might be able to use xtensor masking to do some of this
+    for (int i = 0; i < openmc_driver_->cells_.size(); ++i) {
+      if (cell_fluid_mask_[i] == 1) {
+        auto &c = openmc_driver_->cells_[i];
         double average_density = 0.0;
         double total_vol = 0.0;
-        for (int elem : global_elems) {
-          double T = temperatures_[elem];
-          double V = elem_volumes_[elem];
-
-          if (any_in_fluid) {
-            // nu1 returns specific volume in [m^3/kg]
-            double density = 1.0e-3 / iapws::nu1(pressure_, T);
-            average_density += density * V;
-            total_vol += V;
-          }
+        for (int e : mat_to_elems_.at(c.material_index_)) {
+          average_density += elem_densities_[e] * elem_volumes_[e];
+          total_vol += elem_volumes_[e];
         }
-
-        // Set density for cell instance
-        if (any_in_fluid)
-          c.set_density(average_density / total_vol);
+        c.set_density(average_density / total_vol);
       }
     }
   }

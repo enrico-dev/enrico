@@ -62,6 +62,10 @@ protected:
 
   void init_heat_source() override;
 
+  void init_elem_fluid_mask();
+
+  void init_cell_fluid_mask();
+
 private:
   //! Initialize MPI datatypes (currently, only position_mpi_datatype)
   void init_mpi_datatypes();
@@ -77,10 +81,14 @@ private:
 
   //! Allocate space for the global volume buffers in OpenMC ranks
   //! Currently, the density values are uninitialized.
-  void init_densities();
+  void init_elem_densities();
 
   //! Frees the MPI datatypes (currently, only position_mpi_datatype)
   void free_mpi_datatypes();
+
+  void update_elem_densities();
+
+  void update_cell_densities();
 
   //! MPI datatype for sending/receiving Position objects.
   MPI_Datatype position_mpi_datatype;
@@ -93,7 +101,9 @@ private:
   //! States whether a global element is in the fluid region
   //! These are **not** ordered by Nek's global element indices.  Rather, these are
   //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
-  std::vector<int> elem_is_in_fluid_;
+  xt::xtensor<int, 1> elem_fluid_mask_;
+
+  xt::xtensor<int, 1> cell_fluid_mask_;
 
   //! The dimensionless volumes of Nek's global elements
   //! These are **not** ordered by Nek's global element indices.  Rather, these are
