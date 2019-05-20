@@ -32,6 +32,10 @@ public:
   //! A wrapper for the nek_end() routine in Nek5000.
   ~NekDriver();
 
+  //! Initializes a trivial runtime datafile for Nek5000.
+  //!
+  //! Nek5000 must read a file with the casename and working directory. It reads this file instead
+  //! of reading command-line arguments or otherwise inferring the working directory.
   void init_session_name();
 
   //! Runs all timesteps for a heat/fluid solve in Nek5000.

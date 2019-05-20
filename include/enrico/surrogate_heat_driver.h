@@ -25,8 +25,7 @@ public:
   //! Solves the heat-fluids surrogate solver
   void solve_step() final;
 
-  //! Number of rings in fuel and clad
-  //! \return Number of rings
+  //! Returns Number of rings in fuel and clad
   std::size_t n_rings() { return n_fuel_rings_ + n_clad_rings_; }
 
   //! Write data to VTK
@@ -38,6 +37,7 @@ public:
 
   xt::xtensor<int, 1> fluid_mask() const final;
 
+  //! Returns temperature in [K] for given region
   double temperature(int pin, int axial, int ring) const;
 
   // Data on fuel pins
@@ -75,8 +75,12 @@ private:
   //!< temperature in [K] for each (axial segment, ring)
   xt::xtensor<double, 3> temperature_;
 
+  //!< density in [g/cm^3] for each (axial segment, ring)
   xt::xtensor<double, 3> density_;
 
+  //! Value is 1 if (axial segment, ring) region is in fluid; otherwise 0
+  //!
+  //! Because the surrogate only solves heat and only represents solid, this whole xtensor == 0
   xt::xtensor<int, 3> fluid_mask_;
 
 }; // end SurrogateHeatDriver

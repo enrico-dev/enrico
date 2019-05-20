@@ -50,20 +50,31 @@ public:
   std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
   std::unique_ptr<NekDriver> nek_driver_;       //!< The Nek5000 driver
   double pressure_;                             //!< System pressure in [MPa]
-  int openmc_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in OpenMC
-                              //!< comm
+  int openmc_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in OpenMC comm
 
 protected:
-  //! Initialize global temperature buffers for OpenMC ranks. These arrays store
-  //! the dimensionless temperatures of Nek's global elements. These are **not**
+  //! Initialize global temperature buffers on all OpenMC ranks.
+  //!
+  //! These arrays store the dimensionless temperatures of Nek's global elements. These are **not**
   //! ordered by Nek's global element indices. Rather, these are ordered according
   //! to an MPI_Gatherv operation on Nek5000's local elements.
   void init_temperatures() override;
 
+  //! Initialize global source buffers on all OpenMC ranks.
+  //!
+  //! These arrays store the dimensionless source of Nek's global elements. These are **not**
+  //! ordered by Nek's global element indices. Rather, these are ordered according
+  //! to an MPI_Gatherv operation on Nek5000's local elements.
   void init_heat_source() override;
 
+  //! Initialize global fluid masks on all OpenMC ranks.
+  //!
+  //! These arrays store the dimensionless source of Nek's global elements. These are **not**
+  //! ordered by Nek's global element indices. Rather, these are ordered according
+  //! to an MPI_Gatherv operation on Nek5000's local elements.
   void init_elem_fluid_mask();
 
+  //! Initialize fluid masks for OpenMC cells on all OpenMC ranks.
   void init_cell_fluid_mask();
 
 private:
@@ -86,8 +97,10 @@ private:
   //! Frees the MPI datatypes (currently, only position_mpi_datatype)
   void free_mpi_datatypes();
 
+  //! Updates elem_densities_ from Nek5000's density data
   void update_elem_densities();
 
+  //! Updates cell_densities_ from elem_densities_.
   void update_cell_densities();
 
   //! MPI datatype for sending/receiving Position objects.
@@ -103,6 +116,7 @@ private:
   //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
   xt::xtensor<int, 1> elem_fluid_mask_;
 
+  //! States whether an OpenMC cell in the fluid region
   xt::xtensor<int, 1> cell_fluid_mask_;
 
   //! The dimensionless volumes of Nek's global elements

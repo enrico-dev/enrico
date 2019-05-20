@@ -15,12 +15,16 @@ public:
 
   double pressure_;  //! System pressure in [MPa]
 
-  //! Get the temperature in each element
-  //! \return Temperature in each element as [K]
+  //! Get the temperature in each region
+  //! \return Temperature in each region as [K]
   virtual xt::xtensor<double, 1> temperature() const = 0;
 
+  //! Get the density in each region
+  //! \return Temperature in each region as [g/cm^3]
   virtual xt::xtensor<double, 1> density() const = 0;
 
+  //! States whether each region is in fluid
+  //! \return For each region, 1 if region is in fluid and 0 otherwise
   virtual xt::xtensor<int, 1> fluid_mask() const = 0;
 
   virtual ~HeatFluidsDriver() = default;
