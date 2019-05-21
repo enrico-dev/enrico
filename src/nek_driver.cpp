@@ -1,8 +1,8 @@
 #include "enrico/nek_driver.h"
 
 #include "enrico/error.h"
-#include "nek5000/core/nek_interface.h"
 #include "iapws/iapws.h"
+#include "nek5000/core/nek_interface.h"
 
 #include <gsl/gsl>
 
@@ -125,8 +125,7 @@ xt::xtensor<double, 1> NekDriver::density() const
       auto T = temperature(i);
       // nu1 returns specific volume in [m^3/kg]
       local_densities[i] = 1.0e-3 / iapws::nu1(pressure_, T);
-    }
-    else {
+    } else {
       local_densities[i] = 0.0;
     }
   }

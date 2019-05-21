@@ -11,7 +11,9 @@
 
 namespace enrico {
 
-SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, double pressure, pugi::xml_node node)
+SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
+                                         double pressure,
+                                         pugi::xml_node node)
   : HeatFluidsDriver(comm, pressure)
 {
   // Determine heat transfer solver parameters
@@ -134,11 +136,13 @@ double SurrogateHeatDriver::temperature(int pin, int axial, int ring) const
   return temperature_(pin, axial, ring);
 }
 
-xt::xtensor<double, 1> SurrogateHeatDriver::density() const {
+xt::xtensor<double, 1> SurrogateHeatDriver::density() const
+{
   return xt::flatten(density_);
 }
 
-xt::xtensor<int, 1> SurrogateHeatDriver::fluid_mask() const {
+xt::xtensor<int, 1> SurrogateHeatDriver::fluid_mask() const
+{
   return xt::flatten(fluid_mask_);
 }
 

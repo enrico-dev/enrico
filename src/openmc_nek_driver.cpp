@@ -133,7 +133,7 @@ void OpenmcNekDriver::init_mappings()
     // Broadcast global_element_centroids/fluid-identities onto all the OpenMC procs
     if (openmc_driver_->active()) {
       openmc_driver_->comm_.Bcast(
-          elem_centroids_.data(), n_global_elem_, position_mpi_datatype);
+        elem_centroids_.data(), n_global_elem_, position_mpi_datatype);
       openmc_driver_->comm_.Bcast(elem_fluid_mask_.data(), n_global_elem_, MPI_INT);
     }
 
@@ -233,15 +233,15 @@ void OpenmcNekDriver::init_temperatures()
         }
       }
     }
-  }
-  else if (temperature_ic_ == Initial::heat) {
+  } else if (temperature_ic_ == Initial::heat) {
     // Use whatever temperature is in Nek's internal arrays, either from a restart
     // file or from a useric fortran routine.
     update_temperature();
 
     // update_temperautre() begins by saving temperatures_ to temperatures_prev_, and
-    // then changes temperatures_. We need to save temperatures_ here to temperatures_prev_
-    // manually because init_temperatures() initializes both temperatures_ and temperatures_prev_.
+    // then changes temperatures_. We need to save temperatures_ here to
+    // temperatures_prev_ manually because init_temperatures() initializes both
+    // temperatures_ and temperatures_prev_.
     temperatures_prev_ = temperatures_;
   }
 }
@@ -284,7 +284,8 @@ void OpenmcNekDriver::init_elem_densities()
   update_elem_densities();
 }
 
-void OpenmcNekDriver::init_elem_fluid_mask() {
+void OpenmcNekDriver::init_elem_fluid_mask()
+{
   if (nek_driver_->active() && openmc_driver_->active()) {
     elem_fluid_mask_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
   }
@@ -295,8 +296,9 @@ void OpenmcNekDriver::init_elem_fluid_mask() {
     if (nek_driver_->comm_.rank == 0) {
       elem_fluid_mask_ = fm;
     }
-    // Since OpenMC's and Nek's master ranks are the same, we know that elem_fluid_mask_ on
-    // OpenMC's master rank was initialized.  Now we broadcast to the other OpenMC ranks.
+    // Since OpenMC's and Nek's master ranks are the same, we know that elem_fluid_mask_
+    // on OpenMC's master rank was initialized.  Now we broadcast to the other OpenMC
+    // ranks.
     // TODO: This won't work if the Nek/OpenMC communicators are disjoint
     if (openmc_driver_->active()) {
       openmc_driver_->comm_.Bcast(elem_fluid_mask_.data(), n_global_elem_, MPI_INT);
@@ -304,21 +306,21 @@ void OpenmcNekDriver::init_elem_fluid_mask() {
   }
 }
 
-void OpenmcNekDriver::init_cell_fluid_mask() {
+void OpenmcNekDriver::init_cell_fluid_mask()
+{
   if (nek_driver_->active() and openmc_driver_->active()) {
-    auto &cells = openmc_driver_->cells_;
+    auto& cells = openmc_driver_->cells_;
     cell_fluid_mask_.resize({cells.size()});
 
     for (int i = 0; i < cells.size(); ++i) {
       auto elems = mat_to_elems_.at(cells[i].material_index_);
-      for (const auto &j : elems) {
+      for (const auto& j : elems) {
         if (elem_fluid_mask_[j] == 1) {
           cell_fluid_mask_[i] = 1;
           break;
         }
       }
     }
-
   }
 }
 
@@ -396,13 +398,14 @@ void OpenmcNekDriver::update_temperature()
 
 void OpenmcNekDriver::update_density()
 {
-  // Must be done in this order. Hence, update_density is public, whereas update_elem_densities
-  // and update_cell_densities are private
+  // Must be done in this order. Hence, update_density is public, whereas
+  // update_elem_densities and update_cell_densities are private
   update_elem_densities();
   update_cell_densities();
 }
 
-void OpenmcNekDriver::update_elem_densities() {
+void OpenmcNekDriver::update_elem_densities()
+{
   if (nek_driver_->active()) {
     // On Nek's master rank, d gets global data. On Nek's other ranks, d is empty.
     auto d = nek_driver_->density();
@@ -419,13 +422,14 @@ void OpenmcNekDriver::update_elem_densities() {
   }
 }
 
-void OpenmcNekDriver::update_cell_densities() {
+void OpenmcNekDriver::update_cell_densities()
+{
   if (nek_driver_->active() and openmc_driver_->active()) {
     // Update cell densities for fluid cells.  Use cell_fluid_mask_ to do this
     // TODO:  Might be able to use xtensor masking to do some of this
     for (int i = 0; i < openmc_driver_->cells_.size(); ++i) {
       if (cell_fluid_mask_[i] == 1) {
-        auto &c = openmc_driver_->cells_[i];
+        auto& c = openmc_driver_->cells_[i];
         double average_density = 0.0;
         double total_vol = 0.0;
         for (int e : mat_to_elems_.at(c.material_index_)) {
