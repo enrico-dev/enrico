@@ -1,8 +1,11 @@
-#include <cmath>
-
 #include "smrt/Water_Properties.h"
 
+// SCALE includes
 #include "Nemesis/harness/DBC.hh"
+
+#include <gsl/gsl>
+
+#include <cmath>
 
 namespace enrico {
 
@@ -55,10 +58,10 @@ double Water_Properties::Density(double h, double p)
   p *= PA_TO_PSI;
   h *= JG_TO_BTULBM;
 
-  Check(p > 0.01);
-  Check(p < PCRIT);
-  Check(h > 0.0);
-  Check(h < HCRIT);
+  Expects(p > 0.01);
+  Expects(p < PCRIT);
+  Expects(h > 0.0);
+  Expects(h < HCRIT);
 
   double nu = 0.0;
   if (h < 250.0) {
@@ -115,10 +118,10 @@ double Water_Properties::Temperature(double h, double p)
   h = h * JG_TO_BTULBM;
 
   // Sanity check on inputs
-  Check(p > 0.01);
-  Check(p < PCRIT);
-  Check(h > 0.0);
-  Check(h < HCRIT);
+  Expects(p > 0.01);
+  Expects(p < PCRIT);
+  Expects(h > 0.0);
+  Expects(h < HCRIT);
 
   // Evaluate based on formula
   double T = 0.0;
@@ -157,7 +160,7 @@ double Water_Properties::Enthalpy(double T, double p)
 
   double fa = Temperature(a, p) - T;
   double fb = Temperature(b, p) - T;
-  Check(fa * fb < 0.0);
+  Expects(fa * fb < 0.0);
 
   double h;
 

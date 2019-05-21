@@ -29,7 +29,7 @@ Multiphysics_Driver::Multiphysics_Driver(SP_Assembly assembly,
                                          const Vec_Dbl& z_edges)
   : d_assembly(assembly)
 {
-  Require(assembly);
+  Expects(assembly);
 
   Validate(nemesis::soft_equiv(z_edges.back(), d_assembly->height()),
            "End of axial edges " << z_edges.back()

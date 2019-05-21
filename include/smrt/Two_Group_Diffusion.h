@@ -18,6 +18,9 @@
 #include "Nemesis/comm/global.hh"
 #include "Nemesis/harness/DBC.hh"
 
+// vendored includes
+#include <gsl/gsl>
+
 // enrico includes
 #include "Assembly_Model.h"
 #include "Neutronics_Solver.h"
@@ -96,15 +99,15 @@ public:
 private:
   int cellid(int ix, int iy, int iz)
   {
-    Require(ix >= 0);
-    Require(ix < d_Nx);
-    Require(iy >= 0);
-    Require(iy < d_Ny);
-    Require(iz >= 0);
-    Require(iz < d_Nz);
+    Expects(ix >= 0);
+    Expects(ix < d_Nx);
+    Expects(iy >= 0);
+    Expects(iy < d_Ny);
+    Expects(iz >= 0);
+    Expects(iz < d_Nz);
     int cell = ix + d_Nx * (iy + d_Ny * iz);
-    Ensure(cell >= 0);
-    Ensure(cell < d_num_cells);
+    Ensures(cell >= 0);
+    Ensures(cell < d_num_cells);
     return cell;
   }
 

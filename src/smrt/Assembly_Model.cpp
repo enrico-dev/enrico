@@ -1,6 +1,10 @@
 #include "smrt/Assembly_Model.h"
 
+// SCALE includes
 #include "Nemesis/utils/Constants.hh"
+
+// vendored includes
+#include <gsl/gsl>
 
 namespace enrico {
 //---------------------------------------------------------------------------//
@@ -17,7 +21,7 @@ Assembly_Model::Assembly_Model(const std::vector<PIN_TYPE>& pin_map,
 {
   d_Nx = d_x_edges.size() - 1;
   d_Ny = d_y_edges.size() - 1;
-  Require(d_pin_map.size() == d_Nx * d_Ny);
+  Expects(d_pin_map.size() == d_Nx * d_Ny);
 }
 
 //---------------------------------------------------------------------------//
@@ -72,8 +76,8 @@ Assembly_Model::Assembly_Model(Teuchos::RCP<Teuchos::ParameterList> params)
 //---------------------------------------------------------------------------//
 double Assembly_Model::flow_area(int i, int j) const
 {
-  Require(i < d_Nx);
-  Require(j < d_Ny);
+  Expects(i < d_Nx);
+  Expects(j < d_Ny);
 
   double dx = d_x_edges[i + 1] - d_x_edges[i];
   double dy = d_y_edges[j + 1] - d_y_edges[j];
@@ -84,10 +88,10 @@ double Assembly_Model::flow_area(int i, int j) const
     r = d_clad_radius;
   else if (type == GUIDE)
     r = d_guide_radius;
-  Check(r > 0.0);
+  Expects(r > 0.0);
 
   double area = dx * dy - nemesis::constants::pi * r * r;
-  Ensure(area > 0);
+  Ensures(area > 0);
   return area;
 }
 

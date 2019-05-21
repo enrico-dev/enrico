@@ -1,5 +1,7 @@
 #include "enrico/coupled_driver.h"
+
 #include "enrico/driver.h"
+
 #include "xtensor/xnorm.hpp"
 #include <gsl/gsl>
 

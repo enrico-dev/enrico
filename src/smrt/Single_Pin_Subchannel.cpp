@@ -46,11 +46,11 @@ void Single_Pin_Subchannel::solve(const std::vector<double>& power,
                                   std::vector<double>& temperature,
                                   std::vector<double>& density)
 {
-  Require(power.size() == d_delta_z.size());
-  Require(temperature.size() == d_delta_z.size());
-  Require(density.size() == d_delta_z.size());
-  Require(d_T_inlet > 0.0);
-  Require(d_p_exit > 0.0);
+  Expects(power.size() == d_delta_z.size());
+  Expects(temperature.size() == d_delta_z.size());
+  Expects(density.size() == d_delta_z.size());
+  Expects(d_T_inlet > 0.0);
+  Expects(d_p_exit > 0.0);
 
   int num_regions = d_delta_z.size();
 

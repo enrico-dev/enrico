@@ -133,9 +133,9 @@ void Two_Group_Diffusion::solve(const Vec_Dbl& temperatures,
                                 const Vec_Dbl& densities,
                                 Vec_Dbl& powers)
 {
-  Require(temperatures.size() == d_num_cells);
-  Require(densities.size() == d_num_cells);
-  Require(powers.size() == d_num_cells);
+  Expects(temperatures.size() == d_num_cells);
+  Expects(densities.size() == d_num_cells);
+  Expects(powers.size() == d_num_cells);
 
   // Compute cross section data at given conditions
   std::vector<XS_Data> xs_data(d_num_cells);
@@ -197,7 +197,7 @@ void Two_Group_Diffusion::solve(const Vec_Dbl& temperatures,
     std::fill(fission.begin(), fission.end(), 1.0);
     fisn_nrm = std::sqrt(static_cast<double>(d_num_cells));
   }
-  Check(fisn_nrm > 0.0);
+  Expects(fisn_nrm > 0.0);
   scale_vec(fission, 1.0 / fisn_nrm);
 
   // Start solve
@@ -233,13 +233,13 @@ void Two_Group_Diffusion::solve(const Vec_Dbl& temperatures,
       fission_diff[cell] = fission[cell] - keff * b_fast_data[cell];
     }
     fisn_nrm = vec_norm(fission);
-    Check(fisn_nrm > 0.0);
+    Expects(fisn_nrm > 0.0);
     rel_err = vec_norm(fission_diff) / fisn_nrm;
 
     // Compute new keff
     keff *= (fisn_nrm / old_fisn_nrm);
-    Check(keff > 0.0);
-    Check(keff < 2.0);
+    Expects(keff > 0.0);
+    Expects(keff < 2.0);
 
     // Check for convergence
     if (rel_err < d_tol) {
@@ -275,7 +275,7 @@ void Two_Group_Diffusion::solve(const Vec_Dbl& temperatures,
 //---------------------------------------------------------------------------//
 void Two_Group_Diffusion::build_matrices(const std::vector<XS_Data>& xs_data)
 {
-  Require(xs_data.size() == d_num_cells);
+  Expects(xs_data.size() == d_num_cells);
 
   // Build matrices
   Vec_Int row_inds;

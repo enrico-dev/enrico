@@ -10,6 +10,9 @@
 // SCALE includes
 #include "Nemesis/harness/DBC.hh"
 
+// vendored includes
+#include <gsl/gsl>
+
 namespace enrico {
 
 //===========================================================================//
@@ -60,31 +63,31 @@ public:
   void set_channel_area(double area)
   {
     // Channel area internally is needed in m^2
-    Require(area > 0.0);
+    Expects(area > 0.0);
     d_area = 1e-4 * area;
   }
 
   // Set mass flow rate (kg/s)
   void set_mass_flow_rate(double mdot)
   {
-    Require(mdot > 0.0);
-    Require(mdot < 2.0);
+    Expects(mdot > 0.0);
+    Expects(mdot < 2.0);
     d_mdot = mdot;
   }
 
   // Set inlet temperature (K)
   void set_inlet_temperature(double T)
   {
-    Require(T > 0);
-    Require(T < 1000);
+    Expects(T > 0);
+    Expects(T < 1000);
     d_T_inlet = T;
   }
 
   // Set exit pressure (Pa)
   void set_exit_pressure(double p)
   {
-    Require(p > 0);
-    Require(p < 2.2e7);
+    Expects(p > 0);
+    Expects(p < 2.2e7);
     d_p_exit = p;
   }
 

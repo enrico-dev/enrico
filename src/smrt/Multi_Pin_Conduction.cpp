@@ -2,6 +2,8 @@
 
 #include "Nemesis/harness/Soft_Equivalence.hh"
 
+#include <gsl/gsl>
+
 namespace enrico {
 //---------------------------------------------------------------------------//
 // Constructor
@@ -11,7 +13,7 @@ Multi_Pin_Conduction::Multi_Pin_Conduction(SP_Assembly assembly,
                                            const std::vector<double>& dz)
   : d_assembly(assembly)
 {
-  Require(d_assembly);
+  Expects(d_assembly);
 
   d_Nz = dz.size();
 
@@ -21,7 +23,7 @@ Multi_Pin_Conduction::Multi_Pin_Conduction(SP_Assembly assembly,
   d_pin_conduction->set_clad_radius(d_assembly->clad_radius());
 
   double height = std::accumulate(dz.begin(), dz.end(), 0.0);
-  Check(nemesis::soft_equiv(height, d_assembly->height()));
+  Expects(nemesis::soft_equiv(height, d_assembly->height()));
 }
 
 //---------------------------------------------------------------------------//
@@ -35,9 +37,9 @@ void Multi_Pin_Conduction::solve(const std::vector<double>& power,
   int Ny = d_assembly->num_pins_y();
   int N = Nx * Ny * d_Nz;
 
-  Require(power.size() == N);
-  Require(channel_temp.size() == N);
-  Require(fuel_temp.size() == N);
+  Expects(power.size() == N);
+  Expects(channel_temp.size() == N);
+  Expects(fuel_temp.size() == N);
 
   // Storage for single pin values
   std::vector<double> pin_power(d_Nz);
@@ -59,7 +61,7 @@ void Multi_Pin_Conduction::solve(const std::vector<double>& power,
         d_pin_conduction->solve(pin_power, pin_channel_temp, pin_fuel_temp);
       } else {
         for (int iz = 0; iz < d_Nz; ++iz)
-          Check(pin_power[iz] == 0);
+          Expects(pin_power[iz] == 0);
 
         // "Fuel" temp is same as channel temp in guide tubes
         std::copy(

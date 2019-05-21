@@ -3,13 +3,18 @@
 
 #include <vector>
 
+// Trilinos includes
 #include "Teuchos_ParameterList.hpp"
 #include "Teuchos_RCP.hpp"
 #include "Teuchos_SerialDenseMatrix.hpp"
 #include "Teuchos_SerialDenseSolver.hpp"
 #include "Teuchos_SerialDenseVector.hpp"
 
+// SCALE includes
 #include "Nemesis/harness/DBC.hh"
+
+// vendored includes
+#include <gsl/gsl>
 
 namespace enrico {
 
@@ -56,16 +61,16 @@ public:
   // Set fuel radius (cm)
   void set_fuel_radius(double r)
   {
-    Require(r > 0.0);
-    Require(r < 2.0);
+    Expects(r > 0.0);
+    Expects(r < 2.0);
     d_fuel_radius = r;
   }
 
   // Set clad radius (cm)
   void set_clad_radius(double r)
   {
-    Require(r > 0.0);
-    Require(r < 2.0);
+    Expects(r > 0.0);
+    Expects(r < 2.0);
     d_clad_radius = r;
   }
 

@@ -3,6 +3,7 @@
 #include "smrt/Multi_Pin_Subchannel.h"
 
 #include "Nemesis/harness/Soft_Equivalence.hh"
+#include <gsl/gsl>
 
 namespace enrico {
 //---------------------------------------------------------------------------//
@@ -13,10 +14,10 @@ Multi_Pin_Subchannel::Multi_Pin_Subchannel(SP_Assembly assembly,
                                            const std::vector<double>& dz)
   : d_assembly(assembly)
 {
-  Require(d_assembly);
+  Expects(d_assembly);
 
   double height = std::accumulate(dz.begin(), dz.end(), 0.0);
-  Check(nemesis::soft_equiv(height, d_assembly->height()));
+  Expects(nemesis::soft_equiv(height, d_assembly->height()));
 
   double mdot_per_area = parameters->get("mass_flow_rate", 0.4);
 
@@ -64,16 +65,16 @@ void Multi_Pin_Subchannel::solve(const std::vector<double>& pin_powers,
 {
   int pins_x = d_assembly->num_pins_x();
   int pins_y = d_assembly->num_pins_y();
-  Require(pin_powers.size() == pins_x * pins_y * d_Nz);
-  Require(pin_temps.size() == pins_x * pins_y * d_Nz);
-  Require(pin_densities.size() == pins_x * pins_y * d_Nz);
+  Expects(pin_powers.size() == pins_x * pins_y * d_Nz);
+  Expects(pin_temps.size() == pins_x * pins_y * d_Nz);
+  Expects(pin_densities.size() == pins_x * pins_y * d_Nz);
 
   // Convenience function to compute pin index
   auto pin_index = [pins_x, pins_y](int ix, int iy, int iz) {
-    Check(ix >= 0);
-    Check(iy >= 0);
-    Check(ix < pins_x);
-    Check(iy < pins_y);
+    Expects(ix >= 0);
+    Expects(iy >= 0);
+    Expects(ix < pins_x);
+    Expects(iy < pins_y);
     return ix + pins_x * (iy + pins_y * iz);
   };
 
