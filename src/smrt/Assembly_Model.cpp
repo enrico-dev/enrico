@@ -32,10 +32,10 @@ Assembly_Model::Assembly_Model(Teuchos::RCP<Teuchos::ParameterList> params)
   using Array_Dbl = Teuchos::Array<double>;
   using Array_Str = Teuchos::Array<std::string>;
 
-  Validate(params->isType<Array_Dbl>("x_edges"), "Must specify 'x_edges'.");
-  Validate(params->isType<Array_Dbl>("y_edges"), "Must specify 'y_edges'.");
-  Validate(params->isType<Array_Dbl>("z_edges"), "Must specify 'z_edges'.");
-  Validate(params->isType<Array_Str>("pin_map"), "Must specify 'pin_map'.");
+  Expects(params->isType<Array_Dbl>("x_edges"));
+  Expects(params->isType<Array_Dbl>("y_edges"));
+  Expects(params->isType<Array_Dbl>("z_edges"));
+  Expects(params->isType<Array_Str>("pin_map"));
 
   // Get x/y/z edges
   auto x = params->get<Array_Dbl>("x_edges");
@@ -49,16 +49,11 @@ Assembly_Model::Assembly_Model(Teuchos::RCP<Teuchos::ParameterList> params)
 
   // Translate pin map strings to enums
   auto pins = params->get<Array_Str>("pin_map");
-  Validate(pins.size() == d_Nx * d_Ny,
-           "Expected pin map to be size " << d_Nx * d_Ny << " but actual size is "
-                                          << pins.size());
+  Expects(pins.size() == d_Nx * d_Ny);
   d_pin_map.resize(d_Nx * d_Ny);
   for (int pin = 0; pin < d_Nx * d_Ny; ++pin) {
     auto val = pins[pin];
-    Validate(val == "Fuel" || val == "Guide",
-             "Pin map entries must be 'Fuel' or 'Guide', "
-             " entry "
-               << pin << " is " << val);
+    Expects(val == "Fuel" || val == "Guide");
     if (val == "Fuel")
       d_pin_map[pin] = FUEL;
     else

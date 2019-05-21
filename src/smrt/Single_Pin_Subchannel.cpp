@@ -4,7 +4,11 @@
 #include "smrt/Single_Pin_Subchannel.h"
 #include "smrt/Water_Properties.h"
 
+// SCALE includes
 #include "Nemesis/utils/String_Functions.hh"
+
+// vendored includes
+#include <gsl/gsl>
 
 namespace enrico {
 //---------------------------------------------------------------------------//
@@ -25,14 +29,16 @@ Single_Pin_Subchannel::Single_Pin_Subchannel(RCP_PL& parameters,
     val *= 1e-2;
 
   auto verb = nemesis::lower(parameters->get("verbosity", std::string("none")));
-  if (verb == "none")
+  if (verb == "none") {
     d_verbosity = NONE;
-  else if (verb == "low")
+  } else if (verb == "low") {
     d_verbosity = LOW;
-  else if (verb == "high")
+  } else if (verb == "high") {
     d_verbosity = HIGH;
-  else
-    Validate(false, "Unrecognized verbosity.");
+  } else {
+    // Unrecognized verbosity.
+    Expects(false);
+  }
 }
 
 //---------------------------------------------------------------------------//

@@ -10,11 +10,16 @@
 
 #include "smrt/Multiphysics_Driver.h"
 
+// SCALE includes
 #include "Nemesis/comm/Logger.hh"
-#include "Nemesis/harness/Soft_Equivalence.hh"
-
 #include "Nemesis/comm/global.hh"
+#include "Nemesis/harness/Soft_Equivalence.hh"
 #include "Omnibus/config.h"
+
+// vendored includes
+#include <gsl/gsl>
+
+// enrico includes
 #include "smrt/Two_Group_Diffusion.h"
 #ifdef USE_SHIFT
 #include "smrt/shift_driver.h"
@@ -31,11 +36,7 @@ Multiphysics_Driver::Multiphysics_Driver(SP_Assembly assembly,
 {
   Expects(assembly);
 
-  Validate(nemesis::soft_equiv(z_edges.back(), d_assembly->height()),
-           "End of axial edges " << z_edges.back()
-                                 << " does not match "
-                                    " assembly height "
-                                 << d_assembly->height());
+  Expects(nemesis::soft_equiv(z_edges.back(), d_assembly->height()));
 
   Vec_Dbl dz(z_edges.size() - 1);
   for (int edge = 0; edge < dz.size(); ++edge)
@@ -74,15 +75,13 @@ Multiphysics_Driver::Multiphysics_Driver(SP_Assembly assembly,
     d_neutronics = std::make_shared<Two_Group_Diffusion>(assembly, neutronics_params, dz);
   } else {
 #ifdef USE_SHIFT
-    Validate(neutronics_params->isType<std::string>("shift_input"),
-             "Neutronics type set to 'shift', "
-             "but no 'shift_input' specified.");
+    // Neutronics type set to 'shift', but no 'shift_input' specified
+    Expects(neutronics_params->isType<std::string>("shift_input"));
     auto shift_input = neutronics_params->get<std::string>("shift_input");
     d_neutronics = std::make_shared<ShiftDriver>(assembly, shift_input, z_edges);
 #else
-    Validate(false,
-             "Neutronics type set to 'shift', but Shift is not "
-             "enabled in this build.");
+    // Neutronics type set to 'shift', but Shift is not enabled in this build.
+    Expects(false);
 #endif
   }
 }

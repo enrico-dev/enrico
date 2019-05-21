@@ -10,6 +10,9 @@
 #include "BelosSolverFactory.hpp"
 #include "BelosTpetraAdapter.hpp"
 
+// vendored includes
+#include <gsl/gsl>
+
 namespace enrico {
 //---------------------------------------------------------------------------//
 // Constructor
@@ -45,15 +48,9 @@ Two_Group_Diffusion::Two_Group_Diffusion(SP_Assembly assembly,
   using Array_Str = Teuchos::Array<std::string>;
   if (params->isType<Array_Str>("boundary")) {
     auto bc_str = params->get<Array_Str>("boundary");
-    Validate(bc_str.size() == 6,
-             "Entry 'boundary' must have 6 values, "
-             "but only has "
-               << bc_str.size());
+    Expects(bc_str.size() == 6);
     for (int bdry = 0; bdry < 6; ++bdry) {
-      Validate(bc_str[bdry] == "vacuum" || bc_str[bdry] == "reflect",
-               "Values in 'boundary' must be 'vacuum' or 'reflect', "
-               " entry "
-                 << bdry << " is " << bc_str[bdry]);
+      Expects(bc_str[bdry] == "vacuum" || bc_str[bdry] == "reflect");
       if (bc_str[bdry] == "reflect")
         d_bcs[bdry] = REFLECT;
       else
