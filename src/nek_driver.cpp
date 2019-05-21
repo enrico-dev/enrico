@@ -95,7 +95,7 @@ xt::xtensor<int, 1> NekDriver::fluid_mask() const
 {
   int local_fluid_mask[nelt_];
   for (int i = 0; i < nelt_; ++i) {
-    local_fluid_mask[i] = is_in_fluid(i + 1);
+    local_fluid_mask[i] = this->is_in_fluid(i + 1);
   }
 
   xt::xtensor<int, 1> global_fluid_mask;
@@ -119,9 +119,8 @@ xt::xtensor<double, 1> NekDriver::density() const
   double local_densities[nelt_];
 
   for (int i = 0; i < nelt_; ++i) {
-    if (is_in_fluid(i) == 1) {
-      auto vol = this->volume(i);
-      auto T = this->temperature(i);
+    if (this->is_in_fluid(i + 1) == 1) {
+      auto T = this->temperature(i + 1);
       // nu1 returns specific volume in [m^3/kg]
       local_densities[i] = 1.0e-3 / iapws::nu1(pressure_, T);
     } else {
