@@ -98,8 +98,7 @@ xt::xtensor<int, 1> NekDriver::fluid_mask() const
     local_fluid_mask[i] = is_in_fluid(i);
   }
 
-  auto global_fluid_mask = xt::xtensor<int, 1>();
-
+  xt::xtensor<int, 1> global_fluid_mask;
   if (comm_.rank == 0) {
     global_fluid_mask.resize({gsl::narrow<std::size_t>(nelgt_)});
   }
@@ -132,7 +131,7 @@ xt::xtensor<double, 1> NekDriver::density() const
     }
   }
 
-  auto global_densities = xt::xtensor<double, 1>();
+  xt::xtensor<double, 1> global_densities;
 
   if (comm_.rank == 0) {
     global_densities.resize({gsl::narrow<std::size_t>(nelgt_)});

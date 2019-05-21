@@ -210,13 +210,14 @@ void OpenmcNekDriver::init_tallies()
 
 void OpenmcNekDriver::init_temperatures()
 {
+  if (nek_driver_->active() and openmc_driver_->active()) {
+    temperatures_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
+    temperatures_prev_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
+  }
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
   // Only the OpenMC procs get the global temperatures
-  if (nek_driver_->active() and openmc_driver_->active()) {
-    temperatures_.resize({n_global_elem_});
-    temperatures_prev_.resize({n_global_elem_});
-
-    if (temperature_ic_ == Initial::neutronics) {
+  if (temperature_ic_ == Initial::neutronics) {
+    if (nek_driver_->active() and openmc_driver_->active()) {
       // Loop over the OpenMC cells, then loop over the global Nek elements
       // corresponding to that cell and assign the OpenMC cell temperature to
       // the correct index in the temperatures_ array. This mapping assumes that
@@ -232,17 +233,16 @@ void OpenmcNekDriver::init_temperatures()
         }
       }
     }
+  }
+  else if (temperature_ic_ == Initial::heat) {
+    // Use whatever temperature is in Nek's internal arrays, either from a restart
+    // file or from a useric fortran routine.
+    update_temperature();
 
-    if (temperature_ic_ == Initial::heat) {
-      // Use whatever temperature is in Nek's internal arrays, either from a restart
-      // file or from a useric fortran routine.
-      update_temperature();
-
-      // update_temperautre() begins by saving temperatures_ to temperatures_prev_, and
-      // then changes temperatures_. We need to save temperatures_ here to temperatures_prev_
-      // manually because init_temperatures() initializes both temperatures_ and temperatures_prev_.
-      std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
-    }
+    // update_temperautre() begins by saving temperatures_ to temperatures_prev_, and
+    // then changes temperatures_. We need to save temperatures_ here to temperatures_prev_
+    // manually because init_temperatures() initializes both temperatures_ and temperatures_prev_.
+    temperatures_prev_ = temperatures_;
   }
 }
 
@@ -279,19 +279,28 @@ void OpenmcNekDriver::init_elem_densities()
 {
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
   if (nek_driver_->active() and openmc_driver_->active()) {
-    elem_densities_.resize({n_global_elem_});
+    elem_densities_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
   }
   update_elem_densities();
 }
 
 void OpenmcNekDriver::init_elem_fluid_mask() {
-  // TODO: This won't work if the Nek/OpenMC communicators are disjoint
-  if (nek_driver_->active() and openmc_driver_->active()) {
-    elem_fluid_mask_.resize({n_global_elem_});
+  if (nek_driver_->active() && openmc_driver_->active()) {
+    elem_fluid_mask_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
+  }
+  if (nek_driver_->active()) {
+    // On Nek's master rank, fm gets global data. On Nek's other ranks, fm is empty
+    auto fm = nek_driver_->fluid_mask();
+    // Initialize elem_fluid_mask_ on Nek's master rank only
     if (nek_driver_->comm_.rank == 0) {
-      elem_fluid_mask_ = nek_driver_->fluid_mask();
+      elem_fluid_mask_ = fm;
     }
-    openmc_driver_->comm_.Bcast(elem_fluid_mask_.data(), n_global_elem_, MPI_INT);
+    // Since OpenMC's and Nek's master ranks are the same, we know that elem_fluid_mask_ on
+    // OpenMC's master rank was initialized.  Now we broadcast to the other OpenMC ranks.
+    // TODO: This won't work if the Nek/OpenMC communicators are disjoint
+    if (openmc_driver_->active()) {
+      openmc_driver_->comm_.Bcast(elem_fluid_mask_.data(), n_global_elem_, MPI_INT);
+    }
   }
 }
 
@@ -347,11 +356,12 @@ void OpenmcNekDriver::set_heat_source()
 void OpenmcNekDriver::update_temperature()
 {
   if (nek_driver_->active()) {
+    // Copy previous
     if (openmc_driver_->active()) {
-      std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
+      temperatures_prev_ = temperatures_;
     }
 
-    xt::xtensor<double, 1> t = nek_driver_->temperature();
+    auto t = nek_driver_->temperature();
     if (nek_driver_->comm_.rank == 0) {
       temperatures_ = t;
     }
@@ -393,15 +403,19 @@ void OpenmcNekDriver::update_density()
 }
 
 void OpenmcNekDriver::update_elem_densities() {
-  // Update element densities on all OpenMC ranks
-  // Recall that NekDriver sets the densities of non-fluid elements to 0
-  if (nek_driver_->active() and openmc_driver_->active()) {
-    // Update element densities on all OpenMC ranks
-    // Recall that NekDriver sets the densities of non-fluid elements to 0
+  if (nek_driver_->active()) {
+    // On Nek's master rank, d gets global data. On Nek's other ranks, d is empty.
+    auto d = nek_driver_->density();
+    // Update elem_densities_ on Nek's master rank only.
     if (nek_driver_->comm_.rank == 0) {
-      elem_densities_ = nek_driver_->density();
+      elem_densities_ = d;
     }
-    openmc_driver_->comm_.Bcast(elem_densities_.data(), n_global_elem_, MPI_DOUBLE);
+    // Since OpenMC's and Nek's master ranks are the same, we know that elem_densities_ on
+    // OpenMC's master rank were updated.  Now we broadcast to the other OpenMC ranks.
+    // TODO: This won't work if the Nek/OpenMC communicators are disjoint
+    if (openmc_driver_->active()) {
+      openmc_driver_->comm_.Bcast(elem_densities_.data(), n_global_elem_, MPI_DOUBLE);
+    }
   }
 }
 
