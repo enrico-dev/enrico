@@ -13,7 +13,7 @@ class HeatFluidsDriver : public Driver {
 public:
   explicit HeatFluidsDriver(MPI_Comm comm, double pressure) : Driver(comm), pressure_(pressure){};
 
-  double pressure_;  //! System pressure in [MPa]
+  virtual ~HeatFluidsDriver() = default;
 
   //! Get the temperature in each region
   //! \return Temperature in each region as [K]
@@ -27,7 +27,7 @@ public:
   //! \return For each region, 1 if region is in fluid and 0 otherwise
   virtual xt::xtensor<int, 1> fluid_mask() const = 0;
 
-  virtual ~HeatFluidsDriver() = default;
+  double pressure_;  //! System pressure in [MPa]
 };
 
 } // namespace enrico

@@ -210,14 +210,14 @@ void OpenmcNekDriver::init_tallies()
 
 void OpenmcNekDriver::init_temperatures()
 {
-  if (nek_driver_->active() and openmc_driver_->active()) {
+  if (nek_driver_->active() && openmc_driver_->active()) {
     temperatures_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
     temperatures_prev_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
   }
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
   // Only the OpenMC procs get the global temperatures
   if (temperature_ic_ == Initial::neutronics) {
-    if (nek_driver_->active() and openmc_driver_->active()) {
+    if (nek_driver_->active() && openmc_driver_->active()) {
       // Loop over the OpenMC cells, then loop over the global Nek elements
       // corresponding to that cell and assign the OpenMC cell temperature to
       // the correct index in the temperatures_ array. This mapping assumes that
@@ -278,7 +278,7 @@ void OpenmcNekDriver::init_volumes()
 void OpenmcNekDriver::init_elem_densities()
 {
   // TODO: This won't work if the Nek/OpenMC communicators are disjoint
-  if (nek_driver_->active() and openmc_driver_->active()) {
+  if (nek_driver_->active() && openmc_driver_->active()) {
     elem_densities_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
   }
   update_elem_densities();
@@ -308,7 +308,7 @@ void OpenmcNekDriver::init_elem_fluid_mask()
 
 void OpenmcNekDriver::init_cell_fluid_mask()
 {
-  if (nek_driver_->active() and openmc_driver_->active()) {
+  if (nek_driver_->active() && openmc_driver_->active()) {
     auto& cells = openmc_driver_->cells_;
     cell_fluid_mask_.resize({cells.size()});
 
@@ -424,7 +424,7 @@ void OpenmcNekDriver::update_elem_densities()
 
 void OpenmcNekDriver::update_cell_densities()
 {
-  if (nek_driver_->active() and openmc_driver_->active()) {
+  if (nek_driver_->active() && openmc_driver_->active()) {
     // Update cell densities for fluid cells.  Use cell_fluid_mask_ to do this
     // TODO:  Might be able to use xtensor masking to do some of this
     for (int i = 0; i < openmc_driver_->cells_.size(); ++i) {
