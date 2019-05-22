@@ -319,6 +319,7 @@ void OpenmcNekDriver::init_cell_fluid_mask()
           cell_fluid_mask_[i] = 1;
           break;
         }
+        cell_fluid_mask_[i] = 0;
       }
     }
   }
@@ -390,6 +391,7 @@ void OpenmcNekDriver::update_temperature()
 
         // Set temperature for cell instance
         average_temp /= total_vol;
+        Expects(average_temp > 0.0)
         c.set_temperature(average_temp);
       }
     }
@@ -436,6 +438,8 @@ void OpenmcNekDriver::update_cell_densities()
           average_density += elem_densities_[e] * elem_volumes_[e];
           total_vol += elem_volumes_[e];
         }
+        double density = average_density / total_vol;
+        Expects(density > 0.0)
         c.set_density(average_density / total_vol);
       }
     }
