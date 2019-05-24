@@ -57,7 +57,7 @@ public:
   //!
   //! \param local_elem The local index of the desired element
   //! \return The dimensionless coordinate of the element's centroid
-  Position centroid(int local_elem) const;
+  Position centroid_at(int local_elem) const;
 
   //! Get the volume of a local element
   //!
@@ -66,7 +66,7 @@ public:
   //!
   //! \param local_elem The local index of the desired element
   //! \return The dimensionless Volume of the element
-  double volume(int local_elem) const;
+  double volume_at(int local_elem) const;
 
   //! Get the volume-averaged temperature of a local element
   //!
@@ -76,12 +76,12 @@ public:
   //!
   //! \param local_elem A local element ID
   //! \return The volume-averaged temperature of the element
-  double temperature(int local_elem) const;
+  double temperature_at(int local_elem) const;
 
   //! Return true if a local element is in the fluid region
   //! \param local_elem  A local element ID
   //! \return 1 if the local element is in fluid; 0 otherwise
-  int is_in_fluid(int local_elem) const;
+  int in_fluid_at(int local_elem) const;
 
   //! Set the heat source for a given local element
   //!
@@ -91,7 +91,7 @@ public:
   //! \param local_elem A local element ID
   //! \param heat A heat source term
   //! \return Error code
-  int set_heat_source(int local_elem, double heat) const;
+  int set_heat_source_at(int local_elem, double heat) const;
 
   //! Initialize the counts and displacements of local elements for each MPI Rank.
   void init_displs();

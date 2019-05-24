@@ -68,7 +68,7 @@ xt::xtensor<double, 1> NekDriver::temperature() const
   // Each Nek proc finds the temperatures of its local elements
   double local_elem_temperatures[nelt_];
   for (int i = 0; i < nelt_; ++i) {
-    local_elem_temperatures[i] = this->temperature(i + 1);
+    local_elem_temperatures[i] = this->temperature_at(i + 1);
   }
 
   xt::xtensor<double, 1> global_elem_temperatures = xt::xtensor<double, 1>();
@@ -95,7 +95,7 @@ xt::xtensor<int, 1> NekDriver::fluid_mask() const
 {
   int local_fluid_mask[nelt_];
   for (int i = 0; i < nelt_; ++i) {
-    local_fluid_mask[i] = this->is_in_fluid(i + 1);
+    local_fluid_mask[i] = this->in_fluid_at(i + 1);
   }
 
   xt::xtensor<int, 1> global_fluid_mask;
@@ -119,8 +119,8 @@ xt::xtensor<double, 1> NekDriver::density() const
   double local_densities[nelt_];
 
   for (int i = 0; i < nelt_; ++i) {
-    if (this->is_in_fluid(i + 1) == 1) {
-      auto T = this->temperature(i + 1);
+    if (this->in_fluid_at(i + 1) == 1) {
+      auto T = this->temperature_at(i + 1);
       // nu1 returns specific volume in [m^3/kg]
       local_densities[i] = 1.0e-3 / iapws::nu1(pressure_, T);
     } else {
@@ -151,7 +151,7 @@ void NekDriver::solve_step()
   C2F_nek_solve();
 }
 
-Position NekDriver::centroid(int local_elem) const
+Position NekDriver::centroid_at(int local_elem) const
 {
   double x, y, z;
   err_chk(nek_get_local_elem_centroid(local_elem, &x, &y, &z),
@@ -159,7 +159,7 @@ Position NekDriver::centroid(int local_elem) const
   return {x, y, z};
 }
 
-double NekDriver::volume(int local_elem) const
+double NekDriver::volume_at(int local_elem) const
 {
   double volume;
   err_chk(nek_get_local_elem_volume(local_elem, &volume),
@@ -167,7 +167,7 @@ double NekDriver::volume(int local_elem) const
   return volume;
 }
 
-double NekDriver::temperature(int local_elem) const
+double NekDriver::temperature_at(int local_elem) const
 {
   double temperature;
   err_chk(nek_get_local_elem_temperature(local_elem, &temperature),
@@ -175,12 +175,12 @@ double NekDriver::temperature(int local_elem) const
   return temperature;
 }
 
-int NekDriver::is_in_fluid(int local_elem) const
+int NekDriver::in_fluid_at(int local_elem) const
 {
   return nek_local_elem_is_in_fluid(local_elem);
 }
 
-int NekDriver::set_heat_source(int local_elem, double heat) const
+int NekDriver::set_heat_source_at(int local_elem, double heat) const
 {
   return nek_set_heat_source(local_elem, heat);
 }

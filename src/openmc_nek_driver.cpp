@@ -110,8 +110,8 @@ void OpenmcNekDriver::init_mappings()
     Position local_element_centroids[n_local_elem_];
     int local_element_is_in_fluid[n_local_elem_];
     for (int i = 0; i < n_local_elem_; ++i) {
-      local_element_centroids[i] = nek_driver_->centroid(i + 1);
-      local_element_is_in_fluid[i] = nek_driver_->is_in_fluid(i + 1);
+      local_element_centroids[i] = nek_driver_->centroid_at(i + 1);
+      local_element_is_in_fluid[i] = nek_driver_->in_fluid_at(i + 1);
     }
     // Gather all the local element centroids/fluid-identities on the Nek5000/OpenMC root
     nek_driver_->comm_.Gatherv(local_element_centroids,
@@ -256,7 +256,7 @@ void OpenmcNekDriver::init_volumes()
     // Every Nek proc gets its local element volumes (lev)
     double local_elem_volumes[n_local_elem_];
     for (int i = 0; i < n_local_elem_; ++i) {
-      local_elem_volumes[i] = nek_driver_->volume(i + 1);
+      local_elem_volumes[i] = nek_driver_->volume_at(i + 1);
     }
     // Gather all the local element volumes on the Nek5000/OpenMC root
     nek_driver_->comm_.Gatherv(local_elem_volumes,
@@ -348,7 +348,7 @@ void OpenmcNekDriver::set_heat_source()
       int32_t mat_index = elem_to_mat_.at(global_index);
       int i = heat_index_.at(mat_index);
 
-      err_chk(nek_driver_->set_heat_source(local_elem, heat_source_[i]),
+      err_chk(nek_driver_->set_heat_source_at(local_elem, heat_source_[i]),
               "Error setting heat source for local element " + std::to_string(i));
     }
   }
