@@ -5,7 +5,6 @@
 #include "enrico/message_passing.h"
 #include "nek5000/core/nek_interface.h"
 
-#include "iapws/iapws.h"
 #include "openmc/capi.h"
 #include "pugixml.hpp"
 #include "xtensor/xbuilder.hpp"
@@ -21,11 +20,10 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
 {
   // Get parameters from enrico.xml
   pugi::xml_node nek_node = node.child("nek5000");
-  pressure_ = node.child("pressure").text().as_double();
+  double pressure = node.child("pressure").text().as_double();
   openmc_procs_per_node_ = node.child("openmc_procs_per_node").text().as_int();
 
   // Postcondition checks on user inputs
-  Expects(pressure_ > 0.0);
   Expects(openmc_procs_per_node_ > 0);
 
   // Create communicator for OpenMC with requested processes per node
@@ -39,7 +37,7 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
 
   // Instantiate OpenMC and Nek drivers
   openmc_driver_ = std::make_unique<OpenmcDriver>(openmc_comm);
-  nek_driver_ = std::make_unique<NekDriver>(comm, pressure_, nek_node);
+  nek_driver_ = std::make_unique<NekDriver>(comm, pressure, nek_node);
 
   // Determine number of local/global elements for each rank
   n_local_elem_ = nek_driver_->active() ? nek_driver_->nelt_ : 0;
@@ -238,11 +236,11 @@ void OpenmcNekDriver::init_temperatures()
     // file or from a useric fortran routine.
     update_temperature();
 
-    // update_temperautre() begins by saving temperatures_ to temperatures_prev_, and
+    // update_temperature() begins by saving temperatures_ to temperatures_prev_, and
     // then changes temperatures_. We need to save temperatures_ here to
     // temperatures_prev_ manually because init_temperatures() initializes both
     // temperatures_ and temperatures_prev_.
-    temperatures_prev_ = temperatures_;
+    std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
   }
 }
 
@@ -361,7 +359,7 @@ void OpenmcNekDriver::update_temperature()
   if (nek_driver_->active()) {
     // Copy previous
     if (openmc_driver_->active()) {
-      temperatures_prev_ = temperatures_;
+      std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
     }
 
     auto t = nek_driver_->temperature();
