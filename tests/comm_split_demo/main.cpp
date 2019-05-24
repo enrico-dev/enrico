@@ -84,8 +84,8 @@ int main(int argc, char* argv[])
   // Debug: Print which comms/ranks are on which host
   //===========================================================================
 
-  char myHostName[HOST_NAME_MAX];
-  gethostname(myHostName, HOST_NAME_MAX);
+  char myHostName[_POSIX_HOST_NAME_MAX];
+  gethostname(myHostName, _POSIX_HOST_NAME_MAX);
 
   for (int i = 0; i < world.size; i++) {
     if (world.rank == i)
