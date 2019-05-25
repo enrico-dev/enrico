@@ -11,6 +11,7 @@
 #include "enrico/error.h"
 #include "enrico/message_passing.h"
 #include "enrico/nek_driver.h"
+#include "smrt_coupled_driver.h"
 #include "nek5000/core/nek_interface.h"
 
 namespace enrico {
@@ -23,7 +24,7 @@ namespace enrico {
  * coupled nonlinear system.
  */
 //===========================================================================//
-class ShiftNekDriver {
+class ShiftNekDriver : public SmrtCoupledDriver {
 public:
   //! Power in [W]
   double power_;

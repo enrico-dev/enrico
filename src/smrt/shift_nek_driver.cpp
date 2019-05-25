@@ -12,7 +12,8 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
                                const std::vector<double>& z_edges,
                                const std::string& shift_filename,
                                MPI_Comm neutronics_comm,
-                               MPI_Comm th_comm)
+                               MPI_Comm th_comm) :
+  SmrtCoupledDriver()
 {
   d_shift_solver =
     std::make_shared<enrico::ShiftDriver>(assembly, shift_filename, z_edges);
