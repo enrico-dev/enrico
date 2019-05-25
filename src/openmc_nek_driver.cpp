@@ -79,25 +79,6 @@ HeatFluidsDriver& OpenmcNekDriver::get_heat_driver() const
 void OpenmcNekDriver::init_mpi_datatypes()
 {
   position_mpi_datatype = define_position_mpi_datatype();
-  //// Currently, this sets up only position_mpi_datatype
-  //Position p;
-  //int blockcounts[3] = {1, 1, 1};
-  //MPI_Datatype types[3] = {MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE};
-  //MPI_Aint displs[3];
-
-  //// Get displacements of struct members
-  //MPI_Get_address(&p.x, &displs[0]);
-  //MPI_Get_address(&p.y, &displs[1]);
-  //MPI_Get_address(&p.z, &displs[2]);
-
-  //// Make the displacements relative
-  //displs[2] -= displs[0];
-  //displs[1] -= displs[0];
-  //displs[0] = 0;
-
-  //// Make datatype
-  //MPI_Type_create_struct(3, blockcounts, displs, types, &position_mpi_datatype);
-  //MPI_Type_commit(&position_mpi_datatype);
 }
 
 void OpenmcNekDriver::init_mappings()
