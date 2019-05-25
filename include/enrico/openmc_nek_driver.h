@@ -6,6 +6,7 @@
 #include "enrico/coupled_driver.h"
 #include "enrico/nek_driver.h"
 #include "enrico/openmc_driver.h"
+#include "enrico/message_passing.h"
 #include "mpi.h"
 
 #include <unordered_set>

@@ -4,6 +4,7 @@
 #define ENRICO_MESSAGE_PASSING_H
 
 #include "mpi.h"
+#include "geom.h"
 
 //! The ENRICO namespace
 namespace enrico {
@@ -42,6 +43,10 @@ void get_node_comms(MPI_Comm super_comm,
                     int procs_per_node,
                     MPI_Comm* sub_comm,
                     MPI_Comm* intranode_comm);
+
+//! Define position MPI data type
+//! \return MPI position data type
+MPI_Datatype define_position_mpi_datatype();
 
 } // namespace enrico
 

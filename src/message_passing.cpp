@@ -30,4 +30,30 @@ void get_node_comms(MPI_Comm super_comm,
     MPI_Comm_free(sub_comm);
 }
 
+MPI_Datatype define_position_mpi_datatype()
+{
+  MPI_Datatype type;
+
+  Position p;
+  int blockcounts[3] = {1, 1, 1};
+  MPI_Datatype types[3] = {MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE};
+  MPI_Aint displs[3];
+
+  // Get displacements of struct members
+  MPI_Get_address(&p.x, &displs[0]);
+  MPI_Get_address(&p.y, &displs[1]);
+  MPI_Get_address(&p.z, &displs[2]);
+
+  // Make the displacements relative
+  displs[2] -= displs[0];
+  displs[1] -= displs[0];
+  displs[0] = 0;
+
+  // Make datatype
+  MPI_Type_create_struct(3, blockcounts, displs, types, &type);
+  MPI_Type_commit(&type);
+
+  return type;
+}
+
 } // namespace enrico
