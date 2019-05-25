@@ -60,10 +60,17 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
   auto mean_value = xt::view(tally_->results_, xt::all(), 0, openmc::RESULT_SUM);
   xt::xtensor<double, 1> heat = JOULE_PER_EV * mean_value / m;
 
-  // Get total heat production [J/source]
-  double total_heat = xt::sum(heat)();
+  // Normalize the heat source
+  normalize_heat_source(heat, power);
 
-  // Normalize heat source in each material and collect in an array
+  return heat;
+}
+
+void OpenmcDriver::normalize_heat_source(xt::xtensor<double, 1>& heat_source, double power) const
+{
+  // Get total heat production [J/source]
+  double total_heat = xt::sum(heat_source)();
+
   for (int i = 0; i < cells_.size(); ++i) {
     // Get volume
     double V = cells_.at(i).volume_;
@@ -71,10 +78,8 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
     // Convert heat from [J/source] to [W/cm^3]. Dividing by total_heat gives
     // the fraction of heat deposited in each material. Multiplying by power
     // givens an absolute value in W
-    heat(i) *= power / (total_heat * V);
+    heat_source(i) *= power / (total_heat * V);
   }
-
-  return heat;
 }
 
 void OpenmcDriver::init_step()

@@ -19,6 +19,13 @@ public:
   //! \param power User-specified power in [W]
   //! \return Heat source in each material as [W/cm3]
   virtual xt::xtensor<double, 1> heat_source(double power) const = 0;
+
+  //! Normalize the heat source by a given power. By default, this method does not
+  //! perform any normalization. This method may also include unit conversions
+  //! if necessary.
+  //! \param heat_source Heat source to be normalized
+  //! \param power Total integrated power with which to normalize
+  virtual void normalize_heat_source(xt::xtensor<double, 1>& heat_source, double power) const {}
 };
 
 } // namespace enrico
