@@ -32,6 +32,9 @@ public:
 
   // Update the temperature used in the neutronics solver
   virtual void update_temperature(const std::vector<double>& temperatures) {}
+
+  // Update the density used in the neutronics solver
+  virtual void update_density(const std::vector<double>& densities) {}
 };
 
 //---------------------------------------------------------------------------//

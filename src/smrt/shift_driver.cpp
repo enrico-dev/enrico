@@ -68,6 +68,9 @@ void ShiftDriver::solve(const std::vector<double>& th_temperature,
 {
   update_temperature(th_temperature);
 
+  // currently does nothing
+  update_density(coolant_density);
+
   // Rebuild problem (loading any new data needed and run transport
   d_driver->rebuild();
   d_driver->run();
