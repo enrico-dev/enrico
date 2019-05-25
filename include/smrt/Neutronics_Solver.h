@@ -29,6 +29,9 @@ public:
   virtual void solve(const Vec_Dbl& fuel_temperature,
                      const Vec_Dbl& coolant_density,
                      Vec_Dbl& power) = 0;
+
+  // Update the temperature used in the neutronics solver
+  virtual void update_temperature(const std::vector<double>& temperatures) {}
 };
 
 //---------------------------------------------------------------------------//

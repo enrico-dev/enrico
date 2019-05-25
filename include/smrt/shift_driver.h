@@ -40,6 +40,8 @@ public:
   using RCP_PL = Teuchos::RCP<Teuchos::ParameterList>;
   //@}
 
+  void update_temperature(const std::vector<double>& temperatures) override;
+
 private:
   // >>> DATA
   SP_Assembly_Model d_assembly;

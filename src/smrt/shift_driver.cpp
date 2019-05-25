@@ -66,21 +66,7 @@ void ShiftDriver::solve(const std::vector<double>& th_temperature,
                         const std::vector<double>& coolant_density,
                         std::vector<double>& power)
 {
-  Expects(th_temperature.size() == d_matids.size());
-  auto& comps = d_driver->compositions();
-
-  // Average T/H mesh temperatures onto Shift materials
-  std::vector<double> material_temperatures(d_num_materials, 0.0);
-  for (int elem = 0; elem < th_temperature.size(); ++elem) {
-    material_temperatures[d_matids[elem]] += d_vfracs[elem] * th_temperature[elem];
-  }
-
-  nemesis::global_sum(material_temperatures.data(), d_num_materials);
-
-  for (int matid = 0; matid < d_num_materials; ++matid) {
-    if (material_temperatures[matid] > 0.0)
-      comps[matid]->set_temperature(material_temperatures[matid]);
-  }
+  update_temperature(th_temperature);
 
   // Rebuild problem (loading any new data needed and run transport
   d_driver->rebuild();
@@ -114,6 +100,25 @@ void ShiftDriver::solve(const std::vector<double>& th_temperature,
         }
       }
     }
+  }
+}
+
+void ShiftDriver::update_temperature(const std::vector<double>& temperatures)
+{
+  Expects(temperatures.size() == d_matids.size());
+  auto& comps = d_driver->compositions();
+
+  // Average T/H mesh temperatures onto Shift materials
+  std::vector<double> material_temperatures(d_num_materials, 0.0);
+  for (int elem = 0; elem < temperatures.size(); ++elem) {
+    material_temperatures[d_matids[elem]] += d_vfracs[elem] * temperatures[elem];
+  }
+
+  nemesis::global_sum(material_temperatures.data(), d_num_materials);
+
+  for (int matid = 0; matid < d_num_materials; ++matid) {
+    if (material_temperatures[matid] > 0.0)
+      comps[matid]->set_temperature(material_temperatures[matid]);
   }
 }
 //---------------------------------------------------------------------------//
