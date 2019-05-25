@@ -29,11 +29,6 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
 
     // Get root element
     auto root = doc.document_element();
-
-    // TODO: Belongs to CoupledDriver base class
-    power_ = root.child("power").text().as_double();
-    max_picard_iter_ = root.child("max_picard_iter").text().as_int();
-
     double pressure_bc = root.child("pressure_bc").text().as_double();
 
     d_nek_solver = std::make_shared<NekDriver>(

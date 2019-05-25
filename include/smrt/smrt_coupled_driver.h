@@ -12,7 +12,11 @@ namespace enrico {
  */
 class SmrtCoupledDriver {
 public:
-  SmrtCoupledDriver() = default;
+  SmrtCoupledDriver();
+
+  double power_; //!< Power in [W]
+
+  int max_picard_iter_; //!< Maximum number of Picard iterations
 };
 
 //---------------------------------------------------------------------------//
