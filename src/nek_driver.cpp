@@ -115,7 +115,7 @@ xt::xtensor<int, 1> NekDriver::fluid_mask() const
                 MPI_INT);
 
   return global_fluid_mask;
-};
+}
 
 xt::xtensor<double, 1> NekDriver::density() const
 {

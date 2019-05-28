@@ -20,7 +20,6 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
 {
   // Get parameters from enrico.xml
   pugi::xml_node nek_node = node.child("nek5000");
-  double pressure = node.child("pressure").text().as_double();
   openmc_procs_per_node_ = node.child("openmc_procs_per_node").text().as_int();
 
   // Postcondition checks on user inputs
@@ -55,7 +54,7 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
   init_temperatures();
   init_elem_densities();
   init_heat_source();
-};
+}
 
 OpenmcNekDriver::~OpenmcNekDriver()
 {
