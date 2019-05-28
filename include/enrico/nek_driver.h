@@ -91,7 +91,7 @@ public:
   //! \param local_elem A local element ID
   //! \param heat A heat source term
   //! \return Error code
-  int set_heat_source_at(int local_elem, double heat) const;
+  int set_heat_source_at(int local_elem, double heat);
 
   //! Initialize the counts and displacements of local elements for each MPI Rank.
   void init_displs();
