@@ -3,8 +3,8 @@
 #ifndef ENRICO_NEK_DRIVER_H
 #define ENRICO_NEK_DRIVER_H
 
-#include "heat_fluids_driver.h"
 #include "geom.h"
+#include "heat_fluids_driver.h"
 #include "mpi.h"
 
 #include "xtensor/xtensor.hpp"
@@ -25,7 +25,7 @@ public:
   //! NekDriver.
   //!
   //! \param comm  The MPI communicator used to initialze Nek5000
-  explicit NekDriver(MPI_Comm comm, double pressure, pugi::xml_node xml_root);
+  explicit NekDriver(MPI_Comm comm, pugi::xml_node xml_root);
 
   //! Finalizes Nek5000.
   //!
@@ -102,6 +102,8 @@ public:
   int lx1_;              //!< polynomial order of the solution
   int nelgt_;            //!< total number of mesh elements
   int nelt_;             //!< number of local mesh elements
+
+  double pressure_; //!< System pressure in [MPa]
 
   //! The number of local elements in each rank.
   std::vector<int> local_displs_;

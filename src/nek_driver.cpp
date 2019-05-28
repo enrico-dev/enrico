@@ -13,12 +13,15 @@
 
 namespace enrico {
 
-NekDriver::NekDriver(MPI_Comm comm, double pressure, pugi::xml_node node)
-  : HeatFluidsDriver(comm, pressure)
+NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node)
+  : HeatFluidsDriver(comm)
 {
+  pressure_ = node.child("pressure").text().as_double();
   lelg_ = nek_get_lelg();
   lelt_ = nek_get_lelt();
   lx1_ = nek_get_lx1();
+
+  Expects(pressure_ > 0.0);
 
   if (active()) {
     casename_ = node.child_value("casename");
