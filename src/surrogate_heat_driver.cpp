@@ -90,7 +90,7 @@ void SurrogateHeatDriver::generate_arrays()
   // Create empty arrays for source term and temperature
   source_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
   temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
-  density_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
+  density_ = xt::zeros<double>({n_pins_, n_axial_, n_rings()});
   fluid_mask_ = xt::zeros<int>({n_pins_, n_axial_, n_rings()});
 }
 
