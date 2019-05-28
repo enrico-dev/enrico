@@ -3,7 +3,7 @@
 #ifndef HEAT_FLUIDS_DRIVER_H
 #define HEAT_FLUIDS_DRIVER_H
 
-#include "driver.h"
+#include "enrico/driver.h"
 #include "xtensor/xtensor.hpp"
 
 namespace enrico {

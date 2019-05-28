@@ -1,13 +1,12 @@
 #include "enrico/openmc_heat_driver.h"
 
-#include "enrico/message_passing.h"
-
 #include "enrico/error.h"
+#include "enrico/message_passing.h"
 #include "openmc/constants.h"
 #include "xtensor/xstrided_view.hpp"
-#include <gsl/gsl>
 
 #include <cmath>
+#include <gsl/gsl>
 #include <unordered_map>
 
 namespace enrico {

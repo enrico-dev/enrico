@@ -3,10 +3,10 @@
 #ifndef ENRICO_OPENMC_NEK_DRIVER_H
 #define ENRICO_OPENMC_NEK_DRIVER_H
 
-#include "coupled_driver.h"
+#include "enrico/coupled_driver.h"
+#include "enrico/nek_driver.h"
+#include "enrico/openmc_driver.h"
 #include "mpi.h"
-#include "nek_driver.h"
-#include "openmc_driver.h"
 
 #include <unordered_set>
 

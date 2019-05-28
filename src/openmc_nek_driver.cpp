@@ -4,13 +4,12 @@
 #include "enrico/error.h"
 #include "enrico/message_passing.h"
 #include "nek5000/core/nek_interface.h"
-
 #include "openmc/capi.h"
 #include "pugixml.hpp"
 #include "xtensor/xbuilder.hpp"
 #include "xtensor/xtensor.hpp"
-#include <gsl/gsl>
 
+#include <gsl/gsl>
 #include <string>
 
 namespace enrico {

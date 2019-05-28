@@ -3,13 +3,12 @@
 #ifndef ENRICO_NEK_DRIVER_H
 #define ENRICO_NEK_DRIVER_H
 
-#include "geom.h"
-#include "heat_fluids_driver.h"
+#include "enrico/geom.h"
+#include "enrico/heat_fluids_driver.h"
 #include "mpi.h"
-
+#include "pugixml.hpp"
 #include "xtensor/xtensor.hpp"
 
-#include <pugixml.hpp>
 #include <string>
 #include <vector>
 

@@ -1,8 +1,8 @@
 #include "enrico/surrogate_heat_driver.h"
 
 #include "enrico/vtk_viz.h"
-#include "heat_xfer_backend.h"
 #include "openmc/xml_interface.h"
+#include "surrogates/heat_xfer_backend.h"
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xbuilder.hpp"
 #include "xtensor/xview.hpp"

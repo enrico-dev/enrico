@@ -4,13 +4,12 @@
 #define ENRICO_SURROGATE_HEAT_DRIVER_H
 
 #include "enrico/heat_fluids_driver.h"
-
 #include "pugixml.hpp"
+#include "mpi.h"
 #include "xtensor/xtensor.hpp"
-#include <gsl/gsl>
-#include <mpi.h>
 
 #include <cstddef>
+#include <gsl/gsl>
 
 namespace enrico {
 
