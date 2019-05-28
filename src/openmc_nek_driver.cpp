@@ -21,11 +21,9 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
 {
   // Get parameters from enrico.xml
   pugi::xml_node nek_node = node.child("nek5000");
-  pressure_ = node.child("pressure").text().as_double();
   openmc_procs_per_node_ = node.child("openmc_procs_per_node").text().as_int();
 
   // Postcondition checks on user inputs
-  Expects(pressure_ > 0.0);
   Expects(openmc_procs_per_node_ > 0);
 
   // Create communicator for OpenMC with requested processes per node
@@ -376,7 +374,7 @@ void OpenmcNekDriver::update_density()
 
           if (any_in_fluid) {
             // nu1 returns specific volume in [m^3/kg]
-            double density = 1.0e-3 / iapws::nu1(pressure_, T);
+            double density = 1.0e-3 / iapws::nu1(nek_driver_->pressure_, T);
             average_density += density * V;
             total_vol += V;
           }

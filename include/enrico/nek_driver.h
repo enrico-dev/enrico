@@ -115,6 +115,8 @@ public:
   int nelgt_;            //!< total number of mesh elements
   int nelt_;             //!< number of local mesh elements
 
+  double pressure_; //! System pressure in [MPa]
+
   //! The number of local elements in each rank.
   std::vector<int> local_displs_;
 
