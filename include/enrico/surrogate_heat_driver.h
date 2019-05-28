@@ -20,7 +20,7 @@ public:
   //!
   //! \param comm  The MPI communicator used to initialze the surrogate
   //! \param node  XML node containing settings for surrogate
-  explicit SurrogateHeatDriver(MPI_Comm comm, double pressure, pugi::xml_node node);
+  explicit SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node);
 
   //! Solves the heat-fluids surrogate solver
   void solve_step() final;

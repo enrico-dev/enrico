@@ -11,9 +11,7 @@
 
 namespace enrico {
 
-SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
-                                         double pressure,
-                                         pugi::xml_node node)
+SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   : HeatFluidsDriver(comm)
 {
   // Determine heat transfer solver parameters
