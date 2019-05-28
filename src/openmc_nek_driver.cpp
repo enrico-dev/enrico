@@ -389,7 +389,7 @@ void OpenmcNekDriver::update_temperature()
 
         // Set temperature for cell instance
         average_temp /= total_vol;
-        Expects(average_temp > 0.0);
+        Ensures(average_temp > 0.0);
         c.set_temperature(average_temp);
       }
     }
@@ -437,7 +437,7 @@ void OpenmcNekDriver::update_cell_densities()
           total_vol += elem_volumes_[e];
         }
         double density = average_density / total_vol;
-        Expects(density > 0.0);
+        Ensures(density > 0.0);
         c.set_density(average_density / total_vol);
       }
     }
