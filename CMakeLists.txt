@@ -85,6 +85,7 @@ if (SCALE_FOUND)
         src/smrt/Multi_Pin_Conduction.cpp
         src/smrt/Multi_Pin_Subchannel.cpp
         src/smrt/shift_driver.cpp
+        src/smrt/smrt_coupled_driver.cpp
         src/smrt/Single_Pin_Conduction.cpp
         src/smrt/Single_Pin_Subchannel.cpp
         src/smrt/Two_Group_Cross_Sections.cpp

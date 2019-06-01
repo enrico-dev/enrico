@@ -24,7 +24,7 @@ public:
   //! perform any normalization. This method may also include unit conversions
   //! if necessary.
   //! \param heat_source Heat source to be normalized
-  //! \param power Total integrated power with which to normalize
+  //! \param power Total integrated power with which to normalize [W]
   virtual void normalize_heat_source(xt::xtensor<double, 1>& heat_source, double power) const {}
 };
 

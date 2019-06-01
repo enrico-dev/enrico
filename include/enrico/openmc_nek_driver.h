@@ -49,7 +49,6 @@ public:
   HeatFluidsDriver & get_heat_driver() const override;
 
   Comm intranode_comm_; //!< The communicator representing intranode ranks
-  double pressure_;                             //!< System pressure in [MPa]
   int openmc_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in OpenMC
                               //!< comm
 

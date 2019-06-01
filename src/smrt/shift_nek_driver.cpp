@@ -163,7 +163,7 @@ void ShiftNekDriver::normalize_power()
 // Currently, this sets up only position_mpi_datatype
 void ShiftNekDriver::init_mpi_datatypes()
 {
-  d_position_mpi_type = define_position_mpi_type();
+  d_position_mpi_type = define_position_mpi_datatype();
 }
 
 // Free user-defined MPI types

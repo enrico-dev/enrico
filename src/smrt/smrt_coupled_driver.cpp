@@ -1,4 +1,6 @@
 #include "smrt/smrt_coupled_driver.h"
+#include "pugixml.hpp"
+#include <stdexcept>
 
 namespace enrico {
 
