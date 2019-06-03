@@ -37,7 +37,7 @@ public:
 
   NeutronicsDriver& get_neutronics_driver() const override;
 
-  Driver& get_heat_driver() const override;
+  HeatFluidsDriver & get_heat_driver() const override;
 
   //! Check convergence based on temperature field and specified epsilon
   //!

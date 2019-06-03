@@ -66,7 +66,7 @@ NeutronicsDriver& OpenmcNekDriver::get_neutronics_driver() const
   return *openmc_driver_;
 }
 
-Driver& OpenmcNekDriver::get_heat_driver() const
+HeatFluidsDriver& OpenmcNekDriver::get_heat_driver() const
 {
   return *nek_driver_;
 }

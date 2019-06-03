@@ -33,7 +33,7 @@ NeutronicsDriver& OpenmcHeatDriver::get_neutronics_driver() const
   return *openmc_driver_;
 }
 
-Driver& OpenmcHeatDriver::get_heat_driver() const
+HeatFluidsDriver& OpenmcHeatDriver::get_heat_driver() const
 {
   return *heat_driver_;
 }
