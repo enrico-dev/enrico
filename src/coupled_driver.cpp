@@ -1,7 +1,7 @@
 #include "enrico/coupled_driver.h"
 #include "enrico/driver.h"
+#include "gsl/gsl"
 #include "xtensor/xnorm.hpp"
-#include <gsl/gsl>
 
 namespace enrico {
 

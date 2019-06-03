@@ -4,12 +4,12 @@
 #define ENRICO_SURROGATE_HEAT_DRIVER_H
 
 #include "enrico/heat_fluids_driver.h"
+#include "gsl/gsl"
 #include "mpi.h"
 #include "pugixml.hpp"
 #include "xtensor/xtensor.hpp"
 
 #include <cstddef>
-#include <gsl/gsl>
 
 namespace enrico {
 
@@ -71,13 +71,13 @@ private:
   //! Create internal arrays used for heat equation solver
   void generate_arrays();
 
-  //!< temperature in [K] for each (axial segment, ring)
+  //!< temperature in [K] for each (pin, axial segment, ring)
   xt::xtensor<double, 3> temperature_;
 
-  //!< density in [g/cm^3] for each (axial segment, ring)
+  //!< density in [g/cm^3] for each (pin, axial segment, ring)
   xt::xtensor<double, 3> density_;
 
-  //! Value is 1 if (axial segment, ring) region is in fluid; otherwise 0
+  //! Value is 1 if (pin, axial segment, ring) region is in fluid; otherwise 0
   //!
   //! Because the surrogate only solves heat and only represents solid, this whole xtensor
   //! == 0

@@ -1,12 +1,12 @@
 #include "enrico/nek_driver.h"
 
 #include "enrico/error.h"
+#include "gsl/gsl"
 #include "iapws/iapws.h"
 #include "nek5000/core/nek_interface.h"
 
 #include <climits>
 #include <fstream>
-#include <gsl/gsl>
 #include <string>
 #include <unistd.h>
 

@@ -2,11 +2,11 @@
 
 #include "enrico/error.h"
 #include "enrico/message_passing.h"
+#include "gsl/gsl"
 #include "openmc/constants.h"
 #include "xtensor/xstrided_view.hpp"
 
 #include <cmath>
-#include <gsl/gsl>
 #include <unordered_map>
 
 namespace enrico {

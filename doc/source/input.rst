@@ -74,7 +74,7 @@ heat-fluids solver.
 ``<pressure_bc>``
 --------------
 
-The pressure of the system in units of [MPa].
+The pressure of the outlet boundary condition in units of [MPa].
 
 ``<nek5000>``
 -------------
