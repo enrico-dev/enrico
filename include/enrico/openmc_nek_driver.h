@@ -3,10 +3,10 @@
 #ifndef ENRICO_OPENMC_NEK_DRIVER_H
 #define ENRICO_OPENMC_NEK_DRIVER_H
 
-#include "coupled_driver.h"
+#include "enrico/coupled_driver.h"
+#include "enrico/nek_driver.h"
+#include "enrico/openmc_driver.h"
 #include "mpi.h"
-#include "nek_driver.h"
-#include "openmc_driver.h"
 
 #include <unordered_set>
 
@@ -37,7 +37,7 @@ public:
 
   NeutronicsDriver& get_neutronics_driver() const override;
 
-  Driver& get_heat_driver() const override;
+  HeatFluidsDriver & get_heat_driver() const override;
 
   //! Check convergence based on temperature field and specified epsilon
   //!
@@ -49,18 +49,32 @@ public:
   Comm intranode_comm_; //!< The communicator representing intranode ranks
   std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
   std::unique_ptr<NekDriver> nek_driver_;       //!< The Nek5000 driver
-  double pressure_;                             //!< System pressure in [MPa]
-  int openmc_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in OpenMC
-                              //!< comm
+  int openmc_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in OpenMC comm
 
 protected:
-  //! Initialize global temperature buffers for OpenMC ranks. These arrays store
-  //! the dimensionless temperatures of Nek's global elements. These are **not**
+  //! Initialize global temperature buffers on all OpenMC ranks.
+  //!
+  //! These arrays store the dimensionless temperatures of Nek's global elements. These are **not**
   //! ordered by Nek's global element indices. Rather, these are ordered according
   //! to an MPI_Gatherv operation on Nek5000's local elements.
   void init_temperatures() override;
 
+  //! Initialize global source buffers on all OpenMC ranks.
+  //!
+  //! These arrays store the dimensionless source of Nek's global elements. These are **not**
+  //! ordered by Nek's global element indices. Rather, these are ordered according
+  //! to an MPI_Gatherv operation on Nek5000's local elements.
   void init_heat_source() override;
+
+  //! Initialize global fluid masks on all OpenMC ranks.
+  //!
+  //! These arrays store the dimensionless source of Nek's global elements. These are **not**
+  //! ordered by Nek's global element indices. Rather, these are ordered according
+  //! to an MPI_Gatherv operation on Nek5000's local elements.
+  void init_elem_fluid_mask();
+
+  //! Initialize fluid masks for OpenMC cells on all OpenMC ranks.
+  void init_cell_fluid_mask();
 
 private:
   //! Initialize MPI datatypes (currently, only position_mpi_datatype)
@@ -77,10 +91,16 @@ private:
 
   //! Allocate space for the global volume buffers in OpenMC ranks
   //! Currently, the density values are uninitialized.
-  void init_densities();
+  void init_elem_densities();
 
   //! Frees the MPI datatypes (currently, only position_mpi_datatype)
   void free_mpi_datatypes();
+
+  //! Updates elem_densities_ from Nek5000's density data
+  void update_elem_densities();
+
+  //! Updates cell_densities_ from elem_densities_.
+  void update_cell_densities();
 
   //! MPI datatype for sending/receiving Position objects.
   MPI_Datatype position_mpi_datatype;
@@ -93,7 +113,10 @@ private:
   //! States whether a global element is in the fluid region
   //! These are **not** ordered by Nek's global element indices.  Rather, these are
   //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
-  std::vector<int> elem_is_in_fluid_;
+  xt::xtensor<int, 1> elem_fluid_mask_;
+
+  //! States whether an OpenMC cell in the fluid region
+  xt::xtensor<int, 1> cell_fluid_mask_;
 
   //! The dimensionless volumes of Nek's global elements
   //! These are **not** ordered by Nek's global element indices.  Rather, these are

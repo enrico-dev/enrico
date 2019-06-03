@@ -1,11 +1,10 @@
 #include "enrico/openmc_heat_driver.h"
 
-#include "enrico/message_passing.h"
-
 #include "enrico/error.h"
+#include "enrico/message_passing.h"
+#include "gsl/gsl"
 #include "openmc/constants.h"
 #include "xtensor/xstrided_view.hpp"
-#include <gsl/gsl>
 
 #include <cmath>
 #include <unordered_map>
@@ -18,7 +17,8 @@ OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
   // Initialize OpenMC and surrogate heat drivers
   openmc_driver_ = std::make_unique<OpenmcDriver>(comm);
   pugi::xml_node surr_node = node.child("heat_surrogate");
-  heat_driver_ = std::make_unique<SurrogateHeatDriver>(comm, surr_node);
+  double pressure_bc = node.child("pressure_bc").text().as_double();
+  heat_driver_ = std::make_unique<SurrogateHeatDriver>(comm, pressure_bc, surr_node);
 
   // Create mappings for fuel pins and setup tallies for OpenMC
   init_mappings();
@@ -33,7 +33,7 @@ NeutronicsDriver& OpenmcHeatDriver::get_neutronics_driver() const
   return *openmc_driver_;
 }
 
-Driver& OpenmcHeatDriver::get_heat_driver() const
+HeatFluidsDriver& OpenmcHeatDriver::get_heat_driver() const
 {
   return *heat_driver_;
 }
@@ -118,17 +118,18 @@ void OpenmcHeatDriver::init_temperatures()
   if (temperature_ic_ == Initial::neutronics) {
     // Loop over all of the rings in the heat transfer model and set the temperature IC
     // based on temperatures used in the OpenMC input file. More than one OpenMC cell may
-    // correspond to a particular ring, so the initial temperature set for that ring should
-    // be a volume average of the OpenMC cell temperatures.
+    // correspond to a particular ring, so the initial temperature set for that ring
+    // should be a volume average of the OpenMC cell temperatures.
 
     // TODO: This initial condition used in the coupled driver does not truly represent
-    // the actual initial condition used in the OpenMC input file, since the surrogate heat
-    // solver only includes a radial dependence, though the various azimuthal segments
-    // corresponding to a single heat transfer ring may run with different initial
-    // temperatures. For this reading of the initial condition to be completely accurate,
-    // the heat solver must either be modified to include an azimuthal dependence, or
-    // a check inserted here to ensure that the initial temperatures in the azimuthal
-    // segments in the OpenMC model are all the same (i.e. no initial azimuthal dependence).
+    // the actual initial condition used in the OpenMC input file, since the surrogate
+    // heat solver only includes a radial dependence, though the various azimuthal
+    // segments corresponding to a single heat transfer ring may run with different
+    // initial temperatures. For this reading of the initial condition to be completely
+    // accurate, the heat solver must either be modified to include an azimuthal
+    // dependence, or a check inserted here to ensure that the initial temperatures in the
+    // azimuthal segments in the OpenMC model are all the same (i.e. no initial azimuthal
+    // dependence).
 
     int ring_index = 0;
     for (int i = 0; i < heat_driver_->n_pins_; ++i) {
@@ -161,7 +162,7 @@ void OpenmcHeatDriver::init_temperatures()
 
   if (temperature_ic_ == Initial::heat) {
     throw std::runtime_error{"Temperature initial conditions from surrogate heat-fluids "
-      "solver not supported."};
+                             "solver not supported."};
   }
 }
 

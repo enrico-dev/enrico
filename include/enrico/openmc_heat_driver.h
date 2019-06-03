@@ -32,7 +32,7 @@ public:
 
   NeutronicsDriver& get_neutronics_driver() const override;
 
-  Driver& get_heat_driver() const override;
+  HeatFluidsDriver & get_heat_driver() const override;
 
   std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
 

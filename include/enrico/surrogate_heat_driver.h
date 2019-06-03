@@ -3,37 +3,40 @@
 #ifndef ENRICO_SURROGATE_HEAT_DRIVER_H
 #define ENRICO_SURROGATE_HEAT_DRIVER_H
 
-#include "driver.h"
-
+#include "enrico/heat_fluids_driver.h"
+#include "gsl/gsl"
+#include "mpi.h"
 #include "pugixml.hpp"
 #include "xtensor/xtensor.hpp"
-#include <gsl/gsl>
-#include <mpi.h>
 
 #include <cstddef>
 
 namespace enrico {
 
-class SurrogateHeatDriver : public Driver {
+class SurrogateHeatDriver : public HeatFluidsDriver {
 public:
   //! Initializes heat-fluids surrogate with the given MPI communicator.
   //!
   //! \param comm  The MPI communicator used to initialze the surrogate
   //! \param node  XML node containing settings for surrogate
-  explicit SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node);
+  explicit SurrogateHeatDriver(MPI_Comm comm, double pressure_bc, pugi::xml_node node);
 
   //! Solves the heat-fluids surrogate solver
   void solve_step() final;
 
-  //! Number of rings in fuel and clad
-  //! \return Number of rings
+  //! Returns Number of rings in fuel and clad
   std::size_t n_rings() { return n_fuel_rings_ + n_clad_rings_; }
 
   //! Write data to VTK
   void write_step(int timestep, int iteration) final;
 
-  xt::xtensor<double, 1> temperature() const;
+  xt::xtensor<double, 1> temperature() const final;
 
+  xt::xtensor<double, 1> density() const final;
+
+  xt::xtensor<int, 1> fluid_mask() const final;
+
+  //! Returns temperature in [K] for given region
   double temperature(int pin, int axial, int ring) const;
 
   // Data on fuel pins
@@ -50,8 +53,8 @@ public:
   std::size_t n_clad_rings_{2};  //!< number of clad rings
 
   // solver variables and settings
-  double tol_;                    //!< tolerance on convergence
-  xt::xtensor<double, 3> source_; //!< heat source for each (axial segment, ring)
+  double tol_;                         //!< tolerance on convergence
+  xt::xtensor<double, 3> source_;      //!< heat source for each (axial segment, ring)
   xt::xtensor<double, 1> r_grid_clad_; //!< radii of each clad ring in [cm]
   xt::xtensor<double, 1> r_grid_fuel_; //!< radii of each fuel ring in [cm]
 
@@ -68,11 +71,20 @@ private:
   //! Create internal arrays used for heat equation solver
   void generate_arrays();
 
-  //!< temperature in [K] for each (axial segment, ring)
+  //!< temperature in [K] for each (pin, axial segment, ring)
   xt::xtensor<double, 3> temperature_;
+
+  //!< density in [g/cm^3] for each (pin, axial segment, ring)
+  xt::xtensor<double, 3> density_;
+
+  //! Value is 1 if (pin, axial segment, ring) region is in fluid; otherwise 0
+  //!
+  //! Because the surrogate only solves heat and only represents solid, this whole xtensor
+  //! == 0
+  xt::xtensor<int, 3> fluid_mask_;
 
 }; // end SurrogateHeatDriver
 
 } // namespace enrico
 
-#endif //ENRICO_SURROGATE_HEAT_DRIVER_H
+#endif // ENRICO_SURROGATE_HEAT_DRIVER_H
