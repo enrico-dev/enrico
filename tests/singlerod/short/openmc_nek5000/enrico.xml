@@ -4,10 +4,10 @@
   <driver_heatfluids>nek5000</driver_heatfluids>
   <nek5000>
     <casename>rodcht</casename>
-    <pressure>12.7553</pressure>
   </nek5000>
   <communication>overlapping</communication>
   <power>820.0</power>
+  <pressure_bc>12.7553</pressure_bc>
   <max_timesteps>4</max_timesteps>
   <max_picard_iter>2</max_picard_iter>
   <openmc_procs_per_node>1</openmc_procs_per_node>

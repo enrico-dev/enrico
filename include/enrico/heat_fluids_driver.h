@@ -11,8 +11,7 @@ namespace enrico {
 //! Base class for driver that controls a heat-fluids solve
 class HeatFluidsDriver : public Driver {
 public:
-  explicit HeatFluidsDriver(MPI_Comm comm)
-    : Driver(comm){};
+  explicit HeatFluidsDriver(MPI_Comm comm, double pressure_bc);
 
   virtual ~HeatFluidsDriver() = default;
 
@@ -27,6 +26,8 @@ public:
   //! States whether each region is in fluid
   //! \return For each region, 1 if region is in fluid and 0 otherwise
   virtual xt::xtensor<int, 1> fluid_mask() const = 0;
+
+  double pressure_bc_; //! System pressure in [MPa]
 };
 
 } // namespace enrico

@@ -4,6 +4,7 @@
   <driver_heatfluids>surrogate</driver_heatfluids>
   <communication>overlapping</communication>
   <power>820.0</power>
+  <pressure_bc>12.7553</pressure_bc>
   <max_timesteps>1</max_timesteps>
   <max_picard_iter>4</max_picard_iter>
   <heat_surrogate>

@@ -71,6 +71,11 @@ heat-fluids solver.
 
 *Default*: neutronics
 
+``<pressure_bc>``
+--------------
+
+The pressure of the system in units of [MPa].
+
 ``<nek5000>``
 -------------
 
@@ -81,11 +86,6 @@ Nek5000 user files.
 ~~~~~~~~~~~~~~
 
 The Nek5000 casename.
-
-``<pressure>``
-~~~~~~~~~~~~~~
-
-The pressure of the system in units of [MPa].
 
 ``<heat_surrogate>``
 --------------------

@@ -12,15 +12,12 @@
 
 namespace enrico {
 
-NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node)
-  : HeatFluidsDriver(comm)
+NekDriver::NekDriver(MPI_Comm comm, double pressure_bc, pugi::xml_node node)
+  : HeatFluidsDriver(comm, pressure_bc)
 {
-  pressure_ = node.child("pressure").text().as_double();
   lelg_ = nek_get_lelg();
   lelt_ = nek_get_lelt();
   lx1_ = nek_get_lx1();
-
-  Expects(pressure_ > 0.0);
 
   if (active()) {
     casename_ = node.child_value("casename");
@@ -124,7 +121,7 @@ xt::xtensor<double, 1> NekDriver::density() const
     if (this->in_fluid_at(i + 1) == 1) {
       auto T = this->temperature_at(i + 1);
       // nu1 returns specific volume in [m^3/kg]
-      local_densities[i] = 1.0e-3 / iapws::nu1(pressure_, T);
+      local_densities[i] = 1.0e-3 / iapws::nu1(pressure_bc_, T);
     } else {
       local_densities[i] = 0.0;
     }

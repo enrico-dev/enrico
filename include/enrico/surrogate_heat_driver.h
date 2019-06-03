@@ -4,8 +4,8 @@
 #define ENRICO_SURROGATE_HEAT_DRIVER_H
 
 #include "enrico/heat_fluids_driver.h"
-#include "pugixml.hpp"
 #include "mpi.h"
+#include "pugixml.hpp"
 #include "xtensor/xtensor.hpp"
 
 #include <cstddef>
@@ -19,7 +19,7 @@ public:
   //!
   //! \param comm  The MPI communicator used to initialze the surrogate
   //! \param node  XML node containing settings for surrogate
-  explicit SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node);
+  explicit SurrogateHeatDriver(MPI_Comm comm, double pressure_bc, pugi::xml_node node);
 
   //! Solves the heat-fluids surrogate solver
   void solve_step() final;
@@ -53,8 +53,8 @@ public:
   std::size_t n_clad_rings_{2};  //!< number of clad rings
 
   // solver variables and settings
-  double tol_;                    //!< tolerance on convergence
-  xt::xtensor<double, 3> source_; //!< heat source for each (axial segment, ring)
+  double tol_;                         //!< tolerance on convergence
+  xt::xtensor<double, 3> source_;      //!< heat source for each (axial segment, ring)
   xt::xtensor<double, 1> r_grid_clad_; //!< radii of each clad ring in [cm]
   xt::xtensor<double, 1> r_grid_fuel_; //!< radii of each fuel ring in [cm]
 
@@ -79,11 +79,12 @@ private:
 
   //! Value is 1 if (axial segment, ring) region is in fluid; otherwise 0
   //!
-  //! Because the surrogate only solves heat and only represents solid, this whole xtensor == 0
+  //! Because the surrogate only solves heat and only represents solid, this whole xtensor
+  //! == 0
   xt::xtensor<int, 3> fluid_mask_;
 
 }; // end SurrogateHeatDriver
 
 } // namespace enrico
 
-#endif //ENRICO_SURROGATE_HEAT_DRIVER_H
+#endif // ENRICO_SURROGATE_HEAT_DRIVER_H

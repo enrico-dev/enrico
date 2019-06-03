@@ -19,6 +19,7 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
 {
   // Get parameters from enrico.xml
   pugi::xml_node nek_node = node.child("nek5000");
+  double pressure_bc = node.child("pressure_bc").text().as_double();
   openmc_procs_per_node_ = node.child("openmc_procs_per_node").text().as_int();
 
   // Postcondition checks on user inputs
@@ -35,7 +36,7 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
 
   // Instantiate OpenMC and Nek drivers
   openmc_driver_ = std::make_unique<OpenmcDriver>(openmc_comm);
-  nek_driver_ = std::make_unique<NekDriver>(comm, nek_node);
+  nek_driver_ = std::make_unique<NekDriver>(comm, pressure_bc, nek_node);
 
   // Determine number of local/global elements for each rank
   n_local_elem_ = nek_driver_->active() ? nek_driver_->nelt_ : 0;

@@ -24,7 +24,7 @@ public:
   //! NekDriver.
   //!
   //! \param comm  The MPI communicator used to initialze Nek5000
-  explicit NekDriver(MPI_Comm comm, pugi::xml_node xml_root);
+  explicit NekDriver(MPI_Comm comm, double pressure_bc, pugi::xml_node xml_root);
 
   //! Finalizes Nek5000.
   //!
@@ -33,8 +33,9 @@ public:
 
   //! Initializes a trivial runtime datafile for Nek5000.
   //!
-  //! Nek5000 must read a file with the casename and working directory. It reads this file instead
-  //! of reading command-line arguments or otherwise inferring the working directory.
+  //! Nek5000 must read a file with the casename and working directory. It reads this file
+  //! instead of reading command-line arguments or otherwise inferring the working
+  //! directory.
   void init_session_name();
 
   //! Runs all timesteps for a heat/fluid solve in Nek5000.
@@ -101,8 +102,6 @@ public:
   int lx1_;              //!< polynomial order of the solution
   int nelgt_;            //!< total number of mesh elements
   int nelt_;             //!< number of local mesh elements
-
-  double pressure_; //!< System pressure in [MPa]
 
   //! The number of local elements in each rank.
   std::vector<int> local_displs_;

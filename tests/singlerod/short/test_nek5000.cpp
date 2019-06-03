@@ -1,7 +1,8 @@
 #include "enrico/nek_driver.h"
 #include <mpi.h>
 
-int main(int argc, char *argv[]) {
+int main(int argc, char* argv[])
+{
   MPI_Init(&argc, &argv);
 
   // Parse enrico.xml file
@@ -15,7 +16,9 @@ int main(int argc, char *argv[]) {
   auto root = doc.document_element();
 
   {
-    enrico::NekDriver test_driver(MPI_COMM_WORLD, root.child("nek5000"));
+    enrico::NekDriver test_driver(MPI_COMM_WORLD,
+                                  root.child("pressure_bc").text().as_double(),
+                                  root.child("nek5000"));
     test_driver.init_step();
     test_driver.solve_step();
     test_driver.finalize_step();
