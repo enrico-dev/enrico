@@ -13,7 +13,7 @@ Multi_Pin_Conduction::Multi_Pin_Conduction(SP_Assembly assembly,
                                            const std::vector<double>& dz)
   : d_assembly(assembly)
 {
-  Expects(d_assembly);
+  Expects(d_assembly != nullptr);
 
   d_Nz = dz.size();
 

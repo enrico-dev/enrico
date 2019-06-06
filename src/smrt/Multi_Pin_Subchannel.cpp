@@ -14,7 +14,7 @@ Multi_Pin_Subchannel::Multi_Pin_Subchannel(SP_Assembly assembly,
                                            const std::vector<double>& dz)
   : d_assembly(assembly)
 {
-  Expects(d_assembly);
+  Expects(d_assembly != nullptr);
 
   double height = std::accumulate(dz.begin(), dz.end(), 0.0);
   Expects(nemesis::soft_equiv(height, d_assembly->height()));

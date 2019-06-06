@@ -51,9 +51,9 @@ ShiftDriver::ShiftDriver(SP_Assembly_Model assembly,
 
   // Store geometry
   auto problem_geom = problem->geometry();
-  Expects(problem_geom);
+  Expects(problem_geom != nullptr);
   d_geometry = std::dynamic_pointer_cast<Geometry>(problem_geom);
-  Expects(d_geometry);
+  Expects(d_geometry != nullptr);
 
   // Create or validate power tally
   add_power_tally(plist, z_edges);
@@ -171,7 +171,7 @@ void ShiftDriver::set_centroids_and_volumes(
 //---------------------------------------------------------------------------//
 void ShiftDriver::add_power_tally(RCP_PL& pl, const std::vector<double>& z_edges)
 {
-  Expects(d_assembly);
+  Expects(d_assembly != nullptr);
   auto tally_pl = Teuchos::sublist(pl, "TALLY");
   auto cell_pl = Teuchos::sublist(tally_pl, "CELL");
 

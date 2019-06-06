@@ -34,7 +34,7 @@ Multiphysics_Driver::Multiphysics_Driver(SP_Assembly assembly,
                                          const Vec_Dbl& z_edges)
   : d_assembly(assembly)
 {
-  Expects(assembly);
+  Expects(assembly != nullptr);
 
   Expects(nemesis::soft_equiv(z_edges.back(), d_assembly->height()));
 
