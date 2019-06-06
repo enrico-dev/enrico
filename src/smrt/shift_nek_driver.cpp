@@ -33,7 +33,10 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
     power_ = root.child("power").text().as_double();
     max_picard_iter_ = root.child("max_picard_iter").text().as_int();
 
-    d_nek_solver = std::make_shared<NekDriver>(th_comm, root.child("nek5000"));
+    double pressure_bc = root.child("pressure_bc").text().as_double();
+
+    d_nek_solver = std::make_shared<NekDriver>(
+        th_comm, pressure_bc, root.child("nek5000"));
   }
 
   d_th_num_local = d_nek_solver->nelt_;
@@ -49,8 +52,8 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
   std::vector<Position> local_centroids(d_th_num_local);
   std::vector<double> local_volumes(d_th_num_local);
   for (int elem = 0; elem < d_th_num_local; ++elem) {
-    local_centroids[elem] = d_nek_solver->get_local_elem_centroid(elem + 1);
-    local_volumes[elem] = d_nek_solver->get_local_elem_volume(elem + 1);
+    local_centroids[elem] = d_nek_solver->centroid_at(elem + 1);
+    local_volumes[elem] = d_nek_solver->volume_at(elem + 1);
     assert(!std::isnan(local_centroids[elem].x));
     assert(!std::isnan(local_centroids[elem].y));
     assert(!std::isnan(local_centroids[elem].z));
@@ -96,7 +99,7 @@ void ShiftNekDriver::solve()
   for (int iteration = 0; iteration < max_picard_iter_; ++iteration) {
     // Set heat source in Nek
     for (int elem = 0; elem < d_th_num_local; ++elem) {
-      err_chk(nek_set_heat_source(elem + 1, d_powers[elem]),
+      err_chk(d_nek_solver->set_heat_source_at(elem + 1, d_powers[elem]),
               "Error setting heat source for local element " + std::to_string(elem + 1));
     }
 
@@ -108,7 +111,7 @@ void ShiftNekDriver::solve()
       // Normalization for incorrect Gauss point averaging
       constexpr double nek_normalization = 1.0 / 200.0;
       d_temperatures[elem] =
-        d_nek_solver->get_local_elem_temperature(elem + 1) * nek_normalization;
+        d_nek_solver->temperature_at(elem + 1) * nek_normalization;
     }
 
     for (int rank = 0; rank < nemesis::nodes(); ++rank) {
@@ -150,7 +153,7 @@ void ShiftNekDriver::normalize_power()
 {
   double total_power = 0.0;
   for (int elem = 0; elem < d_th_num_local; ++elem) {
-    total_power += d_powers[elem] * d_nek_solver->get_local_elem_volume(elem + 1);
+    total_power += d_powers[elem] * d_nek_solver->volume_at(elem + 1);
   }
   nemesis::global_sum(total_power);
 
