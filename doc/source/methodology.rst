@@ -81,7 +81,7 @@ ordering of the Gatherv.
 
 .. rubric:: Footnotes
 
-.. [#f1] The nodes are inferred by the ``MPI_COMM_SPLIT_TYPE`` option in the `MPI_Comm_split_type <https://www.open-mpi.org/doc/v3.0/man3/MPI_Comm_split_type.3 .php>`_ function.  Typically, this splits a communicator based on physical nodes, but the exact results may vary by MPI implementation.
+.. [#f1] The nodes are inferred by the ``MPI_COMM_TYPE_SHARED`` option in the `MPI_Comm_split_type <https://www.open-mpi.org/doc/v3.0/man3/MPI_Comm_split_type.3 .php>`_ function.  Typically, this splits a communicator based on physical nodes, but the exact results may vary by MPI implementation.
 
 .. [#f2] Though :numref:`data_exchange_01` shows a Gatherv operation for each OpenMC rank, the current version of ENRICO will call a single Gatherv on one OpenMC rank and then a single broadcast to the other MPI ranks.
 

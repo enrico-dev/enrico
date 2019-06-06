@@ -3,20 +3,19 @@
 #ifndef ENRICO_NEK_DRIVER_H
 #define ENRICO_NEK_DRIVER_H
 
-#include "driver.h"
-#include "geom.h"
+#include "enrico/geom.h"
+#include "enrico/heat_fluids_driver.h"
 #include "mpi.h"
-
+#include "pugixml.hpp"
 #include "xtensor/xtensor.hpp"
 
-#include <pugixml.hpp>
 #include <string>
 #include <vector>
 
 namespace enrico {
 
 //! Driver to initialze and run Nek5000 in stages.
-class NekDriver : public Driver {
+class NekDriver : public HeatFluidsDriver {
 public:
   //! Initializes Nek5000 with the given MPI communicator.
   //!
@@ -25,13 +24,18 @@ public:
   //! NekDriver.
   //!
   //! \param comm  The MPI communicator used to initialze Nek5000
-  explicit NekDriver(MPI_Comm comm, pugi::xml_node xml_root);
+  explicit NekDriver(MPI_Comm comm, double pressure_bc, pugi::xml_node xml_root);
 
   //! Finalizes Nek5000.
   //!
   //! A wrapper for the nek_end() routine in Nek5000.
   ~NekDriver();
 
+  //! Initializes a trivial runtime datafile for Nek5000.
+  //!
+  //! Nek5000 must read a file with the casename and working directory. It reads this file
+  //! instead of reading command-line arguments or otherwise inferring the working
+  //! directory.
   void init_session_name();
 
   //! Runs all timesteps for a heat/fluid solve in Nek5000.
@@ -40,16 +44,11 @@ public:
   //! initialization and finalization for each step.
   void solve_step() final;
 
-  xt::xtensor<double, 1> temperature() const;
+  xt::xtensor<double, 1> temperature() const final;
 
-  //! Get the coordinate of a global element's centroid.
-  //!
-  //! The coordinate is dimensionless.  Its units depend on the unit system used that was
-  //! used to setup the Nek problem. The user must handle any necessary conversions.
-  //!
-  //! \param global_elem The global index of the desired element
-  //! \return The dimensionless coordinate of the element's centroid
-  Position get_global_elem_centroid(int global_elem) const;
+  xt::xtensor<double, 1> density() const final;
+
+  xt::xtensor<int, 1> fluid_mask() const final;
 
   //! Get the coordinate of a local element's centroid.
   //!
@@ -58,7 +57,7 @@ public:
   //!
   //! \param local_elem The local index of the desired element
   //! \return The dimensionless coordinate of the element's centroid
-  Position get_local_elem_centroid(int local_elem) const;
+  Position centroid_at(int local_elem) const;
 
   //! Get the volume of a local element
   //!
@@ -67,7 +66,7 @@ public:
   //!
   //! \param local_elem The local index of the desired element
   //! \return The dimensionless Volume of the element
-  double get_local_elem_volume(int local_elem) const;
+  double volume_at(int local_elem) const;
 
   //! Get the volume-averaged temperature of a local element
   //!
@@ -77,23 +76,12 @@ public:
   //!
   //! \param local_elem A local element ID
   //! \return The volume-averaged temperature of the element
-  double get_local_elem_temperature(int local_elem) const;
-
-  //! Return true if a global element is in a given MPI rank
-  //! \param A global element ID
-  //! \param An MPI rank
-  //! \return True if the global element ID is in the given rank
-  bool global_elem_is_in_rank(int global_elem) const;
-
-  //! Return true if a global element is in the fluid region
-  //! \param global_elem  A global element ID
-  //! \return 1 if the global element is in fluid; 0 otherwise
-  int global_elem_is_in_fluid(int global_elem) const;
+  double temperature_at(int local_elem) const;
 
   //! Return true if a local element is in the fluid region
   //! \param local_elem  A local element ID
   //! \return 1 if the local element is in fluid; 0 otherwise
-  int local_elem_is_in_fluid(int local_elem) const;
+  int in_fluid_at(int local_elem) const;
 
   //! Set the heat source for a given local element
   //!
@@ -103,7 +91,7 @@ public:
   //! \param local_elem A local element ID
   //! \param heat A heat source term
   //! \return Error code
-  int set_heat_source(int local_elem, double heat) const;
+  int set_heat_source_at(int local_elem, double heat);
 
   //! Initialize the counts and displacements of local elements for each MPI Rank.
   void init_displs();

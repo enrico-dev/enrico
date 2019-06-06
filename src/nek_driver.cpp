@@ -1,9 +1,9 @@
 #include "enrico/nek_driver.h"
 
 #include "enrico/error.h"
+#include "gsl/gsl"
+#include "iapws/iapws.h"
 #include "nek5000/core/nek_interface.h"
-
-#include <gsl/gsl>
 
 #include <climits>
 #include <fstream>
@@ -12,8 +12,8 @@
 
 namespace enrico {
 
-NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node)
-  : Driver(comm)
+NekDriver::NekDriver(MPI_Comm comm, double pressure_bc, pugi::xml_node node)
+  : HeatFluidsDriver(comm, pressure_bc)
 {
   lelg_ = nek_get_lelg();
   lelt_ = nek_get_lelt();
@@ -35,54 +35,6 @@ NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node)
   }
   MPI_Barrier(MPI_COMM_WORLD);
 }
-
-// This version sets the local-to-global element ordering, as ensured by a Gatherv
-// operation. It is currently unused, as the coupling does not need to know the
-// local-global ordering. void NekDriver::init_mappings() {
-//   if(active()) {
-//
-//     // These arrays are only gathered on the root process
-//     if (comm_.rank == 0) {
-//       local_counts_.reserve(comm_.size);
-//       local_displs_.reserve(comm_.size);
-//       local_ordering_.reserve(nelgt_);
-//     }
-//
-//     // Every proc sets a mapping from its local to global element indices.
-//     // This mapping is in a Nek5000 common block, but we don't expose it to C++
-//     int local_to_global[nelt_];
-//     for (int i = 0; i < nelt_; ++i) {
-//       local_to_global[i] = nek_get_global_elem(i+1) - 1;
-//     }
-//
-//     // The root proc gets every proc's local element count.
-//     comm_.Gather(&nelt_, 1, MPI_INT, local_counts_.data(), 1, MPI_INT);
-//
-//     if (comm_.rank == 0) {
-//       // The root makes a list of data displacements for a Gatherv operation.
-//       // Each proc's data will be displaced by the number of local elements on
-//       // the previous proc.
-//       local_displs_.at(0) = 0;
-//       for (int i = 1; i < comm_.rank; ++i) {
-//         local_displs_.at(i) = local_displs_.at(i-1) + local_counts_.at(i-1);
-//       }
-//
-//       // The root the gets the local-to-global element mapping for all procs.
-//       // This can be used to reorder the data from a Gatherv operation.
-//       comm_.Gatherv(
-//           local_to_global, nelt_, MPI_INT,
-//           local_ordering_.data(), local_counts_.data(), local_displs_.data(), MPI_INT
-//       );
-//     }
-//     else {
-//       // Other procs send their local-to-global mapping to the root.
-//       comm_.Gatherv(
-//           local_to_global, nelt_, MPI_INT,
-//           nullptr, nullptr, nullptr, MPI_INT
-//       );
-//     }
-//   }
-// }
 
 void NekDriver::init_session_name()
 {
@@ -115,7 +67,7 @@ xt::xtensor<double, 1> NekDriver::temperature() const
   // Each Nek proc finds the temperatures of its local elements
   double local_elem_temperatures[nelt_];
   for (int i = 0; i < nelt_; ++i) {
-    local_elem_temperatures[i] = get_local_elem_temperature(i + 1);
+    local_elem_temperatures[i] = this->temperature_at(i + 1);
   }
 
   xt::xtensor<double, 1> global_elem_temperatures = xt::xtensor<double, 1>();
@@ -138,21 +90,67 @@ xt::xtensor<double, 1> NekDriver::temperature() const
   return global_elem_temperatures;
 }
 
+xt::xtensor<int, 1> NekDriver::fluid_mask() const
+{
+  int local_fluid_mask[nelt_];
+  for (int i = 0; i < nelt_; ++i) {
+    local_fluid_mask[i] = this->in_fluid_at(i + 1);
+  }
+
+  xt::xtensor<int, 1> global_fluid_mask;
+  if (comm_.rank == 0) {
+    global_fluid_mask.resize({gsl::narrow<std::size_t>(nelgt_)});
+  }
+
+  comm_.Gatherv(local_fluid_mask,
+                nelt_,
+                MPI_INT,
+                global_fluid_mask.data(),
+                local_counts_.data(),
+                local_displs_.data(),
+                MPI_INT);
+
+  return global_fluid_mask;
+}
+
+xt::xtensor<double, 1> NekDriver::density() const
+{
+  double local_densities[nelt_];
+
+  for (int i = 0; i < nelt_; ++i) {
+    if (this->in_fluid_at(i + 1) == 1) {
+      auto T = this->temperature_at(i + 1);
+      // nu1 returns specific volume in [m^3/kg]
+      local_densities[i] = 1.0e-3 / iapws::nu1(pressure_bc_, T);
+    } else {
+      local_densities[i] = 0.0;
+    }
+  }
+
+  xt::xtensor<double, 1> global_densities;
+
+  if (comm_.rank == 0) {
+    global_densities.resize({gsl::narrow<std::size_t>(nelgt_)});
+  }
+
+  comm_.Gatherv(local_densities,
+                nelt_,
+                MPI_DOUBLE,
+                global_densities.data(),
+                local_counts_.data(),
+                local_displs_.data(),
+                MPI_DOUBLE);
+
+  return global_densities;
+}
+
 void NekDriver::solve_step()
 {
   nek_reset_counters();
   C2F_nek_solve();
 }
 
-Position NekDriver::get_global_elem_centroid(int global_elem) const
-{
-  double x, y, z;
-  err_chk(nek_get_global_elem_centroid(global_elem, &x, &y, &z),
-          "Could not find centroid of global element " + std::to_string(global_elem));
-  return {x, y, z};
-}
-
-Position NekDriver::get_local_elem_centroid(int local_elem) const
+Position NekDriver::centroid_at(int local_elem) const
 {
   double x, y, z;
   err_chk(nek_get_local_elem_centroid(local_elem, &x, &y, &z),
@@ -160,7 +158,7 @@ Position NekDriver::get_local_elem_centroid(int local_elem) const
   return {x, y, z};
 }
 
-double NekDriver::get_local_elem_volume(int local_elem) const
+double NekDriver::volume_at(int local_elem) const
 {
   double volume;
   err_chk(nek_get_local_elem_volume(local_elem, &volume),
@@ -168,7 +166,7 @@ double NekDriver::get_local_elem_volume(int local_elem) const
   return volume;
 }
 
-double NekDriver::get_local_elem_temperature(int local_elem) const
+double NekDriver::temperature_at(int local_elem) const
 {
   double temperature;
   err_chk(nek_get_local_elem_temperature(local_elem, &temperature),
@@ -176,22 +174,12 @@ double NekDriver::get_local_elem_temperature(int local_elem) const
   return temperature;
 }
 
-bool NekDriver::global_elem_is_in_rank(int global_elem) const
-{
-  return (nek_global_elem_is_in_rank(global_elem, comm_.rank) == 1);
-}
-
-int NekDriver::global_elem_is_in_fluid(int global_elem) const
-{
-  return nek_global_elem_is_in_fluid(global_elem);
-}
-
-int NekDriver::local_elem_is_in_fluid(int local_elem) const
+int NekDriver::in_fluid_at(int local_elem) const
 {
   return nek_local_elem_is_in_fluid(local_elem);
 }
 
-int NekDriver::set_heat_source(int local_elem, double heat) const
+int NekDriver::set_heat_source_at(int local_elem, double heat)
 {
   return nek_set_heat_source(local_elem, heat);
 }

@@ -6,6 +6,7 @@
 
 #include "enrico/driver.h"
 #include "enrico/neutronics_driver.h"
+#include "heat_fluids_driver.h"
 #include "pugixml.hpp"
 #include "xtensor/xtensor.hpp"
 
@@ -59,7 +60,7 @@ public:
 
   //! Get reference to thermal-fluids driver
   //! \return reference to driver
-  virtual Driver& get_heat_driver() const = 0;
+  virtual HeatFluidsDriver& get_heat_driver() const = 0;
 
   //! Get timestep iteration index
   //! \return timestep iteration index

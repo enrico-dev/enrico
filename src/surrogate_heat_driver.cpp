@@ -1,8 +1,8 @@
 #include "enrico/surrogate_heat_driver.h"
 
 #include "enrico/vtk_viz.h"
-#include "heat_xfer_backend.h"
 #include "openmc/xml_interface.h"
+#include "surrogates/heat_xfer_backend.h"
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xbuilder.hpp"
 #include "xtensor/xview.hpp"
@@ -11,8 +11,10 @@
 
 namespace enrico {
 
-SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
-  : Driver(comm)
+SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
+                                         double pressure_bc,
+                                         pugi::xml_node node)
+  : HeatFluidsDriver(comm, pressure_bc)
 {
   // Determine heat transfer solver parameters
   clad_inner_radius_ = node.child("clad_inner_radius").text().as_double();
@@ -88,6 +90,8 @@ void SurrogateHeatDriver::generate_arrays()
   // Create empty arrays for source term and temperature
   source_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
   temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
+  density_ = xt::zeros<double>({n_pins_, n_axial_, n_rings()});
+  fluid_mask_ = xt::zeros<int>({n_pins_, n_axial_, n_rings()});
 }
 
 void SurrogateHeatDriver::solve_step()
@@ -130,6 +134,16 @@ xt::xtensor<double, 1> SurrogateHeatDriver::temperature() const
 double SurrogateHeatDriver::temperature(int pin, int axial, int ring) const
 {
   return temperature_(pin, axial, ring);
+}
+
+xt::xtensor<double, 1> SurrogateHeatDriver::density() const
+{
+  return xt::flatten(density_);
+}
+
+xt::xtensor<int, 1> SurrogateHeatDriver::fluid_mask() const
+{
+  return xt::flatten(fluid_mask_);
 }
 
 void SurrogateHeatDriver::write_step(int timestep, int iteration)
