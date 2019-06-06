@@ -1,6 +1,10 @@
 #include "smrt/Assembly_Model.h"
 
+// SCALE includes
 #include "Nemesis/utils/Constants.hh"
+
+// vendored includes
+#include <gsl/gsl>
 
 namespace enrico {
 //---------------------------------------------------------------------------//
@@ -17,7 +21,7 @@ Assembly_Model::Assembly_Model(const std::vector<PIN_TYPE>& pin_map,
 {
   d_Nx = d_x_edges.size() - 1;
   d_Ny = d_y_edges.size() - 1;
-  Require(d_pin_map.size() == d_Nx * d_Ny);
+  Expects(d_pin_map.size() == d_Nx * d_Ny);
 }
 
 //---------------------------------------------------------------------------//
@@ -28,10 +32,10 @@ Assembly_Model::Assembly_Model(Teuchos::RCP<Teuchos::ParameterList> params)
   using Array_Dbl = Teuchos::Array<double>;
   using Array_Str = Teuchos::Array<std::string>;
 
-  Validate(params->isType<Array_Dbl>("x_edges"), "Must specify 'x_edges'.");
-  Validate(params->isType<Array_Dbl>("y_edges"), "Must specify 'y_edges'.");
-  Validate(params->isType<Array_Dbl>("z_edges"), "Must specify 'z_edges'.");
-  Validate(params->isType<Array_Str>("pin_map"), "Must specify 'pin_map'.");
+  Expects(params->isType<Array_Dbl>("x_edges"));
+  Expects(params->isType<Array_Dbl>("y_edges"));
+  Expects(params->isType<Array_Dbl>("z_edges"));
+  Expects(params->isType<Array_Str>("pin_map"));
 
   // Get x/y/z edges
   auto x = params->get<Array_Dbl>("x_edges");
@@ -45,16 +49,11 @@ Assembly_Model::Assembly_Model(Teuchos::RCP<Teuchos::ParameterList> params)
 
   // Translate pin map strings to enums
   auto pins = params->get<Array_Str>("pin_map");
-  Validate(pins.size() == d_Nx * d_Ny,
-           "Expected pin map to be size " << d_Nx * d_Ny << " but actual size is "
-                                          << pins.size());
+  Expects(pins.size() == d_Nx * d_Ny);
   d_pin_map.resize(d_Nx * d_Ny);
   for (int pin = 0; pin < d_Nx * d_Ny; ++pin) {
     auto val = pins[pin];
-    Validate(val == "Fuel" || val == "Guide",
-             "Pin map entries must be 'Fuel' or 'Guide', "
-             " entry "
-               << pin << " is " << val);
+    Expects(val == "Fuel" || val == "Guide");
     if (val == "Fuel")
       d_pin_map[pin] = FUEL;
     else
@@ -72,8 +71,8 @@ Assembly_Model::Assembly_Model(Teuchos::RCP<Teuchos::ParameterList> params)
 //---------------------------------------------------------------------------//
 double Assembly_Model::flow_area(int i, int j) const
 {
-  Require(i < d_Nx);
-  Require(j < d_Ny);
+  Expects(i < d_Nx);
+  Expects(j < d_Ny);
 
   double dx = d_x_edges[i + 1] - d_x_edges[i];
   double dy = d_y_edges[j + 1] - d_y_edges[j];
@@ -84,10 +83,10 @@ double Assembly_Model::flow_area(int i, int j) const
     r = d_clad_radius;
   else if (type == GUIDE)
     r = d_guide_radius;
-  Check(r > 0.0);
+  Expects(r > 0.0);
 
   double area = dx * dy - nemesis::constants::pi * r * r;
-  Ensure(area > 0);
+  Ensures(area > 0);
   return area;
 }
 

@@ -25,8 +25,8 @@ namespace enrico {
 // Constructor
 //---------------------------------------------------------------------------//
 ShiftDriver::ShiftDriver(SP_Assembly_Model assembly,
-                           std::string shift_input,
-                           const std::vector<double>& z_edges)
+                         std::string shift_input,
+                         const std::vector<double>& z_edges)
   : d_assembly(assembly)
   , d_power_tally_name("power")
 {
@@ -51,9 +51,9 @@ ShiftDriver::ShiftDriver(SP_Assembly_Model assembly,
 
   // Store geometry
   auto problem_geom = problem->geometry();
-  Check(problem_geom);
+  Expects(problem_geom != nullptr);
   d_geometry = std::dynamic_pointer_cast<Geometry>(problem_geom);
-  Check(d_geometry);
+  Expects(d_geometry != nullptr);
 
   // Create or validate power tally
   add_power_tally(plist, z_edges);
@@ -63,10 +63,10 @@ ShiftDriver::ShiftDriver(SP_Assembly_Model assembly,
 // Solve
 //---------------------------------------------------------------------------//
 void ShiftDriver::solve(const std::vector<double>& th_temperature,
-                         const std::vector<double>& coolant_density,
-                         std::vector<double>& power)
+                        const std::vector<double>& coolant_density,
+                        std::vector<double>& power)
 {
-  Require(th_temperature.size() == d_matids.size());
+  Expects(th_temperature.size() == d_matids.size());
   auto& comps = d_driver->compositions();
 
   // Average T/H mesh temperatures onto Shift materials
@@ -98,18 +98,18 @@ void ShiftDriver::solve(const std::vector<double>& th_temperature,
       // divide by volume to get volumetric power
       const auto& result = tally->result();
       auto mean = result.mean(0);
-      Check(result.num_multipliers() == 1);
+      Expects(result.num_multipliers() == 1);
 
       // Compute global sum for normalization
       double total_power = std::accumulate(mean.begin(), mean.end(), 0.0);
 
       for (int cellid = 0; cellid < mean.size(); ++cellid) {
-        Check(cellid < d_power_map.size());
+        Expects(cellid < d_power_map.size());
         const auto& elem_list = d_power_map[cellid];
         double tally_volume = d_geometry->cell_volume(cellid);
 
         for (const auto& elem : elem_list) {
-          Check(elem < power.size());
+          Expects(elem < power.size());
           power[elem] = mean[cellid] / tally_volume / total_power;
         }
       }
@@ -171,7 +171,7 @@ void ShiftDriver::set_centroids_and_volumes(
 //---------------------------------------------------------------------------//
 void ShiftDriver::add_power_tally(RCP_PL& pl, const std::vector<double>& z_edges)
 {
-  Require(d_assembly);
+  Expects(d_assembly != nullptr);
   auto tally_pl = Teuchos::sublist(pl, "TALLY");
   auto cell_pl = Teuchos::sublist(tally_pl, "CELL");
 

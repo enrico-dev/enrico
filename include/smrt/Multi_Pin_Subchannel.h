@@ -8,6 +8,9 @@
 #include "Teuchos_ParameterList.hpp"
 #include "Teuchos_RCP.hpp"
 
+// vendored includes
+#include <gsl/gsl>
+
 // enrico includes
 #include "Assembly_Model.h"
 #include "Single_Pin_Subchannel.h"
@@ -60,8 +63,8 @@ public:
 private:
   int channel_index(int ix, int iy) const
   {
-    Require(ix < d_Nx);
-    Require(iy < d_Ny);
+    Expects(ix < d_Nx);
+    Expects(iy < d_Ny);
     return ix + d_Nx * iy;
   }
 };

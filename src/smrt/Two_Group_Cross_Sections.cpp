@@ -10,10 +10,10 @@ auto Two_Group_Cross_Sections::get_data(Assembly_Model::PIN_TYPE type,
                                         double T,
                                         double rho) -> XS_Data
 {
-  Require(T > 273);
-  Require(T < 3000);
-  Require(rho > 0);
-  Require(rho < 1);
+  Expects(T > 273);
+  Expects(T < 3000);
+  Expects(rho > 0);
+  Expects(rho < 1);
 
   constexpr double T_base = 1000;   // degrees K
   constexpr double rho_base = 0.75; // g/cc

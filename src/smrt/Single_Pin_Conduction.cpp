@@ -31,11 +31,11 @@ void Single_Pin_Conduction::solve(const std::vector<double>& power,
                                   const std::vector<double>& channel_temp,
                                   std::vector<double>& fuel_temp)
 {
-  Require(power.size() == d_delta_z.size());
-  Require(channel_temp.size() == d_delta_z.size());
-  Require(fuel_temp.size() == d_delta_z.size());
-  Require(d_fuel_radius > 0.0);
-  Require(d_clad_radius > d_fuel_radius);
+  Expects(power.size() == d_delta_z.size());
+  Expects(channel_temp.size() == d_delta_z.size());
+  Expects(fuel_temp.size() == d_delta_z.size());
+  Expects(d_fuel_radius > 0.0);
+  Expects(d_clad_radius > d_fuel_radius);
 
   using nemesis::constants::pi;
 
@@ -45,7 +45,7 @@ void Single_Pin_Conduction::solve(const std::vector<double>& power,
   int num_rings_fuel = std::ceil(d_fuel_radius / d_delta_r_fuel);
   int num_rings_clad = std::ceil((d_clad_radius - d_fuel_radius) / d_delta_r_clad);
   int num_rings = num_rings_fuel + num_rings_clad;
-  Check(num_rings > 2);
+  Expects(num_rings > 2);
 
   // Compute delta r in fuel and clad
   std::vector<double> radius(num_rings + 1);
@@ -56,7 +56,7 @@ void Single_Pin_Conduction::solve(const std::vector<double>& power,
   dr = (d_clad_radius - d_fuel_radius) / static_cast<double>(num_rings_clad);
   for (int r = num_rings_fuel; r < num_rings; ++r)
     radius[r + 1] = radius[r] + dr;
-  Check(nemesis::soft_equiv(radius[num_rings], d_clad_radius));
+  Expects(nemesis::soft_equiv(radius[num_rings], d_clad_radius));
 
   // Assign thermal conductivity in fuel and clad
   std::vector<double> k(num_rings);
@@ -70,10 +70,10 @@ void Single_Pin_Conduction::solve(const std::vector<double>& power,
   }
   // Check areas
   double fuel_area = std::accumulate(area.begin(), area.begin() + num_rings_fuel, 0.0);
-  Check(nemesis::soft_equiv(fuel_area, pi * d_fuel_radius * d_fuel_radius));
+  Expects(nemesis::soft_equiv(fuel_area, pi * d_fuel_radius * d_fuel_radius));
 
   double total_area = std::accumulate(area.begin(), area.end(), 0.0);
-  Check(nemesis::soft_equiv(total_area, pi * d_clad_radius * d_clad_radius));
+  Expects(nemesis::soft_equiv(total_area, pi * d_clad_radius * d_clad_radius));
 
   auto rcp_matrix = Teuchos::rcp(new Matrix(num_rings, num_rings));
   auto rcp_rhs = Teuchos::rcp(new Vector(num_rings));
@@ -124,7 +124,7 @@ void Single_Pin_Conduction::solve(const std::vector<double>& power,
     solver.equilibrateRHS();
     int err = solver.solve();
     solver.unequilibrateLHS();
-    Check(err == 0);
+    Expects(err == 0);
 
     // Compute average fuel temperature for this level
     double ft = 0.0;

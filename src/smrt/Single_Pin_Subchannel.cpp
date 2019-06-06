@@ -4,7 +4,11 @@
 #include "smrt/Single_Pin_Subchannel.h"
 #include "smrt/Water_Properties.h"
 
+// SCALE includes
 #include "Nemesis/utils/String_Functions.hh"
+
+// vendored includes
+#include <gsl/gsl>
 
 namespace enrico {
 //---------------------------------------------------------------------------//
@@ -25,14 +29,16 @@ Single_Pin_Subchannel::Single_Pin_Subchannel(RCP_PL& parameters,
     val *= 1e-2;
 
   auto verb = nemesis::lower(parameters->get("verbosity", std::string("none")));
-  if (verb == "none")
+  if (verb == "none") {
     d_verbosity = NONE;
-  else if (verb == "low")
+  } else if (verb == "low") {
     d_verbosity = LOW;
-  else if (verb == "high")
+  } else if (verb == "high") {
     d_verbosity = HIGH;
-  else
-    Validate(false, "Unrecognized verbosity.");
+  } else {
+    // Unrecognized verbosity.
+    Expects(false);
+  }
 }
 
 //---------------------------------------------------------------------------//
@@ -46,11 +52,11 @@ void Single_Pin_Subchannel::solve(const std::vector<double>& power,
                                   std::vector<double>& temperature,
                                   std::vector<double>& density)
 {
-  Require(power.size() == d_delta_z.size());
-  Require(temperature.size() == d_delta_z.size());
-  Require(density.size() == d_delta_z.size());
-  Require(d_T_inlet > 0.0);
-  Require(d_p_exit > 0.0);
+  Expects(power.size() == d_delta_z.size());
+  Expects(temperature.size() == d_delta_z.size());
+  Expects(density.size() == d_delta_z.size());
+  Expects(d_T_inlet > 0.0);
+  Expects(d_p_exit > 0.0);
 
   int num_regions = d_delta_z.size();
 
