@@ -102,8 +102,8 @@ void OpenmcNekDriver::init_mpi_datatypes()
 void OpenmcNekDriver::init_mappings()
 {
   if (this->has_global_coupling_data()) {
-    elem_centroids_.resize(n_global_elem_);
-    elem_fluid_mask_.resize(n_global_elem_);
+    elem_centroids_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
+    elem_fluid_mask_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
   }
 
   if (nek_driver_->active()) {
@@ -246,7 +246,7 @@ void OpenmcNekDriver::init_temperatures()
 void OpenmcNekDriver::init_volumes()
 {
   if (this->has_global_coupling_data()) {
-    elem_volumes_.resize({n_global_elem_});
+    elem_volumes_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
   }
 
   if (nek_driver_->active()) {
@@ -272,7 +272,7 @@ void OpenmcNekDriver::init_volumes()
 
 void OpenmcNekDriver::init_elem_densities()
 {
-  if (has_global_coupling_data()) {
+  if (this->has_global_coupling_data()) {
     elem_densities_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
   }
   update_elem_densities();
