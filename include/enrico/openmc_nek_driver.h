@@ -29,6 +29,14 @@ public:
   //! Frees any data structures that need manual freeing.
   ~OpenmcNekDriver();
 
+  //! Whether the calling rank has access to global coupling fields. Because the OpenMC
+  //! and Nek communicators are assumed to overlap (though they are not the same), and
+  //! Nek broadcasts its solution onto the OpenMC ranks, we need to check that both
+  //! communicators are active.
+  //!
+  //! TODO: This won't work if the OpenMC and Nek communicators are disjoint
+  bool has_global_coupling_data() const override;
+
   void set_heat_source() override;
 
   void update_temperature() override;
@@ -38,13 +46,6 @@ public:
   NeutronicsDriver& get_neutronics_driver() const override;
 
   HeatFluidsDriver & get_heat_driver() const override;
-
-  //! Check convergence based on temperature field and specified epsilon
-  //!
-  //! Currently compares L_inf norm of temperature data between iterations
-  //!
-  //! \return true if L_inf norm of temperature data is less than epsilon
-  bool is_converged() override;
 
   Comm intranode_comm_; //!< The communicator representing intranode ranks
   std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver

@@ -30,6 +30,11 @@ public:
   //! Execute the coupled driver
   virtual void execute();
 
+  //! Whether the calling rank has access to the coupled solution
+  //! fields for the heat source, temperature, density, and other protected member
+  //! variables of this class.
+  virtual bool has_global_coupling_data() const = 0;
+
   //! Update the heat source for the thermal-hydraulics solver
   virtual void update_heat_source() final;
 
@@ -43,8 +48,7 @@ public:
   virtual void update_density() {}
 
   //! Check convergence of the coupled solve for the current Picard iteration.
-  //! By default, derived classes will run up to the maximum number of Picard iterations.
-  virtual bool is_converged() { return false; }
+  virtual bool is_converged();
 
   enum class Norm { L1, L2, LINF }; //! Types of norms
 

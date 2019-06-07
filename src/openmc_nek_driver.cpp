@@ -61,6 +61,11 @@ OpenmcNekDriver::~OpenmcNekDriver()
   free_mpi_datatypes();
 }
 
+bool OpenmcNekDriver::has_global_coupling_data() const
+{
+  return openmc_driver_->active() && nek_driver_->active();
+}
+
 NeutronicsDriver& OpenmcNekDriver::get_neutronics_driver() const
 {
   return *openmc_driver_;
@@ -96,14 +101,12 @@ void OpenmcNekDriver::init_mpi_datatypes()
 
 void OpenmcNekDriver::init_mappings()
 {
-  // TODO: This won't work if the Nek/OpenMC communicators are disjoint
+  if (this->has_global_coupling_data()) {
+    elem_centroids_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
+    elem_fluid_mask_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
+  }
 
   if (nek_driver_->active()) {
-    // Only the OpenMC procs get the global element centroids/fluid-identities
-    if (openmc_driver_->active()) {
-      elem_centroids_.resize(n_global_elem_);
-      elem_fluid_mask_.resize({n_global_elem_});
-    }
     // Step 1: Get global element centroids/fluid-identities on all OpenMC ranks
     // Each Nek proc finds the centroids/fluid-identities of its local elements
     Position local_element_centroids[n_local_elem_];
@@ -207,14 +210,11 @@ void OpenmcNekDriver::init_tallies()
 
 void OpenmcNekDriver::init_temperatures()
 {
-  if (nek_driver_->active() && openmc_driver_->active()) {
+  if (this->has_global_coupling_data()) {
     temperatures_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
     temperatures_prev_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
-  }
-  // TODO: This won't work if the Nek/OpenMC communicators are disjoint
-  // Only the OpenMC procs get the global temperatures
-  if (temperature_ic_ == Initial::neutronics) {
-    if (nek_driver_->active() && openmc_driver_->active()) {
+
+    if (temperature_ic_ == Initial::neutronics) {
       // Loop over the OpenMC cells, then loop over the global Nek elements
       // corresponding to that cell and assign the OpenMC cell temperature to
       // the correct index in the temperatures_ array. This mapping assumes that
@@ -245,13 +245,11 @@ void OpenmcNekDriver::init_temperatures()
 
 void OpenmcNekDriver::init_volumes()
 {
-  // TODO: This won't work if the Nek/OpenMC communicators are disjoint
+  if (this->has_global_coupling_data()) {
+    elem_volumes_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
+  }
 
-  // Only the OpenMC procs get the global element volumes (gev)
   if (nek_driver_->active()) {
-    if (openmc_driver_->active()) {
-      elem_volumes_.resize({n_global_elem_});
-    }
     // Every Nek proc gets its local element volumes (lev)
     double local_elem_volumes[n_local_elem_];
     for (int i = 0; i < n_local_elem_; ++i) {
@@ -274,8 +272,7 @@ void OpenmcNekDriver::init_volumes()
 
 void OpenmcNekDriver::init_elem_densities()
 {
-  // TODO: This won't work if the Nek/OpenMC communicators are disjoint
-  if (nek_driver_->active() && openmc_driver_->active()) {
+  if (this->has_global_coupling_data()) {
     elem_densities_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
   }
   update_elem_densities();
@@ -283,7 +280,7 @@ void OpenmcNekDriver::init_elem_densities()
 
 void OpenmcNekDriver::init_elem_fluid_mask()
 {
-  if (nek_driver_->active() && openmc_driver_->active()) {
+  if (this->has_global_coupling_data()) {
     elem_fluid_mask_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
   }
   if (nek_driver_->active()) {
@@ -355,12 +352,11 @@ void OpenmcNekDriver::set_heat_source()
 
 void OpenmcNekDriver::update_temperature()
 {
-  if (nek_driver_->active()) {
-    // Copy previous
-    if (openmc_driver_->active()) {
-      std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
-    }
+  if (this->has_global_coupling_data()) {
+    std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
+  }
 
+  if (nek_driver_->active()) {
     auto t = nek_driver_->temperature();
     if (nek_driver_->comm_.rank == 0) {
       temperatures_ = t;
@@ -441,21 +437,6 @@ void OpenmcNekDriver::update_cell_densities()
       }
     }
   }
-}
-
-bool OpenmcNekDriver::is_converged()
-{
-  bool converged;
-  // WARNING: Assumes that OpenmcNekDriver rank 0 is in openmc_driver_->comm
-  if (comm_.rank == 0) {
-    double norm;
-    compute_temperature_norm(Norm::LINF, norm, converged);
-
-    std::string msg = "temperature norm_linf: " + std::to_string(norm);
-    comm_.message(msg);
-  }
-  err_chk(comm_.Bcast(&converged, 1, MPI_CXX_BOOL));
-  return converged;
 }
 
 void OpenmcNekDriver::free_mpi_datatypes()

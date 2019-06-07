@@ -24,11 +24,15 @@ public:
   //! \param node  XML node containing settings
   explicit OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node);
 
+  //! Whether the calling rank has access to global coupling fields. Because OpenMC
+  //! and the surrogate driver share the same communicator, and the surrogate driver does not
+  //! split up its computation among multiple ranks, we only need to check that
+  //! both communicators are active (which they always should be).
+  bool has_global_coupling_data() const override;
+
   void set_heat_source() override;
 
   void update_temperature() override;
-
-  bool is_converged() override;
 
   NeutronicsDriver& get_neutronics_driver() const override;
 

@@ -117,6 +117,24 @@ void CoupledDriver::compute_temperature_norm(const CoupledDriver::Norm& n,
   converged = norm < epsilon_;
 }
 
+bool CoupledDriver::is_converged()
+{
+  bool converged;
+
+  // assumes that the rank 0 process is in the communicator that has access
+  // to global coupling data
+  if (comm_.rank == 0) {
+    double norm;
+    this->compute_temperature_norm(Norm::LINF, norm, converged);
+
+    std::string msg = "temperature norm_linf: " + std::to_string(norm);
+    comm_.message(msg);
+  }
+
+  comm_.Bcast(&converged, 1, MPI_CXX_BOOL);
+  return converged;
+}
+
 void CoupledDriver::update_heat_source()
 {
   // Store previous heat source solution if more than one iteration has been performed
