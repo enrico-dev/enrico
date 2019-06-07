@@ -61,6 +61,11 @@ OpenmcNekDriver::~OpenmcNekDriver()
   free_mpi_datatypes();
 }
 
+bool OpenmcNekDriver::has_global_coupling_data() const
+{
+  return openmc_driver_->active() && nek_driver_->active();
+}
+
 NeutronicsDriver& OpenmcNekDriver::get_neutronics_driver() const
 {
   return *openmc_driver_;

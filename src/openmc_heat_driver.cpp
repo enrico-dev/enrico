@@ -28,6 +28,11 @@ OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
   init_heat_source();
 }
 
+bool OpenmcHeatDriver::has_global_coupling_data() const
+{
+  return openmc_driver_->active() && heat_driver_->active();
+}
+
 NeutronicsDriver& OpenmcHeatDriver::get_neutronics_driver() const
 {
   return *openmc_driver_;
