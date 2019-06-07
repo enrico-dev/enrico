@@ -3,7 +3,6 @@
 #include "enrico/driver.h"
 
 #include "gsl/gsl"
-#include "enrico/error.h"
 #include "xtensor/xnorm.hpp"
 
 namespace enrico {

@@ -165,9 +165,10 @@ void OpenmcHeatDriver::init_temperatures()
       }
     }
 
-  if (temperature_ic_ == Initial::heat) {
-    throw std::runtime_error{"Temperature initial conditions from surrogate heat-fluids "
-                             "solver not supported."};
+    if (temperature_ic_ == Initial::heat) {
+      throw std::runtime_error{"Temperature initial conditions from surrogate heat-fluids "
+                               "solver not supported."};
+    }
   }
 }
 
