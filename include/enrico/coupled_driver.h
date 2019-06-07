@@ -43,8 +43,7 @@ public:
   virtual void update_density() {}
 
   //! Check convergence of the coupled solve for the current Picard iteration.
-  //! By default, derived classes will run up to the maximum number of Picard iterations.
-  virtual bool is_converged() { return false; }
+  virtual bool is_converged();
 
   enum class Norm { L1, L2, LINF }; //! Types of norms
 

@@ -443,21 +443,6 @@ void OpenmcNekDriver::update_cell_densities()
   }
 }
 
-bool OpenmcNekDriver::is_converged()
-{
-  bool converged;
-  // WARNING: Assumes that OpenmcNekDriver rank 0 is in openmc_driver_->comm
-  if (comm_.rank == 0) {
-    double norm;
-    compute_temperature_norm(Norm::LINF, norm, converged);
-
-    std::string msg = "temperature norm_linf: " + std::to_string(norm);
-    comm_.message(msg);
-  }
-  err_chk(comm_.Bcast(&converged, 1, MPI_CXX_BOOL));
-  return converged;
-}
-
 void OpenmcNekDriver::free_mpi_datatypes()
 {
   MPI_Type_free(&position_mpi_datatype);

@@ -39,13 +39,6 @@ public:
 
   HeatFluidsDriver & get_heat_driver() const override;
 
-  //! Check convergence based on temperature field and specified epsilon
-  //!
-  //! Currently compares L_inf norm of temperature data between iterations
-  //!
-  //! \return true if L_inf norm of temperature data is less than epsilon
-  bool is_converged() override;
-
   Comm intranode_comm_; //!< The communicator representing intranode ranks
   std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
   std::unique_ptr<NekDriver> nek_driver_;       //!< The Nek5000 driver
