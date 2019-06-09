@@ -113,11 +113,21 @@ protected:
   //! this method does not set any initial values.
   virtual void init_heat_source() {}
 
-  xt::xtensor<double, 1> temperatures_; //!< Current Picard iteration temperature
+  //! Current Picard iteration temperature; this temperature is the temperature
+  //! computed by the thermal-hydraulic solver, and data mappings may result in
+  //! a different temperature actually used in the neutronics solver. For example,
+  //! the entries in this xtensor may be averaged over neutronics cells to give
+  //! the temperature used by the neutronics solver.
+  xt::xtensor<double, 1> temperatures_;
 
   xt::xtensor<double, 1> temperatures_prev_; //!< Previous Picard iteration temperature
 
-  xt::xtensor<double, 1> heat_source_; //!< Current Picard iteration heat source
+  //! Current Picard iteration heat source; this heat source is the heat source
+  //! computed by the neutronics solver, and data mappings may result in a different
+  //! heat source actually used in the heat solver. For example, the entries in this
+  //! xtensor may be averaged over thermal-hydraulics cells to give the heat source
+  //! used by the thermal-hydraulics solver.
+  xt::xtensor<double, 1> heat_source_;
 
   xt::xtensor<double, 1> heat_source_prev_; //!< Previous Picard iteration heat source
 
