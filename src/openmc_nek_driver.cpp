@@ -52,7 +52,7 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
   init_cell_fluid_mask();
 
   init_temperatures();
-  init_elem_densities();
+  init_densities();
   init_heat_source();
 }
 
@@ -252,12 +252,13 @@ void OpenmcNekDriver::init_volumes()
   }
 }
 
-void OpenmcNekDriver::init_elem_densities()
+void OpenmcNekDriver::init_densities()
 {
   if (this->has_global_coupling_data()) {
-    elem_densities_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
+    densities_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
+    densities_prev_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
   }
-  update_elem_densities();
+  update_density();
 }
 
 void OpenmcNekDriver::init_elem_fluid_mask()
@@ -375,47 +376,38 @@ void OpenmcNekDriver::update_temperature()
 
 void OpenmcNekDriver::update_density()
 {
-  // Must be done in this order. Hence, update_density is public, whereas
-  // update_elem_densities and update_cell_densities are private
-  update_elem_densities();
-  update_cell_densities();
-}
+  if (this->has_global_coupling_data()) {
+    std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
+  }
 
-void OpenmcNekDriver::update_elem_densities()
-{
   if (nek_driver_->active()) {
     // On Nek's master rank, d gets global data. On Nek's other ranks, d is empty.
     auto d = nek_driver_->density();
-    // Update elem_densities_ on Nek's master rank only.
     if (nek_driver_->comm_.rank == 0) {
-      elem_densities_ = d;
+      densities_ = d;
     }
+
     // Since OpenMC's and Nek's master ranks are the same, we know that elem_densities_ on
     // OpenMC's master rank were updated.  Now we broadcast to the other OpenMC ranks.
     // TODO: This won't work if the Nek/OpenMC communicators are disjoint
     if (openmc_driver_->active()) {
-      openmc_driver_->comm_.Bcast(elem_densities_.data(), n_global_elem_, MPI_DOUBLE);
-    }
-  }
-}
+      openmc_driver_->comm_.Bcast(densities_.data(), n_global_elem_, MPI_DOUBLE);
 
-void OpenmcNekDriver::update_cell_densities()
-{
-  if (nek_driver_->active() && openmc_driver_->active()) {
-    // Update cell densities for fluid cells.  Use cell_fluid_mask_ to do this
-    // TODO:  Might be able to use xtensor masking to do some of this
-    for (int i = 0; i < openmc_driver_->cells_.size(); ++i) {
-      if (cell_fluid_mask_[i] == 1) {
-        auto& c = openmc_driver_->cells_[i];
-        double average_density = 0.0;
-        double total_vol = 0.0;
-        for (int e : mat_to_elems_.at(c.material_index_)) {
-          average_density += elem_densities_[e] * elem_volumes_[e];
-          total_vol += elem_volumes_[e];
+      // For each OpenMC material in a fluid cell, volume average the densities and set
+      // TODO:  Might be able to use xtensor masking to do some of this
+      for (int i = 0; i < openmc_driver_->cells_.size(); ++i) {
+        if (cell_fluid_mask_[i] == 1) {
+          auto& c = openmc_driver_->cells_[i];
+          double average_density = 0.0;
+          double total_vol = 0.0;
+          for (int e : mat_to_elems_.at(c.material_index_)) {
+            average_density += densities_[e] * elem_volumes_[e];
+            total_vol += elem_volumes_[e];
+          }
+          double density = average_density / total_vol;
+          Ensures(density > 0.0);
+          c.set_density(average_density / total_vol);
         }
-        double density = average_density / total_vol;
-        Ensures(density > 0.0);
-        c.set_density(average_density / total_vol);
       }
     }
   }

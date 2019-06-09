@@ -67,6 +67,13 @@ protected:
   //! to an MPI_Gatherv operation on Nek5000's local elements.
   void init_heat_source() override;
 
+  //! Initialize global density buffers on all OpenMC ranks.
+  //!
+  //! These arrays store the ensity of Nek's global elements. These are **not**
+  //! ordered by Nek's global element indices. Rather, these are ordered according
+  //! to an MPI_Gatherv operation on Nek5000's local elements.
+  void init_densities() override;
+
   //! Initialize global fluid masks on all OpenMC ranks.
   //!
   //! These arrays store the dimensionless source of Nek's global elements. These are **not**
@@ -90,18 +97,8 @@ private:
   //! Initialize global volume buffers for OpenMC ranks
   void init_volumes();
 
-  //! Allocate space for the global volume buffers in OpenMC ranks
-  //! Currently, the density values are uninitialized.
-  void init_elem_densities();
-
   //! Frees the MPI datatypes (currently, only position_mpi_datatype)
   void free_mpi_datatypes();
-
-  //! Updates elem_densities_ from Nek5000's density data
-  void update_elem_densities();
-
-  //! Updates cell_densities_ from elem_densities_.
-  void update_cell_densities();
 
   std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
 
