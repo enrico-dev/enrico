@@ -211,17 +211,17 @@ void OpenmcNekDriver::init_temperatures()
           temperatures_prev_[elem] = T;
         }
       }
-    }
-  } else if (temperature_ic_ == Initial::heat) {
-    // Use whatever temperature is in Nek's internal arrays, either from a restart
-    // file or from a useric fortran routine.
-    update_temperature();
+    } else if (temperature_ic_ == Initial::heat) {
+      // Use whatever temperature is in Nek's internal arrays, either from a restart
+      // file or from a useric fortran routine.
+      update_temperature();
 
-    // update_temperature() begins by saving temperatures_ to temperatures_prev_, and
-    // then changes temperatures_. We need to save temperatures_ here to
-    // temperatures_prev_ manually because init_temperatures() initializes both
-    // temperatures_ and temperatures_prev_.
-    std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
+      // update_temperature() begins by saving temperatures_ to temperatures_prev_, and
+      // then changes temperatures_. We need to save temperatures_ here to
+      // temperatures_prev_ manually because init_temperatures() initializes both
+      // temperatures_ and temperatures_prev_.
+      std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
+    }
   }
 }
 
