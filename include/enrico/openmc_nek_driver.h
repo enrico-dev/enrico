@@ -6,6 +6,7 @@
 #include "enrico/coupled_driver.h"
 #include "enrico/nek_driver.h"
 #include "enrico/openmc_driver.h"
+#include "enrico/message_passing.h"
 #include "mpi.h"
 
 #include <unordered_set>
@@ -48,9 +49,8 @@ public:
   HeatFluidsDriver & get_heat_driver() const override;
 
   Comm intranode_comm_; //!< The communicator representing intranode ranks
-  std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
-  std::unique_ptr<NekDriver> nek_driver_;       //!< The Nek5000 driver
-  int openmc_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in OpenMC comm
+  int openmc_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in OpenMC
+                              //!< comm
 
 protected:
   //! Initialize global temperature buffers on all OpenMC ranks.
@@ -102,6 +102,10 @@ private:
 
   //! Updates cell_densities_ from elem_densities_.
   void update_cell_densities();
+
+  std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
+
+  std::unique_ptr<NekDriver> nek_driver_;       //!< The Nek5000 driver
 
   //! MPI datatype for sending/receiving Position objects.
   MPI_Datatype position_mpi_datatype;

@@ -38,10 +38,6 @@ public:
 
   HeatFluidsDriver & get_heat_driver() const override;
 
-  std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
-
-  std::unique_ptr<SurrogateHeatDriver> heat_driver_; //!< The heat surrogate driver
-
   // Mapping of surrogate rings to OpenMC cell instances and vice versa
   std::unordered_map<int, std::vector<int>> ring_to_cell_inst_;
   std::unordered_map<int, std::vector<int>> cell_inst_to_ring_;
@@ -60,6 +56,10 @@ private:
 
   //! Initialize tallies in OpenMC
   void init_tallies();
+
+  std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
+
+  std::unique_ptr<SurrogateHeatDriver> heat_driver_; //!< The heat surrogate driver
 
   int32_t n_materials_; //! Number of materials in OpenMC model
 };

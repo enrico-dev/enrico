@@ -12,7 +12,8 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
                                const std::vector<double>& z_edges,
                                const std::string& shift_filename,
                                MPI_Comm neutronics_comm,
-                               MPI_Comm th_comm)
+                               MPI_Comm th_comm) :
+  SmrtCoupledDriver()
 {
   d_shift_solver =
     std::make_shared<enrico::ShiftDriver>(assembly, shift_filename, z_edges);
@@ -28,11 +29,6 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
 
     // Get root element
     auto root = doc.document_element();
-
-    // TODO: Belongs to CoupledDriver base class
-    power_ = root.child("power").text().as_double();
-    max_picard_iter_ = root.child("max_picard_iter").text().as_int();
-
     double pressure_bc = root.child("pressure_bc").text().as_double();
 
     d_nek_solver = std::make_shared<NekDriver>(
@@ -167,24 +163,7 @@ void ShiftNekDriver::normalize_power()
 // Currently, this sets up only position_mpi_datatype
 void ShiftNekDriver::init_mpi_datatypes()
 {
-  Position p;
-  int blockcounts[3] = {1, 1, 1};
-  MPI_Datatype types[3] = {MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE};
-  MPI_Aint displs[3];
-
-  // Get displacements of struct members
-  MPI_Get_address(&p.x, &displs[0]);
-  MPI_Get_address(&p.y, &displs[1]);
-  MPI_Get_address(&p.z, &displs[2]);
-
-  // Make the displacements relative
-  displs[2] -= displs[0];
-  displs[1] -= displs[0];
-  displs[0] = 0;
-
-  // Make datatype
-  MPI_Type_create_struct(3, blockcounts, displs, types, &d_position_mpi_type);
-  MPI_Type_commit(&d_position_mpi_type);
+  d_position_mpi_type = define_position_mpi_datatype();
 }
 
 // Free user-defined MPI types
