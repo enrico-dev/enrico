@@ -108,8 +108,26 @@ void ShiftNekDriver::set_heat_source()
 
 void ShiftNekDriver::update_temperature()
 {
-  auto& neutronics = get_neutronics_driver();
-  neutronics.update_temperature(d_temperatures);
+  // Get temperatures from Nek
+  for (int elem = 0; elem < d_th_num_local; ++elem) {
+    // Normalization for incorrect Gauss point averaging
+    constexpr double nek_normalization = 1.0 / 200.0;
+    d_temperatures[elem] =
+      d_nek_solver->temperature_at(elem + 1) * nek_normalization;
+  }
+
+  for (int rank = 0; rank < nemesis::nodes(); ++rank) {
+    if (rank == nemesis::node()) {
+      std::cout << "Temperature on " << rank << ": ";
+      for (auto val : d_temperatures)
+        std::cout << val << " ";
+      std::cout << std::endl;
+    }
+    nemesis::global_barrier();
+  }
+
+  // set temperatures in Shift
+  d_shift_solver->update_temperature(d_temperatures);
 }
 
 // Solve coupled problem by iterating between neutronics and T/H
@@ -127,24 +145,7 @@ void ShiftNekDriver::solve()
     // Solve Nek problem
     heat.solve_step();
 
-    // Get temperatures from Nek
-    for (int elem = 0; elem < d_th_num_local; ++elem) {
-      // Normalization for incorrect Gauss point averaging
-      constexpr double nek_normalization = 1.0 / 200.0;
-      d_temperatures[elem] =
-        heat.temperature_at(elem + 1) * nek_normalization;
-    }
-
-    for (int rank = 0; rank < nemesis::nodes(); ++rank) {
-      if (rank == nemesis::node()) {
-        std::cout << "Temperature on " << rank << ": ";
-        for (auto val : d_temperatures)
-          std::cout << val << " ";
-        std::cout << std::endl;
-      }
-      nemesis::global_barrier();
-    }
-
+    // Set temperature and density in Shift
     update_temperature();
     update_density();
 
