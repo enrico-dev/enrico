@@ -73,8 +73,7 @@ public:
                                  const std::vector<double>& volumes);
 
   // Solve for new power distribution given temperatures and densities
-  void solve(const std::vector<double>& th_temperature,
-             const std::vector<double>& coolant_density,
+  void solve(const std::vector<double>& coolant_density,
              std::vector<double>& power) override;
 
 private:

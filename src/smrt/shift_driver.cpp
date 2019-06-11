@@ -62,12 +62,9 @@ ShiftDriver::ShiftDriver(SP_Assembly_Model assembly,
 //---------------------------------------------------------------------------//
 // Solve
 //---------------------------------------------------------------------------//
-void ShiftDriver::solve(const std::vector<double>& th_temperature,
-                        const std::vector<double>& coolant_density,
-                        std::vector<double>& power)
+void ShiftDriver::solve(const std::vector<double>& coolant_density,
+                         std::vector<double>& power)
 {
-  update_temperature(th_temperature);
-
   // currently does nothing
   update_density(coolant_density);
 

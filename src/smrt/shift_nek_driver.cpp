@@ -106,6 +106,12 @@ void ShiftNekDriver::set_heat_source()
   }
 }
 
+void ShiftNekDriver::update_temperature()
+{
+  auto& neutronics = get_neutronics_driver();
+  neutronics.update_temperature(d_temperatures);
+}
+
 // Solve coupled problem by iterating between neutronics and T/H
 void ShiftNekDriver::solve()
 {
@@ -143,7 +149,7 @@ void ShiftNekDriver::solve()
     update_density();
 
     // Solve Shift problem
-    neutronics.solve(d_temperatures, d_densities, d_powers);
+    neutronics.solve(d_densities, d_powers);
 
     // Apply power normalization
     normalize_power();
