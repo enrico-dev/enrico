@@ -26,6 +26,9 @@ namespace enrico {
 //===========================================================================//
 class ShiftNekDriver : public SmrtCoupledDriver {
 public:
+  //! Set the heat source in the thermal-hydraulics solver
+  void set_heat_source() override;
+
   //! Power in [W]
   double power_;
 

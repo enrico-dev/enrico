@@ -88,16 +88,22 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
 // Destructor
 ShiftNekDriver::~ShiftNekDriver() {}
 
+void ShiftNekDriver::set_heat_source()
+{
+  for (int elem = 0; elem < d_th_num_local; ++elem) {
+    err_chk(d_nek_solver->set_heat_source_at(elem + 1, d_powers[elem]),
+            "Error setting heat source for local element " + std::to_string(elem + 1));
+  }
+}
+
 // Solve coupled problem by iterating between neutronics and T/H
 void ShiftNekDriver::solve()
 {
   // Loop to convergence or fixed iteration count
   for (int iteration = 0; iteration < max_picard_iter_; ++iteration) {
+
     // Set heat source in Nek
-    for (int elem = 0; elem < d_th_num_local; ++elem) {
-      err_chk(d_nek_solver->set_heat_source_at(elem + 1, d_powers[elem]),
-              "Error setting heat source for local element " + std::to_string(elem + 1));
-    }
+    set_heat_source();
 
     // Solve Nek problem
     d_nek_solver->solve_step();

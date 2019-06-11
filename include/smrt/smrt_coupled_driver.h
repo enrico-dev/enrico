@@ -14,6 +14,9 @@ class SmrtCoupledDriver {
 public:
   SmrtCoupledDriver();
 
+  //! Set the heat source in the thermal-hydraulics solver
+  virtual void set_heat_source() {};
+
   double power_; //!< Power in [W]
 
   int max_picard_iter_; //!< Maximum number of Picard iterations
