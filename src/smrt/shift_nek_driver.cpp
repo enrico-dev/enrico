@@ -139,6 +139,9 @@ void ShiftNekDriver::solve()
       nemesis::global_barrier();
     }
 
+    update_temperature();
+    update_density();
+
     // Solve Shift problem
     neutronics.solve(d_temperatures, d_densities, d_powers);
 

@@ -28,6 +28,12 @@ public:
   //! Set the heat source in the thermal-hydraulics solver
   virtual void set_heat_source() {};
 
+  //! Update the temperature for the neutronics solver
+  virtual void update_temperature() {}
+
+  //! Update the density for the neutronics solver
+  virtual void update_density() {}
+
   double power_; //!< Power in [W]
 
   int max_picard_iter_; //!< Maximum number of Picard iterations
