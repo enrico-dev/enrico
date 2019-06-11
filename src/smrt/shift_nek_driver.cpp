@@ -85,8 +85,10 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
   }
 }
 
-// Destructor
-ShiftNekDriver::~ShiftNekDriver() {}
+ShiftNekDriver::~ShiftNekDriver()
+{
+  free_mpi_datatypes();
+}
 
 Neutronics_Solver& get_neutronics_driver() const
 {
@@ -170,8 +172,6 @@ void ShiftNekDriver::solve()
       nemesis::global_barrier();
     }
   }
-
-  this->free_mpi_datatypes();
 }
 
 //
