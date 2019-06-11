@@ -1,6 +1,9 @@
 #ifndef SMRT_COUPLED_DRIVER_H
 #define SMRT_COUPLED_DRIVER_H
 
+#include "Neutronics_Solver.h"
+#include "enrico/heat_fluids_driver.h"
+
 namespace enrico {
 
 /**
@@ -13,6 +16,14 @@ namespace enrico {
 class SmrtCoupledDriver {
 public:
   SmrtCoupledDriver();
+
+  //! Get reference to neutronics driver
+  //! \return reference to driver
+  Neutronics_Solver& get_neutronics_driver() const = 0;
+
+  //! Get reference to thermal-fluids driver
+  //! \return reference to driver
+  HeatFluidsDriver& get_heat_driver() const = 0;
 
   //! Set the heat source in the thermal-hydraulics solver
   virtual void set_heat_source() {};

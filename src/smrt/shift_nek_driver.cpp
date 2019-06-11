@@ -88,6 +88,16 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
 // Destructor
 ShiftNekDriver::~ShiftNekDriver() {}
 
+Neutronics_Solver& get_neutronics_driver() const
+{
+  return *d_shift_solver;
+}
+
+HeatFluidsDriver& get_heat_driver() const
+{
+  return *d_nek_solver;
+}
+
 void ShiftNekDriver::set_heat_source()
 {
   for (int elem = 0; elem < d_th_num_local; ++elem) {
@@ -99,6 +109,9 @@ void ShiftNekDriver::set_heat_source()
 // Solve coupled problem by iterating between neutronics and T/H
 void ShiftNekDriver::solve()
 {
+  auto& neutronics = get_neutronics_driver();
+  auto& heat = get_heat_driver();
+
   // Loop to convergence or fixed iteration count
   for (int iteration = 0; iteration < max_picard_iter_; ++iteration) {
 
@@ -106,14 +119,14 @@ void ShiftNekDriver::solve()
     set_heat_source();
 
     // Solve Nek problem
-    d_nek_solver->solve_step();
+    heat.solve_step();
 
     // Get temperatures from Nek
     for (int elem = 0; elem < d_th_num_local; ++elem) {
       // Normalization for incorrect Gauss point averaging
       constexpr double nek_normalization = 1.0 / 200.0;
       d_temperatures[elem] =
-        d_nek_solver->temperature_at(elem + 1) * nek_normalization;
+        heat.temperature_at(elem + 1) * nek_normalization;
     }
 
     for (int rank = 0; rank < nemesis::nodes(); ++rank) {
@@ -127,7 +140,7 @@ void ShiftNekDriver::solve()
     }
 
     // Solve Shift problem
-    d_shift_solver->solve(d_temperatures, d_densities, d_powers);
+    neutronics.solve(d_temperatures, d_densities, d_powers);
 
     // Apply power normalization
     normalize_power();

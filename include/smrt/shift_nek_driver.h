@@ -29,6 +29,10 @@ public:
   //! Set the heat source in the thermal-hydraulics solver
   void set_heat_source() override;
 
+  Neutronics_Solver& get_neutronics_driver() const override;
+
+  HeatFluidsDriver& get_heat_driver() const override;
+
   //! Power in [W]
   double power_;
 
