@@ -62,12 +62,8 @@ ShiftDriver::ShiftDriver(SP_Assembly_Model assembly,
 //---------------------------------------------------------------------------//
 // Solve
 //---------------------------------------------------------------------------//
-void ShiftDriver::solve(const std::vector<double>& coolant_density,
-                         std::vector<double>& power)
+void ShiftDriver::solve(std::vector<double>& power)
 {
-  // currently does nothing
-  update_density(coolant_density);
-
   // Rebuild problem (loading any new data needed and run transport
   d_driver->rebuild();
   d_driver->run();

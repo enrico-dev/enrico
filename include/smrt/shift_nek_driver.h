@@ -30,6 +30,8 @@ public:
 
   void update_temperature() override;
 
+  void update_density() override;
+
   Neutronics_Solver& get_neutronics_driver() const override;
 
   HeatFluidsDriver& get_heat_driver() const override;
