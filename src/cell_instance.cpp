@@ -53,6 +53,13 @@ void CellInstance::set_density(double rho) const
   err_chk(openmc_material_set_density(material_index_, rho, "g/cm3"));
 }
 
+double CellInstance::get_density() const
+{
+  double rho;
+  err_chk(openmc_material_get_density(material_index));
+  return rho;
+}
+
 bool CellInstance::operator==(const CellInstance& other) const
 {
   return index_ == other.index_ && instance_ == other.instance_;
