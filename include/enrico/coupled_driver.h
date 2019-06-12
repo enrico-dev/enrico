@@ -103,6 +103,10 @@ public:
   //! temperatures in the neutronics input file.
   Initial temperature_ic_{Initial::neutronics};
 
+  //! Where to obtain the density initial condition from. Defaults to the densities
+  //! in the neutronics input file.
+  Initial density_ic_{Initial::neutronics};
+
 protected:
   //! Initialize current and previous Picard temperature fields
   virtual void init_temperatures() {}

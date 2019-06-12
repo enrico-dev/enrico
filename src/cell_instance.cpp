@@ -56,7 +56,7 @@ void CellInstance::set_density(double rho) const
 double CellInstance::get_density() const
 {
   double rho;
-  err_chk(openmc_material_get_density(material_index));
+  err_chk(openmc_material_get_density(material_index_, &rho));
   return rho;
 }
 

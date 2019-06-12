@@ -34,6 +34,18 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
     }
   }
 
+  if (node.child("density_ic")) {
+    auto s = std::string{node.child_value("density_ic")};
+
+    if (s == "neutronics") {
+      density_ic_ = Initial::neutronics;
+    } else if (s == "heat") {
+      density_ic_ = Initial::heat;
+    } else {
+      throw std::runtime_error{"Invalid value for <density_ic>"};
+    }
+  }
+
   Expects(power_ > 0);
   Expects(max_timesteps_ >= 0);
   Expects(max_picard_iter_ >= 0);

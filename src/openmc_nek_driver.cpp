@@ -257,8 +257,35 @@ void OpenmcNekDriver::init_densities()
   if (this->has_global_coupling_data()) {
     densities_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
     densities_prev_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
+
+    if (density_ic_ == Initial::neutronics) {
+      // Loop over the OpenMC cells, then loop over the global Nek elements
+      // corresponding to that cell and assign the OpenMC cell density to
+      // the correct index in the densities_ array. This mapping assumes that
+      // each Nek element is fully contained within an OpenMC cell, i.e. Nek
+      // elements are not split between multiple OpenMC cells.
+      for (const auto& c: openmc_driver_->cells_) {
+        const auto& global_elems = mat_to_elems_.at(c.material_index_);
+
+        for (int elem: global_elems) {
+          double rho = c.get_density();
+          densities_[elem] = rho;
+          densities_prev_[elem] = rho;
+        }
+      }
+    }
+    else if (density_ic_ == Initial::heat) {
+      // Use whatever density is in Nek's internal arrays, either from a restart
+      // file or from a useric fortran routine
+      update_density();
+
+      // update_density() begins by saving densities_ to densities_prev_, and
+      // then changes densities_. We need to save densities_ here to densities_prev_
+      // manually because init_densities() initializes both densities_ and
+      // densities_prev_
+      std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
+    }
   }
-  update_density();
 }
 
 void OpenmcNekDriver::init_elem_fluid_mask()
