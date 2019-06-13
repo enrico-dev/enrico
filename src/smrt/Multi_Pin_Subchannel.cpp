@@ -48,7 +48,7 @@ Multi_Pin_Subchannel::Multi_Pin_Subchannel(SP_Assembly assembly,
     d_mdots[channel] = mdot_per_area * d_areas[channel];
 
   auto inlet_temp = parameters->get("inlet_temperature", 565.0);
-  auto exit_press = parameters->get("exit_pressure", 1.52e7);
+  auto exit_press = parameters->get("exit_pressure", 15.2);
 
   // Build single channel solver
   d_pin_subchannel = std::make_shared<Single_Pin_Subchannel>(parameters, dz);

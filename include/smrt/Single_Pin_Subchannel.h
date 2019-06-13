@@ -83,11 +83,11 @@ public:
     d_T_inlet = T;
   }
 
-  // Set exit pressure (Pa)
+  // Set exit pressure (MPa)
   void set_exit_pressure(double p)
   {
     Expects(p > 0);
-    Expects(p < 2.2e7);
+    Expects(p < 22.0); // TODO: Where does this come from?
     d_p_exit = p;
   }
 
