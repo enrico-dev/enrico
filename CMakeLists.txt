@@ -52,6 +52,8 @@ add_subdirectory(vendor/gsl)
 # IAPWS Correlations
 # =============================================================================
 add_library(iapws vendor/iapws/iapws.cpp)
+target_link_libraries(iapws PRIVATE gsl-lite)
+target_compile_definitions(iapws PRIVATE GSL_THROW_ON_CONTRACT_VIOLATION)
 
 # =============================================================================
 # Heat transfer surrogate
