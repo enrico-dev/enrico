@@ -10,9 +10,6 @@
 #include "Teuchos_SerialDenseSolver.hpp"
 #include "Teuchos_SerialDenseVector.hpp"
 
-// SCALE includes
-#include "Nemesis/harness/DBC.hh"
-
 // vendored includes
 #include <gsl/gsl>
 
