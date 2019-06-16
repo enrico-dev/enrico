@@ -54,19 +54,28 @@ Multi_Pin_Subchannel::Multi_Pin_Subchannel(SP_Assembly assembly,
   d_pin_subchannel = std::make_shared<Single_Pin_Subchannel>(parameters, dz);
   d_pin_subchannel->set_inlet_temperature(inlet_temp);
   d_pin_subchannel->set_exit_pressure(exit_press);
+
+  // set up solution arrays
+  generate_arrays();
+}
+
+void Multi_Pin_Subchannel::generate_arrays()
+{
+  int pins_x = d_assembly->num_pins_x();
+  int pins_y = d_assembly->num_pins_y();
+
+  pin_temps = xt::empty<double>({pins_x * pins_y * d_Nz});
 }
 
 //---------------------------------------------------------------------------//
 // Solve subchannel equations over all pins
 //---------------------------------------------------------------------------//
 void Multi_Pin_Subchannel::solve(const std::vector<double>& pin_powers,
-                                 std::vector<double>& pin_temps,
                                  std::vector<double>& pin_densities)
 {
   int pins_x = d_assembly->num_pins_x();
   int pins_y = d_assembly->num_pins_y();
   Expects(pin_powers.size() == pins_x * pins_y * d_Nz);
-  Expects(pin_temps.size() == pins_x * pins_y * d_Nz);
   Expects(pin_densities.size() == pins_x * pins_y * d_Nz);
 
   // Convenience function to compute pin index
