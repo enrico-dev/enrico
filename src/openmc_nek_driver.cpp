@@ -305,7 +305,7 @@ void OpenmcNekDriver::init_elem_fluid_mask()
     // On Nek's master rank, fm gets global data. On Nek's other ranks, fm is empty
     auto fm = nek_driver_->fluid_mask();
     // Initialize elem_fluid_mask_ on Nek's master rank only
-    if (nek_driver_->comm_.rank == 0) {
+    if (nek_driver_->has_coupling_data()) {
       elem_fluid_mask_ = fm;
     }
     // Since OpenMC's and Nek's master ranks are the same, we know that elem_fluid_mask_
@@ -418,7 +418,9 @@ void OpenmcNekDriver::update_density()
   if (nek_driver_->active()) {
     // On Nek's master rank, d gets global data. On Nek's other ranks, d is empty.
     auto d = nek_driver_->density();
-    if (nek_driver_->comm_.rank == 0) {
+
+    // Update elem_densities_ on Nek's master rank only.
+    if (nek_driver_->has_coupling_data()) {
       densities_ = d;
     }
 
