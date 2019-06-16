@@ -112,8 +112,9 @@ void Multiphysics_Driver::solve()
   for (int it = 0; it < d_max_iters; ++it) {
     old_power = d_power;
 
-    d_subchannel->solve(d_power, d_coolant_density);
+    d_subchannel->solve(d_power);
     d_coolant_temperature = d_subchannel->temperature();
+    d_coolant_density = d_subchannel->density();
 
     d_conduction->solve(d_power, d_coolant_temperature, d_fuel_temperature);
     d_neutronics->solve(d_fuel_temperature, d_coolant_density, d_power);

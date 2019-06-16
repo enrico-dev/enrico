@@ -35,6 +35,8 @@ public:
 
   virtual std::vector<double> temperature() const { return pin_temps; }
 
+  virtual std::vector<double> density() const { return pin_densities; }
+
 private:
   // >>> DATA
   SP_Assembly d_assembly;
@@ -55,6 +57,10 @@ private:
   //! product of the number of pins by the number of axial cells
   std::vector<double> pin_temps;
 
+  //! coolant density in [g/cm^3] for each channel, of total length given by the
+  //! product of the number of pins by the number of axial cells
+  std::vector<double> pin_densities;
+
 public:
   // Constructor
   Multi_Pin_Subchannel(SP_Assembly assembly,
@@ -62,8 +68,7 @@ public:
                        const std::vector<double>& dz);
 
   // Solve
-  void solve(const std::vector<double>& power,
-             std::vector<double>& channel_density);
+  void solve(const std::vector<double>& power);
 
 private:
   //! Set up the sizes of solution arrays
