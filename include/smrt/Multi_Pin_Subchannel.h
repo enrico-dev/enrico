@@ -70,6 +70,9 @@ public:
   // Solve
   void solve(const std::vector<double>& power);
 
+  //! heat source
+  std::vector<double> pin_powers;
+
 private:
   //! Set up the sizes of solution arrays
   void generate_arrays();

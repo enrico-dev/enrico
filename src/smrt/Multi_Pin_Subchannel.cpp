@@ -64,18 +64,17 @@ void Multi_Pin_Subchannel::generate_arrays()
   int pins_x = d_assembly->num_pins_x();
   int pins_y = d_assembly->num_pins_y();
 
-  pin_temps = xt::empty<double>({pins_x * pins_y * d_Nz});
-  pin_densities = xt::empty<double>({pins_x * pins_y * d_Nz});
+  pin_temps.resize(pins_x * pins_y * d_Nz);
+  pin_densities.resize(pins_x * pins_y * d_Nz);
+  pin_powers.resize(pins_x * pins_y * d_Nz);
 }
 
 //---------------------------------------------------------------------------//
 // Solve subchannel equations over all pins
 //---------------------------------------------------------------------------//
-void Multi_Pin_Subchannel::solve(const std::vector<double>& pin_powers)
+void Multi_Pin_Subchannel::solve(const std::vector<double>& powers)
 {
-  int pins_x = d_assembly->num_pins_x();
-  int pins_y = d_assembly->num_pins_y();
-  Expects(pin_powers.size() == pins_x * pins_y * d_Nz);
+  pin_powers = powers;
 
   // Convenience function to compute pin index
   auto pin_index = [pins_x, pins_y](int ix, int iy, int iz) {
