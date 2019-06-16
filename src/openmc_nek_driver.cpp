@@ -368,18 +368,9 @@ void OpenmcNekDriver::set_heat_source()
   }
 }
 
-void OpenmcNekDriver::update_temperature()
+void OpenmcNekDriver::set_temperature()
 {
-  if (this->has_global_coupling_data()) {
-    std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
-  }
-
   if (nek_driver_->active()) {
-    auto t = nek_driver_->temperature();
-    if (nek_driver_->comm_.rank == 0) {
-      temperatures_ = t;
-    }
-
     if (openmc_driver_->active()) {
       // Broadcast global_element_temperatures onto all the OpenMC procs
       openmc_driver_->comm_.Bcast(temperatures_.data(), n_global_elem_, MPI_DOUBLE);

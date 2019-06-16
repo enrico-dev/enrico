@@ -42,7 +42,10 @@ public:
   virtual void set_heat_source() {}
 
   //! Update the temperature for the neutronics solver
-  virtual void update_temperature() {}
+  virtual void update_temperature() final;
+
+  //! Set the temperature in the neutronics solver
+  virtual void set_temperature() {};
 
   //! Update the density for the neutronics solver
   virtual void update_density() {}
@@ -91,8 +94,13 @@ public:
   //! Picard iteration convergence tolerance, defaults to 1e-3 if not set
   double epsilon_{1e-3};
 
-  //! Constant relaxation factor, defaults to 1.0 (standard Picard) if not set
+  //! Constant relaxation factor for the heat source,
+  //! defaults to 1.0 (standard Picard) if not set
   double alpha_{1.0};
+
+  //! Constant relaxation factor for the temperature, defaults to the
+  //! relaxation aplied to the heat source if not set
+  double alpha_T_{alpha_};
 
   //! Enumeration of available temperature initial condition specifications.
   //! 'neutronics' sets temperature condition from the neutronics input files,
