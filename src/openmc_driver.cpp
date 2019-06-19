@@ -66,7 +66,8 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
   return heat;
 }
 
-void OpenmcDriver::normalize_heat_source(xt::xtensor<double, 1>& heat_source, double power) const
+void OpenmcDriver::normalize_heat_source(xt::xtensor<double, 1>& heat_source,
+                                         double power) const
 {
   // Get total heat production [J/source]
   double total_heat = xt::sum(heat_source)();
@@ -94,7 +95,7 @@ void OpenmcDriver::solve_step()
 
 void OpenmcDriver::write_step(int timestep, int iteration)
 {
-  std::string filename{"openmc_" + std::to_string(timestep) + "_" +
+  std::string filename{"openmc_t" + std::to_string(timestep) + "_i" +
                        std::to_string(iteration) + ".h5"};
   err_chk(openmc_statepoint_write(filename.c_str(), nullptr));
 }

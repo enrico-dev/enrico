@@ -312,8 +312,8 @@ xtensor<double, 1> SurrogateVtkWriter::points_for_pin(double x, double y)
   xtensor<double, 1> points_out = points_;
 
   // translate points to pin center
-  xt::view(points_out, xt::range(0, _, 3)) += y;
-  xt::view(points_out, xt::range(1, _, 3)) += x;
+  xt::view(points_out, xt::range(0, _, 3)) += x;
+  xt::view(points_out, xt::range(1, _, 3)) += y;
 
   return points_out;
 }
@@ -404,10 +404,6 @@ xtensor<double, 3> SurrogateVtkWriter::clad_points()
     xt::view(pnts_out, i, xt::all(), 1) = y;
     xt::view(pnts_out, i, xt::all(), 2) = surrogate_.z_[i];
   }
-
-  // translate to pin center
-  xt::view(pnts_out, 0) += surrogate_.pin_centers_(0, 0);
-  xt::view(pnts_out, 1) += surrogate_.pin_centers_(0, 1);
 
   return pnts_out;
 }
