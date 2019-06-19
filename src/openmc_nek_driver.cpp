@@ -265,15 +265,20 @@ void OpenmcNekDriver::init_densities()
       // each Nek element is fully contained within an OpenMC cell, i.e. Nek
       // elements are not split between multiple OpenMC cells.
       for (int i = 0; i < openmc_driver_->cells_.size(); ++i) {
-        if (cell_fluid_mask_[i] == 1) {
-          auto& c = openmc_driver_->cells_[i];
-          const auto& global_elems = mat_to_elems_.at(c.material_index_);
+        auto& c = openmc_driver_->cells_[i];
+        const auto& global_elems = mat_to_elems_.at(c.material_index_);
 
+        if (cell_fluid_mask_[i] == 1) {
           for (int elem: global_elems) {
             double rho = c.get_density();
             densities_[elem] = rho;
             densities_prev_[elem] = rho;
           }
+        } else {
+            for (int elem: global_elems) {
+              densities_[elem] = 0.0;
+              densities_prev_[elem] = 0.0;
+            }
         }
       }
     }

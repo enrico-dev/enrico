@@ -125,11 +125,6 @@ private:
   //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
   xt::xtensor<double, 1> elem_volumes_;
 
-  //! The dimensionless densities of Nek's global elements
-  //! These are **not** ordered by Nek's global element indices.  Rather, these are
-  //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
-  xt::xtensor<double, 1> elem_densities_;
-
   //! Map that gives a list of Nek element global indices for a given OpenMC material
   //! index. The Nek global element indices refer to indices defined by the MPI_Gatherv
   //! operation, and do not reflect Nek's internal global element indexing.
