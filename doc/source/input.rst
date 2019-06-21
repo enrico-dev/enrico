@@ -71,6 +71,19 @@ heat-fluids solver.
 
 *Default*: neutronics
 
+``<density_ic>``
+--------------------
+
+The initial density distribution can be determined either from the
+neutronics solver or the heat-fluids solver. A value of "neutronics" will use
+the densities specified in the model for the neutronics solver whereas a
+value of "heat" will use the densities specified in the model for the
+heat-fluids solver. Note that this density initial condition strictly refers
+to the fluid density - the solid density is constant throughout the simulation,
+and is unchanged from the value used in the neutronics input.
+
+*Default*: neutronics
+
 ``<pressure_bc>``
 --------------
 
