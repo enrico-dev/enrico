@@ -84,8 +84,8 @@ void OpenmcNekDriver::init_mpi_datatypes()
 void OpenmcNekDriver::init_mappings()
 {
   if (this->has_global_coupling_data()) {
-    elem_centroids_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
-    elem_fluid_mask_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
+    elem_centroids_.resize(n_global_elem_);
+    elem_fluid_mask_.resize({n_global_elem_});
   }
 
   if (nek_driver_->active()) {
@@ -269,20 +269,19 @@ void OpenmcNekDriver::init_densities()
         const auto& global_elems = mat_to_elems_.at(c.material_index_);
 
         if (cell_fluid_mask_[i] == 1) {
-          for (int elem: global_elems) {
+          for (int elem : global_elems) {
             double rho = c.get_density();
             densities_[elem] = rho;
             densities_prev_[elem] = rho;
           }
         } else {
-            for (int elem: global_elems) {
-              densities_[elem] = 0.0;
-              densities_prev_[elem] = 0.0;
-            }
+          for (int elem : global_elems) {
+            densities_[elem] = 0.0;
+            densities_prev_[elem] = 0.0;
+          }
         }
       }
-    }
-    else if (density_ic_ == Initial::heat) {
+    } else if (density_ic_ == Initial::heat) {
       // Use whatever density is in Nek's internal arrays, either from a restart
       // file or from a useric fortran routine
       update_density();
