@@ -305,7 +305,7 @@ void OpenmcNekDriver::init_elem_fluid_mask()
     // On Nek's master rank, fm gets global data. On Nek's other ranks, fm is empty
     auto fm = nek_driver_->fluid_mask();
     // Initialize elem_fluid_mask_ on Nek's master rank only
-    if (nek_driver_->comm_.rank == 0) {
+    if (nek_driver_->has_coupling_data()) {
       elem_fluid_mask_ = fm;
     }
     // Since OpenMC's and Nek's master ranks are the same, we know that elem_fluid_mask_
@@ -368,18 +368,9 @@ void OpenmcNekDriver::set_heat_source()
   }
 }
 
-void OpenmcNekDriver::update_temperature()
+void OpenmcNekDriver::set_temperature()
 {
-  if (this->has_global_coupling_data()) {
-    std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
-  }
-
   if (nek_driver_->active()) {
-    auto t = nek_driver_->temperature();
-    if (nek_driver_->comm_.rank == 0) {
-      temperatures_ = t;
-    }
-
     if (openmc_driver_->active()) {
       // Broadcast global_element_temperatures onto all the OpenMC procs
       openmc_driver_->comm_.Bcast(temperatures_.data(), n_global_elem_, MPI_DOUBLE);
@@ -418,7 +409,9 @@ void OpenmcNekDriver::update_density()
   if (nek_driver_->active()) {
     // On Nek's master rank, d gets global data. On Nek's other ranks, d is empty.
     auto d = nek_driver_->density();
-    if (nek_driver_->comm_.rank == 0) {
+
+    // Update elem_densities_ on Nek's master rank only.
+    if (nek_driver_->has_coupling_data()) {
       densities_ = d;
     }
 

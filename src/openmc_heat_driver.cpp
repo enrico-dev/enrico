@@ -214,14 +214,10 @@ void OpenmcHeatDriver::set_heat_source()
   }
 }
 
-void OpenmcHeatDriver::update_temperature()
+void OpenmcHeatDriver::set_temperature()
 {
-  std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
-
   const auto& r_fuel = heat_driver_->r_grid_fuel_;
   const auto& r_clad = heat_driver_->r_grid_clad_;
-
-  temperatures_ = heat_driver_->temperature();
 
   // For each OpenMC material, volume average temperatures and set
   for (int i = 0; i < openmc_driver_->cells_.size(); ++i) {

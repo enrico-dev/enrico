@@ -40,7 +40,7 @@ public:
 
   void set_heat_source() override;
 
-  void update_temperature() override;
+  void set_temperature() override;
 
   void update_density() override;
 
