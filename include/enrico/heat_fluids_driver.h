@@ -15,6 +15,11 @@ public:
 
   virtual ~HeatFluidsDriver() = default;
 
+  //! Whether the calling rank has access to the fields returned
+  //! by the 'temperature', 'density', and 'fluid_mask' methods
+  //! \return Whether calling rank has access
+  virtual bool has_coupling_data() const = 0;
+
   //! Get the temperature in each region
   //! \return Temperature in each region as [K]
   virtual xt::xtensor<double, 1> temperature() const = 0;

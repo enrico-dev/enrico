@@ -21,6 +21,8 @@ public:
   //! \param node  XML node containing settings for surrogate
   explicit SurrogateHeatDriver(MPI_Comm comm, double pressure_bc, pugi::xml_node node);
 
+  bool has_coupling_data() const final { return true; }
+
   //! Solves the heat-fluids surrogate solver
   void solve_step() final;
 
