@@ -33,6 +33,10 @@ public:
   using SP_Pin_Subchannel = std::shared_ptr<Single_Pin_Subchannel>;
   //@}
 
+  virtual std::vector<double> temperature() const { return d_pin_temps; }
+
+  virtual std::vector<double> density() const { return d_pin_densities; }
+
 private:
   // >>> DATA
   SP_Assembly d_assembly;
@@ -49,6 +53,14 @@ private:
 
   SP_Pin_Subchannel d_pin_subchannel;
 
+  //! coolant temperature in [K] for each channel, of total length given by the
+  //! product of the number of pins by the number of axial cells
+  std::vector<double> d_pin_temps;
+
+  //! coolant density in [g/cm^3] for each channel, of total length given by the
+  //! product of the number of pins by the number of axial cells
+  std::vector<double> d_pin_densities;
+
 public:
   // Constructor
   Multi_Pin_Subchannel(SP_Assembly assembly,
@@ -56,11 +68,15 @@ public:
                        const std::vector<double>& dz);
 
   // Solve
-  void solve(const std::vector<double>& power,
-             std::vector<double>& channel_temp,
-             std::vector<double>& channel_density);
+  void solve(const std::vector<double>& power);
+
+  //! heat source
+  std::vector<double> d_pin_powers;
 
 private:
+  //! Set up the sizes of solution arrays
+  void generate_arrays();
+
   int channel_index(int ix, int iy) const
   {
     Expects(ix < d_Nx);
