@@ -64,9 +64,9 @@ void Multi_Pin_Subchannel::generate_arrays()
   int pins_x = d_assembly->num_pins_x();
   int pins_y = d_assembly->num_pins_y();
 
-  pin_temps.resize(pins_x * pins_y * d_Nz);
-  pin_densities.resize(pins_x * pins_y * d_Nz);
-  pin_powers.resize(pins_x * pins_y * d_Nz);
+  d_pin_temps.resize(pins_x * pins_y * d_Nz);
+  d_pin_densities.resize(pins_x * pins_y * d_Nz);
+  d_pin_powers.resize(pins_x * pins_y * d_Nz);
 }
 
 //---------------------------------------------------------------------------//
@@ -74,7 +74,7 @@ void Multi_Pin_Subchannel::generate_arrays()
 //---------------------------------------------------------------------------//
 void Multi_Pin_Subchannel::solve(const std::vector<double>& powers)
 {
-  pin_powers = powers;
+  d_pin_powers = powers;
 
   // Convenience function to compute pin index
   auto pin_index = [pins_x, pins_y](int ix, int iy, int iz) {
@@ -86,8 +86,8 @@ void Multi_Pin_Subchannel::solve(const std::vector<double>& powers)
   };
 
   // Solve in each channel
-  std::fill(pin_temps.begin(), pin_temps.end(), 0.0);
-  std::fill(pin_densities.begin(), pin_densities.end(), 0.0);
+  std::fill(d_pin_temps.begin(), d_pin_temps.end(), 0.0);
+  std::fill(d_pin_densities.begin(), d_pin_densities.end(), 0.0);
   std::vector<double> channel_power(d_Nz);
   std::vector<double> channel_temp(d_Nz);
   std::vector<double> channel_density(d_Nz);
@@ -99,19 +99,19 @@ void Multi_Pin_Subchannel::solve(const std::vector<double>& powers)
 
         // Upper right
         if (ix < pins_x && iy < pins_y)
-          channel_power[iz] += pin_powers[pin_index(ix, iy, iz)];
+          channel_power[iz] += d_pin_powers[pin_index(ix, iy, iz)];
 
         // Upper left
         if (ix > 0 && iy < pins_y)
-          channel_power[iz] += pin_powers[pin_index(ix - 1, iy, iz)];
+          channel_power[iz] += d_pin_powers[pin_index(ix - 1, iy, iz)];
 
         // Lower right
         if (ix < pins_x && iy > 0)
-          channel_power[iz] += pin_powers[pin_index(ix, iy - 1, iz)];
+          channel_power[iz] += d_pin_powers[pin_index(ix, iy - 1, iz)];
 
         // Lower left
         if (ix > 0 && iy > 0)
-          channel_power[iz] += pin_powers[pin_index(ix - 1, iy - 1, iz)];
+          channel_power[iz] += d_pin_powers[pin_index(ix - 1, iy - 1, iz)];
 
         channel_power[iz] *= 0.25;
       }
@@ -127,29 +127,29 @@ void Multi_Pin_Subchannel::solve(const std::vector<double>& powers)
         // Upper right
         if (ix < pins_x && iy < pins_y) {
           int idx = pin_index(ix, iy, iz);
-          pin_temps[idx] += 0.25 * channel_temp[iz];
-          pin_densities[idx] += 0.25 * channel_density[iz];
+          d_pin_temps[idx] += 0.25 * channel_temp[iz];
+          d_pin_densities[idx] += 0.25 * channel_density[iz];
         }
 
         // Upper left
         if (ix > 0 && iy < pins_y) {
           int idx = pin_index(ix - 1, iy, iz);
-          pin_temps[idx] += 0.25 * channel_temp[iz];
-          pin_densities[idx] += 0.25 * channel_density[iz];
+          d_pin_temps[idx] += 0.25 * channel_temp[iz];
+          d_pin_densities[idx] += 0.25 * channel_density[iz];
         }
 
         // Lower right
         if (ix < pins_x && iy > 0) {
           int idx = pin_index(ix, iy - 1, iz);
-          pin_temps[idx] += 0.25 * channel_temp[iz];
-          pin_densities[idx] += 0.25 * channel_density[iz];
+          d_pin_temps[idx] += 0.25 * channel_temp[iz];
+          d_pin_densities[idx] += 0.25 * channel_density[iz];
         }
 
         // Lower left
         if (ix > 0 && iy > 0) {
           int idx = pin_index(ix - 1, iy - 1, iz);
-          pin_temps[idx] += 0.25 * channel_temp[iz];
-          pin_densities[idx] += 0.25 * channel_density[iz];
+          d_pin_temps[idx] += 0.25 * channel_temp[iz];
+          d_pin_densities[idx] += 0.25 * channel_density[iz];
         }
       }
     }
