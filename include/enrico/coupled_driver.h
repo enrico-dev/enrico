@@ -103,9 +103,16 @@ public:
   //! temperatures in the neutronics input file.
   Initial temperature_ic_{Initial::neutronics};
 
+  //! Where to obtain the density initial condition from. Defaults to the densities
+  //! in the neutronics input file.
+  Initial density_ic_{Initial::neutronics};
+
 protected:
   //! Initialize current and previous Picard temperature fields
   virtual void init_temperatures() {}
+
+  //! Initialize current and previous Picard density fields
+  virtual void init_densities() {}
 
   //! Initialize current and previous Picard heat source fields. Note that
   //! because the neutronics solver is assumed to run first, that no initial
@@ -113,11 +120,30 @@ protected:
   //! this method does not set any initial values.
   virtual void init_heat_source() {}
 
-  xt::xtensor<double, 1> temperatures_; //!< Current Picard iteration temperature
+  //! Current Picard iteration temperature; this temperature is the temperature
+  //! computed by the thermal-hydraulic solver, and data mappings may result in
+  //! a different temperature actually used in the neutronics solver. For example,
+  //! the entries in this xtensor may be averaged over neutronics cells to give
+  //! the temperature used by the neutronics solver.
+  xt::xtensor<double, 1> temperatures_;
 
   xt::xtensor<double, 1> temperatures_prev_; //!< Previous Picard iteration temperature
 
-  xt::xtensor<double, 1> heat_source_; //!< Current Picard iteration heat source
+  //! Current Picard iteration density; this density is the density
+  //! computed by the thermal-hydraulic solver, and data mappings may result in
+  //! a different density actually used in the neutronics solver. For example,
+  //! the entries in this xtensor may be averaged over neutronics cells to give
+  //! the density used by the neutronics solver.
+  xt::xtensor<double, 1> densities_;
+
+  xt::xtensor<double, 1> densities_prev_; //!< Previous Picard iteration density
+
+  //! Current Picard iteration heat source; this heat source is the heat source
+  //! computed by the neutronics solver, and data mappings may result in a different
+  //! heat source actually used in the heat solver. For example, the entries in this
+  //! xtensor may be averaged over thermal-hydraulics cells to give the heat source
+  //! used by the thermal-hydraulics solver.
+  xt::xtensor<double, 1> heat_source_;
 
   xt::xtensor<double, 1> heat_source_prev_; //!< Previous Picard iteration heat source
 

@@ -34,6 +34,10 @@ public:
   //! \return cell temperature in [K]
   double get_temperature() const;
 
+  //! Get the density of this cell
+  //! \return cell density in [g/cm^3]
+  double get_density() const;
+
   //! Check for equality
   bool operator==(const CellInstance& other) const;
 
