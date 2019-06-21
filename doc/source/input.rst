@@ -60,6 +60,21 @@ Choosing :math:`\alpha = 1` corresponds to no underrelaxation.
 
 *Default*: 1.0
 
+``<alpha_T>``
+-------------
+
+Underrelaxation parameter used on a temperature update. Let :math:`T_i` be the
+temperature at iteration :math:`i` and :math:`\tilde{T}_{i+1}` be next estimate
+of the temperature as determined by the neutronics solver. Then, the temperature
+for iteration :math:`i + 1` is:
+
+.. math::
+    T_{i+1} = (1 - \alpha_T) T_i + \alpha_T \tilde{T}_{i+1}
+
+Choosing :math:`\alpha_T = 1` corresponds to no underrelaxation.
+
+*Default*: The same value chosen for ``<alpha>``
+
 ``<temperature_ic>``
 --------------------
 
@@ -72,7 +87,7 @@ heat-fluids solver.
 *Default*: neutronics
 
 ``<density_ic>``
---------------------
+----------------
 
 The initial density distribution can be determined either from the
 neutronics solver or the heat-fluids solver. A value of "neutronics" will use
@@ -85,7 +100,7 @@ and is unchanged from the value used in the neutronics input.
 *Default*: neutronics
 
 ``<pressure_bc>``
---------------
+-----------------
 
 The pressure of the outlet boundary condition in units of [MPa].
 

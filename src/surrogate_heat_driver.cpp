@@ -159,7 +159,7 @@ void SurrogateHeatDriver::write_step(int timestep, int iteration)
   std::stringstream filename;
   filename << viz_basename_;
   if (iteration >= 0 && timestep >= 0) {
-    filename << "_" << timestep << "_" << iteration;
+    filename << "_t" << timestep << "_i" << iteration;
   }
   filename << ".vtk";
 
