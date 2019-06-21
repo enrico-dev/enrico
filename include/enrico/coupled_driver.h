@@ -36,13 +36,13 @@ public:
   virtual bool has_global_coupling_data() const = 0;
 
   //! Update the heat source for the thermal-hydraulics solver
-  virtual void update_heat_source() final;
+  void update_heat_source();
 
   //! Set the heat source in the thermal-hydraulics solver
   virtual void set_heat_source() {}
 
   //! Update the temperature for the neutronics solver
-  virtual void update_temperature() final;
+  void update_temperature();
 
   //! Set the temperature in the neutronics solver
   virtual void set_temperature() {};
