@@ -83,6 +83,8 @@ void OpenmcNekDriver::init_mpi_datatypes()
 
 void OpenmcNekDriver::init_mappings()
 {
+  comm_.message("Initializing mappings");
+
   if (this->has_global_coupling_data()) {
     elem_centroids_.resize(n_global_elem_);
     elem_fluid_mask_.resize({n_global_elem_});
@@ -162,6 +164,8 @@ void OpenmcNekDriver::init_mappings()
 
 void OpenmcNekDriver::init_tallies()
 {
+  comm_.message("Initializing tallies");
+
   if (openmc_driver_->active()) {
     // Build vector of material indices
     std::vector<int32_t> mats;
@@ -174,6 +178,8 @@ void OpenmcNekDriver::init_tallies()
 
 void OpenmcNekDriver::init_temperatures()
 {
+  comm_.message("Initializing temperatures");
+
   if (this->has_global_coupling_data()) {
     temperatures_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
     temperatures_prev_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
@@ -210,6 +216,8 @@ void OpenmcNekDriver::init_temperatures()
 
 void OpenmcNekDriver::init_volumes()
 {
+  comm_.message("Initializing volumes");
+
   if (this->has_global_coupling_data()) {
     elem_volumes_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
   }
@@ -237,6 +245,8 @@ void OpenmcNekDriver::init_volumes()
 
 void OpenmcNekDriver::init_densities()
 {
+  comm_.message("Initializing densities");
+
   if (this->has_global_coupling_data()) {
     densities_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
     densities_prev_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
@@ -280,6 +290,8 @@ void OpenmcNekDriver::init_densities()
 
 void OpenmcNekDriver::init_elem_fluid_mask()
 {
+  comm_.message("Initializing element fluid mask");
+
   if (this->has_global_coupling_data()) {
     elem_fluid_mask_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
   }
@@ -302,6 +314,8 @@ void OpenmcNekDriver::init_elem_fluid_mask()
 
 void OpenmcNekDriver::init_cell_fluid_mask()
 {
+  comm_.message("Initializing cell fluid mask");
+
   if (nek_driver_->active() && openmc_driver_->active()) {
     auto& cells = openmc_driver_->cells_;
     cell_fluid_mask_.resize({cells.size()});
@@ -321,6 +335,8 @@ void OpenmcNekDriver::init_cell_fluid_mask()
 
 void OpenmcNekDriver::init_heat_source()
 {
+  comm_.message("Initializing heat source");
+
   heat_source_ = xt::empty<double>({n_cells_});
   heat_source_prev_ = xt::empty<double>({n_cells_});
 }
