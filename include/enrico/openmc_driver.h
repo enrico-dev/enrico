@@ -31,7 +31,8 @@ public:
 
   xt::xtensor<double, 1> heat_source(double power) const final;
 
-  void normalize_heat_source(xt::xtensor<double, 1>& heat_source, double power) const final;
+  void normalize_heat_source(xt::xtensor<double, 1>& heat_source,
+                             double power) const final;
 
   //! Initialization required in each Picard iteration
   void init_step() final;
@@ -46,14 +47,6 @@ public:
 
   //! Finalization required in each Picard iteration
   void finalize_step() final;
-
-  //! Get the coordinate of a given material's centroid
-  //!
-  //! This coordinate has the units used by OpenMC (cm)
-  //!
-  //! \param mat_id A material ID
-  //! \return The coordinate of the material's centroid in cm
-  Position get_mat_centroid(int32_t mat_id) const;
 
   // Data
   openmc::Tally* tally_;            //!< Fission energy deposition tally
