@@ -49,12 +49,12 @@ SurrogateHeatFluidDriver::SurrogateHeatFluidDriver(SP_Assembly assembly,
     d_mdots[channel] = mdot_per_area * d_areas[channel];
 
   auto inlet_temp = subchannel_parameters->get("inlet_temperature", 565.0);
-  auto exit_press = subchannel_parameters->get("exit_pressure", 1.52e7);
+  pressure_bc_ = subchannel_parameters->get("exit_pressure", 1.52e7);
 
   // Build single channel solver
   d_pin_subchannel = std::make_shared<Single_Pin_Subchannel>(subchannel_parameters, dz);
   d_pin_subchannel->set_inlet_temperature(inlet_temp);
-  d_pin_subchannel->set_exit_pressure(exit_press);
+  d_pin_subchannel->set_exit_pressure(pressure_bc_);
 
   // Build single pin solver
   d_pin_conduction = std::make_shared<Single_Pin_Conduction>(conduction_parameters, dz);

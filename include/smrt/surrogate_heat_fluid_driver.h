@@ -37,6 +37,8 @@ public:
   //! solid temperature
   virtual std::vector<double> solid_temperature() const { return d_solid_temps; }
 
+  double pressure_bc_; //! System pressure in [MPa]
+
 private:
   // >>> DATA
   SP_Assembly d_assembly;
