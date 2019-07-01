@@ -59,22 +59,8 @@ ShiftDriver::ShiftDriver(SP_Assembly_Model assembly,
   add_power_tally(plist, z_edges);
 }
 
-//---------------------------------------------------------------------------//
-// Solve
-//---------------------------------------------------------------------------//
-void ShiftDriver::solve(const std::vector<double>& th_temperature,
-                        const std::vector<double>& coolant_density,
-                        std::vector<double>& power)
+std::vector<double> ShiftDriver::heat_source(double power) const
 {
-  update_temperature(th_temperature);
-
-  // currently does nothing
-  update_density(coolant_density);
-
-  // Rebuild problem (loading any new data needed and run transport
-  d_driver->rebuild();
-  d_driver->run();
-
   // Extract fission rate from Shift tally
   auto sequence = d_driver->sequence();
   auto shift_seq = std::dynamic_pointer_cast<omnibus::Sequence_Shift>(sequence);
@@ -93,17 +79,46 @@ void ShiftDriver::solve(const std::vector<double>& th_temperature,
       double total_power = std::accumulate(mean.begin(), mean.end(), 0.0);
 
       for (int cellid = 0; cellid < mean.size(); ++cellid) {
-        Expects(cellid < d_power_map.size());
-        const auto& elem_list = d_power_map[cellid];
         double tally_volume = d_geometry->cell_volume(cellid);
-
-        for (const auto& elem : elem_list) {
-          Expects(elem < power.size());
-          power[elem] = mean[cellid] / tally_volume / total_power;
-        }
+        d_power_by_cell_ID.push_back(mean[cellid] / tally_volume / total_power);
       }
     }
   }
+
+  normalize_heat_source(d_power_by_cell_ID, power);
+
+  return d_power_by_cell_ID;
+}
+
+void ShiftDriver::normalize_heat_source(std::vector<double>& heat_source, double power) const
+{
+  double total_power = 0.0;
+  for (int cellid = 0; cellid < d_power_by_cell_ID.size(); ++cellid) {
+    total_power += d_power_by_cell_ID[cellid] * d_geometry->cell_volume(cellid);
+  }
+  nemesis::global_sum(total_power);
+
+  double norm_factor = power / total_power;
+  for (auto& val : heat_source)
+    val *= norm_factor;
+}
+
+//---------------------------------------------------------------------------//
+// Solve
+//---------------------------------------------------------------------------//
+void ShiftDriver::solve(const std::vector<double>& th_temperature,
+                        const std::vector<double>& coolant_density,
+                        std::vector<double>& power)
+{
+  update_temperature(th_temperature);
+
+  // currently does nothing
+  update_density(coolant_density);
+
+  // Rebuild problem (loading any new data needed and run transport
+  d_driver->rebuild();
+  d_driver->run();
+
 }
 
 void ShiftDriver::update_temperature(const std::vector<double>& temperatures)

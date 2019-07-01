@@ -93,7 +93,25 @@ void ShiftNekDriver::solve()
 {
   // Loop to convergence or fixed iteration count
   for (int iteration = 0; iteration < max_picard_iter_; ++iteration) {
-    // Set heat source in Nek
+    // Set heat source in Nek; first, get heat source indexed by cell ID
+    // from Shift and map it to Nek elements
+    for (int cellid = 0; cellid < d_power_map.size(); ++cellid) {
+      const auto& elem_list = d_power_map[cellid];
+
+      for (const auto& elem : elem_list)
+        d_powers[elem] = d_power_shift[cellid];
+    }
+
+    for (int rank = 0; rank < nemesis::nodes(); ++rank) {
+      if (rank == nemesis::node()) {
+        std::cout << "Power on " << rank << ": ";
+        for (auto val : d_powers)
+          std::cout << val << " ";
+        std::cout << std::endl;
+      }
+      nemesis::global_barrier();
+    }
+
     for (int elem = 0; elem < d_th_num_local; ++elem) {
       err_chk(d_nek_solver->set_heat_source_at(elem + 1, d_powers[elem]),
               "Error setting heat source for local element " + std::to_string(elem + 1));
@@ -121,20 +139,8 @@ void ShiftNekDriver::solve()
     }
 
     // Solve Shift problem
-    d_shift_solver->solve(d_temperatures, d_densities, d_powers);
-
-    // Apply power normalization
-    normalize_power();
-
-    for (int rank = 0; rank < nemesis::nodes(); ++rank) {
-      if (rank == nemesis::node()) {
-        std::cout << "Power on " << rank << ": ";
-        for (auto val : d_powers)
-          std::cout << val << " ";
-        std::cout << std::endl;
-      }
-      nemesis::global_barrier();
-    }
+    d_shift_solver->solve(d_temperatures, d_densities, d_powers /* TODO: dummy - not used! */);
+    d_power_shift = d_shift_solver->heat_source(power_);
   }
 
   this->free_mpi_datatypes();
@@ -143,21 +149,6 @@ void ShiftNekDriver::solve()
 //
 // Private Implementation
 //
-
-// Apply power normalization
-void ShiftNekDriver::normalize_power()
-{
-  double total_power = 0.0;
-  for (int elem = 0; elem < d_th_num_local; ++elem) {
-    total_power += d_powers[elem] * d_nek_solver->volume_at(elem + 1);
-  }
-  nemesis::global_sum(total_power);
-
-  // Apply normalization factor
-  double norm_factor = power_ / total_power;
-  for (auto& val : d_powers)
-    val *= norm_factor;
-}
 
 // Set up MPI datatype
 // Currently, this sets up only position_mpi_datatype

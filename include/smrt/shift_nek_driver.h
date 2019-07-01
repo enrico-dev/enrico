@@ -55,6 +55,9 @@ private:
   std::vector<double> d_densities;
   std::vector<double> d_powers;
 
+  // Power indexed by shift cell ID
+  std::vector<double> d_power_shift;
+
 
 public:
   // Constructor
@@ -71,9 +74,6 @@ public:
   void solve();
 
 private:
-  // Normalize power distribution to appropriate value
-  void normalize_power();
-
   // Map "standard" types to corresponding MPI types
   template<typename T>
   MPI_Datatype get_mpi_type() const

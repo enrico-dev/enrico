@@ -55,6 +55,9 @@ private:
   int d_num_materials;
   std::vector<int> d_matids;
 
+  // Power density indexed by cell ID
+  std::vector<double> d_power_by_cell_ID;
+
   // Map from Shift geometric cells to T/H elements
   int d_num_shift_cells;
   std::vector<std::vector<int>> d_power_map;
@@ -76,6 +79,12 @@ public:
   void solve(const std::vector<double>& th_temperature,
              const std::vector<double>& coolant_density,
              std::vector<double>& power) override;
+
+  // get the heat source normalized to the given total power
+  std::vector<double> heat_source(double power) const;
+
+  // normalize the power tally to the given total power
+  void normalize_heat_source(std::vector<double>& heat_source, double power) const;
 
 private:
   // Add power tally to parameter list
