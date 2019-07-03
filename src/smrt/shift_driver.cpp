@@ -66,6 +66,8 @@ std::vector<double> ShiftDriver::heat_source(double power) const
   auto shift_seq = std::dynamic_pointer_cast<omnibus::Sequence_Shift>(sequence);
   const auto& tallies = shift_seq->tallies();
 
+  std::vector<double> d_power_by_cell_ID;
+
   const auto& cell_tallies = tallies.cell_tallies();
   for (const auto& tally : cell_tallies) {
     if (tally->name() == d_power_tally_name) {

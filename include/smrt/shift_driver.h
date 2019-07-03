@@ -55,9 +55,6 @@ private:
   int d_num_materials;
   std::vector<int> d_matids;
 
-  // Power density indexed by cell ID
-  std::vector<double> d_power_by_cell_ID;
-
   // Map from Shift geometric cells to T/H elements
   int d_num_shift_cells;
   std::vector<std::vector<int>> d_power_map;
