@@ -52,12 +52,12 @@ SurrogateHeatFluidDriver::SurrogateHeatFluidDriver(SP_Assembly assembly,
   pressure_bc_ = subchannel_parameters->get("exit_pressure", 1.52e7);
 
   // Build single channel solver
-  d_pin_subchannel = std::make_shared<Single_Pin_Subchannel>(subchannel_parameters, dz);
+  d_pin_subchannel = std::make_unique<Single_Pin_Subchannel>(subchannel_parameters, dz);
   d_pin_subchannel->set_inlet_temperature(inlet_temp);
   d_pin_subchannel->set_exit_pressure(pressure_bc_);
 
   // Build single pin solver
-  d_pin_conduction = std::make_shared<Single_Pin_Conduction>(conduction_parameters, dz);
+  d_pin_conduction = std::make_unique<Single_Pin_Conduction>(conduction_parameters, dz);
   d_pin_conduction->set_fuel_radius(d_assembly->fuel_radius());
   d_pin_conduction->set_clad_radius(d_assembly->clad_radius());
 

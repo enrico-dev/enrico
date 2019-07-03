@@ -54,10 +54,10 @@ private:
   std::vector<double> d_mdots;
 
   //! subchannel solver for a single channel
-  std::shared_ptr<Single_Pin_Subchannel> d_pin_subchannel;
+  std::unique_ptr<Single_Pin_Subchannel> d_pin_subchannel;
 
   //! heat conduction solver for a single rod
-  std::shared_ptr<Single_Pin_Conduction> d_pin_conduction;
+  std::unique_ptr<Single_Pin_Conduction> d_pin_conduction;
 
   //! coolant temperature in [K] for each channel, of total length given by the
   //! product of the number of pins by the number of axial cells
