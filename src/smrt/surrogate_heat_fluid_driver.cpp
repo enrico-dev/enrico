@@ -78,7 +78,7 @@ void SurrogateHeatFluidDriver::generate_arrays()
 void SurrogateHeatFluidDriver::solve(const std::vector<double>& powers)
 {
   solve_fluid(powers);
-  solve_solid(powers, d_pin_temps, d_solid_temps);
+  solve_heat(powers, d_pin_temps, d_solid_temps);
 }
 
 //---------------------------------------------------------------------------//
@@ -168,7 +168,7 @@ void SurrogateHeatFluidDriver::solve_fluid(const std::vector<double>& powers)
   }
 }
 
-void SurrogateHeatFluidDriver::solve_solid(const std::vector<double>& power,
+void SurrogateHeatFluidDriver::solve_heat(const std::vector<double>& power,
                                  const std::vector<double>& channel_temp,
                                  std::vector<double>& fuel_temp)
 {

@@ -28,6 +28,10 @@ public:
   using RCP_PL = Teuchos::RCP<Teuchos::ParameterList>;
   //@}
 
+  //! solve the thermal-hydraulic problem for the fluid and solid phases
+  //! for a given power distribution
+  void solve(const std::vector<double>& powers);
+
   //! fluid temperature
   virtual std::vector<double> fluid_temperature() const { return d_pin_temps; }
 
@@ -95,7 +99,7 @@ private:
   void solve_fluid(const std::vector<double>& power);
 
   // Solve the solid equations
-  void solve_solid(const std::vector<double>& power,
+  void solve_heat(const std::vector<double>& power,
     const std::vector<double>& channel_temp, std::vector<double>& fuel_temp)
 };
 
