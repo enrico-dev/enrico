@@ -85,13 +85,6 @@ std::vector<double> ShiftDriver::heat_source(double power) const
     }
   }
 
-  normalize_heat_source(d_power_by_cell_ID, power);
-
-  return d_power_by_cell_ID;
-}
-
-void ShiftDriver::normalize_heat_source(std::vector<double>& heat_source, double power) const
-{
   double total_power = 0.0;
   for (int cellid = 0; cellid < d_power_by_cell_ID.size(); ++cellid) {
     total_power += d_power_by_cell_ID[cellid] * d_geometry->cell_volume(cellid);
@@ -99,8 +92,11 @@ void ShiftDriver::normalize_heat_source(std::vector<double>& heat_source, double
   nemesis::global_sum(total_power);
 
   double norm_factor = power / total_power;
-  for (auto& val : heat_source)
+  for (auto& val : d_power_by_cell_ID)
     val *= norm_factor;
+
+
+  return d_power_by_cell_ID;
 }
 
 //---------------------------------------------------------------------------//

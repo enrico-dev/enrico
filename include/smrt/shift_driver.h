@@ -83,9 +83,6 @@ public:
   // get the heat source normalized to the given total power
   std::vector<double> heat_source(double power) const;
 
-  // normalize the power tally to the given total power
-  void normalize_heat_source(std::vector<double>& heat_source, double power) const;
-
 private:
   // Add power tally to parameter list
   void add_power_tally(RCP_PL& pl, const std::vector<double>& z_edges);
