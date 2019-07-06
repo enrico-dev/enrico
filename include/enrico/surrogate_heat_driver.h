@@ -171,6 +171,9 @@ private:
   //! a total inlet mass flowrate among the channels based on the fractional flow area.
   xt::xtensor<double, 1> channel_flowrates_;
 
+  //! Cross-sectional areas of rings in fuel and cladding
+  xt::xtensor<double, 1> solid_areas_;
+
   //! Number of pins in the x-direction in a Cartesian grid
   int n_pins_x_;
 

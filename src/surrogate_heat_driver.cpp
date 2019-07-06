@@ -140,6 +140,17 @@ void SurrogateHeatDriver::generate_arrays()
   // Make a radial grid for the fuel with equal spacing.
   r_grid_fuel_ = xt::linspace<double>(0, pellet_radius_, n_fuel_rings_ + 1);
 
+  // Compute the cross-sectional areas of each region
+  solid_areas_ = xt::empty<double>({n_rings()});
+  for (int i = 0; i < n_rings(); ++i) {
+    if (i < n_fuel_rings_)
+      solid_areas_(i) = M_PI * (r_grid_fuel_(i + 1) * r_grid_fuel_(i + 1) - r_grid_fuel_(i) * r_grid_fuel_(i));
+    else {
+      int r = i - n_fuel_rings_;
+      solid_areas_(i) = M_PI * (r_grid_clad_(r + 1) * r_grid_clad_(r + 1) - r_grid_clad_(r) * r_grid_clad_(r));
+    }
+  }
+
   // Create empty arrays for source term and temperature
   source_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
   temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
@@ -150,10 +161,36 @@ void SurrogateHeatDriver::generate_arrays()
 void SurrogateHeatDriver::solve_step()
 {
   solve_heat();
+  solve_fluid();
 }
 
 void SurrogateHeatDriver::solve_fluid()
 {
+  // convenience function for determining the rod power in a given axial layer
+  auto rod_axial_node_power = [this](int pin, int axial) {
+    Expects(axial <= n_axial_);
+
+    double power = 0.0;
+    double dz = z_(axial + 1) - z_(axial);
+
+    for (int i = 0; i < n_rings(); ++i)
+      power += source_(pin, axial, i) * solid_areas_(i) * dz;
+
+    return power;
+  };
+
+  // determine the power deposition in each channel; the target applications will always
+  // be steady-state or pseudo-steady-state cases with no axial conduction such that
+  // the power deposition in each channel is independent of a convective heat transfer
+  // coefficient and only depends on the rod power at that axial elevation. The channel
+  // powers are indexed by channel ID, axial ID
+  xt::xtensor<double, 2> channel_powers = xt::zeros<double>({n_channels_, n_axial_});
+  for (int i = 0; i < n_channels_; ++i) {
+    for (int j = 0; j < n_axial_; ++j) {
+      for (const auto& rod : channels_[i].rod_ids_)
+        channel_powers(i, j) += 0.25 * rod_axial_node_power(rod, j);
+    }
+  }
 }
 
 void SurrogateHeatDriver::solve_heat()
