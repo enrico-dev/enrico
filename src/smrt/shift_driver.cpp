@@ -66,7 +66,7 @@ std::vector<double> ShiftDriver::heat_source(double power) const
   auto shift_seq = std::dynamic_pointer_cast<omnibus::Sequence_Shift>(sequence);
   const auto& tallies = shift_seq->tallies();
 
-  std::vector<double> d_power_by_cell_ID;
+  std::vector<double> power_by_cell_ID;
 
   const auto& cell_tallies = tallies.cell_tallies();
   for (const auto& tally : cell_tallies) {
@@ -82,23 +82,23 @@ std::vector<double> ShiftDriver::heat_source(double power) const
 
       for (int cellid = 0; cellid < mean.size(); ++cellid) {
         double tally_volume = d_geometry->cell_volume(cellid);
-        d_power_by_cell_ID.push_back(mean[cellid] / tally_volume / total_power);
+        power_by_cell_ID.push_back(mean[cellid] / tally_volume / total_power);
       }
     }
   }
 
   double total_power = 0.0;
-  for (int cellid = 0; cellid < d_power_by_cell_ID.size(); ++cellid) {
-    total_power += d_power_by_cell_ID[cellid] * d_geometry->cell_volume(cellid);
+  for (int cellid = 0; cellid < power_by_cell_ID.size(); ++cellid) {
+    total_power += power_by_cell_ID[cellid] * d_geometry->cell_volume(cellid);
   }
   nemesis::global_sum(total_power);
 
   double norm_factor = power / total_power;
-  for (auto& val : d_power_by_cell_ID)
+  for (auto& val : power_by_cell_ID)
     val *= norm_factor;
 
 
-  return d_power_by_cell_ID;
+  return power_by_cell_ID;
 }
 
 //---------------------------------------------------------------------------//
