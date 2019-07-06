@@ -95,6 +95,10 @@ private:
   //! Flow areas for coolant-centered channels
   xt::xtensor<double, 1> channel_areas_;
 
+  //! Mass flowrate for coolant-centered channels; this is determine by distributing
+  //! a total inlet mass flowrate among the channels based on the fractional flow area.
+  xt::xtensor<double, 1> channel_flowrates_;
+
   //! Number of pins in the x-direction in a Cartesian grid
   int n_pins_x_;
 

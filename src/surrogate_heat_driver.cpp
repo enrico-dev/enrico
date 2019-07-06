@@ -76,6 +76,14 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
     }
   }
 
+  double total_flow_area = 0.0;
+  for (const auto area : channel_areas_)
+    total_flow_area += area;
+
+  channel_flowrates_.resize({n_channels_});
+  for (int i = 0; i < channel_flowrates_.size(); ++i)
+    channel_flowrates_(i) = channel_areas_(i) / total_flow_area * mass_flowrate_;
+
   // Get z values
   // TODO: Switch to get_node_xarray on OpenMC update
   auto z_values = openmc::get_node_array<double>(node, "z");
