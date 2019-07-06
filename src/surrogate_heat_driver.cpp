@@ -11,6 +11,8 @@
 
 namespace enrico {
 
+int ChannelFactory::index_ = 0;
+
 SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
                                          double pressure_bc,
                                          pugi::xml_node node)
@@ -28,6 +30,7 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
   pin_pitch_ = node.child("pin_pitch").text().as_double();
 
   // Determine thermal-hydraulic parameters for fluid phase
+  inlet_temperature_ = node.child("inlet_temperature").text().as_double();
   mass_flowrate_ = node.child("mass_flowrate").text().as_double();
   n_channels_ = (n_pins_x_ + 1) * (n_pins_y_ + 1);
 
@@ -41,6 +44,7 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
   Expects(n_pins_y_ > 0);
   Expects(pin_pitch_ > 2.0 * clad_outer_radius_);
   Expects(mass_flowrate_ > 0.0);
+  Expects(inlet_temperature_ > 0.0);
 
   // Set pin locations, where the center of the assembly is assumed to occur at
   // x = 0, y = 0. It is also assumed that the rod-boundary separation in the
@@ -57,32 +61,38 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
     }
   }
 
-  // Set channel flow areas using a coolant-centered approach
-  channel_areas_.resize({n_channels_});
-  double interior_flow_area = pin_pitch_ * pin_pitch_ - M_PI * clad_outer_radius_ * clad_outer_radius_;
-  double edge_flow_area = interior_flow_area / 2.0;
-  double corner_flow_area = interior_flow_area / 4.0;
+  // Initialize the channels
+  ChannelFactory channel_factory(pin_pitch_, clad_outer_radius_);
 
   for (int row = 0; row < n_pins_y_ + 1; ++row) {
     for (int col = 0; col < n_pins_x_ + 1; ++col) {
-      int channel = channel_index(row, col);
+      int a = col / n_pins_x_;
+      int b = row / n_pins_y_;
 
       if ((row == 0 || row == n_pins_y_) && (col == 0 || col == n_pins_x_))
-        channel_areas_(channel) = corner_flow_area;
-      else if (row == 0 || row == n_pins_y_ || col == 0 || col == n_pins_x_)
-        channel_areas_(channel) = edge_flow_area;
-      else
-        channel_areas_(channel) = interior_flow_area;
+        channels_.push_back(channel_factory.make_corner({a * (n_pins_x_ - 1) + b * n_pins_x_ * (n_pins_y_ - 1)}));
+      else if (row == 0)
+        channels_.push_back(channel_factory.make_edge({col - 1, col}));
+      else if (row == n_pins_y_)
+        channels_.push_back(channel_factory.make_edge({(row - 1) * n_pins_x_ + col - 1, (row - 1) * n_pins_x_ + col}));
+      else if (col == 0)
+        channels_.push_back(channel_factory.make_edge({(row - 1) * n_pins_x_, row * n_pins_x_}));
+      else if (col == n_pins_x_)
+        channels_.push_back(channel_factory.make_edge({row * n_pins_x_ - 1, (row + 1) * n_pins_x_ - 1}));
+      else {
+        int i = (row - 1) * n_pins_x_ + col - 1;
+        channels_.push_back(channel_factory.make_interior({i, i + 1, i + n_pins_x_, i + n_pins_x_ + 1}));
+      }
     }
   }
 
   double total_flow_area = 0.0;
-  for (const auto area : channel_areas_)
-    total_flow_area += area;
+  for (const auto c : channels_)
+    total_flow_area += c.area_;
 
   channel_flowrates_.resize({n_channels_});
-  for (int i = 0; i < channel_flowrates_.size(); ++i)
-    channel_flowrates_(i) = channel_areas_(i) / total_flow_area * mass_flowrate_;
+  for (int i = 0; i < n_channels_; ++i)
+    channel_flowrates_(i) = channels_[i].area_ / total_flow_area * mass_flowrate_;
 
   // Get z values
   // TODO: Switch to get_node_xarray on OpenMC update
@@ -140,6 +150,10 @@ void SurrogateHeatDriver::generate_arrays()
 void SurrogateHeatDriver::solve_step()
 {
   solve_heat();
+}
+
+void SurrogateHeatDriver::solve_fluid()
+{
 }
 
 void SurrogateHeatDriver::solve_heat()
