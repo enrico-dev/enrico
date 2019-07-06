@@ -16,30 +16,45 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
                                          pugi::xml_node node)
   : HeatFluidsDriver(comm, pressure_bc)
 {
-  // Determine heat transfer solver parameters
+  // Determine thermal-hydraulic parameters for solid phase
   clad_inner_radius_ = node.child("clad_inner_radius").text().as_double();
   clad_outer_radius_ = node.child("clad_outer_radius").text().as_double();
   pellet_radius_ = node.child("pellet_radius").text().as_double();
   n_fuel_rings_ = node.child("fuel_rings").text().as_int();
   n_clad_rings_ = node.child("clad_rings").text().as_int();
+  n_pins_x_ = node.child("n_pins_x").text().as_int();
+  n_pins_y_ = node.child("n_pins_y").text().as_int();
+  n_pins_ = n_pins_x_ * n_pins_y_;
+  pin_pitch_ = node.child("pin_pitch").text().as_double();
 
+  // Determine thermal-hydraulic parameters for fluid phase
+  mass_flowrate_ = node.child("mass_flowrate").text().as_double();
+
+  // check validity of user input
   Expects(clad_inner_radius_ > 0);
   Expects(clad_outer_radius_ > clad_inner_radius_);
   Expects(pellet_radius_ < clad_inner_radius_);
   Expects(n_fuel_rings_ > 0);
   Expects(n_clad_rings_ > 0);
+  Expects(n_pins_x_ > 0);
+  Expects(n_pins_y_ > 0);
+  Expects(pin_pitch_ > 2.0 * clad_outer_radius_);
+  Expects(mass_flowrate_ > 0.0);
 
-  // Get pin locations
-  // TODO: Switch to get_node_xarray on OpenMC update
-  auto pin_locations = openmc::get_node_array<double>(node, "pin_centers");
-  if (pin_locations.size() % 2 != 0) {
-    throw std::runtime_error{"Length of <pin_centers> must be a multiple of two"};
+  // Set pin locations, where the center of the assembly is assumed to occur at
+  // x = 0, y = 0. It is also assumed that the rod-boundary separation in the
+  // x and y directions is the same and equal to half the pitch.
+  double assembly_width_x = n_pins_x_ * pin_pitch_;
+  double assembly_width_y = n_pins_y_ * pin_pitch_;
+
+  pin_centers_.resize({n_pins_});
+  for (int row = 0; row < n_pins_y_; ++row) {
+    for (int col = 0; col < n_pins_x_; ++col) {
+      int pin_index = row * n_pins_x_ + col;
+      pin_centers_(pin_index, 0) = -assembly_width_x / 2.0 + pin_pitch_ / 2.0 + col * pin_pitch_;
+      pin_centers_(pin_index, 1) = assembly_width_y / 2.0 - (pin_pitch_ / 2.0 + row * pin_pitch_);
+    }
   }
-
-  // Convert to xtensor
-  n_pins_ = pin_locations.size() / 2;
-  std::vector<std::size_t> shape{n_pins_, 2};
-  pin_centers_ = xt::adapt(pin_locations, shape);
 
   // Get z values
   // TODO: Switch to get_node_xarray on OpenMC update
@@ -50,7 +65,7 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
   // Heat equation solver tolerance
   tol_ = node.child("tolerance").text().as_double();
 
-  // Check for visualization intput
+  // Check for visualization input
   if (node.child("viz")) {
     pugi::xml_node viz_node = node.child("viz");
     if (viz_node.attribute("filename")) {
@@ -95,6 +110,11 @@ void SurrogateHeatDriver::generate_arrays()
 }
 
 void SurrogateHeatDriver::solve_step()
+{
+  solve_heat();
+}
+
+void SurrogateHeatDriver::solve_heat()
 {
   std::cout << "Solving heat equation...\n";
   // NuScale inlet temperature

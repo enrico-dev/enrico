@@ -26,6 +26,8 @@ public:
   //! Solves the heat-fluids surrogate solver
   void solve_step() final;
 
+  void solve_heat();
+
   //! Returns Number of rings in fuel and clad
   std::size_t n_rings() { return n_fuel_rings_ + n_clad_rings_; }
 
@@ -44,8 +46,10 @@ public:
   // Data on fuel pins
   xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins
   xt::xtensor<double, 1> z_;           //!< Bounding z-values for axial segments
-  std::size_t n_pins_;                 //!< number of fuel pins
   std::size_t n_axial_;                //!< number of axial segments
+
+  //! Total number of pins
+  std::size_t n_pins_;
 
   // Dimensions for a single fuel pin axial segment
   double clad_outer_radius_;     //!< clad outer radius in [cm]
@@ -84,6 +88,18 @@ private:
   //! Because the surrogate only solves heat and only represents solid, this whole xtensor
   //! == 0
   xt::xtensor<int, 3> fluid_mask_;
+
+  //! Number of pins in the x-direction in a Cartesian grid
+  int n_pins_x_;
+
+  //! Number of pins in the y-direction in a Cartesian grid
+  int n_pins_y_;
+
+  //! Pin pitch, assumed the same for the x and y directions
+  double pin_pitch_;
+
+  //! Mass flowrate of fluid into the domain [kg/s]
+  double mass_flowrate_;
 
 }; // end SurrogateHeatDriver
 
