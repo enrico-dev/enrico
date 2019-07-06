@@ -29,6 +29,7 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
 
   // Determine thermal-hydraulic parameters for fluid phase
   mass_flowrate_ = node.child("mass_flowrate").text().as_double();
+  n_channels_ = (n_pins_x_ + 1) * (n_pins_y_ + 1);
 
   // check validity of user input
   Expects(clad_inner_radius_ > 0);
@@ -53,6 +54,25 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
       int pin_index = row * n_pins_x_ + col;
       pin_centers_(pin_index, 0) = -assembly_width_x / 2.0 + pin_pitch_ / 2.0 + col * pin_pitch_;
       pin_centers_(pin_index, 1) = assembly_width_y / 2.0 - (pin_pitch_ / 2.0 + row * pin_pitch_);
+    }
+  }
+
+  // Set channel flow areas using a coolant-centered approach
+  channel_areas_.resize({n_channels_});
+  double interior_flow_area = pin_pitch_ * pin_pitch_ - M_PI * clad_outer_radius_ * clad_outer_radius_;
+  double edge_flow_area = interior_flow_area / 2.0;
+  double corner_flow_area = interior_flow_area / 4.0;
+
+  for (int row = 0; row < n_pins_y_ + 1; ++row) {
+    for (int col = 0; col < n_pins_x_ + 1; ++col) {
+      int channel = channel_index(row, col);
+
+      if ((row == 0 || row == n_pins_y_) && (col == 0 || col == n_pins_x_))
+        channel_areas_(channel) = corner_flow_area;
+      else if (row == 0 || row == n_pins_y_ || col == 0 || col == n_pins_x_)
+        channel_areas_(channel) = edge_flow_area;
+      else
+        channel_areas_(channel) = interior_flow_area;
     }
   }
 

@@ -77,6 +77,9 @@ private:
   //! Create internal arrays used for heat equation solver
   void generate_arrays();
 
+  //! Channel index in terms of row, column index
+  int channel_index(int row, int col) const { return row * (n_pins_x_ + 1) + col; }
+
   //!< temperature in [K] for each (pin, axial segment, ring)
   xt::xtensor<double, 3> temperature_;
 
@@ -89,6 +92,9 @@ private:
   //! == 0
   xt::xtensor<int, 3> fluid_mask_;
 
+  //! Flow areas for coolant-centered channels
+  xt::xtensor<double, 1> channel_areas_;
+
   //! Number of pins in the x-direction in a Cartesian grid
   int n_pins_x_;
 
@@ -100,6 +106,9 @@ private:
 
   //! Mass flowrate of fluid into the domain [kg/s]
   double mass_flowrate_;
+
+  //! Number of channels
+  std::size_t n_channels_;
 
 }; // end SurrogateHeatDriver
 
