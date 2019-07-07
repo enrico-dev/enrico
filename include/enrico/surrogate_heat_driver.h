@@ -135,6 +135,22 @@ class RodFactory {
     static int index_;
 };
 
+/**
+ * Class providing surrogate thermal-hydraulic solution for a Cartesian
+ * bundle of rods with upwards-flowing coolant. A conduction model is used
+ * for the solid phase, with axial conduction neglected. The solid phase is
+ * linked to the fluid phase by conjugate heat transfer, which is treated
+ * here with a pseudo-steady-state approach where the power entering the fluid
+ * matches the power in the rod at that axial elevation. It is assumed that
+ * there is zero thermal resistance between the rod and the fluid.
+ *
+ * The fluid solution is obtained with a very simplified "subchannel" method
+ * that neglects all crossflow terms between channels such that the method
+ * is more akin to a single-pin analysis in a coolant-centered basis. The
+ * enthalpy is solved by simply axial energy balance, while the axial momentum
+ * equation is solved for pressure (the mass flow rate in each channel being
+ * fixed) while neglecting friction effects.
+ */
 class SurrogateHeatDriver : public HeatFluidsDriver {
 public:
   //! Initializes heat-fluids surrogate with the given MPI communicator.
