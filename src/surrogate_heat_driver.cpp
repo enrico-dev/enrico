@@ -3,9 +3,11 @@
 #include "enrico/vtk_viz.h"
 #include "openmc/xml_interface.h"
 #include "surrogates/heat_xfer_backend.h"
+#include "iapws/iapws.h"
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xbuilder.hpp"
 #include "xtensor/xview.hpp"
+#include "xtensor/xnorm.hpp"
 
 #include <iostream>
 
@@ -34,6 +36,16 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
   mass_flowrate_ = node.child("mass_flowrate").text().as_double();
   n_channels_ = (n_pins_x_ + 1) * (n_pins_y_ + 1);
 
+  // Determine solver parameters
+  if (node.child("max_subchannel_its"))
+    max_subchannel_its_ = node.child("max_subchannel_its").text().as_int();
+  if (node.child("subchannel_tol_h"))
+    subchannel_tol_h_= node.child("subchannel_tol_h").text().as_double();
+  if (node.child("subchannel_tol_p"))
+    subchannel_tol_p_= node.child("subchannel_tol_p").text().as_double();
+  if (node.child("heat_tol"))
+    heat_tol_ = node.child("heat_tol").text().as_double();
+
   // check validity of user input
   Expects(clad_inner_radius_ > 0);
   Expects(clad_outer_radius_ > clad_inner_radius_);
@@ -45,6 +57,10 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
   Expects(pin_pitch_ > 2.0 * clad_outer_radius_);
   Expects(mass_flowrate_ > 0.0);
   Expects(inlet_temperature_ > 0.0);
+  Expects(max_subchannel_its_ > 0);
+  Expects(subchannel_tol_h_ > 0.0);
+  Expects(subchannel_tol_p_ > 0.0);
+  Expects(heat_tol_ > 0.0);
 
   // Set pin locations, where the center of the assembly is assumed to occur at
   // x = 0, y = 0. It is also assumed that the rod-boundary separation in the
@@ -99,9 +115,6 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
   auto z_values = openmc::get_node_array<double>(node, "z");
   z_ = xt::adapt(z_values);
   n_axial_ = z_.size() - 1;
-
-  // Heat equation solver tolerance
-  tol_ = node.child("tolerance").text().as_double();
 
   // Check for visualization input
   if (node.child("viz")) {
@@ -191,6 +204,59 @@ void SurrogateHeatDriver::solve_fluid()
         channel_powers(i, j) += 0.25 * rod_axial_node_power(rod, j);
     }
   }
+
+  // initial guesses for the fluid solution are uniform temperature (set to the inlet
+  // temperature) and uniform pressure  (set to the outlet pressure). These solution
+  // fields are defined on channel axial faces
+  xt::xtensor<double, 2> h = xt::zeros<double>({n_channels_, n_axial_ + 1});
+  xt::xtensor<double, 2> p = xt::zeros<double>({n_channels_, n_axial_ + 1});
+  std::fill(h.begin(), h.end(), iapws::h1(pressure_bc_, inlet_temperature_));
+  std::fill(p.begin(), p.end(), pressure_bc_);
+
+  bool converged = false;
+  for (int iter = 0; iter < max_subchannel_its_; ++iter) {
+    // save the previous solution
+    xt::xtensor<double, 2> h_old = h;
+    xt::xtensor<double, 2> p_old = p;
+
+    // solve each channel independently
+    for (int chan = 0; chan < n_channels_; ++chan) {
+      const auto& c = channels_[chan];
+
+      // solve for enthalpy by simple energy balance q = mdot * dh by marching from inlet
+      h(chan, 0) = iapws::h1(p(chan, 0), inlet_temperature_);
+      for (int axial = 0; axial < n_axial_; ++axial)
+        h(chan, axial + 1) = h(chan, axial) + channel_powers(chan, axial) / channel_flowrates_(chan);
+
+      // solve for pressure using one-sided finite difference approximation by marching
+      // from outlet and solving the axial momentum equation.
+      p(chan, n_axial_) = pressure_bc_;
+      for (int axial = n_axial_; axial > 0; axial--) {
+        double rho_high = 1.0e-3 / iapws::nu1(p[axial], iapws::T_from_p_h(p[axial], h[axial]));
+        double rho_low = 1.0e-3 / iapws::nu1(p[axial - 1], iapws::T_from_p_h(p[axial - 1], h[axial - 1]));
+
+        double u_high = channel_flowrates_(chan) / (rho_high * c.area_);
+        double u_low = channel_flowrates_(chan) / (rho_low * c.area_);
+
+        p[axial - 1] = p[axial] + channel_flowrates_(chan) / c.area_ * (u_high - u_low) +
+          g_ * (z_(axial) - z_(axial - 1)) * rho_low;
+      }
+    }
+
+    // after solving all channels, check for convergence; although all channels are independent,
+    // to enable crossflow coupling between channels in the future, this convergence check is
+    // performed on all channels together, rather than each separately, since in a more sophisticated
+    // solver the channels would all be linked
+    auto n_expr_h = xt::norm_l1(h - h_old);
+    double h_norm = n_expr_h();
+    auto n_expr_p = xt::norm_l1(p - p_old);
+    double p_norm = n_expr_p();
+
+    converged = (h_norm < subchannel_tol_h_) && (p_norm < subchannel_tol_p_);
+
+    if (converged)
+      break;
+  }
 }
 
 void SurrogateHeatDriver::solve_heat()
@@ -219,7 +285,7 @@ void SurrogateHeatDriver::solve_heat()
                           r_clad.data(),
                           n_fuel_rings_,
                           n_clad_rings_,
-                          tol_,
+                          heat_tol_,
                           &temperature_(i, j, 0));
     }
   }

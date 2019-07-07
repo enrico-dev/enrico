@@ -128,10 +128,9 @@ public:
   std::size_t n_clad_rings_{2};  //!< number of clad rings
 
   //!< Channels in the domain
- std::vector<Channel> channels_;
+  std::vector<Channel> channels_;
 
   // solver variables and settings
-  double tol_;                         //!< tolerance on convergence
   xt::xtensor<double, 3> source_;      //!< heat source for each (axial segment, ring)
   xt::xtensor<double, 1> r_grid_clad_; //!< radii of each clad ring in [cm]
   xt::xtensor<double, 1> r_grid_fuel_; //!< radii of each fuel ring in [cm]
@@ -191,6 +190,25 @@ private:
 
   //! Number of channels
   std::size_t n_channels_;
+
+  //! Maximum number of iterations for subchannel solution, set to a default value
+  //! of 100 if not set by the user
+  int max_subchannel_its_ = 100;
+
+  //! Convergence tolerance on enthalpy for the subchannel solution for use in
+  //! convergence based on the L-1 norm, set to a default value of 1e-2
+  double subchannel_tol_h_ = 1e-2;
+
+  //! Convergence tolerance on pressure for the subchannel solution for use in
+  //! convergence based on the L-1 norm, set to a default value of 1e-2
+  double subchannel_tol_p_ = 1e-2;
+
+  //! Convergence tolerance for solid temperature solution, set to a default value
+  //! of 1e-4
+  double heat_tol_ = 1e-4;
+
+  //! Gravitational acceleration
+  const double g_ = 9.81;
 
 }; // end SurrogateHeatDriver
 
