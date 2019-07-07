@@ -231,6 +231,12 @@ private:
   //! Cross-sectional areas of rings in fuel and cladding
   xt::xtensor<double, 1> solid_areas_;
 
+  //! Fluid temperature in a rod-centered basis indexed by rod ID and axial ID
+  xt::xtensor<double, 2> fluid_temperature_;
+
+  //! Fluid density in a rod-centered basis indexed by rod ID and axial ID
+  xt::xtensor<double, 2> fluid_density_;
+
   //! Number of pins in the x-direction in a Cartesian grid
   int n_pins_x_;
 

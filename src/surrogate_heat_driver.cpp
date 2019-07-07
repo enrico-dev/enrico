@@ -175,11 +175,15 @@ void SurrogateHeatDriver::generate_arrays()
     }
   }
 
-  // Create empty arrays for source term and temperature
+  // Create empty arrays for source term and temperature in the solid phase
   source_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
   temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
   density_ = xt::zeros<double>({n_pins_, n_axial_, n_rings()});
   fluid_mask_ = xt::zeros<int>({n_pins_, n_axial_, n_rings()});
+
+  // Create empty arrays for temperature and density in the fluid phase
+  fluid_temperature_ = xt::empty<double>({n_pins_, n_axial_});
+  fluid_density_ = xt::empty<double>({n_pins_, n_axial_});
 }
 
 void SurrogateHeatDriver::solve_step()
@@ -267,6 +271,34 @@ void SurrogateHeatDriver::solve_fluid()
 
     if (converged)
       break;
+  }
+
+  // compute temperature and density from enthalpy and pressure in a cell-centered basis
+  xt::xtensor<double, 2> T = xt::empty<double>({n_channels_, n_axial_});
+  xt::xtensor<double, 2> rho = xt::empty<double>({n_channels_, n_axial_});
+
+  for (int chan = 0; chan < n_channels_; ++chan) {
+    for (int axial = 0; axial < n_axial_; ++axial) {
+      double h_mean = 0.5 * (h(chan, axial) + h(chan, axial + 1));
+      double p_mean = 0.5 * (p(chan, axial) + p(chan, axial + 1));
+
+      T(chan, axial) = iapws::T_from_p_h(p_mean, h_mean);
+      rho(chan, axial) = 1.0e-3 / iapws::nu1(p_mean, T(chan, axial));
+    }
+  }
+
+  // After solving the subchannel equations, convert the solution to a rod-centered basis,
+  // since this will most likely be the form desired by neutronics codes.
+  for (int rod = 0; rod < n_pins_; ++rod) {
+    for (int axial = 0; axial < n_axial_; ++ axial) {
+      fluid_temperature_(rod, axial) = 0.0;
+      fluid_density_(rod, axial) = 0.0;
+
+      for (const auto& c : rods_[rod].channel_ids_) {
+        fluid_temperature_(rod, axial) += 0.25 * T(c, axial);
+        fluid_density_(rod, axial) += 0.25 * rho(c, axial);
+      }
+    }
   }
 }
 
