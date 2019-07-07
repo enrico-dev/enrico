@@ -29,6 +29,28 @@ class Channel {
     std::vector<int> rod_ids_;
 };
 
+//! Class containing geometry information for a cylindrical solid rod
+class Rod {
+  public:
+    Rod() = default;
+
+    //! Rod index
+    int index_;
+
+    //! Rod cladding outer radius
+    double clad_outer_radius_;
+
+    //! Rod cladding inner radius
+    double clad_inner_radius_;
+
+    //! Rod pellet radius
+    double pellet_radius_;
+
+    //! Vector of channel IDs connected to this rod, all with a fractional perimeter
+    //! in contact with the rod equal to 0.25
+    std::vector<int> channel_ids_;
+};
+
 //! Class to construct flow channels for a Cartesian lattice of pins
 class ChannelFactory {
   public:
@@ -77,6 +99,39 @@ class ChannelFactory {
     double interior_area_;
 
     //! index of constructed channel
+    static int index_;
+};
+
+class RodFactory {
+  public:
+    RodFactory(double clad_OR, double clad_IR, double pellet_OR) :
+      clad_outer_r_(clad_OR),
+      clad_inner_r_(clad_IR),
+      pellet_outer_r_(pellet_OR)
+      {}
+
+    //! Make a rod connected to given channels
+    Rod make_rod(const std::vector<int>& channels) const {
+      Rod r;
+      r.index_ = index_++;
+      r.clad_inner_radius_ = clad_inner_r_;
+      r.clad_outer_radius_ = clad_outer_r_;
+      r.pellet_radius_ = pellet_outer_r_;
+      r.channel_ids_ = channels;
+      return r;
+    }
+
+  private:
+    //! Cladding outer radius
+    double clad_outer_r_;
+
+    //! Cladding inner radius
+    double clad_inner_r_;
+
+    //! Pellet outer radius
+    double pellet_outer_r_;
+
+    //! Index of constructed rod
     static int index_;
 };
 
@@ -129,6 +184,9 @@ public:
 
   //!< Channels in the domain
   std::vector<Channel> channels_;
+
+  //!< Rods in the domain
+  std::vector<Rod> rods_;
 
   // solver variables and settings
   xt::xtensor<double, 3> source_;      //!< heat source for each (axial segment, ring)

@@ -14,6 +14,7 @@
 namespace enrico {
 
 int ChannelFactory::index_ = 0;
+int RodFactory::index_ = 0;
 
 SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
                                          double pressure_bc,
@@ -100,6 +101,16 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
         channels_.push_back(channel_factory.make_interior({i, i + 1, i + n_pins_x_, i + n_pins_x_ + 1}));
       }
     }
+  }
+
+  // Initialize the rods
+  RodFactory rod_factory(clad_outer_radius_, clad_inner_radius_, pellet_radius_);
+  for (int rod = 0; rod < n_pins_; ++rod) {
+    int row = rod / n_pins_x_;
+    int col = rod % n_pins_x_;
+    int a = n_pins_x_ + 1;
+    rods_.push_back(rod_factory.make_rod({row * a + col, row * a + col + 1,
+      (row + 1) * a + col, (row + 1) * a + col + 1}));
   }
 
   double total_flow_area = 0.0;
