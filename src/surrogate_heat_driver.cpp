@@ -188,8 +188,8 @@ void SurrogateHeatDriver::generate_arrays()
 
 void SurrogateHeatDriver::solve_step()
 {
-  solve_heat();
   solve_fluid();
+  solve_heat();
 }
 
 void SurrogateHeatDriver::solve_fluid()
@@ -305,13 +305,6 @@ void SurrogateHeatDriver::solve_fluid()
 void SurrogateHeatDriver::solve_heat()
 {
   std::cout << "Solving heat equation...\n";
-  // NuScale inlet temperature
-  double T_co = 523.15;
-
-  // Set initial temperature
-  for (auto& T : temperature_) {
-    T = T_co;
-  }
 
   // Convert source to [W/m^3] as expected by Magnolia
   xt::xtensor<double, 3> q = 1e6 * source_;
@@ -322,6 +315,15 @@ void SurrogateHeatDriver::solve_heat()
 
   for (int i = 0; i < n_pins_; ++i) {
     for (int j = 0; j < n_axial_; ++j) {
+      // approximate cladding surface temperature as equal to the fluid
+      // temperature, i.e. this neglects any heat transfer resistance
+      double T_co = fluid_temperature_(i, j);
+
+      // Set initial temperature to surface temperature
+      for (auto& T : temperature_) {
+        T = T_co;
+      }
+
       solve_steady_nonlin(&q(i, j, 0),
                           T_co,
                           r_fuel.data(),
