@@ -10,7 +10,7 @@
 #include "Assembly_Model.h"
 #include "Neutronics_Solver.h"
 
-#include "surrogate_heat_fluids_driver.h"
+#include "surrogate_heat_fluid_driver.h"
 
 namespace enrico {
 

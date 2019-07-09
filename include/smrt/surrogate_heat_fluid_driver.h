@@ -100,7 +100,7 @@ private:
 
   // Solve the solid equations
   void solve_heat(const std::vector<double>& power,
-    const std::vector<double>& channel_temp, std::vector<double>& fuel_temp)
+    const std::vector<double>& channel_temp, std::vector<double>& fuel_temp);
 };
 
 //---------------------------------------------------------------------------//
