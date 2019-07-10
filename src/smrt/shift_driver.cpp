@@ -59,6 +59,48 @@ ShiftDriver::ShiftDriver(SP_Assembly_Model assembly,
   add_power_tally(plist, z_edges);
 }
 
+std::vector<double> ShiftDriver::heat_source(double power) const
+{
+  // Extract fission rate from Shift tally
+  auto sequence = d_driver->sequence();
+  auto shift_seq = std::dynamic_pointer_cast<omnibus::Sequence_Shift>(sequence);
+  const auto& tallies = shift_seq->tallies();
+
+  std::vector<double> power_by_cell_ID;
+
+  const auto& cell_tallies = tallies.cell_tallies();
+  for (const auto& tally : cell_tallies) {
+    if (tally->name() == d_power_tally_name) {
+      // Tally results are volume-integrated,
+      // divide by volume to get volumetric power
+      const auto& result = tally->result();
+      auto mean = result.mean(0);
+      Expects(result.num_multipliers() == 1);
+
+      // Compute global sum for normalization
+      double total_power = std::accumulate(mean.begin(), mean.end(), 0.0);
+
+      for (int cellid = 0; cellid < mean.size(); ++cellid) {
+        double tally_volume = d_geometry->cell_volume(cellid);
+        power_by_cell_ID.push_back(mean[cellid] / tally_volume / total_power);
+      }
+    }
+  }
+
+  double total_power = 0.0;
+  for (int cellid = 0; cellid < power_by_cell_ID.size(); ++cellid) {
+    total_power += power_by_cell_ID[cellid] * d_geometry->cell_volume(cellid);
+  }
+  nemesis::global_sum(total_power);
+
+  double norm_factor = power / total_power;
+  for (auto& val : power_by_cell_ID)
+    val *= norm_factor;
+
+
+  return power_by_cell_ID;
+}
+
 //---------------------------------------------------------------------------//
 // Solve
 //---------------------------------------------------------------------------//
@@ -75,35 +117,6 @@ void ShiftDriver::solve(const std::vector<double>& th_temperature,
   d_driver->rebuild();
   d_driver->run();
 
-  // Extract fission rate from Shift tally
-  auto sequence = d_driver->sequence();
-  auto shift_seq = std::dynamic_pointer_cast<omnibus::Sequence_Shift>(sequence);
-  const auto& tallies = shift_seq->tallies();
-
-  const auto& cell_tallies = tallies.cell_tallies();
-  for (const auto& tally : cell_tallies) {
-    if (tally->name() == d_power_tally_name) {
-      // Tally results are volume-integrated,
-      // divide by volume to get volumetric power
-      const auto& result = tally->result();
-      auto mean = result.mean(0);
-      Expects(result.num_multipliers() == 1);
-
-      // Compute global sum for normalization
-      double total_power = std::accumulate(mean.begin(), mean.end(), 0.0);
-
-      for (int cellid = 0; cellid < mean.size(); ++cellid) {
-        Expects(cellid < d_power_map.size());
-        const auto& elem_list = d_power_map[cellid];
-        double tally_volume = d_geometry->cell_volume(cellid);
-
-        for (const auto& elem : elem_list) {
-          Expects(elem < power.size());
-          power[elem] = mean[cellid] / tally_volume / total_power;
-        }
-      }
-    }
-  }
 }
 
 void ShiftDriver::update_temperature(const std::vector<double>& temperatures)

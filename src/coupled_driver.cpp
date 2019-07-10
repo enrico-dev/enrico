@@ -22,6 +22,9 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   if (node.child("alpha"))
     alpha_ = node.child("alpha").text().as_double();
 
+  if (node.child("alpha_T"))
+    alpha_T_ = node.child("alpha_T").text().as_double();
+
   if (node.child("temperature_ic")) {
     auto s = std::string{node.child_value("temperature_ic")};
 
@@ -31,6 +34,18 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
       temperature_ic_ = Initial::heat;
     } else {
       throw std::runtime_error{"Invalid value for <temperature_ic>"};
+    }
+  }
+
+  if (node.child("density_ic")) {
+    auto s = std::string{node.child_value("density_ic")};
+
+    if (s == "neutronics") {
+      density_ic_ = Initial::neutronics;
+    } else if (s == "heat") {
+      density_ic_ = Initial::heat;
+    } else {
+      throw std::runtime_error{"Invalid value for <density_ic>"};
     }
   }
 
@@ -156,6 +171,27 @@ void CoupledDriver::update_heat_source()
 
   // Set heat source in the thermal-hydraulics solver
   set_heat_source();
+}
+
+void CoupledDriver::update_temperature()
+{
+  // Store previous temperature solution; a previous solution will always be present
+  // because a temperature IC is set and the neutronics solver runs first
+  if (has_global_coupling_data()) {
+    std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
+  }
+
+  // Compute the next iterate of the temperature
+  auto& heat = get_heat_driver();
+  if (heat.active()) {
+    auto t = heat.temperature();
+
+    if (heat.has_coupling_data())
+      temperatures_ = alpha_T_ * t + (1.0 - alpha_T_) * temperatures_prev_;
+  }
+
+  // Set temperature in the neutronics solver
+  set_temperature();
 }
 
 } // namespace enrico

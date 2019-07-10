@@ -44,6 +44,10 @@ public:
   //! initialization and finalization for each step.
   void solve_step() final;
 
+  //! Whether the calling rank has access to the full thermal-hydraulic solution field.
+  //! Only Nek's master rank has access to the global data; data on other ranks is empty
+  bool has_coupling_data() const final { return comm_.rank == 0; }
+
   xt::xtensor<double, 1> temperature() const final;
 
   xt::xtensor<double, 1> density() const final;

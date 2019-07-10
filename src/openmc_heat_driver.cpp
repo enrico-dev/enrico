@@ -57,6 +57,10 @@ void OpenmcHeatDriver::init_mappings()
   int n_azimuthal = 4;
 
   for (int i = 0; i < heat_driver_->n_pins_; ++i) {
+    // Get coordinate of pin center
+    double x_center = heat_driver_->pin_centers_(i, 0);
+    double y_center = heat_driver_->pin_centers_(i, 1);
+
     for (int j = 0; j < heat_driver_->n_axial_; ++j) {
       // Get average z value
       double zavg = 0.5 * (z(j) + z(j + 1));
@@ -74,8 +78,8 @@ void OpenmcHeatDriver::init_mappings()
         for (int m = 0; m < n_azimuthal; ++m) {
           double m_avg = m + 0.5;
           double theta = 2.0 * m_avg * PI / n_azimuthal;
-          double x = ravg * std::cos(theta);
-          double y = ravg * std::sin(theta);
+          double x = x_center + ravg * std::cos(theta);
+          double y = y_center + ravg * std::sin(theta);
 
           // Determine cell instance corresponding to given pin location
           Position r{x, y, zavg};
@@ -123,18 +127,19 @@ void OpenmcHeatDriver::init_temperatures()
 
     if (temperature_ic_ == Initial::neutronics) {
       // Loop over all of the rings in the heat transfer model and set the temperature IC
-      // based on temperatures used in the OpenMC input file. More than one OpenMC cell may
-      // correspond to a particular ring, so the initial temperature set for that ring should
-      // be a volume average of the OpenMC cell temperatures.
+      // based on temperatures used in the OpenMC input file. More than one OpenMC cell
+      // may correspond to a particular ring, so the initial temperature set for that ring
+      // should be a volume average of the OpenMC cell temperatures.
 
       // TODO: This initial condition used in the coupled driver does not truly represent
-      // the actual initial condition used in the OpenMC input file, since the surrogate heat
-      // solver only includes a radial dependence, though the various azimuthal segments
-      // corresponding to a single heat transfer ring may run with different initial
-      // temperatures. For this reading of the initial condition to be completely accurate,
-      // the heat solver must either be modified to include an azimuthal dependence, or
-      // a check inserted here to ensure that the initial temperatures in the azimuthal
-      // segments in the OpenMC model are all the same (i.e. no initial azimuthal dependence).
+      // the actual initial condition used in the OpenMC input file, since the surrogate
+      // heat solver only includes a radial dependence, though the various azimuthal
+      // segments corresponding to a single heat transfer ring may run with different
+      // initial temperatures. For this reading of the initial condition to be completely
+      // accurate, the heat solver must either be modified to include an azimuthal
+      // dependence, or a check inserted here to ensure that the initial temperatures in
+      // the azimuthal segments in the OpenMC model are all the same (i.e. no initial
+      // azimuthal dependence).
 
       int ring_index = 0;
       for (int i = 0; i < heat_driver_->n_pins_; ++i) {
@@ -166,8 +171,9 @@ void OpenmcHeatDriver::init_temperatures()
     }
 
     if (temperature_ic_ == Initial::heat) {
-      throw std::runtime_error{"Temperature initial conditions from surrogate heat-fluids "
-                               "solver not supported."};
+      throw std::runtime_error{
+        "Temperature initial conditions from surrogate heat-fluids "
+        "solver not supported."};
     }
   }
 }
@@ -208,14 +214,10 @@ void OpenmcHeatDriver::set_heat_source()
   }
 }
 
-void OpenmcHeatDriver::update_temperature()
+void OpenmcHeatDriver::set_temperature()
 {
-  std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
-
   const auto& r_fuel = heat_driver_->r_grid_fuel_;
   const auto& r_clad = heat_driver_->r_grid_clad_;
-
-  temperatures_ = heat_driver_->temperature();
 
   // For each OpenMC material, volume average temperatures and set
   for (int i = 0; i < openmc_driver_->cells_.size(); ++i) {

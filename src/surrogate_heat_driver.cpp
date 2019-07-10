@@ -150,8 +150,8 @@ void SurrogateHeatDriver::write_step(int timestep, int iteration)
 {
   // if called, but viz isn't requested for the situation,
   // exit early - no output
-  if (iteration < 0 && "final" != viz_iterations_ ||
-      iteration >= 0 && "all" != viz_iterations_) {
+  if ((iteration < 0 && "final" != viz_iterations_) ||
+      (iteration >= 0 && "all" != viz_iterations_)) {
     return;
   }
 
@@ -159,7 +159,7 @@ void SurrogateHeatDriver::write_step(int timestep, int iteration)
   std::stringstream filename;
   filename << viz_basename_;
   if (iteration >= 0 && timestep >= 0) {
-    filename << "_" << timestep << "_" << iteration;
+    filename << "_t" << timestep << "_i" << iteration;
   }
   filename << ".vtk";
 

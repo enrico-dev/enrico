@@ -32,7 +32,7 @@ public:
 
   void set_heat_source() override;
 
-  void update_temperature() override;
+  void set_temperature() override;
 
   NeutronicsDriver& get_neutronics_driver() const override;
 

@@ -1,6 +1,11 @@
 cmake_minimum_required(VERSION 3.3)
 project(enrico Fortran C CXX)
 
+# On BG/Q, linking requires -dynamic, not -rdynamic
+if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "ppc64")
+  set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "-dynamic")
+endif ()
+
 # =============================================================================
 # Check for SCALE (optional)
 # =============================================================================
@@ -83,9 +88,8 @@ if (SCALE_FOUND)
     list(APPEND SOURCES
         src/smrt/Assembly_Model.cpp
         src/smrt/shift_nek_driver.cpp
+        src/smrt/surrogate_heat_fluid_driver.cpp
         src/smrt/Multiphysics_Driver.cpp
-        src/smrt/Multi_Pin_Conduction.cpp
-        src/smrt/Multi_Pin_Subchannel.cpp
         src/smrt/shift_driver.cpp
         src/smrt/smrt_coupled_driver.cpp
         src/smrt/Single_Pin_Conduction.cpp

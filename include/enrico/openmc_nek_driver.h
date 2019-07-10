@@ -4,9 +4,9 @@
 #define ENRICO_OPENMC_NEK_DRIVER_H
 
 #include "enrico/coupled_driver.h"
+#include "enrico/message_passing.h"
 #include "enrico/nek_driver.h"
 #include "enrico/openmc_driver.h"
-#include "enrico/message_passing.h"
 #include "mpi.h"
 
 #include <unordered_set>
@@ -40,37 +40,44 @@ public:
 
   void set_heat_source() override;
 
-  void update_temperature() override;
+  void set_temperature() override;
 
   void update_density() override;
 
   NeutronicsDriver& get_neutronics_driver() const override;
 
-  HeatFluidsDriver & get_heat_driver() const override;
+  HeatFluidsDriver& get_heat_driver() const override;
 
-  Comm intranode_comm_; //!< The communicator representing intranode ranks
+  Comm intranode_comm_;       //!< The communicator representing intranode ranks
   int openmc_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in OpenMC
                               //!< comm
 
 protected:
   //! Initialize global temperature buffers on all OpenMC ranks.
   //!
-  //! These arrays store the dimensionless temperatures of Nek's global elements. These are **not**
-  //! ordered by Nek's global element indices. Rather, these are ordered according
-  //! to an MPI_Gatherv operation on Nek5000's local elements.
+  //! These arrays store the dimensionless temperatures of Nek's global elements. These
+  //! are **not** ordered by Nek's global element indices. Rather, these are ordered
+  //! according to an MPI_Gatherv operation on Nek5000's local elements.
   void init_temperatures() override;
 
   //! Initialize global source buffers on all OpenMC ranks.
   //!
-  //! These arrays store the dimensionless source of Nek's global elements. These are **not**
-  //! ordered by Nek's global element indices. Rather, these are ordered according
+  //! These arrays store the dimensionless source of Nek's global elements. These are
+  //! **not** ordered by Nek's global element indices. Rather, these are ordered according
   //! to an MPI_Gatherv operation on Nek5000's local elements.
   void init_heat_source() override;
 
+  //! Initialize global density buffers on all OpenMC ranks.
+  //!
+  //! These arrays store the ensity of Nek's global elements. These are **not**
+  //! ordered by Nek's global element indices. Rather, these are ordered according
+  //! to an MPI_Gatherv operation on Nek5000's local elements.
+  void init_densities() override;
+
   //! Initialize global fluid masks on all OpenMC ranks.
   //!
-  //! These arrays store the dimensionless source of Nek's global elements. These are **not**
-  //! ordered by Nek's global element indices. Rather, these are ordered according
+  //! These arrays store the dimensionless source of Nek's global elements. These are
+  //! **not** ordered by Nek's global element indices. Rather, these are ordered according
   //! to an MPI_Gatherv operation on Nek5000's local elements.
   void init_elem_fluid_mask();
 
@@ -81,7 +88,7 @@ private:
   //! Initialize MPI datatypes (currently, only position_mpi_datatype)
   void init_mpi_datatypes();
 
-  //! Create bidirectional mappings from OpenMC materials to/from Nek5000 elements
+  //! Create bidirectional mappings from OpenMC cell instances to/from Nek5000 elements
   void init_mappings();
 
   //! Initialize the tallies for all OpenMC materials
@@ -90,22 +97,12 @@ private:
   //! Initialize global volume buffers for OpenMC ranks
   void init_volumes();
 
-  //! Allocate space for the global volume buffers in OpenMC ranks
-  //! Currently, the density values are uninitialized.
-  void init_elem_densities();
-
   //! Frees the MPI datatypes (currently, only position_mpi_datatype)
   void free_mpi_datatypes();
 
-  //! Updates elem_densities_ from Nek5000's density data
-  void update_elem_densities();
-
-  //! Updates cell_densities_ from elem_densities_.
-  void update_cell_densities();
-
   std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
 
-  std::unique_ptr<NekDriver> nek_driver_;       //!< The Nek5000 driver
+  std::unique_ptr<NekDriver> nek_driver_; //!< The Nek5000 driver
 
   //! MPI datatype for sending/receiving Position objects.
   MPI_Datatype position_mpi_datatype;
@@ -128,27 +125,20 @@ private:
   //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
   xt::xtensor<double, 1> elem_volumes_;
 
-  //! The dimensionless densities of Nek's global elements
-  //! These are **not** ordered by Nek's global element indices.  Rather, these are
-  //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
-  xt::xtensor<double, 1> elem_densities_;
+  //! Map that gives a list of Nek element global indices for a given OpenMC
+  //! cell instance index. The Nek global element indices refer to indices
+  //! defined by the MPI_Gatherv operation, and do not reflect Nek's internal
+  //! global element indexing.
+  std::unordered_map<int32_t, std::vector<int>> cell_to_elems_;
 
-  //! Map that gives a list of Nek element global indices for a given OpenMC material
-  //! index. The Nek global element indices refer to indices defined by the MPI_Gatherv
-  //! operation, and do not reflect Nek's internal global element indexing.
-  std::unordered_map<int32_t, std::vector<int>> mat_to_elems_;
+  //! Map that gives the OpenMC cell instance indices for a given Nek global
+  //! element index. The Nek global element indices refer to indices defined by
+  //! the MPI_Gatherv operation, and do not reflect Nek's internal global
+  //! element indexing.
+  std::unordered_map<int, int32_t> elem_to_cell_;
 
-  //! Map that gives the OpenMC material index for a given Nek global element index.
-  //! The Nek global element indices refer to indices defined by the MPI_Gatherv
-  //! operation, and do not reflect Nek's internal global element indexing.
-  std::unordered_map<int, int32_t> elem_to_mat_;
-
-  //! Mapping of material indices (minus 1) to positions in array of heat sources that is
-  //! used during update_heat_source
-  std::vector<int> heat_index_;
-
-  //! Number of materials in OpenMC model
-  int32_t n_materials_;
+  //! Number of cell instances in OpenMC model
+  int32_t n_cells_;
 
   //! Number of Nek local elements on this MPI rank.
   //! If nek_driver_ is active, this equals nek_driver.nelt_.  If not, it equals 0.
