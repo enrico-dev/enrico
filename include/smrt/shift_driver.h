@@ -77,6 +77,9 @@ public:
              const std::vector<double>& coolant_density,
              std::vector<double>& power) override;
 
+  // get the heat source normalized to the given total power
+  std::vector<double> heat_source(double power) const;
+
 private:
   // Add power tally to parameter list
   void add_power_tally(RCP_PL& pl, const std::vector<double>& z_edges);

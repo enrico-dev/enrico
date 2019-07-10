@@ -31,9 +31,6 @@ public:
 
   xt::xtensor<double, 1> heat_source(double power) const final;
 
-  void normalize_heat_source(xt::xtensor<double, 1>& heat_source,
-                             double power) const final;
-
   //! Initialization required in each Picard iteration
   void init_step() final;
 
