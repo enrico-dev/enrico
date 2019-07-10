@@ -8,9 +8,9 @@
 #include "Teuchos_RCP.hpp"
 
 #include "Assembly_Model.h"
-#include "Multi_Pin_Conduction.h"
-#include "Multi_Pin_Subchannel.h"
 #include "Neutronics_Solver.h"
+
+#include "surrogate_heat_fluid_driver.h"
 
 namespace enrico {
 
@@ -32,8 +32,6 @@ public:
   //! Typedefs
   using Assembly = enrico::Assembly_Model;
   using SP_Assembly = std::shared_ptr<Assembly>;
-  using SP_Subchannel = std::shared_ptr<enrico::Multi_Pin_Subchannel>;
-  using SP_Conduction = std::shared_ptr<enrico::Multi_Pin_Conduction>;
   using SP_Neutronics = std::shared_ptr<enrico::Neutronics_Solver>;
   using RCP_PL = Teuchos::RCP<Teuchos::ParameterList>;
   using Vec_Dbl = std::vector<double>;
@@ -42,9 +40,9 @@ public:
 private:
   // >>> DATA
   SP_Assembly d_assembly;
-  SP_Subchannel d_subchannel;
-  SP_Conduction d_conduction;
   SP_Neutronics d_neutronics;
+
+  std::shared_ptr<enrico::SurrogateHeatFluidDriver> d_heat_fluid;
 
   int d_Nx, d_Ny, d_Nz, d_N;
 

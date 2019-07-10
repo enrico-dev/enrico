@@ -1,41 +1,47 @@
-#ifndef Multi_Pin_Subchannel_h
-#define Multi_Pin_Subchannel_h
+#ifndef SurrogateHeatFluidDriver_h
+#define SurrogateHeatFluidDriver_h
 
 #include <memory>
 #include <vector>
 
-// Trilinos includes
 #include "Teuchos_ParameterList.hpp"
 #include "Teuchos_RCP.hpp"
 
-// vendored includes
 #include <gsl/gsl>
 
-// enrico includes
 #include "Assembly_Model.h"
 #include "Single_Pin_Subchannel.h"
+#include "Single_Pin_Conduction.h"
 
 namespace enrico {
 
-//===========================================================================//
-/*!
- * \class Multi_Pin_Subchannel
- * \brief Solver channel-centered subchannel equations over multiple pins.
- */
-//===========================================================================//
-
-class Multi_Pin_Subchannel {
+//! Driver for coupled subchannel/heat conduction simulations. This driver
+//! decouples the fluid and solid phase in an explicit manner (i.e. no
+//! iteration between the convective heat transfer linking the phases within
+//! a single solve), which is sufficient given that this project targets
+//! steady-state simulations via fixed point iteration.
+class SurrogateHeatFluidDriver {
 public:
   //@{
   //! Typedefs
   using SP_Assembly = std::shared_ptr<Assembly_Model>;
   using RCP_PL = Teuchos::RCP<Teuchos::ParameterList>;
-  using SP_Pin_Subchannel = std::shared_ptr<Single_Pin_Subchannel>;
   //@}
 
-  virtual std::vector<double> temperature() const { return d_pin_temps; }
+  //! solve the thermal-hydraulic problem for the fluid and solid phases
+  //! for a given power distribution
+  void solve(const std::vector<double>& powers);
 
+  //! fluid temperature
+  virtual std::vector<double> fluid_temperature() const { return d_pin_temps; }
+
+  //! fluid density
   virtual std::vector<double> density() const { return d_pin_densities; }
+
+  //! solid temperature
+  virtual std::vector<double> solid_temperature() const { return d_solid_temps; }
+
+  double pressure_bc_; //! System pressure in [MPa]
 
 private:
   // >>> DATA
@@ -51,7 +57,11 @@ private:
   // Mass flow rate (kg/s) in each channel
   std::vector<double> d_mdots;
 
-  SP_Pin_Subchannel d_pin_subchannel;
+  //! subchannel solver for a single channel
+  std::unique_ptr<Single_Pin_Subchannel> d_pin_subchannel;
+
+  //! heat conduction solver for a single rod
+  std::unique_ptr<Single_Pin_Conduction> d_pin_conduction;
 
   //! coolant temperature in [K] for each channel, of total length given by the
   //! product of the number of pins by the number of axial cells
@@ -61,14 +71,15 @@ private:
   //! product of the number of pins by the number of axial cells
   std::vector<double> d_pin_densities;
 
+  //! solid temperature in [K]
+  std::vector<double> d_solid_temps;
+
 public:
   // Constructor
-  Multi_Pin_Subchannel(SP_Assembly assembly,
-                       RCP_PL params,
+  SurrogateHeatFluidDriver(SP_Assembly assembly,
+                       RCP_PL subchannel_params,
+                       RCP_PL conduction_params,
                        const std::vector<double>& dz);
-
-  // Solve
-  void solve(const std::vector<double>& power);
 
   //! heat source
   std::vector<double> d_pin_powers;
@@ -83,14 +94,21 @@ private:
     Expects(iy < d_Ny);
     return ix + d_Nx * iy;
   }
+
+  // Solve the fluid flow equations
+  void solve_fluid(const std::vector<double>& power);
+
+  // Solve the solid equations
+  void solve_heat(const std::vector<double>& power,
+    const std::vector<double>& channel_temp, std::vector<double>& fuel_temp);
 };
 
 //---------------------------------------------------------------------------//
 } // end namespace enrico
 
 //---------------------------------------------------------------------------//
-#endif // Multi_Pin_Subchannel_h
+#endif // SurrogateHeatFluidDriver_h
 
 //---------------------------------------------------------------------------//
-// end of Multi_Pin_Subchannel.h
+// end of SurrogateHeatFluidDriver.h
 //---------------------------------------------------------------------------//

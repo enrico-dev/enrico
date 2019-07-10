@@ -59,13 +59,11 @@ Multiphysics_Driver::Multiphysics_Driver(SP_Assembly assembly,
   d_damping = params->get("relaxation_factor", 1.0);
   d_verbosity = params->get("verbosity", std::string("low"));
 
-  // Build fluids solver (only surrogate subchannel for now)
+  // Build fluids-heat solver
   auto subchannel_params = Teuchos::sublist(params, "Subchannel");
-  d_subchannel = std::make_shared<Multi_Pin_Subchannel>(assembly, subchannel_params, dz);
-
-  // Build thermal conduction solver (only surrogate for now)
   auto conduction_params = Teuchos::sublist(params, "Conduction");
-  d_conduction = std::make_shared<Multi_Pin_Conduction>(assembly, conduction_params, dz);
+  d_heat_fluid = std::make_shared<SurrogateHeatFluidDriver>(assembly, subchannel_params,
+    conduction_params, dz);
 
   // Build neutronics solver (surrogate diffusion or Shift MC)
   auto neutronics_params = Teuchos::sublist(params, "Neutronics");
@@ -112,11 +110,14 @@ void Multiphysics_Driver::solve()
   for (int it = 0; it < d_max_iters; ++it) {
     old_power = d_power;
 
-    d_subchannel->solve(d_power);
-    d_coolant_temperature = d_subchannel->temperature();
-    d_coolant_density = d_subchannel->density();
+    // solve the fluid and solid T/H equations
+    d_heat_fluid->solve(d_power);
 
-    d_conduction->solve(d_power, d_coolant_temperature, d_fuel_temperature);
+    // get the needed portions of the T/H solution
+    d_coolant_temperature = d_heat_fluid->fluid_temperature();
+    d_coolant_density = d_heat_fluid->density();
+    d_fuel_temperature = d_heat_fluid->solid_temperature();
+
     d_neutronics->solve(d_fuel_temperature, d_coolant_density, d_power);
 
     // Scale power
