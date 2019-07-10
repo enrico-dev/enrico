@@ -95,8 +95,8 @@ void ShiftNekDriver::solve()
   for (int iteration = 0; iteration < max_picard_iter_; ++iteration) {
     // Set heat source in Nek; first, get heat source indexed by cell ID
     // from Shift and map it to Nek elements
-    for (int cellid = 0; cellid < d_power_map.size(); ++cellid) {
-      const auto& elem_list = d_power_map[cellid];
+    for (int cellid = 0; cellid < d_shift_solver->d_power_map.size(); ++cellid) {
+      const auto& elem_list = d_shift_solver->d_power_map[cellid];
 
       for (const auto& elem : elem_list)
         d_powers[elem] = d_power_shift[cellid];
