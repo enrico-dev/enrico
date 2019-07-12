@@ -13,42 +13,36 @@
 
 namespace enrico {
 
-//! Class containing geometric information for a flow channel
-class Channel {
-  public:
-    Channel() = default;
+//! Struct containing geometric information for a flow channel
+struct Channel {
+  //! Channel index
+  int index_;
 
-    //! Channel index
-    int index_;
+  //! Channel flow area
+  double area_;
 
-    //! Channel flow area
-    double area_;
-
-    //! Vector of rod IDs connected to this channel, all with a fractional perimeter
-    //! in contact with the channel equal to 0.25
-    std::vector<int> rod_ids_;
+  //! Vector of rod IDs connected to this channel, all with a fractional perimeter
+  //! in contact with the channel equal to 0.25
+  std::vector<std::size_t> rod_ids_;
 };
 
-//! Class containing geometry information for a cylindrical solid rod
-class Rod {
-  public:
-    Rod() = default;
+//! Struct containing geometry information for a cylindrical solid rod
+struct Rod {
+  //! Rod index
+  int index_;
 
-    //! Rod index
-    int index_;
+  //! Rod cladding outer radius
+  double clad_outer_radius_;
 
-    //! Rod cladding outer radius
-    double clad_outer_radius_;
+  //! Rod cladding inner radius
+  double clad_inner_radius_;
 
-    //! Rod cladding inner radius
-    double clad_inner_radius_;
+  //! Rod pellet radius
+  double pellet_radius_;
 
-    //! Rod pellet radius
-    double pellet_radius_;
-
-    //! Vector of channel IDs connected to this rod, all with a fractional perimeter
-    //! in contact with the rod equal to 0.25
-    std::vector<int> channel_ids_;
+  //! Vector of channel IDs connected to this rod, all with a fractional perimeter
+  //! in contact with the rod equal to 0.25
+  std::vector<std::size_t> channel_ids_;
 };
 
 //! Class to construct flow channels for a Cartesian lattice of pins
@@ -61,7 +55,7 @@ class ChannelFactory {
       {}
 
     //! Make a corner subchannel connected to given rods
-    Channel make_corner(const std::vector<int>& rods) const {
+    Channel make_corner(const std::vector<std::size_t>& rods) const {
       Channel c;
       c.index_ = index_++;
       c.area_ = 0.25 * interior_area_;
@@ -70,7 +64,7 @@ class ChannelFactory {
     }
 
     //! Make an edge subchannel connected to given rods
-    Channel make_edge(const std::vector<int>& rods) const {
+    Channel make_edge(const std::vector<std::size_t>& rods) const {
       Channel c;
       c.index_ = index_++;
       c.area_ = 0.5 * interior_area_;
@@ -79,7 +73,7 @@ class ChannelFactory {
     }
 
     //! Make an interior subchannel connected to given rods
-    Channel make_interior(const std::vector<int>& rods) const {
+    Channel make_interior(const std::vector<std::size_t>& rods) const {
       Channel c;
       c.index_ = index_++;
       c.area_ = interior_area_;
@@ -111,7 +105,7 @@ class RodFactory {
       {}
 
     //! Make a rod connected to given channels
-    Rod make_rod(const std::vector<int>& channels) const {
+    Rod make_rod(const std::vector<std::size_t>& channels) const {
       Rod r;
       r.index_ = index_++;
       r.clad_inner_radius_ = clad_inner_r_;
@@ -254,10 +248,10 @@ private:
   xt::xtensor<double, 2> fluid_density_;
 
   //! Number of pins in the x-direction in a Cartesian grid
-  int n_pins_x_;
+  std::size_t n_pins_x_;
 
   //! Number of pins in the y-direction in a Cartesian grid
-  int n_pins_y_;
+  std::size_t n_pins_y_;
 
   //! Pin pitch, assumed the same for the x and y directions
   double pin_pitch_;

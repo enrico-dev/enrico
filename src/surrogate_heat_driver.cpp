@@ -70,8 +70,8 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
   double assembly_width_y = n_pins_y_ * pin_pitch_;
 
   pin_centers_.resize({n_pins_});
-  for (int row = 0; row < n_pins_y_; ++row) {
-    for (int col = 0; col < n_pins_x_; ++col) {
+  for (gsl::index row = 0; row < n_pins_y_; ++row) {
+    for (gsl::index col = 0; col < n_pins_x_; ++col) {
       int pin_index = row * n_pins_x_ + col;
       pin_centers_(pin_index, 0) = -assembly_width_x / 2.0 + pin_pitch_ / 2.0 + col * pin_pitch_;
       pin_centers_(pin_index, 1) = assembly_width_y / 2.0 - (pin_pitch_ / 2.0 + row * pin_pitch_);
@@ -81,10 +81,10 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
   // Initialize the channels
   ChannelFactory channel_factory(pin_pitch_, clad_outer_radius_);
 
-  for (int row = 0; row < n_pins_y_ + 1; ++row) {
-    for (int col = 0; col < n_pins_x_ + 1; ++col) {
-      int a = col / n_pins_x_;
-      int b = row / n_pins_y_;
+  for (gsl::index row = 0; row < n_pins_y_ + 1; ++row) {
+    for (gsl::index col = 0; col < n_pins_x_ + 1; ++col) {
+      std::size_t a = col / n_pins_x_;
+      std::size_t b = row / n_pins_y_;
 
       if ((row == 0 || row == n_pins_y_) && (col == 0 || col == n_pins_x_))
         channels_.push_back(channel_factory.make_corner({a * (n_pins_x_ - 1) + b * n_pins_x_ * (n_pins_y_ - 1)}));
@@ -97,7 +97,7 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
       else if (col == n_pins_x_)
         channels_.push_back(channel_factory.make_edge({row * n_pins_x_ - 1, (row + 1) * n_pins_x_ - 1}));
       else {
-        int i = (row - 1) * n_pins_x_ + col - 1;
+        std::size_t i = (row - 1) * n_pins_x_ + col - 1;
         channels_.push_back(channel_factory.make_interior({i, i + 1, i + n_pins_x_, i + n_pins_x_ + 1}));
       }
     }
@@ -105,20 +105,20 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
 
   // Initialize the rods
   RodFactory rod_factory(clad_outer_radius_, clad_inner_radius_, pellet_radius_);
-  for (int rod = 0; rod < n_pins_; ++rod) {
-    int row = rod / n_pins_x_;
-    int col = rod % n_pins_x_;
-    int a = n_pins_x_ + 1;
+  for (gsl::index rod = 0; rod < n_pins_; ++rod) {
+    std::size_t row = rod / n_pins_x_;
+    std::size_t col = rod % n_pins_x_;
+    std::size_t a = n_pins_x_ + 1;
     rods_.push_back(rod_factory.make_rod({row * a + col, row * a + col + 1,
       (row + 1) * a + col, (row + 1) * a + col + 1}));
   }
 
   double total_flow_area = 0.0;
-  for (const auto c : channels_)
+  for (const auto& c : channels_)
     total_flow_area += c.area_;
 
   channel_flowrates_.resize({n_channels_});
-  for (int i = 0; i < n_channels_; ++i)
+  for (gsl::index i = 0; i < n_channels_; ++i)
     channel_flowrates_(i) = channels_[i].area_ / total_flow_area * mass_flowrate_;
 
   // Get z values
@@ -166,7 +166,7 @@ void SurrogateHeatDriver::generate_arrays()
 
   // Compute the cross-sectional areas of each region
   solid_areas_ = xt::empty<double>({n_rings()});
-  for (int i = 0; i < n_rings(); ++i) {
+  for (gsl::index i = 0; i < n_rings(); ++i) {
     if (i < n_fuel_rings_)
       solid_areas_(i) = M_PI * (r_grid_fuel_(i + 1) * r_grid_fuel_(i + 1) - r_grid_fuel_(i) * r_grid_fuel_(i));
     else {
@@ -201,7 +201,7 @@ void SurrogateHeatDriver::solve_fluid()
     double power = 0.0;
     double dz = z_(axial + 1) - z_(axial);
 
-    for (int i = 0; i < n_rings(); ++i)
+    for (gsl::index i = 0; i < n_rings(); ++i)
       power += source_(pin, axial, i) * solid_areas_(i) * dz;
 
     return power;
@@ -229,24 +229,25 @@ void SurrogateHeatDriver::solve_fluid()
   std::fill(p.begin(), p.end(), pressure_bc_);
 
   bool converged = false;
-  for (int iter = 0; iter < max_subchannel_its_; ++iter) {
+  for (gsl::index iter = 0; iter < max_subchannel_its_; ++iter) {
     // save the previous solution
     xt::xtensor<double, 2> h_old = h;
     xt::xtensor<double, 2> p_old = p;
 
     // solve each channel independently
-    for (int chan = 0; chan < n_channels_; ++chan) {
+    for (gsl::index chan = 0; chan < n_channels_; ++chan) {
       const auto& c = channels_[chan];
 
       // solve for enthalpy by simple energy balance q = mdot * dh by marching from inlet
       h(chan, 0) = iapws::h1(p(chan, 0), inlet_temperature_);
-      for (int axial = 0; axial < n_axial_; ++axial)
+      for (gsl::index axial = 0; axial < n_axial_; ++axial)
         h(chan, axial + 1) = h(chan, axial) + channel_powers(chan, axial) / channel_flowrates_(chan);
 
       // solve for pressure using one-sided finite difference approximation by marching
       // from outlet and solving the axial momentum equation.
       p(chan, n_axial_) = pressure_bc_;
-      for (int axial = n_axial_; axial > 0; axial--) {
+      for (gsl::index axial = n_axial_; axial > 0; axial--) {
+        // nu1 returns specific volume in units of m^3/kg, convert to g/cm^3
         double rho_high = 1.0e-3 / iapws::nu1(p[axial], iapws::T_from_p_h(p[axial], h[axial]));
         double rho_low = 1.0e-3 / iapws::nu1(p[axial - 1], iapws::T_from_p_h(p[axial - 1], h[axial - 1]));
 
@@ -262,10 +263,8 @@ void SurrogateHeatDriver::solve_fluid()
     // to enable crossflow coupling between channels in the future, this convergence check is
     // performed on all channels together, rather than each separately, since in a more sophisticated
     // solver the channels would all be linked
-    auto n_expr_h = xt::norm_l1(h - h_old);
-    double h_norm = n_expr_h();
-    auto n_expr_p = xt::norm_l1(p - p_old);
-    double p_norm = n_expr_p();
+    auto h_norm = xt::norm_l1(h - h_old)();
+    auto p_norm = xt::norm_l1(p - p_old)();
 
     converged = (h_norm < subchannel_tol_h_) && (p_norm < subchannel_tol_p_);
 
@@ -274,11 +273,11 @@ void SurrogateHeatDriver::solve_fluid()
   }
 
   // compute temperature and density from enthalpy and pressure in a cell-centered basis
-  xt::xtensor<double, 2> T = xt::empty<double>({n_channels_, n_axial_});
-  xt::xtensor<double, 2> rho = xt::empty<double>({n_channels_, n_axial_});
+  xt::xtensor<double, 2> T({n_channels_, n_axial_});
+  xt::xtensor<double, 2> rho({n_channels_, n_axial_});
 
-  for (int chan = 0; chan < n_channels_; ++chan) {
-    for (int axial = 0; axial < n_axial_; ++axial) {
+  for (gsl::index chan = 0; chan < n_channels_; ++chan) {
+    for (gsl::index axial = 0; axial < n_axial_; ++axial) {
       double h_mean = 0.5 * (h(chan, axial) + h(chan, axial + 1));
       double p_mean = 0.5 * (p(chan, axial) + p(chan, axial + 1));
 
@@ -289,8 +288,8 @@ void SurrogateHeatDriver::solve_fluid()
 
   // After solving the subchannel equations, convert the solution to a rod-centered basis,
   // since this will most likely be the form desired by neutronics codes.
-  for (int rod = 0; rod < n_pins_; ++rod) {
-    for (int axial = 0; axial < n_axial_; ++ axial) {
+  for (gsl::index rod = 0; rod < n_pins_; ++rod) {
+    for (gsl::index  axial = 0; axial < n_axial_; ++ axial) {
       fluid_temperature_(rod, axial) = 0.0;
       fluid_density_(rod, axial) = 0.0;
 
@@ -313,16 +312,14 @@ void SurrogateHeatDriver::solve_heat()
   xt::xtensor<double, 1> r_fuel = 0.01 * r_grid_fuel_;
   xt::xtensor<double, 1> r_clad = 0.01 * r_grid_clad_;
 
-  for (int i = 0; i < n_pins_; ++i) {
-    for (int j = 0; j < n_axial_; ++j) {
+  for (gsl::index i = 0; i < n_pins_; ++i) {
+    for (gsl::index j = 0; j < n_axial_; ++j) {
       // approximate cladding surface temperature as equal to the fluid
       // temperature, i.e. this neglects any heat transfer resistance
       double T_co = fluid_temperature_(i, j);
 
       // Set initial temperature to surface temperature
-      for (auto& T : temperature_) {
-        T = T_co;
-      }
+      temperature_.fill(T_co);
 
       solve_steady_nonlin(&q(i, j, 0),
                           T_co,
