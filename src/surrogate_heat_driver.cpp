@@ -47,6 +47,21 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
   if (node.child("heat_tol"))
     heat_tol_ = node.child("heat_tol").text().as_double();
 
+  verbosity_ = verbose::NONE;
+  if (node.child("verbosity")) {
+    std::string setting = node.child("verbosity").text().as_string();
+    if (setting == "none") {
+      verbosity_ = verbose::NONE;
+    } else if (setting == "low") {
+      verbosity_ = verbose::LOW;
+    } else if (setting == "high") {
+      verbosity_ = verbose::HIGH;
+    } else {
+      // invalid input for verbosity
+      Expects(false);
+    }
+  }
+
   // check validity of user input
   Expects(clad_inner_radius_ > 0);
   Expects(clad_outer_radius_ > clad_inner_radius_);
@@ -66,6 +81,7 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
   // Set pin locations, where the center of the assembly is assumed to occur at
   // x = 0, y = 0. It is also assumed that the rod-boundary separation in the
   // x and y directions is the same and equal to half the pitch.
+  // TODO: generalize to multi-assembly simulations
   double assembly_width_x = n_pins_x_ * pin_pitch_;
   double assembly_width_y = n_pins_y_ * pin_pitch_;
 
@@ -228,6 +244,9 @@ void SurrogateHeatDriver::solve_fluid()
   std::fill(h.begin(), h.end(), iapws::h1(pressure_bc_, inlet_temperature_));
   std::fill(p.begin(), p.end(), pressure_bc_);
 
+  // for certain verbosity settings, we will need to save the velocity solutions
+  xt::xtensor<double, 2> u = xt::zeros<double>({n_channels_, n_axial_ + 1});
+
   bool converged = false;
   for (gsl::index iter = 0; iter < max_subchannel_its_; ++iter) {
     // save the previous solution
@@ -248,13 +267,13 @@ void SurrogateHeatDriver::solve_fluid()
       p(chan, n_axial_) = pressure_bc_;
       for (gsl::index axial = n_axial_; axial > 0; axial--) {
         // nu1 returns specific volume in units of m^3/kg, convert to g/cm^3
-        double rho_high = 1.0e-3 / iapws::nu1(p[axial], iapws::T_from_p_h(p[axial], h[axial]));
-        double rho_low = 1.0e-3 / iapws::nu1(p[axial - 1], iapws::T_from_p_h(p[axial - 1], h[axial - 1]));
+        double rho_high = 1.0e-3 / iapws::nu1(p(chan, axial), iapws::T_from_p_h(p(chan, axial), h(chan, axial)));
+        double rho_low = 1.0e-3 / iapws::nu1(p(chan, axial - 1), iapws::T_from_p_h(p(chan, axial - 1), h(chan, axial - 1)));
 
-        double u_high = channel_flowrates_(chan) / (rho_high * c.area_);
-        double u_low = channel_flowrates_(chan) / (rho_low * c.area_);
+        u(chan, axial) = channel_flowrates_(chan) / (rho_high * c.area_);
+        u(chan, axial - 1) = channel_flowrates_(chan) / (rho_low * c.area_);
 
-        p[axial - 1] = p[axial] + channel_flowrates_(chan) / c.area_ * (u_high - u_low) +
+        p[axial - 1] = p[axial] + channel_flowrates_(chan) / c.area_ * (u(chan, axial) - u(chan, axial - 1)) +
           g_ * (z_(axial) - z_(axial - 1)) * rho_low;
       }
     }
@@ -289,7 +308,7 @@ void SurrogateHeatDriver::solve_fluid()
   // After solving the subchannel equations, convert the solution to a rod-centered basis,
   // since this will most likely be the form desired by neutronics codes.
   for (gsl::index rod = 0; rod < n_pins_; ++rod) {
-    for (gsl::index  axial = 0; axial < n_axial_; ++ axial) {
+    for (gsl::index  axial = 0; axial < n_axial_; ++axial) {
       fluid_temperature_(rod, axial) = 0.0;
       fluid_density_(rod, axial) = 0.0;
 
@@ -299,6 +318,36 @@ void SurrogateHeatDriver::solve_fluid()
       }
     }
   }
+
+  // Perform diagnostic checks if verbosity is sufficiently high
+  if (verbosity_ >= verbose::LOW) {
+    bool mass_conserved = mass_conservation(rho, u);
+
+    Expects(mass_conserved);
+  }
+}
+
+bool SurrogateHeatDriver::mass_conservation(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u) const
+{
+  bool mass_conserved = true;
+
+  for (gsl::index axial = 0; axial < n_axial_; ++axial) {
+    double mass_flowrate = 0.0;
+    for (gsl::index chan = 0; chan < n_channels_; ++ chan) {
+      double u_cell_centered = 0.5 * (u(chan, axial) + u(chan, axial + 1));
+      mass_flowrate += u_cell_centered * channels_[chan].area_ * rho(chan, axial);
+    }
+
+    double tol = std::abs(mass_flowrate - mass_flowrate_);
+
+    if (tol > 1e-3)
+      mass_conserved = false;
+
+    if (verbosity_ == verbose::HIGH)
+      std::cout << "Mass on plane " << axial << " conserved to a tolerance of " << tol << std::endl;
+  }
+
+  return mass_conserved;
 }
 
 void SurrogateHeatDriver::solve_heat()

@@ -153,6 +153,9 @@ public:
   //! \param node  XML node containing settings for surrogate
   explicit SurrogateHeatDriver(MPI_Comm comm, double pressure_bc, pugi::xml_node node);
 
+  //! Verbosity options for printing simulation results
+  enum class verbose { NONE, LOW, HIGH };
+
   bool has_coupling_data() const final { return true; }
 
   //! Solves the heat-fluids surrogate solver
@@ -219,6 +222,13 @@ private:
   //! Channel index in terms of row, column index
   int channel_index(int row, int col) const { return row * (n_pins_x_ + 1) + col; }
 
+  //! Diagnostic function to assess whether the mass is conserved by the subchannel
+  //! solver by comparing the mass flowrate in each axial plane (at cell-centered
+  //! values) to the specified inlet mass flowrate.
+  //! \param rho density in a cell-centered basis
+  //! \param u   axial velocity in a face-centered basis
+  bool mass_conservation(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u) const;
+
   //!< temperature in [K] for each (pin, axial segment, ring)
   xt::xtensor<double, 3> temperature_;
 
@@ -283,6 +293,9 @@ private:
 
   //! Gravitational acceleration
   const double g_ = 9.81;
+
+  //! Verbosity setting for printing simulation results; defaults to NONE
+  verbose verbosity_ = verbose::NONE;
 
 }; // end SurrogateHeatDriver
 
