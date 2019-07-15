@@ -166,7 +166,7 @@ public:
   void solve_fluid();
 
   //! Returns Number of rings in fuel and clad
-  std::size_t n_rings() { return n_fuel_rings_ + n_clad_rings_; }
+  std::size_t n_rings() const { return n_fuel_rings_ + n_clad_rings_; }
 
   //! Write data to VTK
   void write_step(int timestep, int iteration) final;
@@ -222,12 +222,28 @@ private:
   //! Channel index in terms of row, column index
   int channel_index(int row, int col) const { return row * (n_pins_x_ + 1) + col; }
 
+  //! Rod power at a given node in a given pin, computed by integrating the heat source
+  //! (assumed constant in each ring) over the pin.
+  //! \param pin   pin index
+  //! \param axial axial index
+  double rod_axial_node_power(const int pin, const int axial) const;
+
   //! Diagnostic function to assess whether the mass is conserved by the subchannel
   //! solver by comparing the mass flowrate in each axial plane (at cell-centered
-  //! values) to the specified inlet mass flowrate.
+  //! positions) to the specified inlet mass flowrate.
   //! \param rho density in a cell-centered basis
   //! \param u   axial velocity in a face-centered basis
   bool mass_conservation(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u) const;
+
+  //! Diagnostic function to assess whether the energy is conserved by the subchannel
+  //! solver by comparing the energy deposition in each channel in each axial plane
+  //! (at cell-centered positions) to the powers of the rods connected to that channel.
+  //! \param rho density in a cell-centered basis
+  //! \param u   axial velocity in a face-centered basis
+  //! \param h   enthalpy in a face-centered basis
+  //! \param q   powers in each channel in a cell-centered basis
+  bool energy_conservation(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u,
+    const xt::xtensor<double, 2>&h, const xt::xtensor<double, 2>& q) const;
 
   //!< temperature in [K] for each (pin, axial segment, ring)
   xt::xtensor<double, 3> temperature_;

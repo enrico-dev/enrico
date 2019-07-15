@@ -202,6 +202,19 @@ void SurrogateHeatDriver::generate_arrays()
   fluid_density_ = xt::empty<double>({n_pins_, n_axial_});
 }
 
+double SurrogateHeatDriver::rod_axial_node_power(const int pin, const int axial) const
+{
+  Expects(axial <= n_axial_);
+
+  double power = 0.0;
+  double dz = z_(axial + 1) - z_(axial);
+
+  for (gsl::index i = 0; i < n_rings(); ++i)
+    power += source_(pin, axial, i) * solid_areas_(i) * dz;
+
+  return power;
+}
+
 void SurrogateHeatDriver::solve_step()
 {
   solve_fluid();
@@ -211,17 +224,6 @@ void SurrogateHeatDriver::solve_step()
 void SurrogateHeatDriver::solve_fluid()
 {
   // convenience function for determining the rod power in a given axial layer
-  auto rod_axial_node_power = [this](int pin, int axial) {
-    Expects(axial <= n_axial_);
-
-    double power = 0.0;
-    double dz = z_(axial + 1) - z_(axial);
-
-    for (gsl::index i = 0; i < n_rings(); ++i)
-      power += source_(pin, axial, i) * solid_areas_(i) * dz;
-
-    return power;
-  };
 
   // determine the power deposition in each channel; the target applications will always
   // be steady-state or pseudo-steady-state cases with no axial conduction such that
@@ -289,6 +291,14 @@ void SurrogateHeatDriver::solve_fluid()
 
     if (converged)
       break;
+
+    // check if the solve didn't converge
+    if (iter == max_subchannel_its_ - 1) {
+      if (verbosity_ >= verbose::LOW) {
+        std::cout << "Subchannel solver failed to converge! Enthalpy norm: " << h_norm <<
+          " Pressure norm: " << p_norm << std::endl;
+      }
+    }
   }
 
   // compute temperature and density from enthalpy and pressure in a cell-centered basis
@@ -322,8 +332,10 @@ void SurrogateHeatDriver::solve_fluid()
   // Perform diagnostic checks if verbosity is sufficiently high
   if (verbosity_ >= verbose::LOW) {
     bool mass_conserved = mass_conservation(rho, u);
+    bool energy_conserved = energy_conservation(rho, u, h, channel_powers);
 
     Expects(mass_conserved);
+    Expects(energy_conserved);
   }
 }
 
@@ -338,16 +350,45 @@ bool SurrogateHeatDriver::mass_conservation(const xt::xtensor<double, 2>& rho, c
       mass_flowrate += u_cell_centered * channels_[chan].area_ * rho(chan, axial);
     }
 
-    double tol = std::abs(mass_flowrate - mass_flowrate_);
+    double tol = std::abs(mass_flowrate - mass_flowrate_) / mass_flowrate_;
 
-    if (tol > 1e-3)
+    if (tol > 1e-3) {
       mass_conserved = false;
+    }
 
-    if (verbosity_ == verbose::HIGH)
+    if (verbosity_ == verbose::HIGH) {
       std::cout << "Mass on plane " << axial << " conserved to a tolerance of " << tol << std::endl;
+    }
   }
 
   return mass_conserved;
+}
+
+bool SurrogateHeatDriver::energy_conservation(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u,
+  const xt::xtensor<double, 2>& h, const xt::xtensor<double, 2>& q) const
+{
+  bool energy_conserved = true;
+
+  for (gsl::index axial = 0; axial < n_axial_; ++axial) {
+    for (gsl::index chan = 0; chan < n_channels_; ++chan) {
+      double u_cell_centered = 0.5 * (u(chan, axial) + u(chan, axial + 1));
+      double mass_flowrate = rho(chan, axial) * channels_[chan].area_ * u_cell_centered;
+      double channel_energy_change = mass_flowrate * (h(chan, axial + 1) - h(chan, axial));
+
+      double tol = std::abs(channel_energy_change - q(chan, axial)) / q(chan, axial);
+
+      if (tol > 1e-3) {
+        energy_conserved = false;
+      }
+
+      if (verbosity_ == verbose::HIGH) {
+        std::cout << "Energy deposition in channel " << chan << ", axial node " << axial <<
+          " conserved to a tolerance of " << tol << std::endl;
+      }
+    }
+  }
+
+  return energy_conserved;
 }
 
 void SurrogateHeatDriver::solve_heat()
