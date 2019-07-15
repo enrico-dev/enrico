@@ -1,7 +1,5 @@
 #include "smrt/Two_Group_Cross_Sections.h"
 
-#include "Nemesis/harness/DBC.hh"
-
 namespace enrico {
 //---------------------------------------------------------------------------//
 // Get interpolated cross section data

@@ -10,9 +10,9 @@ namespace enrico {
 // Constructor
 //---------------------------------------------------------------------------//
 SurrogateHeatFluidDriver::SurrogateHeatFluidDriver(SP_Assembly assembly,
-                                           RCP_PL subchannel_parameters,
-                                           RCP_PL conduction_parameters,
-                                           const std::vector<double>& dz)
+                                                   RCP_PL subchannel_parameters,
+                                                   RCP_PL conduction_parameters,
+                                                   const std::vector<double>& dz)
   : d_assembly(assembly)
 {
   Expects(d_assembly != nullptr);
@@ -49,7 +49,7 @@ SurrogateHeatFluidDriver::SurrogateHeatFluidDriver(SP_Assembly assembly,
     d_mdots[channel] = mdot_per_area * d_areas[channel];
 
   auto inlet_temp = subchannel_parameters->get("inlet_temperature", 565.0);
-  pressure_bc_ = subchannel_parameters->get("exit_pressure", 1.52e7);
+  pressure_bc_ = subchannel_parameters->get("exit_pressure", 15.2);
 
   // Build single channel solver
   d_pin_subchannel = std::make_unique<Single_Pin_Subchannel>(subchannel_parameters, dz);
@@ -169,8 +169,8 @@ void SurrogateHeatFluidDriver::solve_fluid(const std::vector<double>& powers)
 }
 
 void SurrogateHeatFluidDriver::solve_heat(const std::vector<double>& power,
-                                 const std::vector<double>& channel_temp,
-                                 std::vector<double>& fuel_temp)
+                                          const std::vector<double>& channel_temp,
+                                          std::vector<double>& fuel_temp)
 {
   int Nx = d_assembly->num_pins_x();
   int Ny = d_assembly->num_pins_y();

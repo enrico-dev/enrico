@@ -2,13 +2,13 @@
 #include <iostream>
 
 #include "smrt/Single_Pin_Subchannel.h"
-#include "smrt/Water_Properties.h"
 
 // SCALE includes
 #include "Nemesis/utils/String_Functions.hh"
 
 // vendored includes
 #include <gsl/gsl>
+#include <iapws.h>
 
 namespace enrico {
 //---------------------------------------------------------------------------//
@@ -60,12 +60,17 @@ void Single_Pin_Subchannel::solve(const std::vector<double>& power,
 
   int num_regions = d_delta_z.size();
 
-  // Initial guesses for h and p on edges of axial regions
-  std::vector<double> h(num_regions + 1, Water_Properties::Enthalpy(d_T_inlet, d_p_exit));
+  // Initial guesses for h and p on edges of axial regions. Note that enthalpy
+  // is in units of kJ/kg and pressure is in units of MPa as needed for IAPWS
+  // functions
+  std::vector<double> h(num_regions + 1, iapws::h1(d_p_exit, d_T_inlet));
   std::vector<double> p(num_regions + 1, d_p_exit);
 
   // Gravitational constant
   constexpr double g = 9.81;
+
+  // Convert W to kW
+  constexpr double w_to_kw = 1e-3;
 
   bool converged = false;
   int it;
@@ -75,25 +80,26 @@ void Single_Pin_Subchannel::solve(const std::vector<double>& power,
     std::vector<double> p_old = p;
 
     // Solve for enthalpy from inlet to outlet
-    h[0] = Water_Properties::Enthalpy(d_T_inlet, p[0]);
+    h[0] = iapws::h1(p[0], d_T_inlet);
     for (int k = 0; k < num_regions; ++k)
-      h[k + 1] = h[k] + power[k] / d_mdot;
+      h[k + 1] = h[k] + w_to_kw * power[k] / d_mdot;
 
     // Solve for pressure from outlet to inlet
     p[num_regions] = d_p_exit;
     for (int k = num_regions; k > 0; --k) {
       // Compute density at top and bottom of level from current
       // enthalpy and pressure
-      double rho_high = Water_Properties::Density(h[k], p[k]);
-      double rho_low = Water_Properties::Density(h[k - 1], p[k - 1]);
+      double rho_high = iapws::rho_from_p_h(p[k], h[k]);
+      double rho_low = iapws::rho_from_p_h(p[k - 1], h[k - 1]);
 
       // Compute velocities from densities
       double u_high = d_mdot / (rho_high * d_area);
       double u_low = d_mdot / (rho_low * d_area);
 
       // Compute new pressure
-      p[k - 1] =
-        p[k] + (d_mdot / d_area) * (u_high - u_low) + g * d_delta_z[k - 1] * rho_low;
+      constexpr double pa_to_mpa = 1e-6;
+      p[k - 1] = p[k] + pa_to_mpa * ((d_mdot / d_area) * (u_high - u_low) +
+                                     g * d_delta_z[k - 1] * rho_low);
     }
 
     // Check convergence on h and p
@@ -146,8 +152,8 @@ void Single_Pin_Subchannel::solve(const std::vector<double>& power,
     double h_mean = 0.5 * (h[k] + h[k + 1]);
     double p_mean = 0.5 * (p[k] + p[k + 1]);
 
-    temperature[k] = Water_Properties::Temperature(h_mean, p_mean);
-    density[k] = kgm3_2_gcm3 * Water_Properties::Density(h_mean, p_mean);
+    temperature[k] = iapws::T_from_p_h(p_mean, h_mean);
+    density[k] = kgm3_2_gcm3 * iapws::rho_from_p_h(p_mean, h_mean);
   }
 }
 

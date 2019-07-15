@@ -16,7 +16,6 @@
 
 // SCALE includes
 #include "Nemesis/comm/global.hh"
-#include "Nemesis/harness/DBC.hh"
 
 // vendored includes
 #include <gsl/gsl>

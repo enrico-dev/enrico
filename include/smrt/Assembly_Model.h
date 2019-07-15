@@ -7,9 +7,6 @@
 #include "Teuchos_ParameterList.hpp"
 #include "Teuchos_RCP.hpp"
 
-// SCALE includes
-#include "Nemesis/harness/DBC.hh"
-
 // vendored includes
 #include <gsl/gsl>
 

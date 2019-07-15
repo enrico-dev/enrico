@@ -1,4 +1,7 @@
 #include "iapws/iapws.h"
+
+#include <gsl/gsl>
+
 #include <cmath>
 
 namespace iapws {
@@ -54,6 +57,9 @@ double gamma1_tau_tau(double pi, double tau)
 
 double nu1(double p, double T)
 {
+  Expects(p < 100.0);
+  Expects((T >= 273.15) && (T <= 623.15));
+
   double pi = p / 16.53;   // Dimensionless pressure; p must be in MPa.
   double tau = 1386.0 / T; // Dimensionless temperature; T must be in K.
   return pi * gamma1_pi(pi, tau) * R * T / (p * 1e3);
@@ -61,8 +67,18 @@ double nu1(double p, double T)
 
 //==============================================================================
 
+double rho1(double p, double T)
+{
+  return 1.0 / nu1(p, T);
+}
+
+//==============================================================================
+
 double u1(double p, double T)
 {
+  Expects(p < 100.0);
+  Expects((T >= 273.15) && (T <= 623.15));
+
   double pi = p / 16.53;   // Dimensionless pressure; p must be in MPa.
   double tau = 1386.0 / T; // Dimensionless temperature; T must be in K.
   return (tau * gamma1_tau(pi, tau) - pi * gamma1_pi(pi, tau)) * R * T;
@@ -72,6 +88,9 @@ double u1(double p, double T)
 
 double s1(double p, double T)
 {
+  Expects(p < 100.0);
+  Expects((T >= 273.15) && (T <= 623.15));
+
   double pi = p / 16.53;   // Dimensionless pressure; p must be in MPa.
   double tau = 1386.0 / T; // Dimensionless temperature; T must be in K.
   return (tau * gamma1_tau(pi, tau) - gamma1(pi, tau)) * R;
@@ -81,6 +100,9 @@ double s1(double p, double T)
 
 double h1(double p, double T)
 {
+  Expects(p < 100.0);
+  Expects((T >= 273.15) && (T <= 623.15));
+
   double pi = p / 16.53;   // Dimensionless pressure; p must be in MPa.
   double tau = 1386.0 / T; // Dimensionless temperature; T must be in K.
   return tau * gamma1_tau(pi, tau) * R * T;
@@ -101,6 +123,8 @@ double cp1(double p, double T)
 
 double T_from_p_h(double p, double h)
 {
+  Expects(p < 100.0);
+
   double pi = p;           // p must be in MPa
   double eta = h / 2500.0; // h must be in kJ / kg
   double theta = 0.0;
@@ -108,6 +132,12 @@ double T_from_p_h(double p, double h)
     theta += _n1bh[i] * pow(pi, _I1bh[i]) * pow(eta + 1, _J1bh[i]);
   }
   return theta;
+}
+
+double rho_from_p_h(double p, double h)
+{
+  double T = T_from_p_h(p, h);
+  return rho1(p, T);
 }
 
 //==============================================================================
