@@ -204,7 +204,7 @@ void SurrogateHeatDriver::generate_arrays()
 
 double SurrogateHeatDriver::rod_axial_node_power(const int pin, const int axial) const
 {
-  Expects(axial <= n_axial_);
+  Expects(axial < n_axial_);
 
   double power = 0.0;
   double dz = z_(axial + 1) - z_(axial);
@@ -223,8 +223,6 @@ void SurrogateHeatDriver::solve_step()
 
 void SurrogateHeatDriver::solve_fluid()
 {
-  // convenience function for determining the rod power in a given axial layer
-
   // determine the power deposition in each channel; the target applications will always
   // be steady-state or pseudo-steady-state cases with no axial conduction such that
   // the power deposition in each channel is independent of a convective heat transfer
