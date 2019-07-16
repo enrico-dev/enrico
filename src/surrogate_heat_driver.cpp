@@ -238,10 +238,14 @@ void SurrogateHeatDriver::solve_fluid()
 
   // initial guesses for the fluid solution are uniform temperature (set to the inlet
   // temperature) and uniform pressure  (set to the outlet pressure). These solution
-  // fields are defined on channel axial faces
+  // fields are defined on channel axial faces. The units used throughout this section
+  // are h (kJ/kg), P (MPa), u (m/s), rho (kg/m^3). Unit conversions are performed as
+  // necessary on the converged results before being used in the Monte Carlo solver.
   xt::xtensor<double, 2> h = xt::zeros<double>({n_channels_, n_axial_ + 1});
   xt::xtensor<double, 2> p = xt::zeros<double>({n_channels_, n_axial_ + 1});
-  std::fill(h.begin(), h.end(), iapws::h1(pressure_bc_, inlet_temperature_));
+
+  // enthalpy requires factor of 1e-3 to convert from J/kg to kJ/kg
+  std::fill(h.begin(), h.end(), iapws::h1(pressure_bc_, inlet_temperature_) * 1e-3);
   std::fill(p.begin(), p.end(), pressure_bc_);
 
   // for certain verbosity settings, we will need to save the velocity solutions
@@ -257,24 +261,25 @@ void SurrogateHeatDriver::solve_fluid()
     for (gsl::index chan = 0; chan < n_channels_; ++chan) {
       const auto& c = channels_[chan];
 
-      // solve for enthalpy by simple energy balance q = mdot * dh by marching from inlet
+      // solve for enthalpy by simple energy balance q = mdot * dh by marching from inlet;
+      // divide term on RHS by 1e3 to convert from J/kg to kJ/kg
       h(chan, 0) = iapws::h1(p(chan, 0), inlet_temperature_);
       for (gsl::index axial = 0; axial < n_axial_; ++axial)
-        h(chan, axial + 1) = h(chan, axial) + channel_powers(chan, axial) / channel_flowrates_(chan);
+        h(chan, axial + 1) = h(chan, axial) + channel_powers(chan, axial) / channel_flowrates_(chan) / 1e3;
 
       // solve for pressure using one-sided finite difference approximation by marching
       // from outlet and solving the axial momentum equation.
       p(chan, n_axial_) = pressure_bc_;
       for (gsl::index axial = n_axial_; axial > 0; axial--) {
-        // nu1 returns specific volume in units of m^3/kg, convert to g/cm^3
-        double rho_high = 1.0e-3 / iapws::nu1(p(chan, axial), iapws::T_from_p_h(p(chan, axial), h(chan, axial)));
-        double rho_low = 1.0e-3 / iapws::nu1(p(chan, axial - 1), iapws::T_from_p_h(p(chan, axial - 1), h(chan, axial - 1)));
+        double rho_high = iapws::rho_from_p_h(p(chan, axial), h(chan, axial));
+        double rho_low = iapws::rho_from_p_h(p(chan, axial - 1), h(chan, axial - 1));
 
         u(chan, axial) = channel_flowrates_(chan) / (rho_high * c.area_);
         u(chan, axial - 1) = channel_flowrates_(chan) / (rho_low * c.area_);
 
-        p[axial - 1] = p[axial] + channel_flowrates_(chan) / c.area_ * (u(chan, axial) - u(chan, axial - 1)) +
-          g_ * (z_(axial) - z_(axial - 1)) * rho_low;
+        // factor of 1e-6 needed for convert from Pa to MPa
+        p[axial - 1] = p[axial] + 1.0e-6 * (channel_flowrates_(chan) / c.area_ * (u(chan, axial) - u(chan, axial - 1)) +
+          g_ * (z_(axial) - z_(axial - 1)) * rho_low);
       }
     }
 
@@ -309,12 +314,13 @@ void SurrogateHeatDriver::solve_fluid()
       double p_mean = 0.5 * (p(chan, axial) + p(chan, axial + 1));
 
       T(chan, axial) = iapws::T_from_p_h(p_mean, h_mean);
-      rho(chan, axial) = 1.0e-3 / iapws::nu1(p_mean, T(chan, axial));
+      rho(chan, axial) = iapws::rho_from_p_h(p_mean, h_mean);
     }
   }
 
   // After solving the subchannel equations, convert the solution to a rod-centered basis,
-  // since this will most likely be the form desired by neutronics codes.
+  // since this will most likely be the form desired by neutronics codes. At this point only
+  // do we apply the conversion of kg/m^3 to g/cm^3 assumed by the neutronics codes.
   for (gsl::index rod = 0; rod < n_pins_; ++rod) {
     for (gsl::index  axial = 0; axial < n_axial_; ++axial) {
       fluid_temperature_(rod, axial) = 0.0;
@@ -322,7 +328,9 @@ void SurrogateHeatDriver::solve_fluid()
 
       for (const auto& c : rods_[rod].channel_ids_) {
         fluid_temperature_(rod, axial) += 0.25 * T(c, axial);
-        fluid_density_(rod, axial) += 0.25 * rho(c, axial);
+
+        // factor of 1e-3 to convert from kg/m^3 to g/cm^3
+        fluid_density_(rod, axial) += 0.25 * rho(c, axial) * 1.0e-3;
       }
     }
   }
@@ -371,7 +379,9 @@ bool SurrogateHeatDriver::energy_conservation(const xt::xtensor<double, 2>& rho,
     for (gsl::index chan = 0; chan < n_channels_; ++chan) {
       double u_cell_centered = 0.5 * (u(chan, axial) + u(chan, axial + 1));
       double mass_flowrate = rho(chan, axial) * channels_[chan].area_ * u_cell_centered;
-      double channel_energy_change = mass_flowrate * (h(chan, axial + 1) - h(chan, axial));
+
+      // conversion factor of 1e3 to convert enthalpy from kJ/kg to J/kg
+      double channel_energy_change = mass_flowrate * (h(chan, axial + 1) - h(chan, axial)) * 1.0e3;
 
       double tol = std::abs(channel_energy_change - q(chan, axial)) / q(chan, axial);
 
