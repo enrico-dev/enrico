@@ -228,7 +228,7 @@ void SurrogateHeatDriver::solve_fluid()
   // the power deposition in each channel is independent of a convective heat transfer
   // coefficient and only depends on the rod power at that axial elevation. The channel
   // powers are indexed by channel ID, axial ID
-  xt::xtensor<double, 2> channel_powers = xt::zeros<double>({n_channels_, n_axial_});
+  xt::xtensor<double, 2> channel_powers({n_channels_, n_axial_}, 0.0);
   for (int i = 0; i < n_channels_; ++i) {
     for (int j = 0; j < n_axial_; ++j) {
       for (const auto& rod : channels_[i].rod_ids_)
@@ -241,12 +241,9 @@ void SurrogateHeatDriver::solve_fluid()
   // fields are defined on channel axial faces. The units used throughout this section
   // are h (kJ/kg), P (MPa), u (m/s), rho (kg/m^3). Unit conversions are performed as
   // necessary on the converged results before being used in the Monte Carlo solver.
-  xt::xtensor<double, 2> h = xt::zeros<double>({n_channels_, n_axial_ + 1});
-  xt::xtensor<double, 2> p = xt::zeros<double>({n_channels_, n_axial_ + 1});
-
-  // enthalpy requires factor of 1e-3 to convert from J/kg to kJ/kg
-  std::fill(h.begin(), h.end(), iapws::h1(pressure_bc_, inlet_temperature_) * 1e-3);
-  std::fill(p.begin(), p.end(), pressure_bc_);
+  // Enthalpy here requires a factor of 1e-3 to convert from J/kg to kJ/kg.
+  xt::xtensor<double, 2> h({n_channels_, n_axial_ + 1}, iapws::h1(pressure_bc_, inlet_temperature_) * 1e-3);
+  xt::xtensor<double, 2> p({n_channels_, n_axial_ + 1}, pressure_bc_);
 
   // for certain verbosity settings, we will need to save the velocity solutions
   xt::xtensor<double, 2> u = xt::zeros<double>({n_channels_, n_axial_ + 1});
