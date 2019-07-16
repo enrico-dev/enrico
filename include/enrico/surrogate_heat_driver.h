@@ -233,7 +233,7 @@ private:
   //! positions) to the specified inlet mass flowrate.
   //! \param rho density in a cell-centered basis
   //! \param u   axial velocity in a face-centered basis
-  bool mass_conservation(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u) const;
+  bool is_mass_conserved(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u) const;
 
   //! Diagnostic function to assess whether the energy is conserved by the subchannel
   //! solver by comparing the energy deposition in each channel in each axial plane
@@ -242,7 +242,7 @@ private:
   //! \param u   axial velocity in a face-centered basis
   //! \param h   enthalpy in a face-centered basis
   //! \param q   powers in each channel in a cell-centered basis
-  bool energy_conservation(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u,
+  bool is_energy_conserved(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u,
     const xt::xtensor<double, 2>&h, const xt::xtensor<double, 2>& q) const;
 
   //!< temperature in [K] for each (pin, axial segment, ring)

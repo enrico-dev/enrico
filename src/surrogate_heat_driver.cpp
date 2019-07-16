@@ -334,15 +334,15 @@ void SurrogateHeatDriver::solve_fluid()
 
   // Perform diagnostic checks if verbosity is sufficiently high
   if (verbosity_ >= verbose::LOW) {
-    bool mass_conserved = mass_conservation(rho, u);
-    bool energy_conserved = energy_conservation(rho, u, h, channel_powers);
+    bool mass_conserved = is_mass_conserved(rho, u);
+    bool energy_conserved = is_energy_conserved(rho, u, h, channel_powers);
 
     Expects(mass_conserved);
     Expects(energy_conserved);
   }
 }
 
-bool SurrogateHeatDriver::mass_conservation(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u) const
+bool SurrogateHeatDriver::is_mass_conserved(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u) const
 {
   bool mass_conserved = true;
 
@@ -367,7 +367,7 @@ bool SurrogateHeatDriver::mass_conservation(const xt::xtensor<double, 2>& rho, c
   return mass_conserved;
 }
 
-bool SurrogateHeatDriver::energy_conservation(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u,
+bool SurrogateHeatDriver::is_energy_conserved(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u,
   const xt::xtensor<double, 2>& h, const xt::xtensor<double, 2>& q) const
 {
   bool energy_conserved = true;
