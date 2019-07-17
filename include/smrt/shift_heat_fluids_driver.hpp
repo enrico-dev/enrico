@@ -1,5 +1,5 @@
-#ifndef Multiphysics_Driver_h
-#define Multiphysics_Driver_h
+#ifndef ShiftHeatFluidsDriver_h
+#define ShiftHeatFluidsDriver_h
 
 #include <memory>
 #include <vector>
@@ -16,17 +16,17 @@ namespace enrico {
 
 //===========================================================================//
 /*!
- * \class Multiphysics_Driver
+ * \class ShiftHeatFluidsDriver
  * \brief Simple driver for multiphysics coupling.
  */
 /*!
  * \example Driver/test/tstMultiphysics_Driver.cc
  *
- * Test of Multiphysics_Driver.
+ * Test of ShiftHeatFluidsDriver.
  */
 //===========================================================================//
 
-class Multiphysics_Driver {
+class ShiftHeatFluidsDriver {
 public:
   //@{
   //! Typedefs
@@ -59,7 +59,7 @@ private:
 
 public:
   // Constructor
-  Multiphysics_Driver(SP_Assembly assembly, RCP_PL params, const Vec_Dbl& dz);
+  ShiftHeatFluidsDriver(SP_Assembly assembly, RCP_PL params, const Vec_Dbl& dz);
 
   // Solve problem
   void solve();
@@ -75,8 +75,8 @@ public:
 } // end namespace enrico
 
 //---------------------------------------------------------------------------//
-#endif // Multiphysics_Driver_h
+#endif // ShiftHeatFluidsDriver_h
 
 //---------------------------------------------------------------------------//
-// end of Multiphysics_Driver.h
+// end of ShiftHeatFluidsDriver.h
 //---------------------------------------------------------------------------//
