@@ -3,10 +3,8 @@
 
 #include "smrt/Single_Pin_Subchannel.h"
 
-// SCALE includes
-#include "Nemesis/utils/String_Functions.hh"
-
 // vendored includes
+#include "openmc/string_utils.h"
 #include <gsl/gsl>
 #include <iapws.h>
 
@@ -28,7 +26,8 @@ Single_Pin_Subchannel::Single_Pin_Subchannel(RCP_PL& parameters,
   for (auto& val : d_delta_z)
     val *= 1e-2;
 
-  auto verb = nemesis::lower(parameters->get("verbosity", std::string("none")));
+  auto verb = parameters->get("verbosity", std::string("none"));
+  openmc::to_lower(verb);
   if (verb == "none") {
     d_verbosity = NONE;
   } else if (verb == "low") {
