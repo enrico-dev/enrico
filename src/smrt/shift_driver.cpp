@@ -10,6 +10,7 @@
 
 #include <map>
 
+#include "enrico/utils.h"
 #include "smrt/shift_driver.h"
 
 #include "Teuchos_DefaultComm.hpp"
@@ -97,7 +98,6 @@ std::vector<double> ShiftDriver::heat_source(double power) const
   for (auto& val : power_by_cell_ID)
     val *= norm_factor;
 
-
   return power_by_cell_ID;
 }
 
@@ -116,7 +116,6 @@ void ShiftDriver::solve(const std::vector<double>& th_temperature,
   // Rebuild problem (loading any new data needed and run transport
   d_driver->rebuild();
   d_driver->run();
-
 }
 
 void ShiftDriver::update_temperature(const std::vector<double>& temperatures)
@@ -234,8 +233,7 @@ void ShiftDriver::add_power_tally(RCP_PL& pl, const std::vector<double>& z_edges
     Validate(x_tally.size() == x_edges.size(),
              "Tally specifies incorrect size of x edges");
     for (int i = 0; i < x_edges.size(); ++i)
-      Validate(nemesis::soft_equiv(x_edges[i], x_tally[i]),
-               "Tally specifies incorrect x edge");
+      Validate(soft_equiv(x_edges[i], x_tally[i]), "Tally specifies incorrect x edge");
 
     // Check y edges
     const auto& y_edges = d_assembly->y_edges();
@@ -243,16 +241,14 @@ void ShiftDriver::add_power_tally(RCP_PL& pl, const std::vector<double>& z_edges
     Validate(y_tally.size() == y_edges.size(),
              "Tally specifies incorrect size of y edges");
     for (int i = 0; i < y_edges.size(); ++i)
-      Validate(nemesis::soft_equiv(y_edges[i], y_tally[i]),
-               "Tally specifies incorrect y edge");
+      Validate(soft_equiv(y_edges[i], y_tally[i]), "Tally specifies incorrect y edge");
 
     // Check z edges
     const auto& z_tally = power_pl->get<Array_Dbl>("z");
     Validate(z_tally.size() == z_edges.size(),
              "Tally specifies incorrect size of z edges");
     for (int i = 0; i < z_edges.size(); ++i)
-      Validate(nemesis::soft_equiv(z_edges[i], z_tally[i]),
-               "Tally specifies incorrect z edge");
+      Validate(soft_equiv(z_edges[i], z_tally[i]), "Tally specifies incorrect z edge");
   }
 }
 

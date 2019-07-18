@@ -1,8 +1,8 @@
 #include <algorithm>
 
+#include "enrico/utils.h"
 #include "smrt/SurrogateHeatFluidDriver.h"
 
-#include "Nemesis/harness/Soft_Equivalence.hh"
 #include <gsl/gsl>
 
 namespace enrico {
@@ -18,7 +18,7 @@ SurrogateHeatFluidDriver::SurrogateHeatFluidDriver(SP_Assembly assembly,
   Expects(d_assembly != nullptr);
 
   double height = std::accumulate(dz.begin(), dz.end(), 0.0);
-  Expects(nemesis::soft_equiv(height, d_assembly->height()));
+  Expects(soft_equiv(height, d_assembly->height()));
 
   double mdot_per_area = subchannel_parameters->get("mass_flow_rate", 0.4);
 

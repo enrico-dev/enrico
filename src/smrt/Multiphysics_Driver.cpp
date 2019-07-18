@@ -13,13 +13,13 @@
 // SCALE includes
 #include "Nemesis/comm/Logger.hh"
 #include "Nemesis/comm/global.hh"
-#include "Nemesis/harness/Soft_Equivalence.hh"
 #include "Omnibus/config.h"
 
 // vendored includes
 #include <gsl/gsl>
 
 // enrico includes
+#include "enrico/utils.h"
 #include "smrt/Two_Group_Diffusion.h"
 #ifdef USE_SHIFT
 #include "smrt/shift_driver.h"
@@ -36,7 +36,7 @@ Multiphysics_Driver::Multiphysics_Driver(SP_Assembly assembly,
 {
   Expects(assembly != nullptr);
 
-  Expects(nemesis::soft_equiv(z_edges.back(), d_assembly->height()));
+  Expects(soft_equiv(z_edges.back(), d_assembly->height()));
 
   Vec_Dbl dz(z_edges.size() - 1);
   for (int edge = 0; edge < dz.size(); ++edge)
@@ -62,8 +62,8 @@ Multiphysics_Driver::Multiphysics_Driver(SP_Assembly assembly,
   // Build fluids-heat solver
   auto subchannel_params = Teuchos::sublist(params, "Subchannel");
   auto conduction_params = Teuchos::sublist(params, "Conduction");
-  d_heat_fluid = std::make_shared<SurrogateHeatFluidDriver>(assembly, subchannel_params,
-    conduction_params, dz);
+  d_heat_fluid = std::make_shared<SurrogateHeatFluidDriver>(
+    assembly, subchannel_params, conduction_params, dz);
 
   // Build neutronics solver (surrogate diffusion or Shift MC)
   auto neutronics_params = Teuchos::sublist(params, "Neutronics");
