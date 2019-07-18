@@ -4,8 +4,8 @@
 #include "smrt/Single_Pin_Conduction.h"
 
 #include "Nemesis/harness/Soft_Equivalence.hh"
-#include "Nemesis/utils/Constants.hh"
 #include "Nemesis/utils/String_Functions.hh"
+#include "openmc/constants.h"
 
 namespace enrico {
 //---------------------------------------------------------------------------//
@@ -37,7 +37,7 @@ void Single_Pin_Conduction::solve(const std::vector<double>& power,
   Expects(d_fuel_radius > 0.0);
   Expects(d_clad_radius > d_fuel_radius);
 
-  using nemesis::constants::pi;
+  using openmc::PI;
 
   int num_levels = d_delta_z.size();
 
@@ -66,14 +66,14 @@ void Single_Pin_Conduction::solve(const std::vector<double>& power,
   // Compute area
   std::vector<double> area(num_rings);
   for (int r = 0; r < num_rings; ++r) {
-    area[r] = pi * (radius[r + 1] * radius[r + 1] - radius[r] * radius[r]);
+    area[r] = PI * (radius[r + 1] * radius[r + 1] - radius[r] * radius[r]);
   }
   // Check areas
   double fuel_area = std::accumulate(area.begin(), area.begin() + num_rings_fuel, 0.0);
-  Expects(nemesis::soft_equiv(fuel_area, pi * d_fuel_radius * d_fuel_radius));
+  Expects(nemesis::soft_equiv(fuel_area, PI * d_fuel_radius * d_fuel_radius));
 
   double total_area = std::accumulate(area.begin(), area.end(), 0.0);
-  Expects(nemesis::soft_equiv(total_area, pi * d_clad_radius * d_clad_radius));
+  Expects(nemesis::soft_equiv(total_area, PI * d_clad_radius * d_clad_radius));
 
   auto rcp_matrix = Teuchos::rcp(new Matrix(num_rings, num_rings));
   auto rcp_rhs = Teuchos::rcp(new Vector(num_rings));
@@ -92,30 +92,30 @@ void Single_Pin_Conduction::solve(const std::vector<double>& power,
 
     // First cell
     dr_hi = 2 * radius[2] / radius[1];
-    matrix(0, 0) = 2 * pi * k[0] * dr_hi;
-    matrix(0, 1) = -2 * pi * k[0] * dr_hi;
+    matrix(0, 0) = 2 * PI * k[0] * dr_hi;
+    matrix(0, 1) = -2 * PI * k[0] * dr_hi;
 
     // Inner cells
     for (int r = 1; r < num_rings - 1; ++r) {
       dr_hi = 0.5 * (radius[r + 2] - radius[r]);
       dr_lo = 0.5 * (radius[r + 1] - radius[r - 1]);
-      matrix(r, r - 1) = -2 * pi * k[r] * radius[r] / dr_lo;
-      matrix(r, r) = 2 * pi * k[r] * (radius[r] / dr_lo + radius[r + 1] / dr_hi);
-      matrix(r, r + 1) = -2 * pi * k[r] * radius[r + 1] / dr_hi;
+      matrix(r, r - 1) = -2 * PI * k[r] * radius[r] / dr_lo;
+      matrix(r, r) = 2 * PI * k[r] * (radius[r] / dr_lo + radius[r + 1] / dr_hi);
+      matrix(r, r + 1) = -2 * PI * k[r] * radius[r + 1] / dr_hi;
     }
 
     // Last cell
     int r = num_rings - 1;
     dr_lo = 0.5 * (radius[r + 1] - radius[r - 1]);
     dr_hi = 0.5 * (radius[r + 1] - radius[r]);
-    matrix(r, r - 1) = -2 * pi * k[r] * radius[r] / dr_lo;
-    matrix(r, r) = 2 * pi * k[r] * (radius[r] / dr_lo + radius[r + 1] / dr_hi);
+    matrix(r, r - 1) = -2 * PI * k[r] * radius[r] / dr_lo;
+    matrix(r, r) = 2 * PI * k[r] * (radius[r] / dr_lo + radius[r + 1] / dr_hi);
 
     // Right hand side
     for (int r = 0; r < num_rings_fuel; ++r)
       rhs[r] = power[l] * area[r] / d_delta_z[l] / fuel_area;
 
-    rhs[num_rings - 1] += 2 * pi * k.back() * channel_temp[l] * d_clad_radius / dr_hi;
+    rhs[num_rings - 1] += 2 * PI * k.back() * channel_temp[l] * d_clad_radius / dr_hi;
 
     // Solve linear system
     solver.setMatrix(rcp_matrix);

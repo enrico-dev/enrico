@@ -1,9 +1,6 @@
 #include "smrt/Assembly_Model.h"
 
-// SCALE includes
-#include "Nemesis/utils/Constants.hh"
-
-// vendored includes
+#include "openmc/constants.h"
 #include <gsl/gsl>
 
 namespace enrico {
@@ -85,7 +82,7 @@ double Assembly_Model::flow_area(int i, int j) const
     r = d_guide_radius;
   Expects(r > 0.0);
 
-  double area = dx * dy - nemesis::constants::pi * r * r;
+  double area = dx * dy - openmc::PI * r * r;
   Ensures(area > 0);
   return area;
 }
