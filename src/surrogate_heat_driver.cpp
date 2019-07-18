@@ -242,7 +242,7 @@ void SurrogateHeatDriver::solve_fluid()
   // are h (kJ/kg), P (MPa), u (m/s), rho (kg/m^3). Unit conversions are performed as
   // necessary on the converged results before being used in the Monte Carlo solver.
   // Enthalpy here requires a factor of 1e-3 to convert from J/kg to kJ/kg.
-  xt::xtensor<double, 2> h({n_channels_, n_axial_ + 1}, iapws::h1(pressure_bc_, inlet_temperature_) * 1e-3);
+  xt::xtensor<double, 2> h({n_channels_, n_axial_ + 1}, iapws::h1(pressure_bc_, inlet_temperature_));
   xt::xtensor<double, 2> p({n_channels_, n_axial_ + 1}, pressure_bc_);
 
   // for certain verbosity settings, we will need to save the velocity solutions
