@@ -147,27 +147,70 @@ heat equation.
 The number of rings in the cladding should be subdivided into when solving the
 heat equation.
 
-``<pin_centers>``
+``<n_pins_x>``
 ~~~~~~~~~~~~~~~~~
 
-A list of the (x, y) locations of the centers of each fuel pin given in units of
-[cm]. For example, if there were two pins at (0, 5) and (3, 2), the input should
-be given as:
+Number of pins in the assembly in the x-direction.
 
-.. code-block:: xml
+``<n_pins_y>``
+~~~~~~~~~~~~~~~~~
 
-    <pin_centers>0.0 5.0 3.0 2.0</pin_centers>
+Number of pins in the assembly in the y-direction.
+
+``<pin_pitch>``
+~~~~~~~~~~~~~~~~~
+
+Pitch, or distance between centers along the x- and y-axes, between pins. The pitch
+must be greater than the outer diameter of the pins, which would correspond to
+touching pins. This pitch is used to determine the pin-pin spacing and the pin-
+to assembly-edge spacing, which is taken to be half a pitch.
 
 ``<z>``
 ~~~~~~~
 
 Values along the z-axis that subdivide the fuel region in units of [cm].
 
-``<tolerance>``
+``<inlet_temperature>``
+~~~~~~~~~~~~~~~~~
+
+Fluid inlet temperature in [K].
+
+``<mass_flowrate>``
+~~~~~~~~~~~~~~~~~
+
+Fluid mass flowrate in [kg/s].
+
+``<max_subchannel_its>``
+~~~~~~~~~~~~~~~~~
+
+Maximum number of iterations to perform in the solution of the subchannel
+equations. Convergence is based on the relative change measured in the 1-norm
+ in enthalpy and pressure between two successive iterations. This defaults to 100.
+
+``<subchannel_tol_h>``
+~~~~~~~~~~~~~~~~~
+
+Convergence tolerance to use for enthalpy between two successive iterations of
+the subchannel solver. This defaults to a value of 1e-2.
+
+``<subchannel_tol_p>``
+~~~~~~~~~~~~~~~~~
+
+Convergence tolerance to use for pressure between two successive iterations of
+the subchannel solver. This defaults to a value of 1e-2.
+
+``<heat_tol>``
 ~~~~~~~~~~~~~~~
 
-Tolerance on the heat equation solver.
+Tolerance on the heat equation solver. This defaults to a value of 1e-4.
 
+``<verbosity>``
+~~~~~~~~~~~~~~~
+
+Degree of output printing for diagnostic checking. This defaults to `none`,
+but may be set to `low` and `high`. Both `low` and `high` perform error
+checks such as ensuring conservation of mass and energy, while `high` prints
+some subchannel solution metrics for each channel.
 ``<viz>``
 ~~~~~~~~~
 
