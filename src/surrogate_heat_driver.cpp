@@ -262,7 +262,7 @@ void SurrogateHeatDriver::solve_fluid()
       // divide term on RHS by 1e3 to convert from J/kg to kJ/kg
       h(chan, 0) = iapws::h1(p(chan, 0), inlet_temperature_);
       for (gsl::index axial = 0; axial < n_axial_; ++axial)
-        h(chan, axial + 1) = h(chan, axial) + channel_powers(chan, axial) / channel_flowrates_(chan) / 1e3;
+        h(chan, axial + 1) = h(chan, axial) + 1e-3 * channel_powers(chan, axial) / channel_flowrates_(chan);
 
       // solve for pressure using one-sided finite difference approximation by marching
       // from outlet and solving the axial momentum equation.
