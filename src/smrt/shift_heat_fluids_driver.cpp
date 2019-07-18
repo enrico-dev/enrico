@@ -1,6 +1,6 @@
 //---------------------------------*-C++-*-----------------------------------//
 /*!
- * \file   ShiftHeatFluidsDriver.cpp
+ * \file   shift_heat_fluids_driver.cpp
  * \author Steven Hamilton
  * \date   Fri Aug 10 09:00:11 2018
  * \brief  ShiftHeatFluidsDriver class definitions.
@@ -8,7 +8,7 @@
  */
 //---------------------------------------------------------------------------//
 
-#include "smrt/ShiftHeatFluidsDriver.h"
+#include "smrt/shift_heat_fluids_driver.hpp"
 
 // SCALE includes
 #include "Nemesis/comm/Logger.hh"
@@ -174,5 +174,5 @@ void ShiftHeatFluidsDriver::solve()
 } // end namespace enrico
 
 //---------------------------------------------------------------------------//
-// end of Driver/ShiftHeatFluidsDriver.cc
+// end of smrt/shift_heat_fluids_driver.cpp
 //---------------------------------------------------------------------------//
