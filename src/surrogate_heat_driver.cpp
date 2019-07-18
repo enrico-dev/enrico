@@ -414,7 +414,7 @@ void SurrogateHeatDriver::solve_heat()
       double T_co = fluid_temperature_(i, j);
 
       // Set initial temperature to surface temperature
-      temperature_.fill(T_co);
+      xt::view(temperature_, i, j) = T_co;
 
       solve_steady_nonlin(&q(i, j, 0),
                           T_co,
