@@ -125,40 +125,41 @@ void OpenmcNekDriver::init_mappings()
     // Create buffer to store cell instance indices corresponding to each Nek global
     // element. This is needed because calls to OpenMC API functions can only be
     // made from processes
-    int32_t cell_idx[n_global_elem_];
+    std::vector<int32_t> elem_to_cell(n_global_elem_);
 
     if (openmc_driver_->active()) {
-      std::unordered_set<int32_t> tracked;
+      std::unordered_map<CellInstance, gsl::index> cell_index;
 
       for (int i = 0; i < n_global_elem_; ++i) {
         // Determine cell instance corresponding to global element
         Position elem_pos = elem_centroids_[i];
         CellInstance c{elem_pos};
-        if (tracked.find(c.material_index_) == tracked.end()) {
+
+        // If this cell instance hasn't been saved yet, add it to cells_ and
+        // keep track of what index it corresponds to
+        if (cell_index.find(c) == cell_index.end()) {
+          cell_index[c] = openmc_driver_->cells_.size();
           openmc_driver_->cells_.push_back(c);
-          tracked.insert(c.material_index_);
         }
-        // Get corresponding cell instance
-        auto i_cell = openmc_driver_->cells_.size() - 1;
+
+        // Add element index to vector for this cell instance
+        auto i_cell = cell_index.at(c);
         cell_to_elems_[i_cell].push_back(i);
+
         // Set value for cell instance in array
-        cell_idx[i] = i_cell;
+        elem_to_cell[i] = i_cell;
       }
 
       // Determine number of OpenMC cell instances
       n_cells_ = openmc_driver_->cells_.size();
     }
 
-    // Broadcast array of cell instance indices to each Nek rank
-    intranode_comm_.Bcast(cell_idx, n_global_elem_, MPI_INT32_T);
+    // Set element -> cell instance mapping on each Nek rank
+    intranode_comm_.Bcast(elem_to_cell.data(), n_global_elem_, MPI_INT32_T);
+    elem_to_cell_ = elem_to_cell;
 
     // Broadcast number of cell instances
     intranode_comm_.Bcast(&n_cells_, 1, MPI_INT32_T);
-
-    // Set element -> cell instance mapping on each Nek rank
-    for (gsl::index i = 0; i < n_global_elem_; ++i) {
-      elem_to_cell_[i] = cell_idx[i];
-    }
   }
 }
 

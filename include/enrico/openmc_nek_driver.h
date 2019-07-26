@@ -135,7 +135,7 @@ private:
   //! element index. The Nek global element indices refer to indices defined by
   //! the MPI_Gatherv operation, and do not reflect Nek's internal global
   //! element indexing.
-  std::unordered_map<int, int32_t> elem_to_cell_;
+  std::vector<int32_t> elem_to_cell_;
 
   //! Number of cell instances in OpenMC model
   int32_t n_cells_;
