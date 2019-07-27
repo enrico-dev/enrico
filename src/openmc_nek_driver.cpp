@@ -242,6 +242,22 @@ void OpenmcNekDriver::init_volumes()
       openmc_driver_->comm_.Bcast(elem_volumes_.data(), n_global_elem_, MPI_DOUBLE);
     }
   }
+
+  // Volume check
+  if (this->has_global_coupling_data()) {
+    for (gsl::index i = 0; i < openmc_driver_->cells_.size(); ++i) {
+      const auto& c = openmc_driver_->cells_[i];
+      double v_openmc = c.volume_;
+      double v_nek = 0.0;
+      for (const auto& elem : cell_to_elems_.at(i)) {
+        v_nek += elem_volumes_.at(elem);
+      }
+      std::stringstream msg;
+      msg << "Cell " << c.index_ << " (" << c.instance_ << "), V = " << v_openmc
+          << " (OpenMC), " << v_nek << " (Nek)";
+      comm_.message(msg.str());
+    }
+  }
 }
 
 void OpenmcNekDriver::init_densities()
