@@ -3,9 +3,11 @@
 #include "enrico/const.h"
 #include "enrico/error.h"
 #include "enrico/message_passing.h"
+
 #include "gsl/gsl"
 #include "nek5000/core/nek_interface.h"
 #include "openmc/capi.h"
+#include "openmc/cell.h"
 #include "pugixml.hpp"
 #include "xtensor/xbuilder.hpp"
 #include "xtensor/xtensor.hpp"
@@ -253,8 +255,8 @@ void OpenmcNekDriver::init_volumes()
         v_nek += elem_volumes_.at(elem);
       }
       std::stringstream msg;
-      msg << "Cell " << c.index_ << " (" << c.instance_ << "), V = " << v_openmc
-          << " (OpenMC), " << v_nek << " (Nek)";
+      msg << "Cell " << openmc::model::cells[c.index_]->id_ << " (" << c.instance_
+          << "), V = " << v_openmc << " (OpenMC), " << v_nek << " (Nek)";
       comm_.message(msg.str());
     }
   }
