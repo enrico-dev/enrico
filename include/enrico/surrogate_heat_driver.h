@@ -168,6 +168,48 @@ public:
   //! Returns Number of rings in fuel and clad
   std::size_t n_rings() const { return n_fuel_rings_ + n_clad_rings_; }
 
+  //! Returns cladding inner radius
+  double clad_inner_radius() const { return clad_inner_radius_; }
+
+  //! Returns cladding outer radius
+  double clad_outer_radius() const { return clad_outer_radius_; }
+
+  //! Returns pellet outer radius
+  double pellet_radius() const { return pellet_radius_; }
+
+  //! Returns number of fuel rings
+  std::size_t n_fuel_rings() const { return n_fuel_rings_; }
+
+  //! Returns number of clad rings
+  std::size_t n_clad_rings() const { return n_clad_rings_; }
+
+  //! Returns number of pins in x-direction
+  std::size_t n_pins_x() const { return n_pins_x_; }
+
+  //! Returns number of pins in y-direction
+  std::size_t n_pins_y() const { return n_pins_y_; }
+
+  //! Returns pin pitch
+  double pin_pitch() const { return pin_pitch_; }
+
+  //! Returns inlet temperature boundary condition in [K]
+  double inlet_temperature() const { return inlet_temperature_; }
+
+  //! Returns inlet mass flowrate boundary condition in [kg/s]
+  double mass_flowrate() const { return mass_flowrate_; }
+
+  //! Returns maximum number of subchannel iterations
+  std::size_t max_subchannel_its() const { return max_subchannel_its_; }
+
+  //! Returns subchannel convergence tolerance for enthalpy
+  double subchannel_tol_h() const { return subchannel_tol_h_; }
+
+  //! Returns subchannel convergence tolerance for pressure
+  double subchannel_tol_p() const { return subchannel_tol_p_; }
+
+  //! Returns convergence tolerance for solid energy equation
+  double heat_tol() const { return heat_tol_; }
+
   //! Write data to VTK
   void write_step(int timestep, int iteration) final;
 
@@ -200,6 +242,10 @@ public:
 
   //!< Rods in the domain
   std::vector<Rod> rods_;
+
+  //! Mass flowrate for coolant-centered channels; this is determine by distributing
+  //! a total inlet mass flowrate among the channels based on the fractional flow area.
+  xt::xtensor<double, 1> channel_flowrates_;
 
   // solver variables and settings
   xt::xtensor<double, 3> source_;      //!< heat source for each (axial segment, ring)
@@ -259,10 +305,6 @@ private:
 
   //! Flow areas for coolant-centered channels
   xt::xtensor<double, 1> channel_areas_;
-
-  //! Mass flowrate for coolant-centered channels; this is determine by distributing
-  //! a total inlet mass flowrate among the channels based on the fractional flow area.
-  xt::xtensor<double, 1> channel_flowrates_;
 
   //! Cross-sectional areas of rings in fuel and cladding
   xt::xtensor<double, 1> solid_areas_;
