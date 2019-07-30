@@ -10,3 +10,7 @@
 	path = vendor/gsl-lite
 	url = https://github.com/martinmoene/gsl-lite.git
 	branch = v0.32.0
+[submodule "vendor/catch"]
+	path = vendor/catch
+	url = https://github.com/catchorg/Catch2.git
+	branch = master
