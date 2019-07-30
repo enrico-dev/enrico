@@ -84,13 +84,15 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
   // TODO: generalize to multi-assembly simulations
   double assembly_width_x = n_pins_x_ * pin_pitch_;
   double assembly_width_y = n_pins_y_ * pin_pitch_;
+  double top_left_x = -assembly_width_x / 2.0 + pin_pitch_ / 2.0;
+  double top_left_y = assembly_width_y / 2.0 - pin_pitch_ / 2.0;
 
-  pin_centers_.resize({n_pins_});
+  pin_centers_.resize({n_pins_, 2});
   for (gsl::index row = 0; row < n_pins_y_; ++row) {
     for (gsl::index col = 0; col < n_pins_x_; ++col) {
       int pin_index = row * n_pins_x_ + col;
-      pin_centers_(pin_index, 0) = -assembly_width_x / 2.0 + pin_pitch_ / 2.0 + col * pin_pitch_;
-      pin_centers_(pin_index, 1) = assembly_width_y / 2.0 - (pin_pitch_ / 2.0 + row * pin_pitch_);
+      pin_centers_(pin_index, 0) = top_left_x + col * pin_pitch_;
+      pin_centers_(pin_index, 1) = top_left_y - row * pin_pitch_;
     }
   }
 
