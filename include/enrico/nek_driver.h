@@ -61,7 +61,7 @@ public:
   //!
   //! \param local_elem The local index of the desired element
   //! \return The dimensionless coordinate of the element's centroid
-  Position centroid_at(int local_elem) const;
+  Position centroid_at(int32_t local_elem) const;
 
   //! Get the volume of a local element
   //!
@@ -70,7 +70,7 @@ public:
   //!
   //! \param local_elem The local index of the desired element
   //! \return The dimensionless Volume of the element
-  double volume_at(int local_elem) const;
+  double volume_at(int32_t local_elem) const;
 
   //! Get the volume-averaged temperature of a local element
   //!
@@ -80,12 +80,12 @@ public:
   //!
   //! \param local_elem A local element ID
   //! \return The volume-averaged temperature of the element
-  double temperature_at(int local_elem) const;
+  double temperature_at(int32_t local_elem) const;
 
   //! Return true if a local element is in the fluid region
   //! \param local_elem  A local element ID
   //! \return 1 if the local element is in fluid; 0 otherwise
-  int in_fluid_at(int local_elem) const;
+  int in_fluid_at(int32_t local_elem) const;
 
   //! Set the heat source for a given local element
   //!
@@ -95,24 +95,24 @@ public:
   //! \param local_elem A local element ID
   //! \param heat A heat source term
   //! \return Error code
-  int set_heat_source_at(int local_elem, double heat);
+  int set_heat_source_at(int32_t local_elem, double heat);
 
   //! Initialize the counts and displacements of local elements for each MPI Rank.
   void init_displs();
 
   std::string casename_; //!< Nek5000 casename (name of .rea file)
-  int lelg_;             //!< upper bound on number of mesh elements
-  int lelt_;             //!< upper bound on number of mesh elements per rank
-  int lx1_;              //!< polynomial order of the solution
-  int nelgt_;            //!< total number of mesh elements
-  int nelt_;             //!< number of local mesh elements
+  int32_t lelg_;             //!< upper bound on number of mesh elements
+  int32_t lelt_;             //!< upper bound on number of mesh elements per rank
+  int32_t lx1_;              //!< polynomial order of the solution
+  int32_t nelgt_;            //!< total number of mesh elements
+  int32_t nelt_;             //!< number of local mesh elements
 
   //! The number of local elements in each rank.
-  std::vector<int> local_displs_;
+  std::vector<int32_t> local_displs_;
 
   //! The displacements of local elements, relative to rank 0. Used in an MPI gatherv
   //! operation.
-  std::vector<int> local_counts_;
+  std::vector<int32_t> local_counts_;
 
   // Intended to be the local-to-global element ordering, as ensured by a Gatherv
   // operation. It is currently unused, as the coupling does not need to know the

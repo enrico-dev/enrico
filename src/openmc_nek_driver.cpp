@@ -89,7 +89,7 @@ void OpenmcNekDriver::init_mappings()
 
   if (this->has_global_coupling_data()) {
     elem_centroids_.resize(n_global_elem_);
-    elem_fluid_mask_.resize({n_global_elem_});
+    elem_fluid_mask_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
   }
 
   if (nek_driver_->active()) {
@@ -97,7 +97,7 @@ void OpenmcNekDriver::init_mappings()
     // Each Nek proc finds the centroids/fluid-identities of its local elements
     Position local_element_centroids[n_local_elem_];
     int local_element_is_in_fluid[n_local_elem_];
-    for (int i = 0; i < n_local_elem_; ++i) {
+    for (gsl::index i = 0; i < n_local_elem_; ++i) {
       local_element_centroids[i] = nek_driver_->centroid_at(i + 1);
       local_element_is_in_fluid[i] = nek_driver_->in_fluid_at(i + 1);
     }
@@ -132,7 +132,7 @@ void OpenmcNekDriver::init_mappings()
     if (openmc_driver_->active()) {
       std::unordered_map<CellInstance, gsl::index> cell_index;
 
-      for (int i = 0; i < n_global_elem_; ++i) {
+      for (gsl::index i = 0; i < n_global_elem_; ++i) {
         // Determine cell instance corresponding to global element
         Position elem_pos = elem_centroids_[i];
         CellInstance c{elem_pos};
@@ -197,7 +197,7 @@ void OpenmcNekDriver::init_temperatures()
         const auto& global_elems = cell_to_elems_.at(i);
         const auto& c = openmc_driver_->cells_[i];
 
-        for (int elem : global_elems) {
+        for (const auto &elem : global_elems) {
           double T = c.get_temperature();
           temperatures_[elem] = T;
           temperatures_prev_[elem] = T;
@@ -228,7 +228,7 @@ void OpenmcNekDriver::init_volumes()
   if (nek_driver_->active()) {
     // Every Nek proc gets its local element volumes (lev)
     double local_elem_volumes[n_local_elem_];
-    for (int i = 0; i < n_local_elem_; ++i) {
+    for (gsl::index i = 0; i < n_local_elem_; ++i) {
       local_elem_volumes[i] = nek_driver_->volume_at(i + 1);
     }
     // Gather all the local element volumes on the Nek5000/OpenMC root
@@ -368,12 +368,12 @@ void OpenmcNekDriver::set_heat_source()
 
   if (nek_driver_->active()) {
     // Determine displacement for this rank
-    int displacement = nek_driver_->local_displs_[nek_driver_->comm_.rank];
+    auto displacement = nek_driver_->local_displs_[nek_driver_->comm_.rank];
 
     // Loop over local elements to set heat source
-    for (int local_elem = 1; local_elem <= n_local_elem_; ++local_elem) {
+    for (gsl::index local_elem = 1; local_elem <= n_local_elem_; ++local_elem) {
       // get corresponding global element
-      int global_index = local_elem + displacement - 1;
+      gsl::index global_index = local_elem + displacement - 1;
 
       // get index to cell instance
       int32_t cell_index = elem_to_cell_.at(global_index);
@@ -442,7 +442,7 @@ void OpenmcNekDriver::update_density()
       // For each OpenMC cell instance in a fluid cell, volume average the
       // densities and set
       // TODO:  Might be able to use xtensor masking to do some of this
-      for (int i = 0; i < openmc_driver_->cells_.size(); ++i) {
+      for (gsl::index i = 0; i < openmc_driver_->cells_.size(); ++i) {
         if (cell_fluid_mask_[i] == 1) {
           auto& c = openmc_driver_->cells_[i];
           double average_density = 0.0;
