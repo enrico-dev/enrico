@@ -3,9 +3,11 @@
 #include "enrico/const.h"
 #include "enrico/error.h"
 #include "enrico/message_passing.h"
+
 #include "gsl/gsl"
 #include "nek5000/core/nek_interface.h"
 #include "openmc/capi.h"
+#include "openmc/cell.h"
 #include "pugixml.hpp"
 #include "xtensor/xbuilder.hpp"
 #include "xtensor/xtensor.hpp"
@@ -125,40 +127,41 @@ void OpenmcNekDriver::init_mappings()
     // Create buffer to store cell instance indices corresponding to each Nek global
     // element. This is needed because calls to OpenMC API functions can only be
     // made from processes
-    int32_t cell_idx[n_global_elem_];
+    std::vector<int32_t> elem_to_cell(n_global_elem_);
 
     if (openmc_driver_->active()) {
-      std::unordered_set<int32_t> tracked;
+      std::unordered_map<CellInstance, gsl::index> cell_index;
 
       for (int i = 0; i < n_global_elem_; ++i) {
         // Determine cell instance corresponding to global element
         Position elem_pos = elem_centroids_[i];
         CellInstance c{elem_pos};
-        if (tracked.find(c.material_index_) == tracked.end()) {
+
+        // If this cell instance hasn't been saved yet, add it to cells_ and
+        // keep track of what index it corresponds to
+        if (cell_index.find(c) == cell_index.end()) {
+          cell_index[c] = openmc_driver_->cells_.size();
           openmc_driver_->cells_.push_back(c);
-          tracked.insert(c.material_index_);
         }
-        // Get corresponding cell instance
-        auto i_cell = openmc_driver_->cells_.size() - 1;
+
+        // Add element index to vector for this cell instance
+        auto i_cell = cell_index.at(c);
         cell_to_elems_[i_cell].push_back(i);
+
         // Set value for cell instance in array
-        cell_idx[i] = i_cell;
+        elem_to_cell[i] = i_cell;
       }
 
       // Determine number of OpenMC cell instances
       n_cells_ = openmc_driver_->cells_.size();
     }
 
-    // Broadcast array of cell instance indices to each Nek rank
-    intranode_comm_.Bcast(cell_idx, n_global_elem_, MPI_INT32_T);
+    // Set element -> cell instance mapping on each Nek rank
+    intranode_comm_.Bcast(elem_to_cell.data(), n_global_elem_, MPI_INT32_T);
+    elem_to_cell_ = elem_to_cell;
 
     // Broadcast number of cell instances
     intranode_comm_.Bcast(&n_cells_, 1, MPI_INT32_T);
-
-    // Set element -> cell instance mapping on each Nek rank
-    for (gsl::index i = 0; i < n_global_elem_; ++i) {
-      elem_to_cell_[i] = cell_idx[i];
-    }
   }
 }
 
@@ -239,6 +242,22 @@ void OpenmcNekDriver::init_volumes()
     // Broadcast global_element_volumes onto all the OpenMC procs
     if (openmc_driver_->active()) {
       openmc_driver_->comm_.Bcast(elem_volumes_.data(), n_global_elem_, MPI_DOUBLE);
+    }
+  }
+
+  // Volume check
+  if (this->has_global_coupling_data()) {
+    for (gsl::index i = 0; i < openmc_driver_->cells_.size(); ++i) {
+      const auto& c = openmc_driver_->cells_[i];
+      double v_openmc = c.volume_;
+      double v_nek = 0.0;
+      for (const auto& elem : cell_to_elems_.at(i)) {
+        v_nek += elem_volumes_.at(elem);
+      }
+      std::stringstream msg;
+      msg << "Cell " << openmc::model::cells[c.index_]->id_ << " (" << c.instance_
+          << "), V = " << v_openmc << " (OpenMC), " << v_nek << " (Nek)";
+      comm_.message(msg.str());
     }
   }
 }
