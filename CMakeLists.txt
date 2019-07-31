@@ -156,6 +156,6 @@ add_library(Catch INTERFACE)
 target_include_directories(Catch INTERFACE vendor/catch/single_include/catch2)
 
 add_executable(unittests
-  unit/catch.cpp
-  unit/test_surrogate_th.cpp)
+  tests/unit/catch.cpp
+  tests/unit/test_surrogate_th.cpp)
 target_link_libraries(unittests PUBLIC Catch pugixml libenrico)
