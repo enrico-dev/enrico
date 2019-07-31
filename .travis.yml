@@ -29,6 +29,7 @@ before_install:
 install:
   - bash ci/cmake_singlerod.sh
   - bash ci/build_singlerod.sh
+  - bash ci/build_unittests.sh
 
 before_script:
   - bash ci/download_xs.sh
@@ -36,3 +37,4 @@ before_script:
 
 script:
   - bash ci/singlerod_matrix.sh
+  - bash ci/test_unittests.sh
