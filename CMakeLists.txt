@@ -159,3 +159,4 @@ add_executable(unittests
   tests/unit/catch.cpp
   tests/unit/test_surrogate_th.cpp)
 target_link_libraries(unittests PUBLIC Catch pugixml libenrico)
+set_target_properties(unittests PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
