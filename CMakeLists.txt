@@ -148,3 +148,15 @@ if (SCALE_FOUND)
     test_shift_singlerod
     PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
 endif ()
+
+# =============================================================================
+# Build unit tests
+# =============================================================================
+add_library(Catch INTERFACE)
+target_include_directories(Catch INTERFACE vendor/catch/single_include/catch2)
+
+add_executable(unittests
+  tests/unit/catch.cpp
+  tests/unit/test_surrogate_th.cpp)
+target_link_libraries(unittests PUBLIC Catch pugixml libenrico)
+set_target_properties(unittests PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
