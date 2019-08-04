@@ -60,6 +60,13 @@ double CellInstance::get_density() const
   return rho;
 }
 
+bool CellInstance::is_fissionable() const
+{
+  bool fissionable;
+  err_chk(openmc_material_get_fissionable(material_index_, &fissionable));
+  return fissionable;
+}
+
 bool CellInstance::operator==(const CellInstance& other) const
 {
   return index_ == other.index_ && instance_ == other.instance_;

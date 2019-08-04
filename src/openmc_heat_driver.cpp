@@ -89,6 +89,19 @@ void OpenmcHeatDriver::init_mappings()
             tracked[c] = openmc_driver_->cells_.size() - 1;
           }
 
+          // ensure that the cell being mapped for the pellet region contains
+          // a fissionable material as a way to check that the T/H geometry of the
+          // pellet region is sufficiently refined to account for all OpenMC cells.
+          // This check does not ensure that we have accounted for
+          // _all_ fissionable cells, just that the models line up in the pellet region,
+          // from which we can infer that the general geometry lines up (because otherwise
+          // we could be mapping fluid cells to the surrogate pins, etc.)
+          if (k < heat_driver_->n_fuel_rings_) {
+            Ensures(c.is_fissionable());
+          } else {
+             Ensures(!c.is_fissionable());
+          }
+
           // Map OpenMC material to ring and vice versa
           int32_t array_index = tracked[c];
           cell_inst_to_ring_[array_index].push_back(ring_index);
