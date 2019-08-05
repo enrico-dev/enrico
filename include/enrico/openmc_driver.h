@@ -49,6 +49,7 @@ public:
   openmc::Tally* tally_;            //!< Fission energy deposition tally
   int32_t index_filter_;            //!< Index in filters arrays for material filter
   std::vector<CellInstance> cells_; //!< Array of cell instances
+  int n_fissionable_cells_;         //!< Number of fissionable cells in model
 };
 
 } // namespace enrico

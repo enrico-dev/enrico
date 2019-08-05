@@ -5,7 +5,6 @@
 
 #include "openmc/capi.h"
 #include "openmc/constants.h"
-#include "openmc/tallies/tally.h"
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xarray.hpp"
 #include "xtensor/xview.hpp"
@@ -21,6 +20,31 @@ OpenmcDriver::OpenmcDriver(MPI_Comm comm)
     err_chk(openmc_init(0, nullptr, &comm));
   }
   MPI_Barrier(MPI_COMM_WORLD);
+
+  // determine number of fissionable cells in model to aid in catching
+  // improperly mapped problems
+  n_fissionable_cells_ = 0;
+  for (int i = 0; i < cells_size(); ++i) {
+    int type;
+    int32_t* indices;
+    int32_t n;
+    err_chk(openmc_cell_get_fill(i, &type, &indices, &n));
+
+    // only check for cells filled with type FILL_MATERIAL (evaluated to '1' enum)
+    if (type == 1) {
+      for (int j = 0; j < n; ++j) {
+        int material_index = indices[j];
+
+        // skip cells filled with type MATERIAL_VOID (evaluated to '-1' enum)
+        if (material_index != -1) {
+          bool fissionable;
+          err_chk(openmc_material_get_fissionable(material_index, &fissionable));
+
+          if (fissionable) n_fissionable_cells_++;
+        }
+      }
+    }
+  }
 }
 
 void OpenmcDriver::create_tallies(gsl::span<int32_t> materials)
