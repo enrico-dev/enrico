@@ -219,8 +219,8 @@ public:
 
   xt::xtensor<int, 1> fluid_mask() const final;
 
-  //! Returns temperature in [K] for given region
-  double temperature(int pin, int axial, int ring) const;
+  //! Returns solid temperature in [K] for given region
+  double solid_temperature(int pin, int axial, int ring) const;
 
   // Data on fuel pins
   xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins
@@ -251,6 +251,9 @@ public:
   xt::xtensor<double, 3> source_;      //!< heat source for each (axial segment, ring)
   xt::xtensor<double, 1> r_grid_clad_; //!< radii of each clad ring in [cm]
   xt::xtensor<double, 1> r_grid_fuel_; //!< radii of each fuel ring in [cm]
+
+  //! Cross-sectional areas of rings in fuel and cladding
+  xt::xtensor<double, 1> solid_areas_;
 
   // visualization
   std::string viz_basename_{
@@ -291,28 +294,19 @@ private:
   bool is_energy_conserved(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u,
     const xt::xtensor<double, 2>&h, const xt::xtensor<double, 2>& q) const;
 
-  //!< temperature in [K] for each (pin, axial segment, ring)
-  xt::xtensor<double, 3> temperature_;
+  //!< solid temperature in [K] for each (pin, axial segment, ring)
+  xt::xtensor<double, 3> solid_temperature_;
 
-  //!< density in [g/cm^3] for each (pin, axial segment, ring)
-  xt::xtensor<double, 3> density_;
-
-  //! Value is 1 if (pin, axial segment, ring) region is in fluid; otherwise 0
-  //!
-  //! Because the surrogate only solves heat and only represents solid, this whole xtensor
-  //! == 0
-  xt::xtensor<int, 3> fluid_mask_;
+  //! Value is 1 if region is in fluid; otherwise 0
+  xt::xtensor<int, 1> fluid_mask_;
 
   //! Flow areas for coolant-centered channels
   xt::xtensor<double, 1> channel_areas_;
 
-  //! Cross-sectional areas of rings in fuel and cladding
-  xt::xtensor<double, 1> solid_areas_;
-
   //! Fluid temperature in a rod-centered basis indexed by rod ID and axial ID
   xt::xtensor<double, 2> fluid_temperature_;
 
-  //! Fluid density in a rod-centered basis indexed by rod ID and axial ID
+  //! Fluid density in [g/cm^3] in a rod-centered basis indexed by rod ID and axial ID
   xt::xtensor<double, 2> fluid_density_;
 
   //! Number of pins in the x-direction in a Cartesian grid
