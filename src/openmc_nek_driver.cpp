@@ -197,7 +197,7 @@ void OpenmcNekDriver::init_temperatures()
         const auto& global_elems = cell_to_elems_.at(i);
         const auto& c = openmc_driver_->cells_[i];
 
-        for (const auto &elem : global_elems) {
+        for (auto elem : global_elems) {
           double T = c.get_temperature();
           temperatures_[elem] = T;
           temperatures_prev_[elem] = T;
