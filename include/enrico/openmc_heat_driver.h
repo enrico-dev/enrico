@@ -34,6 +34,8 @@ public:
 
   void set_temperature() override;
 
+  void update_density() override;
+
   NeutronicsDriver& get_neutronics_driver() const override;
 
   HeatFluidsDriver & get_heat_driver() const override;
@@ -42,8 +44,14 @@ public:
   std::unordered_map<int, std::vector<int>> ring_to_cell_inst_;
   std::unordered_map<int, std::vector<int>> cell_inst_to_ring_;
 
+  // Mapping of surrogate fluid elements to OpenMC cell instances and vice versa
+  std::unordered_map<int, std::vector<int>> elem_to_cell_inst_;
+  std::unordered_map<int, std::vector<int>> cell_inst_to_elem_;
+
 protected:
   void init_temperatures() override;
+
+  void init_densities() override;
 
   void init_heat_source() override;
 
@@ -61,7 +69,11 @@ private:
 
   std::unique_ptr<SurrogateHeatDriver> heat_driver_; //!< The heat surrogate driver
 
-  int32_t n_materials_; //! Number of materials in OpenMC model
+  //! Number of OpenMC cells that are solid
+  int32_t n_solid_cells_;
+
+  //! Number of OpenMC cells that are fluid
+  int32_t n_fluid_cells_;
 };
 
 } // namespace enrico
