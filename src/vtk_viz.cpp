@@ -254,7 +254,7 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
         for (size_t i = 0; i < n_axial_sections_; i++) {
           for (size_t j = 0; j < n_radial_fuel_sections_; j++) {
             for (size_t k = 0; k < radial_res_; k++) {
-              vtk_file << surrogate_.temperature(pin, i, j) << "\n";
+              vtk_file << surrogate_.solid_temperature(pin, i, j) << "\n";
             }
           }
         }
@@ -265,7 +265,7 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
         for (size_t i = 0; i < n_axial_sections_; i++) {
           for (size_t j = 0; j < n_radial_clad_sections_; j++) {
             for (size_t k = 0; k < radial_res_; k++) {
-              vtk_file << surrogate_.temperature(pin, i, j + n_radial_fuel_sections_)
+              vtk_file << surrogate_.solid_temperature(pin, i, j + n_radial_fuel_sections_)
                        << "\n";
             }
           }
