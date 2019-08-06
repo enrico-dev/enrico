@@ -66,7 +66,7 @@ xt::xtensor<double, 1> NekDriver::temperature() const
 {
   // Each Nek proc finds the temperatures of its local elements
   double local_elem_temperatures[nelt_];
-  for (gsl::index i = 0; i < nelt_; ++i) {
+  for (int32_t i = 0; i < nelt_; ++i) {
     local_elem_temperatures[i] = this->temperature_at(i + 1);
   }
 
@@ -93,7 +93,7 @@ xt::xtensor<double, 1> NekDriver::temperature() const
 xt::xtensor<int, 1> NekDriver::fluid_mask() const
 {
   int local_fluid_mask[nelt_];
-  for (gsl::index i = 0; i < nelt_; ++i) {
+  for (int32_t i = 0; i < nelt_; ++i) {
     local_fluid_mask[i] = this->in_fluid_at(i + 1);
   }
 
@@ -117,7 +117,7 @@ xt::xtensor<double, 1> NekDriver::density() const
 {
   double local_densities[nelt_];
 
-  for (gsl::index i = 0; i < nelt_; ++i) {
+  for (int32_t i = 0; i < nelt_; ++i) {
     if (this->in_fluid_at(i + 1) == 1) {
       auto T = this->temperature_at(i + 1);
       // nu1 returns specific volume in [m^3/kg]
