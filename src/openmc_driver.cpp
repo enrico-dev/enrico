@@ -74,7 +74,7 @@ void OpenmcDriver::create_tallies(gsl::span<int32_t> materials)
 
 xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
 {
-  // Determine number of realizatoins for normalizing tallies
+  // Determine number of realizations for normalizing tallies
   int m = tally_->n_realizations_;
 
   // Broadcast number of realizations
@@ -88,7 +88,7 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
   // Get total heat production [J/source]
   double total_heat = xt::sum(heat)();
 
-  for (int i = 0; i < cells_.size(); ++i) {
+  for (int i = 0; i < heat.size(); ++i) {
     // Get volume
     double V = cells_.at(i).volume_;
 
