@@ -220,7 +220,7 @@ public:
   xt::xtensor<int, 1> fluid_mask() const final;
 
   //! Returns solid temperature in [K] for given region
-  double solid_temperature(int pin, int axial, int ring) const;
+  double solid_temperature(std::size_t pin, std::size_t axial, std::size_t ring) const;
 
   // Data on fuel pins
   xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins

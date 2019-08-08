@@ -439,7 +439,7 @@ xt::xtensor<double, 1> SurrogateHeatDriver::temperature() const
   return xt::concatenate(xt::xtuple(Ts, Tf), 0);
 }
 
-double SurrogateHeatDriver::solid_temperature(int pin, int axial, int ring) const
+double SurrogateHeatDriver::solid_temperature(std::size_t pin, std::size_t axial, std::size_t ring) const
 {
   return solid_temperature_(pin, axial, ring);
 }
