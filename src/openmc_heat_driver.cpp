@@ -133,7 +133,7 @@ void OpenmcHeatDriver::init_mappings()
 
   // set the number of solid cells before defining mappings for fluid cells
   if (openmc_driver_->active()) {
-    n_solid_cells_ = openmc_driver_->cells_.size();
+    n_solid_cells_ = gsl::narrow<int>(openmc_driver_->cells_.size());
   }
 
   // Establish mappings between fluid regions and OpenMC cells; it is assumed that there
@@ -156,7 +156,7 @@ void OpenmcHeatDriver::init_mappings()
       CellInstance c{r};
       if (tracked.find(c) == tracked.end()) {
         openmc_driver_->cells_.push_back(c);
-        tracked[c] = openmc_driver_->cells_.size() - 1;
+        tracked[c] = gsl::narrow<int>(openmc_driver_->cells_.size() - 1);
 
         Ensures(!c.is_fissionable());
       }
@@ -171,7 +171,7 @@ void OpenmcHeatDriver::init_mappings()
   }
 
   if (openmc_driver_->active()) {
-    n_fluid_cells_ = openmc_driver_->cells_.size() - n_solid_cells_;
+    n_fluid_cells_ = gsl::narrow<int>(openmc_driver_->cells_.size() - n_solid_cells_);
   }
 }
 
