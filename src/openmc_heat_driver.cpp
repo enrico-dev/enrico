@@ -104,7 +104,7 @@ void OpenmcHeatDriver::init_mappings()
           if (k < heat_driver_->n_fuel_rings_) {
             Ensures(c.is_fissionable());
           } else {
-             Ensures(!c.is_fissionable());
+            Ensures(!c.is_fissionable());
           }
 
           // Map OpenMC material to ring and vice versa

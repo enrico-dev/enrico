@@ -24,14 +24,14 @@ OpenmcDriver::OpenmcDriver(MPI_Comm comm)
   // determine number of fissionable cells in model to aid in catching
   // improperly mapped problems
   n_fissionable_cells_ = 0;
-  for (int i = 0; i < cells_size(); ++i) {
+  for (gsl::index i = 0; i < openmc::model::cells.size(); ++i) {
     int type;
     int32_t* indices;
     int32_t n;
     err_chk(openmc_cell_get_fill(i, &type, &indices, &n));
 
     // only check for cells filled with type FILL_MATERIAL (evaluated to '1' enum)
-    if (type == 1) {
+    if (type == openmc::FILL_MATERIAL) {
       for (int j = 0; j < n; ++j) {
         int material_index = indices[j];
 
