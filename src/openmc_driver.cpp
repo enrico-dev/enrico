@@ -33,7 +33,7 @@ OpenmcDriver::OpenmcDriver(MPI_Comm comm)
 
     // only check for cells filled with type FILL_MATERIAL (evaluated to '1' enum)
     if (type == openmc::FILL_MATERIAL) {
-      for (int j = 0; j < n; ++j) {
+      for (gsl::index j = 0; j < n; ++j) {
         int material_index = indices[j];
 
         // skip cells filled with type MATERIAL_VOID (evaluated to '-1' enum)
@@ -88,7 +88,7 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
   // Get total heat production [J/source]
   double total_heat = xt::sum(heat)();
 
-  for (int i = 0; i < heat.size(); ++i) {
+  for (gsl::index i = 0; i < heat.size(); ++i) {
     // Get volume
     double V = cells_.at(i).volume_;
 

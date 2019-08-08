@@ -68,14 +68,14 @@ void OpenmcHeatDriver::init_mappings()
   // Establish mappings between solid regions and OpenMC cells. The center
   // coordinate for each region in the T/H model is obtained and used to
   // determine the OpenMC cell at that position.
-  for (int i = 0; i < heat_driver_->n_pins_; ++i) {
+  for (gsl::index i = 0; i < heat_driver_->n_pins_; ++i) {
     double x_center = heat_driver_->pin_centers_(i, 0);
     double y_center = heat_driver_->pin_centers_(i, 1);
 
-    for (int j = 0; j < heat_driver_->n_axial_; ++j) {
+    for (gsl::index j = 0; j < heat_driver_->n_axial_; ++j) {
       double zavg = 0.5 * (z(j) + z(j + 1));
 
-      for (int k = 0; k < heat_driver_->n_rings(); ++k) {
+      for (gsl::index k = 0; k < heat_driver_->n_rings(); ++k) {
         double ravg;
         if (k < heat_driver_->n_fuel_rings_) {
           ravg = 0.5 * (r_fuel(k) + r_fuel(k + 1));
@@ -84,7 +84,7 @@ void OpenmcHeatDriver::init_mappings()
           ravg = 0.5 * (r_clad(m) + r_clad(m + 1));
         }
 
-        for (int m = 0; m < n_azimuthal; ++m) {
+        for (gsl::index m = 0; m < n_azimuthal; ++m) {
           double m_avg = m + 0.5;
           double theta = 2.0 * m_avg * PI / n_azimuthal;
           double x = x_center + ravg * std::cos(theta);
@@ -140,11 +140,11 @@ void OpenmcHeatDriver::init_mappings()
   // are no azimuthal divisions in the fluid phase in the OpenMC model so that we
   // can take a point on a 45 degree ray from the pin center. TODO: add a check to make
   // sure that the T/H model is finer than the OpenMC model.
-  for (int i = 0; i < heat_driver_->n_pins_; ++i) {
+  for (gsl::index i = 0; i < heat_driver_->n_pins_; ++i) {
     double x_center = heat_driver_->pin_centers_(i, 0);
     double y_center = heat_driver_->pin_centers_(i, 1);
 
-    for (int j = 0; j < heat_driver_->n_axial_; ++j) {
+    for (gsl::index j = 0; j < heat_driver_->n_axial_; ++j) {
       double zavg = 0.5 * (z(j) + z(j + 1));
       double l = heat_driver_->pin_pitch() / std::sqrt(2.0);
       double d = (l - heat_driver_->clad_outer_radius_) / 2.0;
@@ -181,7 +181,7 @@ void OpenmcHeatDriver::init_tallies()
     // Build vector of material indices to construct tallies; tallies are only
     // used in the solid regions
     std::vector<int32_t> mats;
-    for (int c = 0; c < n_solid_cells_; ++c) {
+    for (gsl::index c = 0; c < n_solid_cells_; ++c) {
       const auto& cell = openmc_driver_->cells_[c];
       mats.push_back(cell.material_index_);
     }
@@ -205,9 +205,9 @@ void OpenmcHeatDriver::init_densities()
       // the initial solid density to 0.0 because it is not used in the simulation
       // at all anyways.
       int ring_index = 0;
-      for (int i = 0; i < heat_driver_->n_pins_; ++i) {
-        for (int j = 0; j < heat_driver_->n_axial_; ++j) {
-          for (int k = 0; k < heat_driver_->n_rings(); ++k, ++ring_index) {
+      for (gsl::index i = 0; i < heat_driver_->n_pins_; ++i) {
+        for (gsl::index j = 0; j < heat_driver_->n_axial_; ++j) {
+          for (gsl::index k = 0; k < heat_driver_->n_rings(); ++k, ++ring_index) {
             densities_(ring_index) = 0.0;
           }
         }
@@ -215,8 +215,8 @@ void OpenmcHeatDriver::init_densities()
 
       int elem_index = 0;
       int solid_offset = ring_index;
-      for (int i = 0; i < heat_driver_->n_pins_; ++i) {
-        for (int j = 0; j < heat_driver_->n_axial_; ++j) {
+      for (gsl::index i = 0; i < heat_driver_->n_pins_; ++i) {
+        for (gsl::index j = 0; j < heat_driver_->n_axial_; ++j) {
 
           double rho_avg = 0.0;
           double total_vol = 0.0;
@@ -277,9 +277,9 @@ void OpenmcHeatDriver::init_temperatures()
 
       // set temperatures for solid cells
       int ring_index = 0;
-      for (int i = 0; i < heat_driver_->n_pins_; ++i) {
-        for (int j = 0; j < heat_driver_->n_axial_; ++j) {
-          for (int k = 0; k < heat_driver_->n_rings(); ++k) {
+      for (gsl::index i = 0; i < heat_driver_->n_pins_; ++i) {
+        for (gsl::index j = 0; j < heat_driver_->n_axial_; ++j) {
+          for (gsl::index k = 0; k < heat_driver_->n_rings(); ++k) {
             const auto& cell_instances = ring_to_cell_inst_[ring_index++];
 
             double T_avg = 0.0;
@@ -301,8 +301,8 @@ void OpenmcHeatDriver::init_temperatures()
 
       // set temperatures for fluid cells
       int axial_index = 0;
-      for (int i = 0; i < heat_driver_->n_pins_; ++i) {
-        for (int j = 0; j < heat_driver_->n_axial_; ++j) {
+      for (gsl::index i = 0; i < heat_driver_->n_pins_; ++i) {
+        for (gsl::index j = 0; j < heat_driver_->n_axial_; ++j) {
           const auto& cell_instances = elem_to_cell_inst_[axial_index++];
 
           double T_avg = 0.0;
@@ -345,10 +345,10 @@ void OpenmcHeatDriver::set_heat_source()
     val = 0.0;
 
   int ring_index = 0;
-  for (int i = 0; i < heat_driver_->n_pins_; ++i) {
-    for (int j = 0; j < heat_driver_->n_axial_; ++j) {
+  for (gsl::index i = 0; i < heat_driver_->n_pins_; ++i) {
+    for (gsl::index j = 0; j < heat_driver_->n_axial_; ++j) {
       // Loop over radial rings
-      for (int k = 0; k < heat_driver_->n_rings(); ++k) {
+      for (gsl::index k = 0; k < heat_driver_->n_rings(); ++k) {
         // Only update heat source in fuel
         if (k < heat_driver_->n_fuel_rings_) {
           // Get average Q value across each azimuthal segment
@@ -375,16 +375,16 @@ void OpenmcHeatDriver::update_density()
   }
 
   densities_ = heat_driver_->density();
-  int solid_offset = heat_driver_->n_pins_ * heat_driver_->n_rings() * heat_driver_->n_axial_;
+  auto solid_offset = heat_driver_->n_pins_ * heat_driver_->n_rings() * heat_driver_->n_axial_;
 
-  for (int i = 0; i < n_fluid_cells_; ++i) {
+  for (gsl::index i = 0; i < n_fluid_cells_; ++i) {
     int index = i + n_solid_cells_;
     const auto& c = openmc_driver_->cells_[index];
     const auto& elems = cell_inst_to_elem_[index];
 
     double average_rho = 0.0;
     double total_vol = 0.0;
-    for (int elem_index : elems) {
+    for (auto elem_index : elems) {
       double vol = heat_driver_->z_(elem_index + 1) - heat_driver_->z_(elem_index);
       average_rho += densities_(elem_index + solid_offset);
       total_vol += vol;
@@ -401,13 +401,13 @@ void OpenmcHeatDriver::set_temperature()
 
   // For each OpenMC solid cell, volume average solid temperatures and set
   // by grabbing the T/H regions corresponding to the cell
-  for (int i = 0; i < n_solid_cells_; ++i) {
+  for (gsl::index i = 0; i < n_solid_cells_; ++i) {
     const auto& c = openmc_driver_->cells_[i];
     const auto& rings = cell_inst_to_ring_[i];
 
     double average_temp = 0.0;
     double total_vol = 0.0;
-    for (int ring_index : rings) {
+    for (auto ring_index : rings) {
       double vol = heat_driver_->solid_areas_(ring_index);
       average_temp += temperatures_(ring_index) * vol;
       total_vol += vol;
@@ -419,15 +419,15 @@ void OpenmcHeatDriver::set_temperature()
 
   // For each OpenMC fluid cell, set the fluid temperature by grabbing
   // the T/H region corresponding to the cell
-  int solid_offset = heat_driver_->n_pins_ * heat_driver_->n_rings() * heat_driver_->n_axial_;
-  for (int i = 0; i < n_fluid_cells_; ++i) {
+  auto solid_offset = heat_driver_->n_pins_ * heat_driver_->n_rings() * heat_driver_->n_axial_;
+  for (gsl::index i = 0; i < n_fluid_cells_; ++i) {
     int index = n_solid_cells_ + i;
     const auto& c = openmc_driver_->cells_[index];
     const auto& elems = cell_inst_to_elem_[index];
 
     double average_temp = 0.0;
     double total_vol = 0.0;
-    for (int elem_index : elems) {
+    for (auto elem_index : elems) {
       double vol = heat_driver_->z_(elem_index + 1) - heat_driver_->z_(elem_index);
       average_temp += temperatures_(elem_index + solid_offset) * vol;
       total_vol += vol;
