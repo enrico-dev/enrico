@@ -38,6 +38,10 @@ public:
   //! \return cell density in [g/cm^3]
   double get_density() const;
 
+  //! Check if the cell is fissionable
+  //! \return whether the cell contains fissionable material
+  bool is_fissionable() const;
+
   //! Check for equality
   bool operator==(const CellInstance& other) const;
 

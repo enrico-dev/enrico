@@ -56,6 +56,8 @@ void OpenmcHeatDriver::init_mappings()
   // TODO: Don't hardcode number of azimuthal segments
   int n_azimuthal = 4;
 
+  int n_fissionable_mapped = 0;
+
   for (int i = 0; i < heat_driver_->n_pins_; ++i) {
     // Get coordinate of pin center
     double x_center = heat_driver_->pin_centers_(i, 0);
@@ -87,6 +89,22 @@ void OpenmcHeatDriver::init_mappings()
           if (tracked.find(c) == tracked.end()) {
             openmc_driver_->cells_.push_back(c);
             tracked[c] = openmc_driver_->cells_.size() - 1;
+
+            if (k < heat_driver_->n_fuel_rings_)
+              n_fissionable_mapped++;
+          }
+
+          // ensure that the cell being mapped for the pellet region contains
+          // a fissionable material as a way to check that the T/H geometry of the
+          // pellet region is sufficiently refined to account for all OpenMC cells.
+          // This check does not ensure that we have accounted for
+          // _all_ fissionable cells, just that the models line up in the pellet region,
+          // from which we can infer that the general geometry lines up (because otherwise
+          // we could be mapping fluid cells to the surrogate pins, etc.)
+          if (k < heat_driver_->n_fuel_rings_) {
+            Ensures(c.is_fissionable());
+          } else {
+            Ensures(!c.is_fissionable());
           }
 
           // Map OpenMC material to ring and vice versa
@@ -99,6 +117,12 @@ void OpenmcHeatDriver::init_mappings()
       }
     }
   }
+
+  // check that all fissionable cells have been mapped to the T/H model.
+  // Note that this does not check for distortions in the model, just that
+  // the surrogate T/H model is sufficiently fine in the pellet region to
+  // capture all fissionable cells in OpenMC.
+  Ensures(openmc_driver_->n_fissionable_cells_ == n_fissionable_mapped);
 
   if (openmc_driver_->active()) {
     n_materials_ = openmc_driver_->cells_.size();
