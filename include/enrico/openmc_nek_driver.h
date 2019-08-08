@@ -129,7 +129,7 @@ private:
   //! cell instance index. The Nek global element indices refer to indices
   //! defined by the MPI_Gatherv operation, and do not reflect Nek's internal
   //! global element indexing.
-  std::unordered_map<int32_t, std::vector<int>> cell_to_elems_;
+  std::unordered_map<int32_t, std::vector<int32_t>> cell_to_elems_;
 
   //! Map that gives the OpenMC cell instance indices for a given Nek global
   //! element index. The Nek global element indices refer to indices defined by
@@ -142,11 +142,11 @@ private:
 
   //! Number of Nek local elements on this MPI rank.
   //! If nek_driver_ is active, this equals nek_driver.nelt_.  If not, it equals 0.
-  size_t n_local_elem_;
+  int32_t n_local_elem_;
 
   //! Number of Nek global elements across all ranks.
   //! Always equals nek_driver_.nelgt_.
-  size_t n_global_elem_;
+  int32_t n_global_elem_;
 };
 
 } // namespace enrico
