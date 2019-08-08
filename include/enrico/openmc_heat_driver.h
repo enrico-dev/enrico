@@ -45,7 +45,7 @@ public:
   std::unordered_map<int, std::vector<int>> cell_inst_to_ring_;
 
   // Mapping of surrogate fluid elements to OpenMC cell instances and vice versa
-  std::unordered_map<int, std::vector<int>> elem_to_cell_inst_;
+  std::vector<std::vector<int>> elem_to_cell_inst_;
   std::unordered_map<int, std::vector<int>> cell_inst_to_elem_;
 
 protected:

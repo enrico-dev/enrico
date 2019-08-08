@@ -57,9 +57,6 @@ void OpenmcHeatDriver::init_mappings()
   // index for rings in solid
   int ring_index = 0;
 
-  // index for elements in fluid
-  int elem_index = 0;
-
   // TODO: Don't hardcode number of azimuthal segments
   int n_azimuthal = 4;
 
@@ -136,10 +133,16 @@ void OpenmcHeatDriver::init_mappings()
     n_solid_cells_ = gsl::narrow<int>(openmc_driver_->cells_.size());
   }
 
+  // index for elements in fluid
+  int fluid_index = 0;
+
   // Establish mappings between fluid regions and OpenMC cells; it is assumed that there
   // are no azimuthal divisions in the fluid phase in the OpenMC model so that we
   // can take a point on a 45 degree ray from the pin center. TODO: add a check to make
   // sure that the T/H model is finer than the OpenMC model.
+  int n_elems = heat_driver_->n_pins_ * heat_driver_->n_axial_;
+  elem_to_cell_inst_.resize(n_elems);
+
   for (gsl::index i = 0; i < heat_driver_->n_pins_; ++i) {
     double x_center = heat_driver_->pin_centers_(i, 0);
     double y_center = heat_driver_->pin_centers_(i, 1);
@@ -163,10 +166,10 @@ void OpenmcHeatDriver::init_mappings()
 
       // Map OpenMC material to fluid element and vice versa
       int32_t array_index = tracked[c];
-      cell_inst_to_elem_[array_index].push_back(elem_index);
-      elem_to_cell_inst_[elem_index].push_back(array_index);
+      cell_inst_to_elem_[array_index].push_back(fluid_index);
+      elem_to_cell_inst_[fluid_index].push_back(array_index);
 
-      ++elem_index;
+      ++fluid_index;
     }
   }
 
@@ -204,42 +207,33 @@ void OpenmcHeatDriver::init_densities()
       // the density IC based on the densities used in the OpenMC input file. Set
       // the initial solid density to 0.0 because it is not used in the simulation
       // at all anyways.
-      int ring_index = 0;
-      for (gsl::index i = 0; i < heat_driver_->n_pins_; ++i) {
-        for (gsl::index j = 0; j < heat_driver_->n_axial_; ++j) {
-          for (gsl::index k = 0; k < heat_driver_->n_rings(); ++k, ++ring_index) {
-            densities_(ring_index) = 0.0;
-          }
-        }
-      }
+      densities_.fill(0.0);
 
-      int elem_index = 0;
-      int solid_offset = ring_index;
+      int fluid_index = 0;
+      int fluid_offset =
+        heat_driver_->n_pins_ * heat_driver_->n_axial_ * heat_driver_->n_rings();
       for (gsl::index i = 0; i < heat_driver_->n_pins_; ++i) {
         for (gsl::index j = 0; j < heat_driver_->n_axial_; ++j) {
 
-          double rho_avg = 0.0;
+          double mass = 0.0;
           double total_vol = 0.0;
 
-          for (const auto& idx : elem_to_cell_inst_[elem_index++]) {
+          for (const auto& idx : elem_to_cell_inst_[fluid_index++]) {
             const auto& c = openmc_driver_->cells_[idx];
             double vol = c.volume_;
 
             total_vol += vol;
-            rho_avg += c.get_density() * vol;
+            mass += c.get_density() * vol;
           }
 
-          densities_(elem_index + solid_offset) = rho_avg / total_vol;
+          densities_(fluid_index + fluid_offset) = mass / total_vol;
         }
       }
 
       std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
-    }
-
-    if (density_ic_ == Initial::heat) {
-      throw std::runtime_error{
-        "Density initial conditions from surrogate heat-fluids "
-        "solver not supported."};
+    } else if (density_ic_ == Initial::heat) {
+      throw std::runtime_error{"Density initial conditions from surrogate heat-fluids "
+                               "solver not supported."};
     }
   }
 }
@@ -259,9 +253,10 @@ void OpenmcHeatDriver::init_temperatures()
       // may correspond to a particular ring, so the initial temperature set for that ring
       // should be a volume average of the OpenMC cell temperatures. Then, loop over all
       // axial fluid cells for each pin and set the fluid temperature IC based on the
-      // fluid temperature in the OpenMC model. No more than one OpenMC cell should correspond
-      // to a given axial fluid cell, so no averaging is needed (though we retain the averaging
-      // syntax below: TODO - update elem_to_cell_inst_ to permit multiple OpenMC cells per axial.
+      // fluid temperature in the OpenMC model. No more than one OpenMC cell should
+      // correspond to a given axial fluid cell, so no averaging is needed (though we
+      // retain the averaging syntax below: TODO - update elem_to_cell_inst_ to permit
+      // multiple OpenMC cells per axial.
 
       // TODO: This initial condition used in the coupled driver does not truly represent
       // the actual initial condition used in the OpenMC input file, since the surrogate
@@ -322,9 +317,7 @@ void OpenmcHeatDriver::init_temperatures()
       }
 
       std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
-    }
-
-    if (temperature_ic_ == Initial::heat) {
+    } else if (temperature_ic_ == Initial::heat) {
       throw std::runtime_error{
         "Temperature initial conditions from surrogate heat-fluids "
         "solver not supported."};
@@ -375,22 +368,23 @@ void OpenmcHeatDriver::update_density()
   }
 
   densities_ = heat_driver_->density();
-  auto solid_offset = heat_driver_->n_pins_ * heat_driver_->n_rings() * heat_driver_->n_axial_;
+  auto fluid_offset =
+    heat_driver_->n_pins_ * heat_driver_->n_rings() * heat_driver_->n_axial_;
 
-  for (gsl::index i = 0; i < n_fluid_cells_; ++i) {
-    int index = i + n_solid_cells_;
-    const auto& c = openmc_driver_->cells_[index];
-    const auto& elems = cell_inst_to_elem_[index];
+  for (gsl::index i = n_solid_cells_; i < n_solid_cells_ + n_fluid_cells_; ++i) {
+    const auto& c = openmc_driver_->cells_[i];
+    const auto& elems = cell_inst_to_elem_[i];
 
-    double average_rho = 0.0;
+    double mass = 0.0;
     double total_vol = 0.0;
-    for (auto elem_index : elems) {
-      double vol = heat_driver_->z_(elem_index + 1) - heat_driver_->z_(elem_index);
-      average_rho += densities_(elem_index + solid_offset);
+    for (auto fluid_index : elems) {
+      auto z_index = fluid_index % heat_driver_->n_axial_;
+      double vol = heat_driver_->z_(z_index + 1) - heat_driver_->z_(z_index);
+      mass += densities_(fluid_index + fluid_offset) * vol;
       total_vol += vol;
     }
 
-    c.set_density(average_rho / total_vol);
+    c.set_density(mass / total_vol);
   }
 }
 
@@ -407,9 +401,10 @@ void OpenmcHeatDriver::set_temperature()
 
     double average_temp = 0.0;
     double total_vol = 0.0;
-    for (auto ring_index : rings) {
+    for (auto solid_index : rings) {
+      auto ring_index = solid_index % heat_driver_->n_rings();
       double vol = heat_driver_->solid_areas_(ring_index);
-      average_temp += temperatures_(ring_index) * vol;
+      average_temp += temperatures_(solid_index) * vol;
       total_vol += vol;
     }
 
@@ -419,7 +414,8 @@ void OpenmcHeatDriver::set_temperature()
 
   // For each OpenMC fluid cell, set the fluid temperature by grabbing
   // the T/H region corresponding to the cell
-  auto solid_offset = heat_driver_->n_pins_ * heat_driver_->n_rings() * heat_driver_->n_axial_;
+  auto fluid_offset =
+    heat_driver_->n_pins_ * heat_driver_->n_rings() * heat_driver_->n_axial_;
   for (gsl::index i = 0; i < n_fluid_cells_; ++i) {
     int index = n_solid_cells_ + i;
     const auto& c = openmc_driver_->cells_[index];
@@ -427,9 +423,10 @@ void OpenmcHeatDriver::set_temperature()
 
     double average_temp = 0.0;
     double total_vol = 0.0;
-    for (auto elem_index : elems) {
-      double vol = heat_driver_->z_(elem_index + 1) - heat_driver_->z_(elem_index);
-      average_temp += temperatures_(elem_index + solid_offset) * vol;
+    for (auto fluid_index : elems) {
+      auto z_index = fluid_index % heat_driver_->n_axial_;
+      double vol = heat_driver_->z_(z_index + 1) - heat_driver_->z_(z_index);
+      average_temp += temperatures_(fluid_index + fluid_offset) * vol;
       total_vol += vol;
     }
 
