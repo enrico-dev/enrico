@@ -4,6 +4,7 @@
 #include "enrico/error.h"
 
 #include "openmc/capi.h"
+#include "openmc/cell.h"
 #include "openmc/constants.h"
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xarray.hpp"
