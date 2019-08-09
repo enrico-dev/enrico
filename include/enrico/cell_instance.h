@@ -7,6 +7,7 @@
 #include <functional> // for hash
 
 #include "geom.h"
+#include "openmc/cell.h"
 #include "openmc/material.h"
 
 namespace enrico {
@@ -19,6 +20,9 @@ public:
   //!
   //! \param position The coordinate for the desired cell
   explicit CellInstance(Position position);
+
+  //! Get the corresponding cell
+  openmc::Cell* cell() const;
 
   //! Get this cell's material
   //! \return A pointer to the Material associated with this cell
