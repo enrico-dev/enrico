@@ -215,9 +215,9 @@ public:
 
   xt::xtensor<double, 1> temperature() const final;
 
+  //! The surrogate heat driver does not compute solid density, so this method
+  //! only returns the fluid density.
   xt::xtensor<double, 1> density() const final;
-
-  xt::xtensor<int, 1> fluid_mask() const final;
 
   //! Returns solid temperature in [K] for given region
   double solid_temperature(std::size_t pin, std::size_t axial, std::size_t ring) const;

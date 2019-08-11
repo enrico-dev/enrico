@@ -52,7 +52,9 @@ public:
 
   xt::xtensor<double, 1> density() const final;
 
-  xt::xtensor<int, 1> fluid_mask() const final;
+  //! States whether each region is in fluid
+  //! \return For each region, 1 if region is in fluid and 0 otherwise
+  xt::xtensor<int, 1> fluid_mask() const;
 
   //! Get the coordinate of a local element's centroid.
   //!

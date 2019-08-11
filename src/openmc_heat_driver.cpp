@@ -196,22 +196,15 @@ void OpenmcHeatDriver::init_tallies()
 void OpenmcHeatDriver::init_densities()
 {
   if (this->has_global_coupling_data()) {
-    std::size_t n_solid =
-      heat_driver_->n_pins_ * heat_driver_->n_axial_ * heat_driver_->n_rings();
     std::size_t n_fluid = heat_driver_->n_pins_ * heat_driver_->n_axial_;
-    densities_.resize({n_solid + n_fluid});
-    densities_prev_.resize({n_solid + n_fluid});
+    densities_.resize({n_fluid});
+    densities_prev_.resize({n_fluid});
 
     if (density_ic_ == Initial::neutronics) {
       // Loop over all of the fluid regions in the heat transfer model and set
-      // the density IC based on the densities used in the OpenMC input file. Set
-      // the initial solid density to 0.0 because it is not used in the simulation
-      // at all anyways.
-      densities_.fill(0.0);
+      // the density IC based on the densities used in the OpenMC input file.
 
       int fluid_index = 0;
-      int fluid_offset =
-        heat_driver_->n_pins_ * heat_driver_->n_axial_ * heat_driver_->n_rings();
       for (gsl::index i = 0; i < heat_driver_->n_pins_; ++i) {
         for (gsl::index j = 0; j < heat_driver_->n_axial_; ++j) {
 
@@ -226,7 +219,7 @@ void OpenmcHeatDriver::init_densities()
             mass += c.get_density() * vol;
           }
 
-          densities_(fluid_index + fluid_offset) = mass / total_vol;
+          densities_(fluid_index) = mass / total_vol;
         }
       }
 
@@ -368,8 +361,6 @@ void OpenmcHeatDriver::update_density()
   }
 
   densities_ = heat_driver_->density();
-  auto fluid_offset =
-    heat_driver_->n_pins_ * heat_driver_->n_rings() * heat_driver_->n_axial_;
 
   for (gsl::index i = n_solid_cells_; i < n_solid_cells_ + n_fluid_cells_; ++i) {
     const auto& c = openmc_driver_->cells_[i];
@@ -380,7 +371,7 @@ void OpenmcHeatDriver::update_density()
     for (auto fluid_index : elems) {
       auto z_index = fluid_index % heat_driver_->n_axial_;
       double vol = heat_driver_->z_(z_index + 1) - heat_driver_->z_(z_index);
-      mass += densities_(fluid_index + fluid_offset) * vol;
+      mass += densities_(fluid_index) * vol;
       total_vol += vol;
     }
 
