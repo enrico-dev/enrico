@@ -12,17 +12,17 @@ addons:
       retries: true
 cache:
   directories:
-    - $HOME/endf71_multitemp
+    - $HOME/endfb71_hdf5
 env:
   global:
     - HDF5_ROOT=/usr
     - OMP_NUM_THREADS=2
-    - OPENMC_CROSS_SECTIONS=$HOME/endf71_multitemp/cross_sections.xml
+    - OPENMC_CROSS_SECTIONS=$HOME/endfb71_hdf5/cross_sections.xml
 matrix:
   include:
     - env: MODE="openmc_nek5000"
     - env: MODE="openmc_heat_surrogate"
-      
+
 before_install:
   - bash ci/patch_singlerod_rea.sh
 

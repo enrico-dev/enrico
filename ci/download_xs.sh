@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -ex
 
-if [ ! -e $HOME/endf71_multitemp/cross_sections.xml ]; then
+if [ ! -e $HOME/endfb71_hdf5/cross_sections.xml ]; then
   cd $HOME
-  wget https://anl.box.com/shared/static/46osfq56h4bd68r6e6pbhupsk4gbnvj2.xz -O - | tar -xvJ
+  wget https://anl.box.com/shared/static/9igk353zpy8fn9ttvtrqgzvw1vtejoz6.xz -O - | tar -xvJ
 fi
