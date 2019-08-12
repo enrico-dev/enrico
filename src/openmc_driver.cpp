@@ -51,16 +51,16 @@ OpenmcDriver::OpenmcDriver(MPI_Comm comm)
 void OpenmcDriver::create_tallies(gsl::span<int32_t> materials)
 {
   // Determine maximum tally/filter ID used so far
-  int32_t filter_id, tally_id;
+  int32_t index_filter, filter_id, tally_id;
   openmc_get_filter_next_id(&filter_id);
   openmc_get_tally_next_id(&tally_id);
 
-  err_chk(openmc_new_filter("material", &index_filter_));
-  err_chk(openmc_filter_set_id(index_filter_, filter_id));
+  err_chk(openmc_new_filter("material", &index_filter));
+  err_chk(openmc_filter_set_id(index_filter, filter_id));
 
   // Set bins for filter
   err_chk(
-    openmc_material_filter_set_bins(index_filter_, materials.size(), materials.data()));
+    openmc_material_filter_set_bins(index_filter, materials.size(), materials.data()));
 
   // Create tally and assign scores/filters
   int32_t index_tally;
@@ -69,7 +69,7 @@ void OpenmcDriver::create_tallies(gsl::span<int32_t> materials)
   std::vector<std::string> scores{"kappa-fission"};
   tally_ = openmc::model::tallies[index_tally].get();
   tally_->set_scores(scores);
-  tally_->set_filters(&index_filter_, 1);
+  tally_->set_filters(&index_filter, 1);
 }
 
 xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
