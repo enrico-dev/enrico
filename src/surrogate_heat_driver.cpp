@@ -195,13 +195,15 @@ void SurrogateHeatDriver::generate_arrays()
 
   // Create empty arrays for source term and temperature in the solid phase
   source_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
-  temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
-  density_ = xt::zeros<double>({n_pins_, n_axial_, n_rings()});
-  fluid_mask_ = xt::zeros<int>({n_pins_, n_axial_, n_rings()});
+  solid_temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
 
   // Create empty arrays for temperature and density in the fluid phase
   fluid_temperature_ = xt::empty<double>({n_pins_, n_axial_});
   fluid_density_ = xt::empty<double>({n_pins_, n_axial_});
+
+  xt::xtensor<int, 1> s_mask({n_pins_ * n_axial_ * n_rings()}, 0);
+  xt::xtensor<int, 1> f_mask({n_pins_ * n_axial_}, 1);
+  fluid_mask_ = xt::concatenate(xt::xtuple(s_mask, f_mask), 0);
 }
 
 double SurrogateHeatDriver::rod_axial_node_power(const int pin, const int axial) const
@@ -416,7 +418,7 @@ void SurrogateHeatDriver::solve_heat()
       double T_co = fluid_temperature_(i, j);
 
       // Set initial temperature to surface temperature
-      xt::view(temperature_, i, j) = T_co;
+      xt::view(solid_temperature_, i, j) = T_co;
 
       solve_steady_nonlin(&q(i, j, 0),
                           T_co,
@@ -425,29 +427,33 @@ void SurrogateHeatDriver::solve_heat()
                           n_fuel_rings_,
                           n_clad_rings_,
                           heat_tol_,
-                          &temperature_(i, j, 0));
+                          &solid_temperature_(i, j, 0));
     }
   }
 }
 
 xt::xtensor<double, 1> SurrogateHeatDriver::temperature() const
 {
-  return xt::flatten(temperature_);
+  xt::xarray<double> Ts = {xt::flatten(solid_temperature_)};
+  xt::xarray<double> Tf = {xt::flatten(fluid_temperature_)};
+  return xt::concatenate(xt::xtuple(Ts, Tf), 0);
 }
 
-double SurrogateHeatDriver::temperature(int pin, int axial, int ring) const
+double SurrogateHeatDriver::solid_temperature(std::size_t pin, std::size_t axial, std::size_t ring) const
 {
-  return temperature_(pin, axial, ring);
+  return solid_temperature_(pin, axial, ring);
 }
 
 xt::xtensor<double, 1> SurrogateHeatDriver::density() const
 {
-  return xt::flatten(density_);
+  xt::xarray<double> rhos({n_pins_ * n_axial_ * n_rings()}, 0.0);
+  xt::xarray<double> rhof = {xt::flatten(fluid_density_)};
+  return xt::concatenate(xt::xtuple(rhos, rhof), 0);
 }
 
 xt::xtensor<int, 1> SurrogateHeatDriver::fluid_mask() const
 {
-  return xt::flatten(fluid_mask_);
+  return fluid_mask_;
 }
 
 void SurrogateHeatDriver::write_step(int timestep, int iteration)
