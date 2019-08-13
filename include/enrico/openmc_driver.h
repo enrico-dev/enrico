@@ -7,6 +7,7 @@
 #include "geom.h"
 #include "neutronics_driver.h"
 
+#include "openmc/tallies/filter_material.h"
 #include "openmc/tallies/tally.h"
 #include <gsl/gsl>
 #include <mpi.h>
@@ -47,7 +48,7 @@ public:
 
   // Data
   openmc::Tally* tally_;            //!< Fission energy deposition tally
-  int32_t index_filter_;            //!< Index in filters arrays for material filter
+  openmc::MaterialFilter* filter_;  //!< Material filter
   std::vector<CellInstance> cells_; //!< Array of cell instances
   int n_fissionable_cells_;         //!< Number of fissionable cells in model
 };

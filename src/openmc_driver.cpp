@@ -6,6 +6,9 @@
 #include "openmc/capi.h"
 #include "openmc/cell.h"
 #include "openmc/constants.h"
+#include "openmc/tallies/filter.h"
+#include "openmc/tallies/filter_material.h"
+#include "openmc/tallies/tally.h"
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xarray.hpp"
 #include "xtensor/xview.hpp"
@@ -38,10 +41,10 @@ OpenmcDriver::OpenmcDriver(MPI_Comm comm)
 
         // skip cells filled with type MATERIAL_VOID (evaluated to '-1' enum)
         if (material_index != -1) {
-          bool fissionable;
-          err_chk(openmc_material_get_fissionable(material_index, &fissionable));
+          const auto& m = openmc::model::materials.at(material_index);
 
-          if (fissionable) n_fissionable_cells_++;
+          if (m->fissionable_)
+            n_fissionable_cells_++;
         }
       }
     }
@@ -50,26 +53,18 @@ OpenmcDriver::OpenmcDriver(MPI_Comm comm)
 
 void OpenmcDriver::create_tallies(gsl::span<int32_t> materials)
 {
-  // Determine maximum tally/filter ID used so far
-  int32_t filter_id, tally_id;
-  openmc_get_filter_next_id(&filter_id);
-  openmc_get_tally_next_id(&tally_id);
-
-  err_chk(openmc_new_filter("material", &index_filter_));
-  err_chk(openmc_filter_set_id(index_filter_, filter_id));
+  // Create material filter
+  auto f = openmc::Filter::create("material");
+  filter_ = dynamic_cast<openmc::MaterialFilter*>(f);
 
   // Set bins for filter
-  err_chk(
-    openmc_material_filter_set_bins(index_filter_, materials.size(), materials.data()));
+  filter_->set_materials(materials);
 
   // Create tally and assign scores/filters
-  int32_t index_tally;
-  err_chk(openmc_extend_tallies(1, &index_tally, nullptr));
-  err_chk(openmc_tally_set_id(index_tally, tally_id));
-  std::vector<std::string> scores{"kappa-fission"};
-  tally_ = openmc::model::tallies[index_tally].get();
-  tally_->set_scores(scores);
-  tally_->set_filters(&index_filter_, 1);
+  tally_ = openmc::Tally::create();
+  tally_->set_scores({"kappa-fission"});
+  std::vector<openmc::Filter*> filters{filter_};
+  tally_->set_filters(filters);
 }
 
 xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
