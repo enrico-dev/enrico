@@ -205,22 +205,20 @@ void OpenmcHeatDriver::init_densities()
       // the density IC based on the densities used in the OpenMC input file.
 
       int fluid_index = 0;
-      for (gsl::index i = 0; i < heat_driver_->n_pins_; ++i) {
-        for (gsl::index j = 0; j < heat_driver_->n_axial_; ++j) {
+      int n_fluid_elems = heat_driver_->n_pins_ * heat_driver_->n_axial_;
+      for (gsl::index fluid_index = 0; fluid_index < n_fluid_elems; ++fluid_index) {
+        double mass = 0.0;
+        double total_vol = 0.0;
 
-          double mass = 0.0;
-          double total_vol = 0.0;
+        for (const auto& idx : elem_to_cell_inst_[fluid_index]) {
+          const auto& c = openmc_driver_->cells_[idx];
+          double vol = c.volume_;
 
-          for (const auto& idx : elem_to_cell_inst_[fluid_index++]) {
-            const auto& c = openmc_driver_->cells_[idx];
-            double vol = c.volume_;
-
-            total_vol += vol;
-            mass += c.get_density() * vol;
-          }
-
-          densities_(fluid_index) = mass / total_vol;
+          total_vol += vol;
+          mass += c.get_density() * vol;
         }
+
+        densities_(fluid_index) = mass / total_vol;
       }
 
       std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
