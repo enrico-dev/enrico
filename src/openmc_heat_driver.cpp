@@ -205,8 +205,7 @@ void OpenmcHeatDriver::init_densities()
       // the density IC based on the densities used in the OpenMC input file.
 
       int fluid_index = 0;
-      int n_fluid_elems = heat_driver_->n_pins_ * heat_driver_->n_axial_;
-      for (gsl::index fluid_index = 0; fluid_index < n_fluid_elems; ++fluid_index) {
+      for (gsl::index fluid_index = 0; fluid_index < n_fluid; ++fluid_index) {
         double mass = 0.0;
         double total_vol = 0.0;
 
@@ -259,52 +258,40 @@ void OpenmcHeatDriver::init_temperatures()
       // the azimuthal segments in the OpenMC model are all the same (i.e. no initial
       // azimuthal dependence).
 
-      int index = 0;
-
       // set temperatures for solid cells
-      int ring_index = 0;
-      for (gsl::index i = 0; i < heat_driver_->n_pins_; ++i) {
-        for (gsl::index j = 0; j < heat_driver_->n_axial_; ++j) {
-          for (gsl::index k = 0; k < heat_driver_->n_rings(); ++k) {
-            const auto& cell_instances = ring_to_cell_inst_[ring_index++];
+      for (gsl::index i = 0; i < n_solid; ++i) {
+        const auto& cell_instances = ring_to_cell_inst_[i];
 
-            double T_avg = 0.0;
-            double total_vol = 0.0;
+        double T_avg = 0.0;
+        double total_vol = 0.0;
 
-            for (auto idx : cell_instances) {
-              const auto& c = openmc_driver_->cells_[idx];
-              double vol = c.volume_;
+        for (auto idx : cell_instances) {
+          const auto& c = openmc_driver_->cells_[idx];
+          double vol = c.volume_;
 
-              total_vol += vol;
-              T_avg += c.get_temperature() * vol;
-            }
-
-            temperatures_[index] = T_avg / total_vol;
-            ++index;
-          }
+          total_vol += vol;
+          T_avg += c.get_temperature() * vol;
         }
+
+        temperatures_[i] = T_avg / total_vol;
       }
 
       // set temperatures for fluid cells
-      int axial_index = 0;
-      for (gsl::index i = 0; i < heat_driver_->n_pins_; ++i) {
-        for (gsl::index j = 0; j < heat_driver_->n_axial_; ++j) {
-          const auto& cell_instances = elem_to_cell_inst_[axial_index++];
+      for (gsl::index i = 0; i < n_fluid; ++i) {
+        const auto& cell_instances = elem_to_cell_inst_[i];
 
-          double T_avg = 0.0;
-          double total_vol = 0.0;
+        double T_avg = 0.0;
+        double total_vol = 0.0;
 
-          for (auto idx : cell_instances) {
-            const auto& c = openmc_driver_->cells_[idx];
-            double vol = c.volume_;
+        for (auto idx : cell_instances) {
+          const auto& c = openmc_driver_->cells_[idx];
+          double vol = c.volume_;
 
-            total_vol += vol;
-            T_avg += c.get_temperature() * vol;
-          }
-
-          temperatures_[index] = T_avg / total_vol;
-          ++index;
+          total_vol += vol;
+          T_avg += c.get_temperature() * vol;
         }
+
+        temperatures_[i + n_solid] = T_avg / total_vol;
       }
 
       std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
