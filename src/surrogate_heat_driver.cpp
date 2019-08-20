@@ -200,10 +200,6 @@ void SurrogateHeatDriver::generate_arrays()
   // Create empty arrays for temperature and density in the fluid phase
   fluid_temperature_ = xt::empty<double>({n_pins_, n_axial_});
   fluid_density_ = xt::empty<double>({n_pins_, n_axial_});
-
-  xt::xtensor<int, 1> s_mask({n_pins_ * n_axial_ * n_rings()}, 0);
-  xt::xtensor<int, 1> f_mask({n_pins_ * n_axial_}, 1);
-  fluid_mask_ = xt::concatenate(xt::xtuple(s_mask, f_mask), 0);
 }
 
 double SurrogateHeatDriver::rod_axial_node_power(const int pin, const int axial) const
@@ -446,14 +442,7 @@ double SurrogateHeatDriver::solid_temperature(std::size_t pin, std::size_t axial
 
 xt::xtensor<double, 1> SurrogateHeatDriver::density() const
 {
-  xt::xarray<double> rhos({n_pins_ * n_axial_ * n_rings()}, 0.0);
-  xt::xarray<double> rhof = {xt::flatten(fluid_density_)};
-  return xt::concatenate(xt::xtuple(rhos, rhof), 0);
-}
-
-xt::xtensor<int, 1> SurrogateHeatDriver::fluid_mask() const
-{
-  return fluid_mask_;
+  return xt::flatten(fluid_density_);
 }
 
 void SurrogateHeatDriver::write_step(int timestep, int iteration)
