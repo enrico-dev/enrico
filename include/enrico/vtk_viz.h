@@ -27,8 +27,8 @@ private:
   //! Can only be called within the SurrogateHeatDriver.
   //!
   //! \param surrogate_ptr Pointer to the surrogate to write
-  //! \param t_rad         Radial resolution of the generated VTK mesh
-  SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
+  //! \param t_res         Radial resolution of the generated VTK mesh
+  SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ptr,
                      size_t t_res,
                      const std::string& regions_to_write,
                      const std::string& data_to_write);
@@ -84,7 +84,7 @@ private:
 
   // internal variables/parameters
   const SurrogateHeatDriver& surrogate_; //!< reference to surrogate
-  size_t radial_res_;                    //!< radial resolution;
+  size_t azimuthal_res_;                 //!< azimuthal resolution
   VizDataType data_out_;
   VizRegionType regions_out_;
 
@@ -104,12 +104,9 @@ private:
   size_t n_radial_sections_;      //!< total number of radial SECTIONS
 
   // POINTS
-  size_t n_fuel_points_; //!< number of points needed to represent the fuel regions
-  size_t n_clad_points_; //!< number of points needed to represent the cladding regions
   size_t n_points_;      //!< total number of points in the vtk representation
 
   // PER PLANE VALUES
-  size_t n_sections_per_plane_;  //!< total number of radial sections in a plane
   size_t fuel_points_per_plane_; //!< number of fuel points in a plane
   size_t clad_points_per_plane_; //!< number of cladding points in a plane
   size_t points_per_plane_;      //!< total number of points in a plane
