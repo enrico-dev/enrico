@@ -31,6 +31,7 @@ xtensor<double, 2> create_ring(double radius, size_t t_resolution)
   xtensor<double, 1> theta;
   theta = xt::linspace<double>(0., 2. * M_PI, t_resolution + 1);
   theta = xt::view(theta, xt::range(0, -1)); // remove last value
+
   x = radius * xt::cos(theta);
   y = radius * xt::sin(theta);
 
@@ -44,16 +45,17 @@ xtensor<double, 2> create_ring(double radius, size_t t_resolution)
 
 xtensor<int, 2> hex_ring(size_t start_idx, size_t resolution, size_t z_shift)
 {
-
   xtensor<int, 2> out({resolution, HEX_SIZE_}, 0);
 
   // set connectivity of the first z-layer
   // first two points - along the inner radial ring
   xt::view(out, xt::all(), 0) = xt::arange(start_idx, resolution + start_idx);
   xt::view(out, xt::all(), 1) = xt::arange(start_idx + 1, resolution + start_idx + 1);
+
   // second two poitns - along the outer radial ring, going back toward the starting point
   xt::view(out, xt::all(), 2) = xt::view(out, xt::all(), 1) + resolution;
   xt::view(out, xt::all(), 3) = xt::view(out, xt::all(), 0) + resolution;
+
   // adjust last point id for periodic condition on both layers, using hexes now
   xt::view(out, resolution - 1, 1) = start_idx;
   xt::view(out, resolution - 1, 2) = resolution + start_idx;
@@ -62,6 +64,7 @@ xtensor<int, 2> hex_ring(size_t start_idx, size_t resolution, size_t z_shift)
   // and shift by number of points
   xt::view(out, xt::all(), xt::range(4, HEX_SIZE_)) +=
     xt::view(out, xt::all(), xt::range(0, 4));
+
   // shift connectivity down one layer
   xt::view(out, xt::all(), xt::range(4, HEX_SIZE_)) += z_shift;
 
@@ -90,10 +93,14 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
   regions_out_ = VizRegionType::all;
   if ("all" == regions_to_write) {
     regions_out_ = VizRegionType::all;
-  } else if ("fuel" == regions_to_write) {
-    regions_out_ = VizRegionType::fuel;
-  } else if ("cladding" == regions_to_write) {
-    regions_out_ = VizRegionType::clad;
+    Expects(false);
+  } else if ("solid" == regions_to_write) {
+    regions_out_ = VizRegionType::solid;
+  } else if ("fluid" == regions_to_write) {
+    regions_out_ = VizRegionType::fluid;
+    Expects(false);
+  } else {
+    Expects(false);
   }
 
   // Set some necessary values ahead of time
@@ -106,7 +113,7 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
   fuel_points_per_plane_ = n_radial_fuel_sections_ * azimuthal_res_ + 1;
 
   // cladding points
-  clad_points_per_plane_ = n_radial_clad_sections_ * azimuthal_res_ + 1;
+  clad_points_per_plane_ = (n_radial_clad_sections_ + 1) * azimuthal_res_;
 
   // wedge regions
   n_fuel_entries_per_plane_ = azimuthal_res_ * (WEDGE_SIZE_ + 1);
@@ -118,18 +125,14 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
   n_clad_entries_per_plane_ = azimuthal_res_ * (HEX_SIZE_ + 1) * n_radial_clad_sections_;
 
   // set totals based on region
-  if (VizRegionType::all == regions_out_) {
+  if (VizRegionType::solid == regions_out_) {
     points_per_plane_ = fuel_points_per_plane_ + clad_points_per_plane_;
     n_radial_sections_ = n_radial_fuel_sections_ + n_radial_clad_sections_;
     n_entries_per_plane_ = n_fuel_entries_per_plane_ + n_clad_entries_per_plane_;
-  } else if (VizRegionType::fuel == regions_out_) {
-    points_per_plane_ = fuel_points_per_plane_;
-    n_radial_sections_ = n_radial_fuel_sections_;
-    n_entries_per_plane_ = n_fuel_entries_per_plane_;
-  } else if (VizRegionType::clad == regions_out_) {
-    points_per_plane_ = clad_points_per_plane_;
-    n_radial_sections_ = n_radial_clad_sections_;
-    n_entries_per_plane_ = n_clad_entries_per_plane_;
+  } else if (VizRegionType::fluid == regions_out_) {
+    // todo
+  } else if (VizRegionType::all == regions_out_) {
+    // todo
   }
 
   // totals
@@ -243,7 +246,7 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
     // write data for each pin
     for (size_t pin = 0; pin < surrogate_.n_pins_; pin++) {
       // write data for specified regions
-      if (VizRegionType::fuel == regions_out_ || VizRegionType::all == regions_out_) {
+      if (VizRegionType::solid == regions_out_) {
         // write all fuel data first
         for (size_t i = 0; i < n_axial_sections_; i++) {
           for (size_t j = 0; j < n_radial_fuel_sections_; j++) {
@@ -252,10 +255,8 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
             }
           }
         }
-      }
 
-      // then write cladding data
-      if (VizRegionType::clad == regions_out_ || VizRegionType::all == regions_out_) {
+        // then write cladding data
         for (size_t i = 0; i < n_axial_sections_; i++) {
           for (size_t j = 0; j < n_radial_clad_sections_; j++) {
             for (size_t k = 0; k < azimuthal_res_; k++) {
@@ -275,7 +276,7 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
     vtk_file << "LOOKUP_TABLE default\n";
     for (size_t pin = 0; pin < surrogate_.n_pins_; pin++) {
       // write all fuel data first
-      if (VizRegionType::fuel == regions_out_ || VizRegionType::all == regions_out_) {
+      if (VizRegionType::solid == regions_out_) {
         for (size_t i = 0; i < n_axial_sections_; i++) {
           for (size_t j = 0; j < n_radial_fuel_sections_; j++) {
             for (size_t k = 0; k < azimuthal_res_; k++) {
@@ -283,10 +284,8 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
             }
           }
         }
-      }
 
-      // then write the cladding data
-      if (VizRegionType::clad == regions_out_ || VizRegionType::all == regions_out_) {
+        // then write the cladding data
         for (size_t i = 0; i < n_axial_sections_; i++) {
           for (size_t j = 0; j < n_radial_clad_sections_; j++) {
             for (size_t k = 0; k < azimuthal_res_; k++) {
@@ -316,20 +315,16 @@ xtensor<double, 1> SurrogateVtkWriter::points()
 {
   xtensor<double, 1> points;
 
-  if (VizRegionType::fuel == regions_out_) {
-    // get fuel points
-    xtensor<double, 3> fuel_pnts = fuel_points();
-    points = xt::flatten(fuel_pnts);
-  } else if (VizRegionType::clad == regions_out_) {
-    // get cladding points
-    xtensor<double, 3> clad_pnts = clad_points();
-    points = xt::flatten(clad_pnts);
-  } else if (VizRegionType::all == regions_out_) {
+  if (VizRegionType::all == regions_out_) {
+    // todo
+  } else if (VizRegionType::solid == regions_out_) {
     // get both sets of points
     xtensor<double, 3> fuel_pnts = fuel_points();
     xtensor<double, 3> clad_pnts = clad_points();
     // concatenate in 1-D and return
     points = xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts), xt::flatten(clad_pnts)));
+  } else if (VizRegionType::fluid == regions_out_) {
+    // todo
   }
 
   return points;
@@ -376,6 +371,7 @@ xtensor<double, 3> SurrogateVtkWriter::clad_points()
 {
   // array to hold all point data
   xt::xarray<double> pnts_out({n_axial_points_, clad_points_per_plane_, 3}, 0.0);
+
   // x and y for a single axial plane in the rod
   xt::xarray<double> x = xt::zeros<double>({n_radial_clad_sections_ + 1, azimuthal_res_});
   xt::xarray<double> y = xt::zeros<double>({n_radial_clad_sections_ + 1, azimuthal_res_});
@@ -383,8 +379,10 @@ xtensor<double, 3> SurrogateVtkWriter::clad_points()
   // generate x/y points for each radial ring
   for (size_t i = 0; i < n_radial_clad_sections_ + 1; i++) {
     double ring_rad = surrogate_.r_grid_clad_(i);
+
     // create a unit ring scaled by radius
     xtensor<double, 2> ring = create_ring(ring_rad, azimuthal_res_);
+
     // set x/y values for this ring
     xt::view(x, i, xt::all()) = xt::view(ring, 0, xt::all());
     xt::view(y, i, xt::all()) = xt::view(ring, 1, xt::all());
@@ -407,15 +405,9 @@ xtensor<double, 3> SurrogateVtkWriter::clad_points()
 xtensor<int, 1> SurrogateVtkWriter::conn()
 {
   xtensor<int, 1> conn_out;
-  if (VizRegionType::fuel == regions_out_) {
-    // get the fuel connectivity
-    xtensor<int, 4> f_conn = fuel_conn();
-    conn_out = xt::flatten(f_conn);
-  } else if (VizRegionType::clad == regions_out_) {
-    // get the cladding connectivity
-    xtensor<int, 4> c_conn = clad_conn();
-    conn_out = xt::flatten(c_conn);
-  } else if (VizRegionType::all == regions_out_) {
+  if (VizRegionType::all == regions_out_) {
+    // todo
+  } else if (VizRegionType::solid == regions_out_) {
     // get both sets of points
     xtensor<int, 4> f_conn = fuel_conn();
     xtensor<int, 4> c_conn = clad_conn();
@@ -425,6 +417,8 @@ xtensor<int, 1> SurrogateVtkWriter::conn()
       fuel_points_per_plane_ * n_axial_points_;
     // concatenate in 1-D and return
     conn_out = xt::concatenate(xt::xtuple(xt::flatten(f_conn), xt::flatten(c_conn)));
+  } else if (VizRegionType::fluid == regions_out_) {
+    // todo
   }
 
   return conn_out;
@@ -461,13 +455,13 @@ xtensor<int, 4> SurrogateVtkWriter::fuel_conn()
   xtensor<int, 3> base =
     xt::zeros<int>({n_radial_fuel_sections_, azimuthal_res_, HEX_SIZE_});
 
-  // innermost ring (wedges only)
-
+  // innermost ring (wedges only); each element is written as a hex element even though
+  // it is a wedge element because all other elements except for the innermost ring are hex
   xtensor<int, 2> inner_base = xt::zeros<int>({azimuthal_res_, HEX_SIZE_});
 
-  size_t one_ = 1, two_ = 2;
-  xt::view(inner_base, xt::all(), 1) = xt::arange(one_, azimuthal_res_ + 1);
-  xt::view(inner_base, xt::all(), 2) = xt::arange(two_, azimuthal_res_ + 2);
+  xt::view(inner_base, xt::all(), 1) = xt::arange(size_t(1), azimuthal_res_ + 1);
+  xt::view(inner_base, xt::all(), 2) = xt::arange(size_t(2), azimuthal_res_ + 2);
+
   // adjust last point id for perioic condition
   xt::view(inner_base, azimuthal_res_ - 1, 2) = 1;
 
@@ -480,11 +474,9 @@ xtensor<int, 4> SurrogateVtkWriter::fuel_conn()
   // set values for the innermost ring
   xt::view(base, 0, xt::all(), xt::all()) = inner_base;
 
-  // outer rings (hexes)
-
-  // create a radial base starting at point zero
-  // with a shift between the first and second layer of connectivity
-  // equal to the number of fuel points in a plane
+  // outer rings (hexes); create a radial base starting at point zero with a shift
+  // between the first and second layer of connectivity equal to the number of
+  // fuel points in a plane
   xtensor<int, 2> radial_base = hex_ring(1, azimuthal_res_, fuel_points_per_plane_);
 
   // set the other rings by shifting the initial base
@@ -504,8 +496,10 @@ xtensor<int, 4> SurrogateVtkWriter::fuel_conn()
 
   // innermost ring is always wedges
   xt::view(cells_out, xt::all(), 0, xt::all(), 0) = WEDGE_SIZE_;
-  // the reset are hexes
+
+  // the rest are hexes
   xt::view(cells_out, xt::all(), xt::range(1, _), xt::all(), 0) = HEX_SIZE_;
+
   // first ring should be wedges only, invalidate last two entries
   xt::view(cells_out, xt::all(), 0, xt::all(), xt::range(7, _)) = INVALID_CONN_;
 
@@ -514,7 +508,6 @@ xtensor<int, 4> SurrogateVtkWriter::fuel_conn()
 
 xtensor<int, 4> SurrogateVtkWriter::clad_conn()
 {
-
   // size output array
   xtensor<int, 4> cells_out = xt::zeros<int>(
     {n_axial_sections_, n_radial_clad_sections_, azimuthal_res_, HEX_SIZE_ + 1});
@@ -523,15 +516,12 @@ xtensor<int, 4> SurrogateVtkWriter::clad_conn()
   xtensor<int, 3> base =
     xt::zeros<int>({n_radial_clad_sections_, azimuthal_res_, HEX_SIZE_});
 
-  // element rings (hexes)
-
-  // create a radial base starting at point zero
-  // with a shift between the first and second layer of connectivity
-  // equal to the number of cladding points in a plane
+  // element rings (hexes only); create a radial base starting at point zero
+  // with a shift between the first and second layer of connectivity equal to
+  // the number of cladding points in a plane
   xtensor<int, 2> radial_base = hex_ring(0, azimuthal_res_, clad_points_per_plane_);
 
-  // set the other rings by shifting the initial base
-  // by azimuthal_res_ for each ring
+  // set the other rings by shifting the initial base by azimuthal_res_ for each ring
   for (size_t i = 0; i < n_radial_clad_sections_; i++) {
     xt::view(base, i, xt::all(), xt::all()) = radial_base;
     radial_base += azimuthal_res_;
@@ -548,27 +538,31 @@ xtensor<int, 4> SurrogateVtkWriter::clad_conn()
   // all are hexes
   xt::view(cells_out, xt::all(), xt::all(), xt::all(), 0) = HEX_SIZE_;
 
+  //for (size_t i = 0; i < n_axial_sections_; ++i)
+  //  for (size_t j = 0; j < n_radial_clad_sections_; ++j)
+  //    for (size_t k = 0; k < azimuthal_res_; ++k) {
+  //      std::cout << std::endl;
+  //      for (size_t l = 0; l < HEX_SIZE_ + 1; ++l)
+  //        std::cout << cells_out(i, j, k, l) << " ";
+  //    }
+
   return cells_out;
 }
 
 xtensor<int, 1> SurrogateVtkWriter::types()
 {
   xtensor<int, 1> types_out;
-  if (VizRegionType::fuel == regions_out_) {
-    // get fuel types
-    xtensor<int, 3> ftypes = fuel_types();
-    types_out = xt::flatten(ftypes);
-  } else if (VizRegionType::clad == regions_out_) {
-    // get the cladding types
-    xtensor<int, 3> ctypes = clad_types();
-    types_out = xt::flatten(ctypes);
-  } else if (VizRegionType::all == regions_out_) {
+  if (VizRegionType::all == regions_out_) {
+    // todo
+  } else if (VizRegionType::solid == regions_out_) {
     // get fuel types
     xtensor<int, 3> ftypes = fuel_types();
     // get the cladding types
     xtensor<int, 3> ctypes = clad_types();
     // concatenate and return 1-D form
     types_out = xt::concatenate(xt::xtuple(xt::flatten(ftypes), xt::flatten(ctypes)));
+  } else if (VizRegionType::fluid == regions_out_) {
+    // todo
   }
 
   return types_out;

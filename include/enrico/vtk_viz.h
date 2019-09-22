@@ -16,7 +16,7 @@ class SurrogateVtkWriter {
 public:
   enum class VizDataType { none = 0, source = 1, temp = 2, all = 3 };
 
-  enum class VizRegionType { none = 0, fuel = 1, clad = 2, all = 3 };
+  enum class VizRegionType { none = 0, solid = 1, fluid = 2, all = 3};
 
 public:
   //! Write the surrogate model to VTK
