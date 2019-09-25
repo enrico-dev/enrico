@@ -6,12 +6,12 @@
   <power>820.0</power>
   <pressure_bc>12.7553</pressure_bc>
   <max_timesteps>1</max_timesteps>
-  <max_picard_iter>4</max_picard_iter>
+  <max_picard_iter>2</max_picard_iter>
   <heat_surrogate>
     <pellet_radius>0.406</pellet_radius>
     <clad_inner_radius>0.414</clad_inner_radius>
     <clad_outer_radius>0.475</clad_outer_radius>
-    <fuel_rings>20</fuel_rings>
+    <fuel_rings>6</fuel_rings>
     <clad_rings>5</clad_rings>
     <pin_pitch>1.26</pin_pitch>
     <n_pins_x>1</n_pins_x>
@@ -22,8 +22,9 @@
     <verbosity>high</verbosity>
     <viz filename="openmc_heat_surrogate">
       <iterations>final</iterations>
-      <resolution>50</resolution>
-      <regions>fuel</regions>
+      <resolution>8</resolution>
+      <data>temp</data>
+      <regions>fluid</regions>
     </viz>
   </heat_surrogate>
 </stream>
