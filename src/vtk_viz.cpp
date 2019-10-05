@@ -88,6 +88,9 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
     data_out_ = VizDataType::temp;
   } else if ("density" == data_to_write) {
     data_out_ = VizDataType::density;
+  } else {
+    // invalid user input
+    Expects(false);
   }
 
   output_includes_temp_ = (data_out_ == VizDataType::all) ||
@@ -95,6 +98,9 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
 
   output_includes_density_ = (data_out_ == VizDataType::all) ||
     (data_out_ == VizDataType::density);
+
+  output_includes_source_ = (data_out_ == VizDataType::all) ||
+    (data_out_ == VizDataType::source);
 
   // read data specs
   regions_out_ = VizRegionType::all;
@@ -107,6 +113,9 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
     regions_out_ = VizRegionType::solid;
   } else if ("fluid" == regions_to_write) {
     regions_out_ = VizRegionType::fluid;
+  } else {
+    // invalid user input
+    Expects(false);
   }
 
   output_includes_fluid_ = (regions_out_ == VizRegionType::all) ||
@@ -365,10 +374,10 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
     } // end pin loop
   }
 
-  if (VizDataType::all == data_out_ || VizDataType::source == data_out_) {
-    // source data
+  if (output_includes_source_) {
     vtk_file << "SCALARS SOURCE double 1\n";
     vtk_file << "LOOKUP_TABLE default\n";
+
     for (size_t pin = 0; pin < surrogate_.n_pins_; pin++) {
       // write all fuel data first
       if (VizRegionType::solid == regions_out_) {
@@ -386,6 +395,15 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
             for (size_t k = 0; k < azimuthal_res_; k++) {
               vtk_file << surrogate_.source_(pin, i, j + n_radial_fuel_sections_) << "\n";
             }
+          }
+        }
+      }
+
+      // then write fluid data
+      if (output_includes_fluid_) {
+        for (size_t i = 0; i < n_axial_sections_; ++i) {
+          for (size_t j = 0; j < n_fluid_sections_; ++j) {
+            vtk_file << 0.0 << "\n";
           }
         }
       }
