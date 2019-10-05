@@ -15,9 +15,6 @@ const size_t WEDGE_SIZE_ = 6;
 const int HEX_TYPE_ = 12;
 const size_t HEX_SIZE_ = 8;
 const int INVALID_CONN_ = -1;
-const size_t CONN_STRIDE_ = WEDGE_SIZE_ + 1; // generalize
-
-const size_t chans_per_rod_ = 4;
 
 namespace enrico {
 
@@ -112,6 +109,12 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
   output_includes_solid_ = (regions_out_ == VizRegionType::all) ||
     (regions_out_ == VizRegionType::solid);
 
+  if (output_includes_fluid_) {
+    conn_stride_ = WEDGE_SIZE_ + 1;
+  } else if (output_includes_solid_) {
+    conn_stride_ = HEX_SIZE_ + 1;
+  }
+
   // if the output includes the fluid phase, for simplicity of constructing
   // the wedges, we require the azimuthal resolution to be divisible by the
   // number of channels around the rod
@@ -125,25 +128,6 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
 
   set_number_of_entries();
 
-  // set totals based on region
-  if (VizRegionType::solid == regions_out_) {
-    n_points_ = (fuel_points_per_plane_ + clad_points_per_plane_) * n_axial_points_;
-    n_entries_ = (n_fuel_entries_per_plane_ + n_clad_entries_per_plane_) * n_axial_sections_;
-    n_sections_ = (n_radial_fuel_sections_ + n_radial_clad_sections_) *
-      azimuthal_res_ * n_axial_sections_;
-  } else if (VizRegionType::fluid == regions_out_) {
-    n_points_ = fluid_points_per_plane_ * n_axial_points_;
-    n_entries_ = n_fluid_entries_per_plane_ * n_axial_sections_;
-    n_sections_ = n_fluid_sections_ * n_axial_sections_;
-  } else if (VizRegionType::all == regions_out_) {
-    n_points_ = (fuel_points_per_plane_ + clad_points_per_plane_ +
-      fluid_points_per_plane_) * n_axial_points_;
-    n_entries_ = (n_fuel_entries_per_plane_ + n_clad_entries_per_plane_ +
-      n_fluid_entries_per_plane_) * n_axial_sections_;
-    n_sections_ = (n_radial_fuel_sections_ + n_radial_clad_sections_) *
-      azimuthal_res_ * n_axial_sections_ + n_fluid_sections_ * n_axial_sections_;;
-  }
-
   // generate a representative set of points and connectivity
   points_ = points();
   conn_ = conn();
@@ -156,6 +140,16 @@ void SurrogateVtkWriter::set_number_of_sections()
   n_radial_fuel_sections_ = surrogate_.n_fuel_rings();
   n_radial_clad_sections_ = surrogate_.n_clad_rings();
   n_fluid_sections_ = azimuthal_res_ + 2 * chans_per_rod_;
+
+  if (regions_out_ == VizRegionType::solid) {
+    n_sections_ = (n_radial_fuel_sections_ + n_radial_clad_sections_) *
+      azimuthal_res_ * n_axial_sections_;
+  } else if (regions_out_ == VizRegionType::fluid) {
+    n_sections_ = n_fluid_sections_ * n_axial_sections_;
+  } else if (regions_out_ == VizRegionType::all) {
+    n_sections_ = (n_radial_fuel_sections_ + n_radial_clad_sections_) *
+      azimuthal_res_ * n_axial_sections_ + n_fluid_sections_ * n_axial_sections_;
+  }
 }
 
 void SurrogateVtkWriter::set_number_of_points()
@@ -164,6 +158,15 @@ void SurrogateVtkWriter::set_number_of_points()
   fuel_points_per_plane_ = n_radial_fuel_sections_ * azimuthal_res_ + 1;
   clad_points_per_plane_ = (n_radial_clad_sections_ + 1) * azimuthal_res_;
   fluid_points_per_plane_ = azimuthal_res_ + 8;
+
+  if (regions_out_ == VizRegionType::solid) {
+    n_points_ = (fuel_points_per_plane_ + clad_points_per_plane_) * n_axial_points_;
+  } else if (regions_out_ == VizRegionType::fluid) {
+    n_points_ = fluid_points_per_plane_ * n_axial_points_;
+  } else if (regions_out_ == VizRegionType::all) {
+    n_points_ = (fuel_points_per_plane_ + clad_points_per_plane_ +
+      fluid_points_per_plane_) * n_axial_points_;
+  }
 }
 
 void SurrogateVtkWriter::set_number_of_entries()
@@ -173,7 +176,18 @@ void SurrogateVtkWriter::set_number_of_entries()
   n_fuel_entries_per_plane_ = azimuthal_res_ * (WEDGE_SIZE_ + 1) +
     azimuthal_res_ * (HEX_SIZE_ + 1) * (n_radial_fuel_sections_ - 1);
 
-  n_clad_entries_per_plane_ = azimuthal_res_ * (HEX_SIZE_ + 1) * n_radial_clad_sections_;
+  n_clad_entries_per_plane_ = azimuthal_res_ * (HEX_SIZE_ + 1) *
+    n_radial_clad_sections_;
+
+  if (regions_out_ == VizRegionType::solid) {
+    n_entries_ = (n_fuel_entries_per_plane_ + n_clad_entries_per_plane_) *
+      n_axial_sections_;
+  } else if (regions_out_ == VizRegionType::fluid) {
+    n_entries_ = n_fluid_entries_per_plane_ * n_axial_sections_;
+  } else if (regions_out_ == VizRegionType::all) {
+    n_entries_ = (n_fuel_entries_per_plane_ + n_clad_entries_per_plane_ +
+      n_fluid_entries_per_plane_) * n_axial_sections_;
+  }
 }
 
 void SurrogateVtkWriter::write(std::string filename)
@@ -233,8 +247,8 @@ void SurrogateVtkWriter::write_element_connectivity(ofstream& vtk_file)
     // offset to get the connectivity values correct
     xtensor<int, 1> conn = conn_for_pin(pin * n_points_);
     // write the connectivity values to file for this pin
-    for (auto val = conn.cbegin(); val != conn.cend(); val += CONN_STRIDE_) {
-      for (size_t i = 0; i < CONN_STRIDE_; i++) {
+    for (auto val = conn.cbegin(); val != conn.cend(); val += conn_stride_) {
+      for (size_t i = 0; i < conn_stride_; i++) {
         auto v = *(val + i);
         // mask out any negative connectivity values
         if (v != INVALID_CONN_) {
@@ -498,7 +512,7 @@ xtensor<int, 1> SurrogateVtkWriter::conn()
 xtensor<int, 1> SurrogateVtkWriter::conn_for_pin(size_t offset)
 {
   xt::xarray<int> conn_out = conn_;
-  conn_out.reshape({n_sections_, CONN_STRIDE_});
+  conn_out.reshape({n_sections_, conn_stride_});
   // get locations of all values less than 0
   xt::xarray<bool> mask = conn_out < 0;
 

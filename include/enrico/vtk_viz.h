@@ -31,8 +31,10 @@ private:
   //! Initializes the surrogate to VTK writer with a surrogate model.
   //! Can only be called within the SurrogateHeatDriver.
   //!
-  //! \param surrogate_ptr Pointer to the surrogate to write
-  //! \param t_res         Radial resolution of the generated VTK mesh
+  //! \param surrogate_ptr    Pointer to the surrogate to write
+  //! \param t_res            Radial resolution of the generated VTK mesh
+  //! \param regions_to_write Description of spatial regions to write
+  //! \param data_to_write    Description of solution data to write
   SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ptr,
                      size_t t_res,
                      const std::string& regions_to_write,
@@ -58,7 +60,7 @@ private:
   //! Write a vtk header for an unstructured grid
   void write_header(ofstream& vtk_file);
 
-  //! Write fuel pin points to the vtk file
+  //! Write points to the vtk file
   void write_points(ofstream& vtk_file);
 
   //! Write the wedge/hex element connectivity to the vtk file
@@ -73,6 +75,7 @@ private:
   //! Generate fuel mesh points
   //! \return fuel points (axial, radial_rings, xyz)
   xtensor<double, 3> fuel_points();
+
   //! Generate cladding mesh points
   //! \return cladding points (axial, radial_rings, xyz)
   xtensor<double, 3> clad_points();
@@ -80,50 +83,58 @@ private:
   //! Generate fluid mesh points; the fluid points are ordered in a counterclockwise
   //! manner beginning with the points on the surface of the cladding followed by the
   //! eight points defining the corners of the four subchannels surrounding a pin.
+  //! This is the "specified map" used to describe the second indexing in this class.
   //! \return fluid points (axial, specified map, xyz)
   xtensor<double, 3> fluid_points();
 
   //! Return 1-D array of points for writing (xyz...) (ordered radially, axially)
   //! \return 1-D array of all points in the model
   xtensor<double, 1> points();
+
   //! Return 1-D array of points, translated to a pin center
   //! \return 1-D array of points translated to a center x,y
   xtensor<double, 1> points_for_pin(double x, double y);
-  //! Return connectivity with an offset
+
+  //! Return connectivity for a pin with an offset
   xtensor<int, 1> conn_for_pin(size_t offset);
+
   //! Generate fuel connectivity (axial, radial, res, conn)
   //! \return fuel element connectivity (axial, radial, res, conn)
   xtensor<int, 4> fuel_conn();
+
   //! Generate cladding connectivity
   //! \return cladding element connectivity (axial, radial, res, conn)
   xtensor<int, 4> clad_conn();
 
   //! Generate fluid connectivity
-  //! \return fluid element connectivity (axial, fluid map, conn)
+  //! \return fluid element connectivity (axial, specified map, conn)
   xtensor<int, 3> fluid_conn();
 
   //! Return all connectivity values for writing
-  //! \return 1-D array of connectivity, strided by CONN_STRIDE_ per element (ordered
+  //! \return 1-D array of connectivity, strided by conn_stride_ per element (ordered
   //! radially, axially)
   xtensor<int, 1> conn();
+
   //! Generate fuel vtk mesh element (cell) types
-  //! \return fuel cell types (axia, radial, azimuthal)
+  //! \return fuel cell types (axial, radial, azimuthal)
   xtensor<int, 3> fuel_types();
+
   //! Generate cladding vtk mesh element (cell) types
-  //! \return cladding cell types (axia, radial, azimuthal)
+  //! \return cladding cell types (axial, radial, azimuthal)
   xtensor<int, 3> clad_types();
+
   //! Generate fluid vtk mesh element (cell) types
-  //! \return fluid cell types (axia, radial, azimuthal)
+  //! \return fluid cell types (axial, specified map, azimuthal)
   xtensor<int, 2> fluid_types();
+
   //! Return all element type values for writing
-  //! \return 1-D array of types, one for each element (ordered radially, axially)
+  //! \return 1-D array of types, one for each element (ordered planar, axially)
   xtensor<int, 1> types();
 
-  // internal variables/parameters
   const SurrogateHeatDriver& surrogate_; //!< reference to surrogate
   size_t azimuthal_res_;                 //!< azimuthal resolution
-  VizDataType data_out_;
-  VizRegionType regions_out_;
+  VizDataType data_out_;                 //!< output region
+  VizRegionType regions_out_;            //!< output data
 
   //! Whether the output region contains the fluid region
   bool output_includes_fluid_;
@@ -131,14 +142,21 @@ private:
   //! Whether the output region contains the solid region
   bool output_includes_solid_;
 
+  //! Stride in connectivity, equal to the hex size plus one if writing the solid
+  //! regions and equal to the wedge size plus one is writing the fluid regions.
+  size_t conn_stride_;
+
   //! Number of coolant channels surrounding each rod
   const size_t chans_per_rod_ = 4;
 
-  // pin templates
-  xtensor<double, 1>
-    points_;              //!< template of xyz values for the mesh, centerd on the origin
-  xtensor<int, 1> conn_;  //!< template of mesh element connectivity for a single pin
-  xtensor<int, 1> types_; //!< template of mesh element types for a single pin
+  //!< template of xyz values for the mesh, centerd on the origin
+  xtensor<double, 1> points_;
+
+  //!< template of mesh element connectivity for a single pin
+  xtensor<int, 1> conn_;
+
+  //!< template of mesh element types for a single pin
+  xtensor<int, 1> types_;
 
   //! number of axial sections for a single rod
   size_t n_axial_sections_;
@@ -173,9 +191,11 @@ private:
   //! total number of points required to represent each pin
   size_t n_points_;
 
-  // MESH ELEMENTS
-  size_t n_fuel_elements_; //!< number of fuel elements in mesh
-  size_t n_clad_elements_; //!< number of cladding elements in the mesh
+  //!< number of fuel elements in mesh
+  size_t n_fuel_elements_;
+
+  //!< number of cladding elements in the mesh
+  size_t n_clad_elements_;
 
   //! number of fuel connectivity entries on each plane in a single rod;
   //! the innermost ring of fuel sections are wedges, while all others are hexes.
