@@ -15,6 +15,7 @@ const size_t WEDGE_SIZE_ = 6;
 const int HEX_TYPE_ = 12;
 const size_t HEX_SIZE_ = 8;
 const int INVALID_CONN_ = -1;
+const size_t CONN_STRIDE_ = HEX_SIZE_ + 1;
 
 namespace enrico {
 
@@ -123,12 +124,6 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
 
   output_includes_solid_ = (regions_out_ == VizRegionType::all) ||
     (regions_out_ == VizRegionType::solid);
-
-  if (output_includes_fluid_) {
-    conn_stride_ = WEDGE_SIZE_ + 1;
-  } else if (output_includes_solid_) {
-    conn_stride_ = HEX_SIZE_ + 1;
-  }
 
   // if the output includes the fluid phase, for simplicity of constructing
   // the wedges, we require the azimuthal resolution to be divisible by the
@@ -262,8 +257,8 @@ void SurrogateVtkWriter::write_element_connectivity(ofstream& vtk_file)
     // offset to get the connectivity values correct
     xtensor<int, 1> conn = conn_for_pin(pin * n_points_);
     // write the connectivity values to file for this pin
-    for (auto val = conn.cbegin(); val != conn.cend(); val += conn_stride_) {
-      for (size_t i = 0; i < conn_stride_; i++) {
+    for (auto val = conn.cbegin(); val != conn.cend(); val += CONN_STRIDE_) {
+      for (size_t i = 0; i < CONN_STRIDE_; i++) {
         auto v = *(val + i);
         // mask out any negative connectivity values
         if (v != INVALID_CONN_) {
@@ -559,11 +554,11 @@ xtensor<int, 1> SurrogateVtkWriter::conn()
     // get both sets of points
     xtensor<int, 4> f_conn = fuel_conn();
     xtensor<int, 4> c_conn = clad_conn();
-    // adjust the cladding connectivity by
-    // the number of points in the fuel mesh
+
+    // adjust the cladding connectivity by the number of points in the fuel mesh
     xt::view(c_conn, xt::all(), xt::all(), xt::all(), xt::range(1, _)) +=
       fuel_points_per_plane_ * n_axial_points_;
-    // concatenate in 1-D and return
+
     return xt::concatenate(xt::xtuple(xt::flatten(f_conn), xt::flatten(c_conn)));
   } else if (VizRegionType::fluid == regions_out_) {
     return xt::flatten(fluid_conn());
@@ -573,7 +568,8 @@ xtensor<int, 1> SurrogateVtkWriter::conn()
 xtensor<int, 1> SurrogateVtkWriter::conn_for_pin(size_t offset)
 {
   xt::xarray<int> conn_out = conn_;
-  conn_out.reshape({n_sections_, conn_stride_});
+  conn_out.reshape({n_sections_, CONN_STRIDE_});
+
   // get locations of all values less than 0
   xt::xarray<bool> mask = conn_out < 0;
 
@@ -690,10 +686,10 @@ xtensor<int, 3> SurrogateVtkWriter::fluid_conn()
 {
   // size output array
   xtensor<int, 3> cells_out = xt::zeros<int>(
-    {n_axial_sections_, n_fluid_sections_, WEDGE_SIZE_ + 1});
+    {n_axial_sections_, n_fluid_sections_, HEX_SIZE_ + 1});
 
   // base layer to be extended in Z
-  xtensor<int, 2> base = xt::zeros<int>({n_fluid_sections_, WEDGE_SIZE_});
+  xtensor<int, 2> base = xt::zeros<int>({n_fluid_sections_, HEX_SIZE_});
 
   size_t azimuthal_pts_per_quad = azimuthal_res_ / 4 + 1;
   size_t n_fluid_sections_per_quad = n_fluid_sections_ / 4;
@@ -740,6 +736,7 @@ xtensor<int, 3> SurrogateVtkWriter::fluid_conn()
   }
 
   xt::view(cells_out, xt::all(), xt::all(), 0) = WEDGE_SIZE_;
+  xt::view(cells_out, xt::all(), xt::all(), xt::range(7, _)) = INVALID_CONN_;
 
   return cells_out;
 }

@@ -151,10 +151,6 @@ private:
   //! Whether the output data contains the fission source
   bool output_includes_source_;
 
-  //! Stride in connectivity, equal to the hex size plus one if writing the solid
-  //! regions and equal to the wedge size plus one is writing the fluid regions.
-  size_t conn_stride_;
-
   //! Number of coolant channels surrounding each rod
   const size_t chans_per_rod_ = 4;
 
