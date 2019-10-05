@@ -90,6 +90,12 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
     data_out_ = VizDataType::density;
   }
 
+  output_includes_temp_ = (data_out_ == VizDataType::all) ||
+    (data_out_ == VizDataType::temp);
+
+  output_includes_density_ = (data_out_ == VizDataType::all) ||
+    (data_out_ == VizDataType::density);
+
   // read data specs
   regions_out_ = VizRegionType::all;
   if ("all" == regions_to_write) {
@@ -284,13 +290,13 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
   vtk_file << "CELL_DATA " << surrogate_.n_pins_ * n_sections_ << "\n";
 
   // write temperatures
-  if (VizDataType::all == data_out_ || VizDataType::temp == data_out_) {
+  if (output_includes_temp_) {
     vtk_file << "SCALARS TEMPERATURE double 1\n";
     vtk_file << "LOOKUP_TABLE default\n";
 
     // write data for each pin
     for (size_t pin = 0; pin < surrogate_.n_pins_; pin++) {
-      if (VizRegionType::solid == regions_out_) {
+      if (output_includes_solid_) {
         // write all fuel data first
         for (size_t i = 0; i < n_axial_sections_; i++) {
           for (size_t j = 0; j < n_radial_fuel_sections_; j++) {
@@ -309,17 +315,54 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
             }
           }
         }
-      }
+      } // end of solid writing
 
       // then write fluid data
-      if (VizRegionType::fluid == regions_out_) {
+      if (output_includes_fluid_) {
         for (size_t i = 0; i < n_axial_sections_; ++i) {
           for (size_t j = 0; j < n_fluid_sections_; ++j) {
             vtk_file << surrogate_.fluid_temperature(pin, i) << "\n";
           }
         }
       }
-    } // end pin for
+    } // end pin loop
+  }
+
+  if (output_includes_density_) {
+    vtk_file << "SCALARS DENSITY double 1\n";
+    vtk_file << "LOOKUP_TABLE default\n";
+
+    // write data for each pin
+    for (size_t pin = 0; pin < surrogate_.n_pins_; pin++) {
+      if (output_includes_solid_) {
+        // write all fuel data first
+        for (size_t i = 0; i < n_axial_sections_; i++) {
+          for (size_t j = 0; j < n_radial_fuel_sections_; j++) {
+            for (size_t k = 0; k < azimuthal_res_; k++) {
+              vtk_file << 0.0 << "\n";
+            }
+          }
+        }
+
+        // then write cladding data
+        for (size_t i = 0; i < n_axial_sections_; i++) {
+          for (size_t j = 0; j < n_radial_clad_sections_; j++) {
+            for (size_t k = 0; k < azimuthal_res_; k++) {
+              vtk_file << 0.0 << "\n";
+            }
+          }
+        }
+      } // end of solid writing
+
+      // then write fluid data
+      if (output_includes_fluid_) {
+        for (size_t i = 0; i < n_axial_sections_; ++i) {
+          for (size_t j = 0; j < n_fluid_sections_; ++j) {
+            vtk_file << surrogate_.fluid_density(pin, i) << "\n";
+          }
+        }
+      }
+    } // end pin loop
   }
 
   if (VizDataType::all == data_out_ || VizDataType::source == data_out_) {

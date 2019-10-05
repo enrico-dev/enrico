@@ -142,6 +142,12 @@ private:
   //! Whether the output region contains the solid region
   bool output_includes_solid_;
 
+  //! Whether the output data contains temperature
+  bool output_includes_temp_;
+
+  //! Whether the output data contains density
+  bool output_includes_density_;
+
   //! Stride in connectivity, equal to the hex size plus one if writing the solid
   //! regions and equal to the wedge size plus one is writing the fluid regions.
   size_t conn_stride_;
