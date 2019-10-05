@@ -107,9 +107,6 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
   regions_out_ = VizRegionType::all;
   if ("all" == regions_to_write) {
     regions_out_ = VizRegionType::all;
-
-    // not currently enabled
-    Expects(false);
   } else if ("solid" == regions_to_write) {
     regions_out_ = VizRegionType::solid;
   } else if ("fluid" == regions_to_write) {
@@ -375,7 +372,7 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
 
     for (size_t pin = 0; pin < surrogate_.n_pins_; pin++) {
       // write all fuel data first
-      if (VizRegionType::solid == regions_out_) {
+      if (output_includes_solid_) {
         for (size_t i = 0; i < n_axial_sections_; i++) {
           for (size_t j = 0; j < n_radial_fuel_sections_; j++) {
             for (size_t k = 0; k < azimuthal_res_; k++) {
@@ -422,12 +419,19 @@ xtensor<double, 1> SurrogateVtkWriter::points_for_pin(double x, double y)
 xtensor<double, 1> SurrogateVtkWriter::points()
 {
   if (VizRegionType::all == regions_out_) {
-    // todo
-  } else if (VizRegionType::solid == regions_out_) {
+    xtensor<double, 3> fuel_pnts = fuel_points();
+    xtensor<double, 3> clad_pnts = clad_points();
+    xtensor<double, 3> fluid_pnts = fluid_points();
+    auto solid_pnts = xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts),
+      xt::flatten(clad_pnts)));
+    return xt::concatenate(xt::xtuple(solid_pnts, xt::flatten(fluid_pnts)));
+  }
+  else if (VizRegionType::solid == regions_out_) {
     xtensor<double, 3> fuel_pnts = fuel_points();
     xtensor<double, 3> clad_pnts = clad_points();
     return xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts), xt::flatten(clad_pnts)));
-  } else if (VizRegionType::fluid == regions_out_) {
+  }
+  else if (VizRegionType::fluid == regions_out_) {
     return xt::flatten(fluid_points());
   }
 }
@@ -549,7 +553,26 @@ xtensor<double, 3> SurrogateVtkWriter::fluid_points()
 xtensor<int, 1> SurrogateVtkWriter::conn()
 {
   if (VizRegionType::all == regions_out_) {
-    // todo
+    // get both sets of points
+    xtensor<int, 4> f_conn = fuel_conn();
+    xtensor<int, 4> c_conn = clad_conn();
+
+    // adjust the cladding connectivity by the number of points in the fuel mesh
+    xt::view(c_conn, xt::all(), xt::all(), xt::all(), xt::range(1, _)) +=
+      fuel_points_per_plane_ * n_axial_points_;
+
+    xtensor<int, 3> fl_conn = fluid_conn();
+
+    // adjust the fluid connectivity by the number of points in the solid mesh,
+    // then we need to again correct for the invalid connectivities
+    xt::view(fl_conn, xt::all(), xt::all(), xt::range(1, _)) +=
+      (fuel_points_per_plane_ + clad_points_per_plane_) * n_axial_points_;
+    xt::view(fl_conn, xt::all(), xt::all(), xt::range(7, _)) = INVALID_CONN_;
+
+    auto solid_conn = xt::concatenate(xt::xtuple(xt::flatten(f_conn),
+      xt::flatten(c_conn)));
+    return xt::concatenate(xt::xtuple(solid_conn, xt::flatten(fl_conn)));
+
   } else if (VizRegionType::solid == regions_out_) {
     // get both sets of points
     xtensor<int, 4> f_conn = fuel_conn();
@@ -560,7 +583,8 @@ xtensor<int, 1> SurrogateVtkWriter::conn()
       fuel_points_per_plane_ * n_axial_points_;
 
     return xt::concatenate(xt::xtuple(xt::flatten(f_conn), xt::flatten(c_conn)));
-  } else if (VizRegionType::fluid == regions_out_) {
+  }
+  else if (VizRegionType::fluid == regions_out_) {
     return xt::flatten(fluid_conn());
   }
 }
@@ -743,21 +767,23 @@ xtensor<int, 3> SurrogateVtkWriter::fluid_conn()
 
 xtensor<int, 1> SurrogateVtkWriter::types()
 {
-  xtensor<int, 1> types_out;
   if (VizRegionType::all == regions_out_) {
-    // todo
-  } else if (VizRegionType::solid == regions_out_) {
-    // get fuel types
-    xtensor<int, 3> ftypes = fuel_types();
-    // get the cladding types
-    xtensor<int, 3> ctypes = clad_types();
-    // concatenate and return 1-D form
-    types_out = xt::concatenate(xt::xtuple(xt::flatten(ftypes), xt::flatten(ctypes)));
-  } else if (VizRegionType::fluid == regions_out_) {
-    types_out = xt::flatten(fluid_types());
-  }
+    auto ftypes  = xt::flatten(fuel_types());
+    auto ctypes  = xt::flatten(clad_types());
+    auto fltypes = xt::flatten(fluid_types());
 
-  return types_out;
+    auto solid_types = xt::concatenate(xt::xtuple(ftypes, ctypes));
+    return xt::concatenate(xt::xtuple(solid_types, fltypes));
+  }
+  else if (VizRegionType::solid == regions_out_) {
+    xtensor<int, 3> ftypes = fuel_types();
+    xtensor<int, 3> ctypes = clad_types();
+
+    return xt::concatenate(xt::xtuple(xt::flatten(ftypes), xt::flatten(ctypes)));
+  }
+  else if (VizRegionType::fluid == regions_out_) {
+    return xt::flatten(fluid_types());
+  }
 }
 
 xtensor<int, 3> SurrogateVtkWriter::fuel_types()

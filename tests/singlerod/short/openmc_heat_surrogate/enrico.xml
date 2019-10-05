@@ -22,9 +22,9 @@
     <verbosity>high</verbosity>
     <viz filename="openmc_heat_surrogate">
       <iterations>final</iterations>
-      <resolution>8</resolution>
-      <data>temp</data>
-      <regions>fluid</regions>
+      <resolution>48</resolution>
+      <data>all</data>
+      <regions>all</regions>
     </viz>
   </heat_surrogate>
 </stream>
