@@ -48,7 +48,10 @@ public:
   virtual void set_temperature() {};
 
   //! Update the density for the neutronics solver
-  virtual void update_density() {}
+  void update_density();
+
+  //! Update the density for the neutronics solver
+  virtual void set_density() {}
 
   //! Check convergence of the coupled solve for the current Picard iteration.
   virtual bool is_converged();

@@ -194,4 +194,24 @@ void CoupledDriver::update_temperature()
   set_temperature();
 }
 
+void CoupledDriver::update_density()
+{
+  // Store previous density solution; a previous solution will always be present
+  // because a density IC is set and the neutronics solver runs first
+  if (has_global_coupling_data()) {
+    std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
+  }
+
+  auto& heat = get_heat_driver();
+  if (heat.active()) {
+    auto d = heat.density();
+
+    if (heat.has_coupling_data())
+      densities_ = d;
+  }
+
+  // Set density in the neutronics solver
+  set_density();
+}
+
 } // namespace enrico
