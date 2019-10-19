@@ -105,6 +105,10 @@ public:
   //! relaxation aplied to the heat source if not set
   double alpha_T_{alpha_};
 
+  //! Constant relaxation factor for the density, defaults to the
+  //! relaxation applied to the heat source if not set
+  double alpha_rho_{alpha_};
+
   //! Enumeration of available temperature initial condition specifications.
   //! 'neutronics' sets temperature condition from the neutronics input files,
   //! while 'heat' sets temperature based on a thermal-fluids input (or restart) file.

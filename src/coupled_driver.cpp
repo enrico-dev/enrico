@@ -25,6 +25,9 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   if (node.child("alpha_T"))
     alpha_T_ = node.child("alpha_T").text().as_double();
 
+  if (node.child("alpha_rho"))
+    alpha_rho_ = node.child("alpha_rho").text().as_double();
+
   if (node.child("temperature_ic")) {
     auto s = std::string{node.child_value("temperature_ic")};
 
@@ -54,6 +57,8 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   Expects(max_picard_iter_ >= 0);
   Expects(epsilon_ > 0);
   Expects(alpha_ > 0);
+  Expects(alpha_T_ > 0);
+  Expects(alpha_rho_ > 0);
 }
 
 void CoupledDriver::execute()
@@ -207,7 +212,7 @@ void CoupledDriver::update_density()
     auto d = heat.density();
 
     if (heat.has_coupling_data())
-      densities_ = d;
+      densities_ = alpha_rho_ * d + (1.0 - alpha_rho_) * densities_prev_;
   }
 
   // Set density in the neutronics solver
