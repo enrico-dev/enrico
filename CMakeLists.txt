@@ -89,7 +89,7 @@ if (SCALE_FOUND)
         src/smrt/Assembly_Model.cpp
         src/smrt/shift_nek_driver.cpp
         src/smrt/surrogate_heat_fluid_driver.cpp
-        src/smrt/Multiphysics_Driver.cpp
+        src/smrt/shift_heat_fluids_driver.cpp
         src/smrt/shift_driver.cpp
         src/smrt/smrt_coupled_driver.cpp
         src/smrt/Single_Pin_Conduction.cpp

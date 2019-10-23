@@ -1,14 +1,14 @@
 //---------------------------------*-C++-*-----------------------------------//
 /*!
- * \file   Multiphysics_Driver.cpp
+ * \file   shift_heat_fluids_driver.cpp
  * \author Steven Hamilton
  * \date   Fri Aug 10 09:00:11 2018
- * \brief  Multiphysics_Driver class definitions.
+ * \brief  ShiftHeatFluidsDriver class definitions.
  * \note   Copyright (c) 2018 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //---------------------------------------------------------------------------//
 
-#include "smrt/Multiphysics_Driver.h"
+#include "smrt/shift_heat_fluids_driver.hpp"
 
 // SCALE includes
 #include "Nemesis/comm/Logger.hh"
@@ -20,7 +20,6 @@
 #include <gsl/gsl>
 
 // enrico includes
-#include "smrt/Two_Group_Diffusion.h"
 #ifdef USE_SHIFT
 #include "smrt/shift_driver.h"
 #endif
@@ -29,7 +28,7 @@ namespace enrico {
 //---------------------------------------------------------------------------//
 // Constructor
 //---------------------------------------------------------------------------//
-Multiphysics_Driver::Multiphysics_Driver(SP_Assembly assembly,
+ShiftHeatFluidsDriver::ShiftHeatFluidsDriver(SP_Assembly assembly,
                                          RCP_PL params,
                                          const Vec_Dbl& z_edges)
   : d_assembly(assembly)
@@ -37,6 +36,11 @@ Multiphysics_Driver::Multiphysics_Driver(SP_Assembly assembly,
   Expects(assembly != nullptr);
 
   Expects(nemesis::soft_equiv(z_edges.back(), d_assembly->height()));
+
+  // shift must be enabled in this build if this class constructor is called
+  #ifndef USE_SHIFT
+    Expects(false);
+  #endif
 
   Vec_Dbl dz(z_edges.size() - 1);
   for (int edge = 0; edge < dz.size(); ++edge)
@@ -67,27 +71,15 @@ Multiphysics_Driver::Multiphysics_Driver(SP_Assembly assembly,
 
   // Build neutronics solver (surrogate diffusion or Shift MC)
   auto neutronics_params = Teuchos::sublist(params, "Neutronics");
-  auto neutronics_type =
-    neutronics_params->get("neutronics_type", std::string("diffusion"));
-  if (neutronics_type == "diffusion") {
-    d_neutronics = std::make_shared<Two_Group_Diffusion>(assembly, neutronics_params, dz);
-  } else {
-#ifdef USE_SHIFT
-    // Neutronics type set to 'shift', but no 'shift_input' specified
-    Expects(neutronics_params->isType<std::string>("shift_input"));
-    auto shift_input = neutronics_params->get<std::string>("shift_input");
-    d_neutronics = std::make_shared<ShiftDriver>(assembly, shift_input, z_edges);
-#else
-    // Neutronics type set to 'shift', but Shift is not enabled in this build.
-    Expects(false);
-#endif
+  auto shift_input = neutronics_params->get<std::string>("shift_input");
+  d_neutronics = std::make_shared<ShiftDriver>(assembly, shift_input, z_edges);
   }
 }
 
 //---------------------------------------------------------------------------//
 // Solve
 //---------------------------------------------------------------------------//
-void Multiphysics_Driver::solve()
+void ShiftHeatFluidsDriver::solve()
 {
   // Set initial guess for power
   std::fill(d_power.begin(), d_power.end(), 0.0);
@@ -182,5 +174,5 @@ void Multiphysics_Driver::solve()
 } // end namespace enrico
 
 //---------------------------------------------------------------------------//
-// end of Driver/Multiphysics_Driver.cc
+// end of smrt/shift_heat_fluids_driver.cpp
 //---------------------------------------------------------------------------//
