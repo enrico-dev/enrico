@@ -526,7 +526,7 @@ xtensor<double, 3> SurrogateVtkWriter::fluid_points()
   // set remaining points on boundary
   double half_pitch = surrogate_.pin_pitch() / 2.0;
   for (size_t i = 0; i < 8; ++i) {
-    double index = i + azimuthal_res_;
+    size_t index = i + azimuthal_res_;
 
     if (i >= 1 && i <= 3) {
       y(index) = half_pitch;
