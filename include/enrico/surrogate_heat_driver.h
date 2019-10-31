@@ -222,6 +222,12 @@ public:
   //! Returns solid temperature in [K] for given region
   double solid_temperature(std::size_t pin, std::size_t axial, std::size_t ring) const;
 
+  //! Returns fluid density in [g/cm^3] for given region
+  double fluid_density(std::size_t pin, std::size_t axial) const;
+
+  //! Returns fluid temperature in [K] for given region
+  double fluid_temperature(std::size_t pin, std::size_t axial) const;
+
   // Data on fuel pins
   xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins
   xt::xtensor<double, 1> z_;           //!< Bounding z-values for axial segments

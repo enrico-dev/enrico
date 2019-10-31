@@ -440,6 +440,16 @@ double SurrogateHeatDriver::solid_temperature(std::size_t pin, std::size_t axial
   return solid_temperature_(pin, axial, ring);
 }
 
+double SurrogateHeatDriver::fluid_density(std::size_t pin, std::size_t axial) const
+{
+  return fluid_density_(pin, axial);
+}
+
+double SurrogateHeatDriver::fluid_temperature(std::size_t pin, std::size_t axial) const
+{
+  return fluid_temperature_(pin, axial);
+}
+
 xt::xtensor<double, 1> SurrogateHeatDriver::density() const
 {
   return xt::flatten(fluid_density_);
