@@ -339,14 +339,8 @@ void OpenmcHeatDriver::set_heat_source()
   }
 }
 
-void OpenmcHeatDriver::update_density()
+void OpenmcHeatDriver::set_density()
 {
-  if (this->has_global_coupling_data()) {
-    std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
-  }
-
-  densities_ = heat_driver_->density();
-
   for (gsl::index i = n_solid_cells_; i < n_solid_cells_ + n_fluid_cells_; ++i) {
     const auto& c = openmc_driver_->cells_[i];
     const auto& elems = cell_inst_to_elem_[i];

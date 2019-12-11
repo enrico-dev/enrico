@@ -416,21 +416,9 @@ void OpenmcNekDriver::set_temperature()
   }
 }
 
-void OpenmcNekDriver::update_density()
+void OpenmcNekDriver::set_density()
 {
-  if (this->has_global_coupling_data()) {
-    std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
-  }
-
   if (nek_driver_->active()) {
-    // On Nek's master rank, d gets global data. On Nek's other ranks, d is empty.
-    auto d = nek_driver_->density();
-
-    // Update elem_densities_ on Nek's master rank only.
-    if (nek_driver_->has_coupling_data()) {
-      densities_ = d;
-    }
-
     // Since OpenMC's and Nek's master ranks are the same, we know that elem_densities_ on
     // OpenMC's master rank were updated.  Now we broadcast to the other OpenMC ranks.
     // TODO: This won't work if the Nek/OpenMC communicators are disjoint

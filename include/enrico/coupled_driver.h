@@ -48,7 +48,10 @@ public:
   virtual void set_temperature() {};
 
   //! Update the density for the neutronics solver
-  virtual void update_density() {}
+  void update_density();
+
+  //! Update the density for the neutronics solver
+  virtual void set_density() {}
 
   //! Check convergence of the coupled solve for the current Picard iteration.
   virtual bool is_converged();
@@ -101,6 +104,10 @@ public:
   //! Constant relaxation factor for the temperature, defaults to the
   //! relaxation aplied to the heat source if not set
   double alpha_T_{alpha_};
+
+  //! Constant relaxation factor for the density, defaults to the
+  //! relaxation applied to the heat source if not set
+  double alpha_rho_{alpha_};
 
   //! Enumeration of available temperature initial condition specifications.
   //! 'neutronics' sets temperature condition from the neutronics input files,

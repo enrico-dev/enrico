@@ -34,7 +34,7 @@ public:
 
   void set_temperature() override;
 
-  void update_density() override;
+  void set_density() override;
 
   NeutronicsDriver& get_neutronics_driver() const override;
 

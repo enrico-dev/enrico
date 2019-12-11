@@ -49,7 +49,7 @@ reached if
 -----------
 
 Underrelaxation parameter used on a heat source update. Let :math:`q_i` be the
-heat source at iteration :math:`i` and :math:`\tilde{q}_{i+1}` be next estimate of
+heat source at iteration :math:`i` and :math:`\tilde{q}_{i+1}` be the next estimate of
 the heat source as determined by the neutronics solver. Then, the heat source
 for iteration :math:`i + 1` is:
 
@@ -64,14 +64,29 @@ Choosing :math:`\alpha = 1` corresponds to no underrelaxation.
 -------------
 
 Underrelaxation parameter used on a temperature update. Let :math:`T_i` be the
-temperature at iteration :math:`i` and :math:`\tilde{T}_{i+1}` be next estimate
-of the temperature as determined by the neutronics solver. Then, the temperature
+temperature at iteration :math:`i` and :math:`\tilde{T}_{i+1}` be the next estimate
+of the temperature as determined by the thermal-fluids solver. Then, the temperature
 for iteration :math:`i + 1` is:
 
 .. math::
     T_{i+1} = (1 - \alpha_T) T_i + \alpha_T \tilde{T}_{i+1}
 
 Choosing :math:`\alpha_T = 1` corresponds to no underrelaxation.
+
+*Default*: The same value chosen for ``<alpha>``
+
+``<alpha_rho>``
+-------------
+
+Underrelaxation parameter used on a density update update. Let :math:`\rho_i` be the
+density at iteration :math:`i` and :math:`\tilde{\rho}_{i+1}` be the next estimate
+of the density as determined by the thermal-fluids solver. Then, the density
+for iteration :math:`i + 1` is:
+
+.. math::
+    \rho_{i+1} = (1 - \alpha_\rho) \rho_i + \alpha_\rho \tilde{\rho}_{i+1}
+
+Choosing :math:`\alpha_\rho = 1` corresponds to no underrelaxation.
 
 *Default*: The same value chosen for ``<alpha>``
 
