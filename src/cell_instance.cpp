@@ -22,7 +22,7 @@ CellInstance::CellInstance(Position position)
   err_chk(openmc_cell_get_fill(index_, &type, &indices, &n));
 
   // Get index for the appropriate instance
-  material_index_ = indices[instance_];
+  material_index_ = indices[n > 1 ? instance_ : 0];
 
   // Get volume of material (if non-void)
   if (material_index_ >= 0) {

@@ -165,15 +165,20 @@ void OpenmcNekDriver::init_mappings()
 
 void OpenmcNekDriver::init_tallies()
 {
+  using gsl::index;
+  using gsl::narrow_cast;
+  using openmc::CellInstance;
+
   comm_.message("Initializing tallies");
 
   if (openmc_driver_->active()) {
     // Build vector of material indices
-    std::vector<int32_t> mats;
+    std::vector<CellInstance> instances;
     for (const auto& c : openmc_driver_->cells_) {
-      mats.push_back(c.material_index_);
+      instances.push_back(
+        {narrow_cast<index>(c.index_), narrow_cast<index>(c.instance_)});
     }
-    openmc_driver_->create_tallies(mats);
+    openmc_driver_->create_tallies(instances);
   }
 }
 

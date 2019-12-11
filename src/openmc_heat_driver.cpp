@@ -4,6 +4,7 @@
 #include "enrico/message_passing.h"
 #include "gsl/gsl"
 #include "openmc/constants.h"
+#include "openmc/tallies/filter_cell_instance.h"
 #include "xtensor/xstrided_view.hpp"
 
 #include <cmath>
@@ -180,16 +181,20 @@ void OpenmcHeatDriver::init_mappings()
 
 void OpenmcHeatDriver::init_tallies()
 {
+  using gsl::index;
+  using gsl::narrow_cast;
+
   if (openmc_driver_->active()) {
-    // Build vector of material indices to construct tallies; tallies are only
+    // Build vector of cell instances to construct tallies; tallies are only
     // used in the solid regions
-    std::vector<int32_t> mats;
+    std::vector<openmc::CellInstance> cells;
     for (gsl::index c = 0; c < n_solid_cells_; ++c) {
       const auto& cell = openmc_driver_->cells_[c];
-      mats.push_back(cell.material_index_);
+      cells.push_back(
+        {narrow_cast<index>(cell.index_), narrow_cast<index>(cell.instance_)});
     }
 
-    openmc_driver_->create_tallies(mats);
+    openmc_driver_->create_tallies(cells);
   }
 }
 

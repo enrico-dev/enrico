@@ -7,7 +7,8 @@
 #include "geom.h"
 #include "neutronics_driver.h"
 
-#include "openmc/tallies/filter_material.h"
+#include "openmc/cell.h"
+#include "openmc/tallies/filter_cell_instance.h"
 #include "openmc/tallies/tally.h"
 #include <gsl/gsl>
 #include <mpi.h>
@@ -26,9 +27,9 @@ public:
   //! One-time finalization of OpenMC
   ~OpenmcDriver();
 
-  //! Create energy production tallies for a list of materials
-  //! \param[in] materials  Indices into OpenMC's materials array
-  void create_tallies(gsl::span<int32_t> materials);
+  //! Create energy production tallies for a list of cell instances
+  //! \param[in] cells  Sequence of OpenMC cell instances
+  void create_tallies(gsl::span<openmc::CellInstance> cells);
 
   xt::xtensor<double, 1> heat_source(double power) const final;
 
@@ -47,10 +48,10 @@ public:
   void finalize_step() final;
 
   // Data
-  openmc::Tally* tally_;            //!< Fission energy deposition tally
-  openmc::MaterialFilter* filter_;  //!< Material filter
-  std::vector<CellInstance> cells_; //!< Array of cell instances
-  int n_fissionable_cells_;         //!< Number of fissionable cells in model
+  openmc::Tally* tally_;               //!< Fission energy deposition tally
+  openmc::CellInstanceFilter* filter_; //!< Cell instance filter
+  std::vector<CellInstance> cells_;    //!< Array of cell instances
+  int n_fissionable_cells_;            //!< Number of fissionable cells in model
 };
 
 } // namespace enrico

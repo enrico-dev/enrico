@@ -51,20 +51,19 @@ OpenmcDriver::OpenmcDriver(MPI_Comm comm)
   }
 }
 
-void OpenmcDriver::create_tallies(gsl::span<int32_t> materials)
+void OpenmcDriver::create_tallies(gsl::span<openmc::CellInstance> cells)
 {
   // Create material filter
-  auto f = openmc::Filter::create("material");
-  filter_ = dynamic_cast<openmc::MaterialFilter*>(f);
+  auto f = openmc::Filter::create("cellinstance");
+  filter_ = dynamic_cast<openmc::CellInstanceFilter*>(f);
 
   // Set bins for filter
-  filter_->set_materials(materials);
+  filter_->set_cell_instances(cells);
 
   // Create tally and assign scores/filters
   tally_ = openmc::Tally::create();
   tally_->set_scores({"kappa-fission"});
-  std::vector<openmc::Filter*> filters{filter_};
-  tally_->set_filters(filters);
+  tally_->add_filter(filter_);
 }
 
 xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
