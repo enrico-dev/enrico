@@ -94,14 +94,14 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
     Expects(false);
   }
 
-  output_includes_temp_ = (data_out_ == VizDataType::all) ||
-    (data_out_ == VizDataType::temp);
+  output_includes_temp_ =
+    (data_out_ == VizDataType::all) || (data_out_ == VizDataType::temp);
 
-  output_includes_density_ = (data_out_ == VizDataType::all) ||
-    (data_out_ == VizDataType::density);
+  output_includes_density_ =
+    (data_out_ == VizDataType::all) || (data_out_ == VizDataType::density);
 
-  output_includes_source_ = (data_out_ == VizDataType::all) ||
-    (data_out_ == VizDataType::source);
+  output_includes_source_ =
+    (data_out_ == VizDataType::all) || (data_out_ == VizDataType::source);
 
   // read data specs
   regions_out_ = VizRegionType::all;
@@ -116,11 +116,11 @@ SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
     Expects(false);
   }
 
-  output_includes_fluid_ = (regions_out_ == VizRegionType::all) ||
-    (regions_out_ == VizRegionType::fluid);
+  output_includes_fluid_ =
+    (regions_out_ == VizRegionType::all) || (regions_out_ == VizRegionType::fluid);
 
-  output_includes_solid_ = (regions_out_ == VizRegionType::all) ||
-    (regions_out_ == VizRegionType::solid);
+  output_includes_solid_ =
+    (regions_out_ == VizRegionType::all) || (regions_out_ == VizRegionType::solid);
 
   // if the output includes the fluid phase, for simplicity of constructing
   // the wedges, we require the azimuthal resolution to be divisible by the
@@ -149,13 +149,14 @@ void SurrogateVtkWriter::set_number_of_sections()
   n_fluid_sections_ = azimuthal_res_ + 2 * chans_per_rod_;
 
   if (regions_out_ == VizRegionType::solid) {
-    n_sections_ = (n_radial_fuel_sections_ + n_radial_clad_sections_) *
-      azimuthal_res_ * n_axial_sections_;
+    n_sections_ = (n_radial_fuel_sections_ + n_radial_clad_sections_) * azimuthal_res_ *
+                  n_axial_sections_;
   } else if (regions_out_ == VizRegionType::fluid) {
     n_sections_ = n_fluid_sections_ * n_axial_sections_;
   } else if (regions_out_ == VizRegionType::all) {
-    n_sections_ = (n_radial_fuel_sections_ + n_radial_clad_sections_) *
-      azimuthal_res_ * n_axial_sections_ + n_fluid_sections_ * n_axial_sections_;
+    n_sections_ = (n_radial_fuel_sections_ + n_radial_clad_sections_) * azimuthal_res_ *
+                    n_axial_sections_ +
+                  n_fluid_sections_ * n_axial_sections_;
   }
 }
 
@@ -171,8 +172,9 @@ void SurrogateVtkWriter::set_number_of_points()
   } else if (regions_out_ == VizRegionType::fluid) {
     n_points_ = fluid_points_per_plane_ * n_axial_points_;
   } else if (regions_out_ == VizRegionType::all) {
-    n_points_ = (fuel_points_per_plane_ + clad_points_per_plane_ +
-      fluid_points_per_plane_) * n_axial_points_;
+    n_points_ =
+      (fuel_points_per_plane_ + clad_points_per_plane_ + fluid_points_per_plane_) *
+      n_axial_points_;
   }
 }
 
@@ -180,20 +182,21 @@ void SurrogateVtkWriter::set_number_of_entries()
 {
   n_fluid_entries_per_plane_ = n_fluid_sections_ * (WEDGE_SIZE_ + 1);
 
-  n_fuel_entries_per_plane_ = azimuthal_res_ * (WEDGE_SIZE_ + 1) +
+  n_fuel_entries_per_plane_ =
+    azimuthal_res_ * (WEDGE_SIZE_ + 1) +
     azimuthal_res_ * (HEX_SIZE_ + 1) * (n_radial_fuel_sections_ - 1);
 
-  n_clad_entries_per_plane_ = azimuthal_res_ * (HEX_SIZE_ + 1) *
-    n_radial_clad_sections_;
+  n_clad_entries_per_plane_ = azimuthal_res_ * (HEX_SIZE_ + 1) * n_radial_clad_sections_;
 
   if (regions_out_ == VizRegionType::solid) {
-    n_entries_ = (n_fuel_entries_per_plane_ + n_clad_entries_per_plane_) *
-      n_axial_sections_;
+    n_entries_ =
+      (n_fuel_entries_per_plane_ + n_clad_entries_per_plane_) * n_axial_sections_;
   } else if (regions_out_ == VizRegionType::fluid) {
     n_entries_ = n_fluid_entries_per_plane_ * n_axial_sections_;
   } else if (regions_out_ == VizRegionType::all) {
     n_entries_ = (n_fuel_entries_per_plane_ + n_clad_entries_per_plane_ +
-      n_fluid_entries_per_plane_) * n_axial_sections_;
+                  n_fluid_entries_per_plane_) *
+                 n_axial_sections_;
   }
 }
 
@@ -312,7 +315,8 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
           for (size_t j = 0; j < n_radial_clad_sections_; j++) {
             for (size_t k = 0; k < azimuthal_res_; k++) {
               vtk_file << surrogate_.solid_temperature(
-                pin, i, j + n_radial_fuel_sections_) << "\n";
+                            pin, i, j + n_radial_fuel_sections_)
+                       << "\n";
             }
           }
         }
@@ -422,16 +426,14 @@ xtensor<double, 1> SurrogateVtkWriter::points()
     xtensor<double, 3> fuel_pnts = fuel_points();
     xtensor<double, 3> clad_pnts = clad_points();
     xtensor<double, 3> fluid_pnts = fluid_points();
-    auto solid_pnts = xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts),
-      xt::flatten(clad_pnts)));
+    auto solid_pnts =
+      xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts), xt::flatten(clad_pnts)));
     return xt::concatenate(xt::xtuple(solid_pnts, xt::flatten(fluid_pnts)));
-  }
-  else if (VizRegionType::solid == regions_out_) {
+  } else if (VizRegionType::solid == regions_out_) {
     xtensor<double, 3> fuel_pnts = fuel_points();
     xtensor<double, 3> clad_pnts = clad_points();
     return xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts), xt::flatten(clad_pnts)));
-  }
-  else if (VizRegionType::fluid == regions_out_) {
+  } else if (VizRegionType::fluid == regions_out_) {
     return xt::flatten(fluid_points());
   }
 }
@@ -569,8 +571,8 @@ xtensor<int, 1> SurrogateVtkWriter::conn()
       (fuel_points_per_plane_ + clad_points_per_plane_) * n_axial_points_;
     xt::view(fl_conn, xt::all(), xt::all(), xt::range(7, _)) = INVALID_CONN_;
 
-    auto solid_conn = xt::concatenate(xt::xtuple(xt::flatten(f_conn),
-      xt::flatten(c_conn)));
+    auto solid_conn =
+      xt::concatenate(xt::xtuple(xt::flatten(f_conn), xt::flatten(c_conn)));
     return xt::concatenate(xt::xtuple(solid_conn, xt::flatten(fl_conn)));
 
   } else if (VizRegionType::solid == regions_out_) {
@@ -583,8 +585,7 @@ xtensor<int, 1> SurrogateVtkWriter::conn()
       fuel_points_per_plane_ * n_axial_points_;
 
     return xt::concatenate(xt::xtuple(xt::flatten(f_conn), xt::flatten(c_conn)));
-  }
-  else if (VizRegionType::fluid == regions_out_) {
+  } else if (VizRegionType::fluid == regions_out_) {
     return xt::flatten(fluid_conn());
   }
 }
@@ -621,7 +622,8 @@ xtensor<int, 4> SurrogateVtkWriter::fuel_conn()
     xt::zeros<int>({n_radial_fuel_sections_, azimuthal_res_, HEX_SIZE_});
 
   // innermost ring (wedges only); each element is written as a hex element even though
-  // it is a wedge element because all other elements except for the innermost ring are hex
+  // it is a wedge element because all other elements except for the innermost ring are
+  // hex
   xtensor<int, 2> inner_base = xt::zeros<int>({azimuthal_res_, HEX_SIZE_});
 
   xt::view(inner_base, xt::all(), 1) = xt::arange(size_t(1), azimuthal_res_ + 1);
@@ -709,8 +711,8 @@ xtensor<int, 4> SurrogateVtkWriter::clad_conn()
 xtensor<int, 3> SurrogateVtkWriter::fluid_conn()
 {
   // size output array
-  xtensor<int, 3> cells_out = xt::zeros<int>(
-    {n_axial_sections_, n_fluid_sections_, HEX_SIZE_ + 1});
+  xtensor<int, 3> cells_out =
+    xt::zeros<int>({n_axial_sections_, n_fluid_sections_, HEX_SIZE_ + 1});
 
   // base layer to be extended in Z
   xtensor<int, 2> base = xt::zeros<int>({n_fluid_sections_, HEX_SIZE_});
@@ -768,20 +770,18 @@ xtensor<int, 3> SurrogateVtkWriter::fluid_conn()
 xtensor<int, 1> SurrogateVtkWriter::types()
 {
   if (VizRegionType::all == regions_out_) {
-    auto ftypes  = xt::flatten(fuel_types());
-    auto ctypes  = xt::flatten(clad_types());
-    auto fltypes = xt::flatten(fluid_types());
+    xt::xtensor<int, 1> ftypes = xt::flatten(fuel_types());
+    xt::xtensor<int, 1> ctypes = xt::flatten(clad_types());
+    xt::xtensor<int, 1> fltypes = xt::flatten(fluid_types());
 
     auto solid_types = xt::concatenate(xt::xtuple(ftypes, ctypes));
     return xt::concatenate(xt::xtuple(solid_types, fltypes));
-  }
-  else if (VizRegionType::solid == regions_out_) {
+  } else if (VizRegionType::solid == regions_out_) {
     xtensor<int, 3> ftypes = fuel_types();
     xtensor<int, 3> ctypes = clad_types();
 
     return xt::concatenate(xt::xtuple(xt::flatten(ftypes), xt::flatten(ctypes)));
-  }
-  else if (VizRegionType::fluid == regions_out_) {
+  } else if (VizRegionType::fluid == regions_out_) {
     return xt::flatten(fluid_types());
   }
 }
