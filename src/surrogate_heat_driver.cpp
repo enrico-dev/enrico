@@ -398,7 +398,7 @@ bool SurrogateHeatDriver::is_energy_conserved(const xt::xtensor<double, 2>& rho,
 
 void SurrogateHeatDriver::solve_heat()
 {
-  std::cout << "Solving heat equation...\n";
+  comm_.message("Solving heat equation...");
 
   // Convert source to [W/m^3] as expected by Magnolia
   xt::xtensor<double, 3> q = 1e6 * source_;
@@ -474,7 +474,7 @@ void SurrogateHeatDriver::write_step(int timestep, int iteration)
 
   SurrogateVtkWriter vtk_writer(*this, vtk_radial_res_, viz_regions_, viz_data_);
 
-  std::cout << "Writing VTK file: " << filename.str() << "\n";
+  comm_.message("Writing VTK file: " + filename.str());
   vtk_writer.write(filename.str());
   return;
 }
