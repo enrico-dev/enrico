@@ -9,6 +9,7 @@
 #include <fstream>
 #include <string>
 #include <unistd.h>
+#include <vector>
 
 namespace enrico {
 
@@ -65,7 +66,7 @@ void NekDriver::init_displs()
 xt::xtensor<double, 1> NekDriver::temperature() const
 {
   // Each Nek proc finds the temperatures of its local elements
-  double local_elem_temperatures[nelt_];
+  std::vector<double> local_elem_temperatures(nelt_);
   for (int32_t i = 0; i < nelt_; ++i) {
     local_elem_temperatures[i] = this->temperature_at(i + 1);
   }
@@ -78,7 +79,7 @@ xt::xtensor<double, 1> NekDriver::temperature() const
   }
 
   // Gather all the local element temperatures onto the root
-  comm_.Gatherv(local_elem_temperatures,
+  comm_.Gatherv(local_elem_temperatures.data(),
                 nelt_,
                 MPI_DOUBLE,
                 global_elem_temperatures.data(),
@@ -92,7 +93,7 @@ xt::xtensor<double, 1> NekDriver::temperature() const
 
 xt::xtensor<int, 1> NekDriver::fluid_mask() const
 {
-  int local_fluid_mask[nelt_];
+  std::vector<int> local_fluid_mask(nelt_);
   for (int32_t i = 0; i < nelt_; ++i) {
     local_fluid_mask[i] = this->in_fluid_at(i + 1);
   }
@@ -102,7 +103,7 @@ xt::xtensor<int, 1> NekDriver::fluid_mask() const
     global_fluid_mask.resize({gsl::narrow<std::size_t>(nelgt_)});
   }
 
-  comm_.Gatherv(local_fluid_mask,
+  comm_.Gatherv(local_fluid_mask.data(),
                 nelt_,
                 MPI_INT,
                 global_fluid_mask.data(),
@@ -115,7 +116,7 @@ xt::xtensor<int, 1> NekDriver::fluid_mask() const
 
 xt::xtensor<double, 1> NekDriver::density() const
 {
-  double local_densities[nelt_];
+  std::vector<double> local_densities(nelt_);
 
   for (int32_t i = 0; i < nelt_; ++i) {
     if (this->in_fluid_at(i + 1) == 1) {
@@ -133,7 +134,7 @@ xt::xtensor<double, 1> NekDriver::density() const
     global_densities.resize({gsl::narrow<std::size_t>(nelgt_)});
   }
 
-  comm_.Gatherv(local_densities,
+  comm_.Gatherv(local_densities.data(),
                 nelt_,
                 MPI_DOUBLE,
                 global_densities.data(),
