@@ -15,6 +15,8 @@ public:
     : Driver(comm)
   {}
 
+  virtual ~NeutronicsDriver() = default;
+
   //! Get energy deposition in each material normalized to a given power
   //! \param power User-specified power in [W]
   //! \return Heat source in each material as [W/cm3]
