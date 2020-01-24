@@ -17,6 +17,8 @@
 
 namespace enrico {
 
+using gsl::index;
+
 OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
   : CoupledDriver{comm, node}
 {
@@ -131,7 +133,7 @@ void OpenmcNekDriver::init_mappings()
     std::vector<int32_t> elem_to_cell(n_global_elem_);
 
     if (openmc_driver_->active()) {
-      std::unordered_map<CellInstance, gsl::index> cell_index;
+      std::unordered_map<CellInstance, index> cell_index;
 
       for (int32_t i = 0; i < n_global_elem_; ++i) {
         // Determine cell instance corresponding to global element
@@ -166,15 +168,13 @@ void OpenmcNekDriver::init_mappings()
 
 void OpenmcNekDriver::init_tallies()
 {
-  using gsl::index;
   using gsl::narrow_cast;
-  using openmc::CellInstance;
 
   comm_.message("Initializing tallies");
 
   if (openmc_driver_->active()) {
     // Build vector of material indices
-    std::vector<CellInstance> instances;
+    std::vector<openmc::CellInstance> instances;
     for (const auto& c : openmc_driver_->cells_) {
       instances.push_back(
         {narrow_cast<index>(c.index_), narrow_cast<index>(c.instance_)});
@@ -197,7 +197,7 @@ void OpenmcNekDriver::init_temperatures()
       // the correct index in the temperatures_ array. This mapping assumes that
       // each Nek element is fully contained within an OpenMC cell, i.e. Nek elements
       // are not split between multiple OpenMC cells.
-      for (gsl::index i = 0; i < openmc_driver_->cells_.size(); ++i) {
+      for (index i = 0; i < openmc_driver_->cells_.size(); ++i) {
         const auto& global_elems = cell_to_elems_.at(i);
         const auto& c = openmc_driver_->cells_[i];
 
@@ -251,7 +251,7 @@ void OpenmcNekDriver::init_volumes()
 
   // Volume check
   if (this->has_global_coupling_data()) {
-    for (gsl::index i = 0; i < openmc_driver_->cells_.size(); ++i) {
+    for (index i = 0; i < openmc_driver_->cells_.size(); ++i) {
       const auto& c = openmc_driver_->cells_[i];
       double v_openmc = c.volume_;
       double v_nek = 0.0;
@@ -280,7 +280,7 @@ void OpenmcNekDriver::init_densities()
       // the correct index in the densities_ array. This mapping assumes that
       // each Nek element is fully contained within an OpenMC cell, i.e. Nek
       // elements are not split between multiple OpenMC cells.
-      for (gsl::index i = 0; i < openmc_driver_->cells_.size(); ++i) {
+      for (index i = 0; i < openmc_driver_->cells_.size(); ++i) {
         auto& c = openmc_driver_->cells_[i];
         const auto& global_elems = cell_to_elems_.at(i);
 
@@ -343,7 +343,7 @@ void OpenmcNekDriver::init_cell_fluid_mask()
     auto& cells = openmc_driver_->cells_;
     cell_fluid_mask_.resize({cells.size()});
 
-    for (gsl::index i = 0; i < cells.size(); ++i) {
+    for (index i = 0; i < cells.size(); ++i) {
       auto elems = cell_to_elems_.at(i);
       for (const auto& j : elems) {
         if (elem_fluid_mask_[j] == 1) {
@@ -434,7 +434,7 @@ void OpenmcNekDriver::set_density()
       // For each OpenMC cell instance in a fluid cell, volume average the
       // densities and set
       // TODO:  Might be able to use xtensor masking to do some of this
-      for (gsl::index i = 0; i < openmc_driver_->cells_.size(); ++i) {
+      for (index i = 0; i < openmc_driver_->cells_.size(); ++i) {
         if (cell_fluid_mask_[i] == 1) {
           auto& c = openmc_driver_->cells_[i];
           double average_density = 0.0;
