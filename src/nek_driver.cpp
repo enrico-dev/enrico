@@ -130,6 +130,16 @@ Position NekDriver::centroid_at(int32_t local_elem) const
   return {x, y, z};
 }
 
+std::vector<Position> NekDriver::centroid_local() const
+{
+  int n_local = this->n_local_elem();
+  std::vector<Position> local_element_centroids(n_local);
+  for (int32_t i = 0; i < n_local; ++i) {
+    local_element_centroids[i] = this->centroid_at(i + 1);
+  }
+  return local_element_centroids;
+}
+
 double NekDriver::volume_at(int32_t local_elem) const
 {
   double volume;

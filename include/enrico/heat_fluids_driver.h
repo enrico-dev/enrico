@@ -4,6 +4,7 @@
 #define HEAT_FLUIDS_DRIVER_H
 
 #include "enrico/driver.h"
+#include "enrico/geom.h"
 #include "enrico/message_passing.h"
 #include "xtensor/xtensor.hpp"
 
@@ -41,6 +42,8 @@ public:
   // TODO: make pure virtual and remove implementation
   virtual std::size_t n_global_elem() const { return 0; }
 
+  std::vector<Position> centroids() const;
+
   template<typename T>
   std::vector<T> gather(const std::vector<T>& local_field) const;
 
@@ -64,6 +67,7 @@ private:
   virtual std::vector<double> temperature_local() const { return {}; }
   virtual std::vector<double> density_local() const { return {}; }
   virtual std::vector<int> fluid_mask_local() const { return {}; }
+  virtual std::vector<Position> centroid_local() const { return {}; }
 };
 
 template<typename T>

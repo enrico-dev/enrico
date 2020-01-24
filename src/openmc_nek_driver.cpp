@@ -82,15 +82,8 @@ void OpenmcNekDriver::init_mappings()
   comm_.message("Initializing mappings");
 
   if (nek_driver_->active()) {
-    // Step 1: Get global element centroids/fluid-identities on all OpenMC ranks
-    // Each Nek proc finds the centroids/fluid-identities of its local elements
-    int n_local = this->get_heat_driver().n_local_elem();
-    std::vector<Position> local_element_centroids(n_local);
-    for (int32_t i = 0; i < n_local; ++i) {
-      local_element_centroids[i] = nek_driver_->centroid_at(i + 1);
-    }
-    // Gather all the local element centroids/fluid-identities on the Nek5000/OpenMC root
-    elem_centroids_ = this->get_heat_driver().gather(local_element_centroids);
+    // Get centroids from heat driver
+    elem_centroids_ = this->get_heat_driver().centroids();
 
     // Broadcast global_element_centroids/fluid-identities onto all the OpenMC procs
     if (openmc_driver_->active()) {

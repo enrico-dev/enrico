@@ -26,4 +26,13 @@ void HeatFluidsDriver::init_displs()
   }
 }
 
+std::vector<Position> HeatFluidsDriver::centroids() const
+{
+  // Get local centroids on each rank
+  auto local_centroids = this->centroid_local();
+
+  // Gather local centroids onto root process
+  return this->gather(local_centroids);
+}
+
 }
