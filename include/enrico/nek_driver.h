@@ -102,17 +102,7 @@ public:
   int n_local_elem() const override { return active() ? nelt_ : 0; }
   std::size_t n_global_elem() const override { return active() ? nelgt_ : 0; }
 
-  //! Initialize the counts and displacements of local elements for each MPI Rank.
-  void init_displs();
-
   std::string casename_; //!< Nek5000 casename (name of .rea file)
-
-  //! The displacements of local elements, relative to rank 0. Used in an MPI
-  //! Gatherv operation.
-  std::vector<int32_t> local_displs_;
-
-  //! The number of local elements in each rank.
-  std::vector<int32_t> local_counts_;
 
   // Intended to be the local-to-global element ordering, as ensured by a Gatherv
   // operation. It is currently unused, as the coupling does not need to know the

@@ -44,21 +44,6 @@ void NekDriver::init_session_name()
   session_name.close();
 }
 
-void NekDriver::init_displs()
-{
-  if (active()) {
-    local_counts_.resize(comm_.size);
-    local_displs_.resize(comm_.size);
-
-    comm_.Allgather(&nelt_, 1, MPI_INT32_T, local_counts_.data(), 1, MPI_INT32_T);
-
-    local_displs_.at(0) = 0;
-    for (gsl::index i = 1; i < comm_.size; ++i) {
-      local_displs_.at(i) = local_displs_.at(i - 1) + local_counts_.at(i - 1);
-    }
-  }
-}
-
 xt::xtensor<double, 1> NekDriver::temperature() const
 {
   // Each Nek proc finds the temperatures of its local elements

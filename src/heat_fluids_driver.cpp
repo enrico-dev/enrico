@@ -10,4 +10,20 @@ HeatFluidsDriver::HeatFluidsDriver(MPI_Comm comm, double pressure_bc)
   Expects(pressure_bc_ > 0.0);
 }
 
+void HeatFluidsDriver::init_displs()
+{
+  if (active()) {
+    local_counts_.resize(comm_.size);
+    local_displs_.resize(comm_.size);
+
+    int32_t n_local = this->n_local_elem();
+    comm_.Allgather(&n_local, 1, MPI_INT32_T, local_counts_.data(), 1, MPI_INT32_T);
+
+    local_displs_.at(0) = 0;
+    for (gsl::index i = 1; i < comm_.size; ++i) {
+      local_displs_.at(i) = local_displs_.at(i - 1) + local_counts_.at(i - 1);
+    }
+  }
+}
+
 }

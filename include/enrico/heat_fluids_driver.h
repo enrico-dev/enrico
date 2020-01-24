@@ -41,6 +41,19 @@ public:
   virtual std::size_t n_global_elem() const { return 0; }
 
   double pressure_bc_; //! System pressure in [MPa]
+
+  //! The displacements of local elements, relative to rank 0. Used in an MPI
+  //! Gatherv operation.
+  // TODO: Move to private
+  std::vector<int32_t> local_displs_;
+
+  //! The number of local elements in each rank.
+  // TODO: Move to private
+  std::vector<int32_t> local_counts_;
+
+protected:
+  //! Initialize the counts and displacements of local elements for each MPI Rank.
+  void init_displs();
 };
 
 } // namespace enrico
