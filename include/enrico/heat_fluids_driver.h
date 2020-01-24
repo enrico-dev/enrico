@@ -26,13 +26,19 @@ public:
 
   //! Get the temperature in each region
   //! \return Temperature in each region as [K]
-  virtual xt::xtensor<double, 1> temperature() const = 0;
+  // TODO: Remove virtual
+  virtual xt::xtensor<double, 1> temperature() const;
 
   //! Get the density in each region. The interpretation of this density,
   //! i.e. whether it refers to fluid elements or both fluid and solid
   //! elements, is to the discretion of the particular driver.
   //! \return Density in each region as [g/cm^3]
-  virtual xt::xtensor<double, 1> density() const = 0;
+  // TODO: Remove virtual
+  virtual xt::xtensor<double, 1> density() const;
+
+  //! States whether each region is in fluid
+  //! \return For each region, 1 if region is in fluid and 0 otherwise
+  xt::xtensor<int, 1> fluid_mask() const;
 
   //! Get the number of local mesh elements
   //! \return Number of local mesh elements

@@ -56,18 +56,6 @@ std::vector<double> NekDriver::temperature_local() const
   return local_elem_temperatures;
 }
 
-xt::xtensor<double, 1> NekDriver::temperature() const
-{
-  // Get local tempratures on each rank
-  auto local_temperatures = this->temperature_local();
-
-  // Gather all the local element temperatures onto the root
-  auto global_temperatures = this->gather(local_temperatures);
-
-  // only the return value from root should be used, or else a broadcast added here
-  return xt::adapt(global_temperatures);
-}
-
 std::vector<int> NekDriver::fluid_mask_local() const
 {
   std::vector<int> local_fluid_mask(nelt_);
@@ -75,17 +63,6 @@ std::vector<int> NekDriver::fluid_mask_local() const
     local_fluid_mask[i] = this->in_fluid_at(i + 1);
   }
   return local_fluid_mask;
-}
-
-xt::xtensor<int, 1> NekDriver::fluid_mask() const
-{
-  // Get local fluid masks
-  auto local_fluid_mask = this->fluid_mask_local();
-
-  // Gather all the local fluid masks onto the root
-  auto global_fluid_mask = this->gather(local_fluid_mask);
-
-  return xt::adapt(global_fluid_mask);
 }
 
 std::vector<double> NekDriver::density_local() const
@@ -103,17 +80,6 @@ std::vector<double> NekDriver::density_local() const
   }
 
   return local_densities;
-}
-
-xt::xtensor<double, 1> NekDriver::density() const
-{
-  // Get local densities on each rank
-  auto local_densities = this->density_local();
-
-  // Gather all local element densities onto the root
-  auto global_densities = this->gather(local_densities);
-
-  return xt::adapt(global_densities);
 }
 
 void NekDriver::solve_step()

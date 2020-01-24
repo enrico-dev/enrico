@@ -1,5 +1,7 @@
 #include "enrico/heat_fluids_driver.h"
-#include "gsl/gsl"
+
+#include <gsl/gsl>
+#include <xtensor/xadapt.hpp>
 
 namespace enrico {
 
@@ -42,6 +44,40 @@ std::vector<double> HeatFluidsDriver::volumes() const
 
   // Gather local centroids onto root process
   return this->gather(local_volumes);
+}
+
+xt::xtensor<double, 1> HeatFluidsDriver::temperature() const
+{
+  // Get local tempratures on each rank
+  auto local_temperatures = this->temperature_local();
+
+  // Gather all the local element temperatures onto the root
+  auto global_temperatures = this->gather(local_temperatures);
+
+  // only the return value from root should be used, or else a broadcast added here
+  return xt::adapt(global_temperatures);
+}
+
+xt::xtensor<double, 1> HeatFluidsDriver::density() const
+{
+  // Get local densities on each rank
+  auto local_densities = this->density_local();
+
+  // Gather all local element densities onto the root
+  auto global_densities = this->gather(local_densities);
+
+  return xt::adapt(global_densities);
+}
+
+xt::xtensor<int, 1> HeatFluidsDriver::fluid_mask() const
+{
+  // Get local fluid masks
+  auto local_fluid_mask = this->fluid_mask_local();
+
+  // Gather all the local fluid masks onto the root
+  auto global_fluid_mask = this->gather(local_fluid_mask);
+
+  return xt::adapt(global_fluid_mask);
 }
 
 }

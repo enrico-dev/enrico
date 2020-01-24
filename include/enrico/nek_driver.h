@@ -48,18 +48,6 @@ public:
   //! Only Nek's master rank has access to the global data; data on other ranks is empty
   bool has_coupling_data() const final { return comm_.rank == 0; }
 
-  //! Get the temperature in each region
-  //! \return Temperature in each region as [K]
-  xt::xtensor<double, 1> temperature() const final;
-
-  //! Get the density in each region
-  //! \return Density in each region as [g/cm^3]
-  xt::xtensor<double, 1> density() const final;
-
-  //! States whether each region is in fluid
-  //! \return For each region, 1 if region is in fluid and 0 otherwise
-  xt::xtensor<int, 1> fluid_mask() const;
-
   //! Get the coordinate of a local element's centroid.
   //!
   //! The coordinate is dimensionless.  Its units depend on the unit system used that was
