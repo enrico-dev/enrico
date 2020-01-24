@@ -4,6 +4,7 @@
 #include "gsl/gsl"
 #include "iapws/iapws.h"
 #include "nek5000/core/nek_interface.h"
+#include "xtensor/xadapt.hpp"
 
 #include <climits>
 #include <fstream>
@@ -52,24 +53,11 @@ xt::xtensor<double, 1> NekDriver::temperature() const
     local_elem_temperatures[i] = this->temperature_at(i + 1);
   }
 
-  xt::xtensor<double, 1> global_elem_temperatures = xt::xtensor<double, 1>();
-
-  // only the rank 0 process allocates the size for the receive buffer
-  if (comm_.rank == 0) {
-    global_elem_temperatures.resize({gsl::narrow<std::size_t>(nelgt_)});
-  }
-
   // Gather all the local element temperatures onto the root
-  comm_.Gatherv(local_elem_temperatures.data(),
-                nelt_,
-                MPI_DOUBLE,
-                global_elem_temperatures.data(),
-                local_counts_.data(),
-                local_displs_.data(),
-                MPI_DOUBLE);
+  auto global_temperatures = this->gather(local_elem_temperatures);
 
   // only the return value from root should be used, or else a broadcast added here
-  return global_elem_temperatures;
+  return xt::adapt(global_temperatures);
 }
 
 xt::xtensor<int, 1> NekDriver::fluid_mask() const
@@ -79,20 +67,10 @@ xt::xtensor<int, 1> NekDriver::fluid_mask() const
     local_fluid_mask[i] = this->in_fluid_at(i + 1);
   }
 
-  xt::xtensor<int, 1> global_fluid_mask;
-  if (comm_.rank == 0) {
-    global_fluid_mask.resize({gsl::narrow<std::size_t>(nelgt_)});
-  }
+  // Gather all the local fluid masks onto the root
+  auto global_fluid_mask = this->gather(local_fluid_mask);
 
-  comm_.Gatherv(local_fluid_mask.data(),
-                nelt_,
-                MPI_INT,
-                global_fluid_mask.data(),
-                local_counts_.data(),
-                local_displs_.data(),
-                MPI_INT);
-
-  return global_fluid_mask;
+  return xt::adapt(global_fluid_mask);
 }
 
 xt::xtensor<double, 1> NekDriver::density() const
@@ -109,21 +87,9 @@ xt::xtensor<double, 1> NekDriver::density() const
     }
   }
 
-  xt::xtensor<double, 1> global_densities;
+  auto global_densities = this->gather(local_densities);
 
-  if (comm_.rank == 0) {
-    global_densities.resize({gsl::narrow<std::size_t>(nelgt_)});
-  }
-
-  comm_.Gatherv(local_densities.data(),
-                nelt_,
-                MPI_DOUBLE,
-                global_densities.data(),
-                local_counts_.data(),
-                local_displs_.data(),
-                MPI_DOUBLE);
-
-  return global_densities;
+  return xt::adapt(global_densities);
 }
 
 void NekDriver::solve_step()

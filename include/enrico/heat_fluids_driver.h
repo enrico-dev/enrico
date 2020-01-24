@@ -42,7 +42,7 @@ public:
   virtual std::size_t n_global_elem() const { return 0; }
 
   template<typename T>
-  std::vector<T> gather(const std::vector<T>& local_field);
+  std::vector<T> gather(const std::vector<T>& local_field) const;
 
   double pressure_bc_; //! System pressure in [MPa]
 
@@ -61,7 +61,7 @@ protected:
 };
 
 template<typename T>
-std::vector<T> HeatFluidsDriver::gather(const std::vector<T>& local_field)
+std::vector<T> HeatFluidsDriver::gather(const std::vector<T>& local_field) const
 {
   std::vector<T> global_field;
 
