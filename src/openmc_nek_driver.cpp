@@ -92,17 +92,14 @@ void OpenmcNekDriver::init_mappings()
 
   if (this->has_global_coupling_data()) {
     elem_centroids_.resize(gsl::narrow<std::size_t>(n_global_elem_));
-    elem_fluid_mask_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
   }
 
   if (nek_driver_->active()) {
     // Step 1: Get global element centroids/fluid-identities on all OpenMC ranks
     // Each Nek proc finds the centroids/fluid-identities of its local elements
     std::vector<Position> local_element_centroids(n_local_elem_);
-    std::vector<int> local_element_is_in_fluid(n_local_elem_);
     for (int32_t i = 0; i < n_local_elem_; ++i) {
       local_element_centroids[i] = nek_driver_->centroid_at(i + 1);
-      local_element_is_in_fluid[i] = nek_driver_->in_fluid_at(i + 1);
     }
     // Gather all the local element centroids/fluid-identities on the Nek5000/OpenMC root
     nek_driver_->comm_.Gatherv(local_element_centroids.data(),
@@ -112,18 +109,10 @@ void OpenmcNekDriver::init_mappings()
                                nek_driver_->local_counts_.data(),
                                nek_driver_->local_displs_.data(),
                                position_mpi_datatype);
-    nek_driver_->comm_.Gatherv(local_element_is_in_fluid.data(),
-                               n_local_elem_,
-                               MPI_INT,
-                               elem_fluid_mask_.data(),
-                               nek_driver_->local_counts_.data(),
-                               nek_driver_->local_displs_.data(),
-                               MPI_INT);
     // Broadcast global_element_centroids/fluid-identities onto all the OpenMC procs
     if (openmc_driver_->active()) {
       openmc_driver_->comm_.Bcast(
         elem_centroids_.data(), n_global_elem_, position_mpi_datatype);
-      openmc_driver_->comm_.Bcast(elem_fluid_mask_.data(), n_global_elem_, MPI_INT);
     }
 
     // Step 2: Set element->cell and cell->element mappings
