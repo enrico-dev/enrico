@@ -1,6 +1,7 @@
 #include <iostream>
 
 #include "enrico/error.h"
+#include "enrico/message_passing.h"
 #include "enrico/nek_driver.h"
 #include "nek5000/core/nek_interface.h"
 #include "smrt/shift_nek_driver.h"
@@ -12,8 +13,8 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
                                const std::vector<double>& z_edges,
                                const std::string& shift_filename,
                                MPI_Comm neutronics_comm,
-                               MPI_Comm th_comm) :
-  SmrtCoupledDriver()
+                               MPI_Comm th_comm)
+  : SmrtCoupledDriver()
 {
   d_shift_solver =
     std::make_shared<enrico::ShiftDriver>(assembly, shift_filename, z_edges);
@@ -31,14 +32,12 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
     auto root = doc.document_element();
     double pressure_bc = root.child("pressure_bc").text().as_double();
 
-    d_nek_solver = std::make_shared<NekDriver>(
-        th_comm, pressure_bc, root.child("nek5000"));
+    d_nek_solver =
+      std::make_shared<NekDriver>(th_comm, pressure_bc, root.child("nek5000"));
   }
 
   d_th_num_local = d_nek_solver->nelt_;
   d_th_num_global = d_nek_solver->nelgt_;
-
-  this->init_mpi_datatypes();
 
   // Allocate fields (on global T/H mesh for now)
   d_temperatures.resize(d_th_num_local, 565.0);
@@ -124,8 +123,7 @@ void ShiftNekDriver::solve()
     for (int elem = 0; elem < d_th_num_local; ++elem) {
       // Normalization for incorrect Gauss point averaging
       constexpr double nek_normalization = 1.0 / 200.0;
-      d_temperatures[elem] =
-        d_nek_solver->temperature_at(elem + 1) * nek_normalization;
+      d_temperatures[elem] = d_nek_solver->temperature_at(elem + 1) * nek_normalization;
     }
 
     for (int rank = 0; rank < nemesis::nodes(); ++rank) {
@@ -139,41 +137,15 @@ void ShiftNekDriver::solve()
     }
 
     // Solve Shift problem
-    d_shift_solver->solve(d_temperatures, d_densities, d_powers /* TODO: dummy - not used! */);
+    d_shift_solver->solve(
+      d_temperatures, d_densities, d_powers /* TODO: dummy - not used! */);
     d_power_shift = d_shift_solver->heat_source(power_);
   }
-
-  this->free_mpi_datatypes();
 }
 
 //
 // Private Implementation
 //
-
-// Set up MPI datatype
-// Currently, this sets up only position_mpi_datatype
-void ShiftNekDriver::init_mpi_datatypes()
-{
-  d_position_mpi_type = define_position_mpi_datatype();
-}
-
-// Free user-defined MPI types
-void ShiftNekDriver::free_mpi_datatypes()
-{
-  MPI_Type_free(&d_position_mpi_type);
-}
-
-// Traits for mapping plain types to corresponding MPI types
-template<>
-MPI_Datatype ShiftNekDriver::get_mpi_type<double>() const
-{
-  return MPI_DOUBLE;
-}
-template<>
-MPI_Datatype ShiftNekDriver::get_mpi_type<Position>() const
-{
-  return d_position_mpi_type;
-}
 
 // Gather local distributed field into global replicated field
 template<typename T>

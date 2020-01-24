@@ -85,9 +85,6 @@ protected:
   void init_cell_fluid_mask();
 
 private:
-  //! Initialize MPI datatypes (currently, only position_mpi_datatype)
-  void init_mpi_datatypes();
-
   //! Create bidirectional mappings from OpenMC cell instances to/from Nek5000 elements
   void init_mappings();
 
@@ -97,15 +94,9 @@ private:
   //! Initialize global volume buffers for OpenMC ranks
   void init_volumes();
 
-  //! Frees the MPI datatypes (currently, only position_mpi_datatype)
-  void free_mpi_datatypes();
-
   std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
 
   std::unique_ptr<NekDriver> nek_driver_; //!< The Nek5000 driver
-
-  //! MPI datatype for sending/receiving Position objects.
-  MPI_Datatype position_mpi_datatype;
 
   //! Gives a Position of a global element's centroid
   //! These are **not** ordered by Nek's global element indices.  Rather, these are

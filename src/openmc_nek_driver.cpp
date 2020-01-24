@@ -81,11 +81,6 @@ HeatFluidsDriver& OpenmcNekDriver::get_heat_driver() const
   return *nek_driver_;
 }
 
-void OpenmcNekDriver::init_mpi_datatypes()
-{
-  position_mpi_datatype = define_position_mpi_datatype();
-}
-
 void OpenmcNekDriver::init_mappings()
 {
   comm_.message("Initializing mappings");
@@ -439,11 +434,6 @@ void OpenmcNekDriver::set_density()
       }
     }
   }
-}
-
-void OpenmcNekDriver::free_mpi_datatypes()
-{
-  MPI_Type_free(&position_mpi_datatype);
 }
 
 } // namespace enrico

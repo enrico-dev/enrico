@@ -7,12 +7,12 @@
 #include "Nemesis/comm/global.hh"
 
 #include "Assembly_Model.h"
-#include "shift_driver.h"
 #include "enrico/error.h"
 #include "enrico/message_passing.h"
 #include "enrico/nek_driver.h"
-#include "smrt_coupled_driver.h"
 #include "nek5000/core/nek_interface.h"
+#include "shift_driver.h"
+#include "smrt_coupled_driver.h"
 
 namespace enrico {
 //===========================================================================//
@@ -47,9 +47,6 @@ private:
   int d_th_num_local;
   int d_th_num_global;
 
-  // MPI datatype for Position objects
-  MPI_Datatype d_position_mpi_type;
-
   // Field data
   std::vector<double> d_temperatures;
   std::vector<double> d_densities;
@@ -57,7 +54,6 @@ private:
 
   // Power indexed by shift cell ID
   std::vector<double> d_power_shift;
-
 
 public:
   // Constructor
@@ -74,19 +70,6 @@ public:
   void solve();
 
 private:
-  // Map "standard" types to corresponding MPI types
-  template<typename T>
-  MPI_Datatype get_mpi_type() const
-  {
-    return MPI_DATATYPE_NULL;
-  }
-
-  // Set up MPI types (i.e., Position)
-  void init_mpi_datatypes();
-
-  // Free MPI types
-  void free_mpi_datatypes();
-
   //
   // T/H communication operations -- ultimately we want to avoid storing
   // the entire T/H solution on a single rank
