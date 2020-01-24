@@ -6,10 +6,6 @@
 	path = vendor/nek5000
 	url = https://github.com/enrico-dev/Nek5000.git
 	branch = enrico
-[submodule "vendor/gsl-lite"]
-	path = vendor/gsl-lite
-	url = https://github.com/martinmoene/gsl-lite.git
-	branch = v0.32.0
 [submodule "vendor/catch"]
 	path = vendor/catch
 	url = https://github.com/catchorg/Catch2.git

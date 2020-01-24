@@ -51,7 +51,6 @@ endif ()
 # =============================================================================
 add_subdirectory(vendor/nek5000)
 add_subdirectory(vendor/openmc)
-add_subdirectory(vendor/gsl-lite)
 
 # =============================================================================
 # IAPWS Correlations

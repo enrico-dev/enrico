@@ -13,8 +13,11 @@
 #include "xtensor/xtensor.hpp"
 
 #include <string>
+#include <vector>
 
 namespace enrico {
+
+using gsl::index;
 
 OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
   : CoupledDriver{comm, node}
@@ -95,21 +98,21 @@ void OpenmcNekDriver::init_mappings()
   if (nek_driver_->active()) {
     // Step 1: Get global element centroids/fluid-identities on all OpenMC ranks
     // Each Nek proc finds the centroids/fluid-identities of its local elements
-    Position local_element_centroids[n_local_elem_];
-    int local_element_is_in_fluid[n_local_elem_];
+    std::vector<Position> local_element_centroids(n_local_elem_);
+    std::vector<int> local_element_is_in_fluid(n_local_elem_);
     for (int32_t i = 0; i < n_local_elem_; ++i) {
       local_element_centroids[i] = nek_driver_->centroid_at(i + 1);
       local_element_is_in_fluid[i] = nek_driver_->in_fluid_at(i + 1);
     }
     // Gather all the local element centroids/fluid-identities on the Nek5000/OpenMC root
-    nek_driver_->comm_.Gatherv(local_element_centroids,
+    nek_driver_->comm_.Gatherv(local_element_centroids.data(),
                                n_local_elem_,
                                position_mpi_datatype,
                                elem_centroids_.data(),
                                nek_driver_->local_counts_.data(),
                                nek_driver_->local_displs_.data(),
                                position_mpi_datatype);
-    nek_driver_->comm_.Gatherv(local_element_is_in_fluid,
+    nek_driver_->comm_.Gatherv(local_element_is_in_fluid.data(),
                                n_local_elem_,
                                MPI_INT,
                                elem_fluid_mask_.data(),
@@ -130,7 +133,7 @@ void OpenmcNekDriver::init_mappings()
     std::vector<int32_t> elem_to_cell(n_global_elem_);
 
     if (openmc_driver_->active()) {
-      std::unordered_map<CellInstance, gsl::index> cell_index;
+      std::unordered_map<CellInstance, index> cell_index;
 
       for (int32_t i = 0; i < n_global_elem_; ++i) {
         // Determine cell instance corresponding to global element
@@ -165,15 +168,18 @@ void OpenmcNekDriver::init_mappings()
 
 void OpenmcNekDriver::init_tallies()
 {
+  using gsl::narrow_cast;
+
   comm_.message("Initializing tallies");
 
   if (openmc_driver_->active()) {
     // Build vector of material indices
-    std::vector<int32_t> mats;
+    std::vector<openmc::CellInstance> instances;
     for (const auto& c : openmc_driver_->cells_) {
-      mats.push_back(c.material_index_);
+      instances.push_back(
+        {narrow_cast<index>(c.index_), narrow_cast<index>(c.instance_)});
     }
-    openmc_driver_->create_tallies(mats);
+    openmc_driver_->create_tallies(instances);
   }
 }
 
@@ -191,7 +197,7 @@ void OpenmcNekDriver::init_temperatures()
       // the correct index in the temperatures_ array. This mapping assumes that
       // each Nek element is fully contained within an OpenMC cell, i.e. Nek elements
       // are not split between multiple OpenMC cells.
-      for (gsl::index i = 0; i < openmc_driver_->cells_.size(); ++i) {
+      for (index i = 0; i < openmc_driver_->cells_.size(); ++i) {
         const auto& global_elems = cell_to_elems_.at(i);
         const auto& c = openmc_driver_->cells_[i];
 
@@ -225,12 +231,12 @@ void OpenmcNekDriver::init_volumes()
 
   if (nek_driver_->active()) {
     // Every Nek proc gets its local element volumes (lev)
-    double local_elem_volumes[n_local_elem_];
+    std::vector<double> local_elem_volumes(n_local_elem_);
     for (int32_t i = 0; i < n_local_elem_; ++i) {
       local_elem_volumes[i] = nek_driver_->volume_at(i + 1);
     }
     // Gather all the local element volumes on the Nek5000/OpenMC root
-    nek_driver_->comm_.Gatherv(local_elem_volumes,
+    nek_driver_->comm_.Gatherv(local_elem_volumes.data(),
                                n_local_elem_,
                                MPI_DOUBLE,
                                elem_volumes_.data(),
@@ -245,7 +251,7 @@ void OpenmcNekDriver::init_volumes()
 
   // Volume check
   if (this->has_global_coupling_data()) {
-    for (gsl::index i = 0; i < openmc_driver_->cells_.size(); ++i) {
+    for (index i = 0; i < openmc_driver_->cells_.size(); ++i) {
       const auto& c = openmc_driver_->cells_[i];
       double v_openmc = c.volume_;
       double v_nek = 0.0;
@@ -274,7 +280,7 @@ void OpenmcNekDriver::init_densities()
       // the correct index in the densities_ array. This mapping assumes that
       // each Nek element is fully contained within an OpenMC cell, i.e. Nek
       // elements are not split between multiple OpenMC cells.
-      for (gsl::index i = 0; i < openmc_driver_->cells_.size(); ++i) {
+      for (index i = 0; i < openmc_driver_->cells_.size(); ++i) {
         auto& c = openmc_driver_->cells_[i];
         const auto& global_elems = cell_to_elems_.at(i);
 
@@ -337,7 +343,7 @@ void OpenmcNekDriver::init_cell_fluid_mask()
     auto& cells = openmc_driver_->cells_;
     cell_fluid_mask_.resize({cells.size()});
 
-    for (gsl::index i = 0; i < cells.size(); ++i) {
+    for (index i = 0; i < cells.size(); ++i) {
       auto elems = cell_to_elems_.at(i);
       for (const auto& j : elems) {
         if (elem_fluid_mask_[j] == 1) {
@@ -428,7 +434,7 @@ void OpenmcNekDriver::set_density()
       // For each OpenMC cell instance in a fluid cell, volume average the
       // densities and set
       // TODO:  Might be able to use xtensor masking to do some of this
-      for (gsl::index i = 0; i < openmc_driver_->cells_.size(); ++i) {
+      for (index i = 0; i < openmc_driver_->cells_.size(); ++i) {
         if (cell_fluid_mask_[i] == 1) {
           auto& c = openmc_driver_->cells_[i];
           double average_density = 0.0;
