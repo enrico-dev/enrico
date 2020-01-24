@@ -113,6 +113,7 @@ private:
   std::vector<double> density_local() const override;
   std::vector<int> fluid_mask_local() const override;
   std::vector<Position> centroid_local() const override;
+  std::vector<double> volume_local() const override;
 
   int32_t nelgt_; //!< total number of mesh elements
   int32_t nelt_;  //!< number of local mesh elements

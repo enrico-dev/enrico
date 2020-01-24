@@ -148,6 +148,16 @@ double NekDriver::volume_at(int32_t local_elem) const
   return volume;
 }
 
+std::vector<double> NekDriver::volume_local() const
+{
+  int n_local = this->n_local_elem();
+  std::vector<double> local_elem_volumes(n_local);
+  for (int32_t i = 0; i < n_local; ++i) {
+    local_elem_volumes[i] = this->volume_at(i + 1);
+  }
+  return local_elem_volumes;
+}
+
 double NekDriver::temperature_at(int32_t local_elem) const
 {
   double temperature;

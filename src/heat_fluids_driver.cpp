@@ -35,4 +35,13 @@ std::vector<Position> HeatFluidsDriver::centroids() const
   return this->gather(local_centroids);
 }
 
+std::vector<double> HeatFluidsDriver::volumes() const
+{
+  // Get local volumes on each rank
+  auto local_volumes = this->volume_local();
+
+  // Gather local centroids onto root process
+  return this->gather(local_volumes);
+}
+
 }

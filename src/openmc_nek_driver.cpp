@@ -191,20 +191,9 @@ void OpenmcNekDriver::init_volumes()
 {
   comm_.message("Initializing volumes");
 
-  auto n_global = this->get_heat_driver().n_global_elem();
-  if (this->has_global_coupling_data()) {
-    elem_volumes_.resize(n_global);
-  }
-
   if (nek_driver_->active()) {
-    // Every Nek proc gets its local element volumes (lev)
-    int n_local = this->get_heat_driver().n_local_elem();
-    std::vector<double> local_elem_volumes(n_local);
-    for (int32_t i = 0; i < n_local; ++i) {
-      local_elem_volumes[i] = nek_driver_->volume_at(i + 1);
-    }
     // Gather all the local element volumes on the Nek5000/OpenMC root
-    elem_volumes_ = this->get_heat_driver().gather(local_elem_volumes);
+    elem_volumes_ = this->get_heat_driver().volumes();
 
     // Broadcast global_element_volumes onto all the OpenMC procs
     if (openmc_driver_->active()) {

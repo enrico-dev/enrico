@@ -43,6 +43,7 @@ public:
   virtual std::size_t n_global_elem() const { return 0; }
 
   std::vector<Position> centroids() const;
+  std::vector<double> volumes() const;
 
   template<typename T>
   std::vector<T> gather(const std::vector<T>& local_field) const;
@@ -68,6 +69,7 @@ private:
   virtual std::vector<double> density_local() const { return {}; }
   virtual std::vector<int> fluid_mask_local() const { return {}; }
   virtual std::vector<Position> centroid_local() const { return {}; }
+  virtual std::vector<double> volume_local() const { return {}; }
 };
 
 template<typename T>
