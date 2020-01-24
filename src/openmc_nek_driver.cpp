@@ -43,10 +43,6 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
   openmc_driver_ = std::make_unique<OpenmcDriver>(openmc_comm);
   nek_driver_ = std::make_unique<NekDriver>(comm, pressure_bc, nek_node);
 
-  // Determine number of local/global elements for each rank
-  n_local_elem_ = nek_driver_->active() ? nek_driver_->nelt_ : 0;
-  n_global_elem_ = nek_driver_->active() ? nek_driver_->nelgt_ : 0;
-
   init_mpi_datatypes();
   init_mappings();
   init_tallies();
@@ -85,20 +81,22 @@ void OpenmcNekDriver::init_mappings()
 {
   comm_.message("Initializing mappings");
 
+  std::size_t n_global = this->get_heat_driver().n_global_elem();
   if (this->has_global_coupling_data()) {
-    elem_centroids_.resize(gsl::narrow<std::size_t>(n_global_elem_));
+    elem_centroids_.resize(n_global);
   }
 
   if (nek_driver_->active()) {
     // Step 1: Get global element centroids/fluid-identities on all OpenMC ranks
     // Each Nek proc finds the centroids/fluid-identities of its local elements
-    std::vector<Position> local_element_centroids(n_local_elem_);
-    for (int32_t i = 0; i < n_local_elem_; ++i) {
+    int n_local = this->get_heat_driver().n_local_elem();
+    std::vector<Position> local_element_centroids(n_local);
+    for (int32_t i = 0; i < n_local; ++i) {
       local_element_centroids[i] = nek_driver_->centroid_at(i + 1);
     }
     // Gather all the local element centroids/fluid-identities on the Nek5000/OpenMC root
     nek_driver_->comm_.Gatherv(local_element_centroids.data(),
-                               n_local_elem_,
+                               n_local,
                                position_mpi_datatype,
                                elem_centroids_.data(),
                                nek_driver_->local_counts_.data(),
@@ -107,19 +105,19 @@ void OpenmcNekDriver::init_mappings()
     // Broadcast global_element_centroids/fluid-identities onto all the OpenMC procs
     if (openmc_driver_->active()) {
       openmc_driver_->comm_.Bcast(
-        elem_centroids_.data(), n_global_elem_, position_mpi_datatype);
+        elem_centroids_.data(), elem_centroids_.size(), position_mpi_datatype);
     }
 
     // Step 2: Set element->cell and cell->element mappings
     // Create buffer to store cell instance indices corresponding to each Nek global
     // element. This is needed because calls to OpenMC API functions can only be
     // made from processes
-    std::vector<int32_t> elem_to_cell(n_global_elem_);
+    std::vector<int32_t> elem_to_cell(n_global);
 
     if (openmc_driver_->active()) {
       std::unordered_map<CellInstance, index> cell_index;
 
-      for (int32_t i = 0; i < n_global_elem_; ++i) {
+      for (int32_t i = 0; i < n_global; ++i) {
         // Determine cell instance corresponding to global element
         Position elem_pos = elem_centroids_[i];
         CellInstance c{elem_pos};
@@ -142,7 +140,7 @@ void OpenmcNekDriver::init_mappings()
     }
 
     // Set element -> cell instance mapping on each Nek rank
-    intranode_comm_.Bcast(elem_to_cell.data(), n_global_elem_, MPI_INT32_T);
+    intranode_comm_.Bcast(elem_to_cell.data(), elem_to_cell.size(), MPI_INT32_T);
     elem_to_cell_ = elem_to_cell;
 
     // Broadcast number of cell instances
@@ -172,8 +170,9 @@ void OpenmcNekDriver::init_temperatures()
   comm_.message("Initializing temperatures");
 
   if (this->has_global_coupling_data()) {
-    temperatures_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
-    temperatures_prev_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
+    auto n_global = this->get_heat_driver().n_global_elem();
+    temperatures_.resize({n_global});
+    temperatures_prev_.resize({n_global});
 
     if (temperature_ic_ == Initial::neutronics) {
       // Loop over the OpenMC cells, then loop over the global Nek elements
@@ -209,19 +208,21 @@ void OpenmcNekDriver::init_volumes()
 {
   comm_.message("Initializing volumes");
 
+  auto n_global = this->get_heat_driver().n_global_elem();
   if (this->has_global_coupling_data()) {
-    elem_volumes_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
+    elem_volumes_.resize({n_global});
   }
 
   if (nek_driver_->active()) {
     // Every Nek proc gets its local element volumes (lev)
-    std::vector<double> local_elem_volumes(n_local_elem_);
-    for (int32_t i = 0; i < n_local_elem_; ++i) {
+    int n_local = this->get_heat_driver().n_local_elem();
+    std::vector<double> local_elem_volumes(n_local);
+    for (int32_t i = 0; i < n_local; ++i) {
       local_elem_volumes[i] = nek_driver_->volume_at(i + 1);
     }
     // Gather all the local element volumes on the Nek5000/OpenMC root
     nek_driver_->comm_.Gatherv(local_elem_volumes.data(),
-                               n_local_elem_,
+                               n_local,
                                MPI_DOUBLE,
                                elem_volumes_.data(),
                                nek_driver_->local_counts_.data(),
@@ -229,7 +230,7 @@ void OpenmcNekDriver::init_volumes()
                                MPI_DOUBLE);
     // Broadcast global_element_volumes onto all the OpenMC procs
     if (openmc_driver_->active()) {
-      openmc_driver_->comm_.Bcast(elem_volumes_.data(), n_global_elem_, MPI_DOUBLE);
+      openmc_driver_->comm_.Bcast(elem_volumes_.data(), elem_volumes_.size(), MPI_DOUBLE);
     }
   }
 
@@ -255,8 +256,9 @@ void OpenmcNekDriver::init_densities()
   comm_.message("Initializing densities");
 
   if (this->has_global_coupling_data()) {
-    densities_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
-    densities_prev_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
+    auto n_global = this->get_heat_driver().n_global_elem();
+    densities_.resize({n_global});
+    densities_prev_.resize({n_global});
 
     if (density_ic_ == Initial::neutronics) {
       // Loop over the OpenMC cells, then loop over the global Nek elements
@@ -299,8 +301,9 @@ void OpenmcNekDriver::init_elem_fluid_mask()
 {
   comm_.message("Initializing element fluid mask");
 
+  auto n_global = this->get_heat_driver().n_global_elem();
   if (this->has_global_coupling_data()) {
-    elem_fluid_mask_.resize({gsl::narrow<std::size_t>(n_global_elem_)});
+    elem_fluid_mask_.resize({n_global});
   }
   if (nek_driver_->active()) {
     // On Nek's master rank, fm gets global data. On Nek's other ranks, fm is empty
@@ -314,7 +317,7 @@ void OpenmcNekDriver::init_elem_fluid_mask()
     // ranks.
     // TODO: This won't work if the Nek/OpenMC communicators are disjoint
     if (openmc_driver_->active()) {
-      openmc_driver_->comm_.Bcast(elem_fluid_mask_.data(), n_global_elem_, MPI_INT);
+      openmc_driver_->comm_.Bcast(elem_fluid_mask_.data(), n_global, MPI_INT);
     }
   }
 }
@@ -359,7 +362,8 @@ void OpenmcNekDriver::set_heat_source()
     auto displacement = nek_driver_->local_displs_[nek_driver_->comm_.rank];
 
     // Loop over local elements to set heat source
-    for (int32_t local_elem = 1; local_elem <= n_local_elem_; ++local_elem) {
+    int n_local = this->get_heat_driver().n_local_elem();
+    for (int32_t local_elem = 1; local_elem <= n_local; ++local_elem) {
       // get corresponding global element
       int32_t global_index = local_elem + displacement - 1;
 
@@ -378,7 +382,7 @@ void OpenmcNekDriver::set_temperature()
   if (nek_driver_->active()) {
     if (openmc_driver_->active()) {
       // Broadcast global_element_temperatures onto all the OpenMC procs
-      openmc_driver_->comm_.Bcast(temperatures_.data(), n_global_elem_, MPI_DOUBLE);
+      openmc_driver_->comm_.Bcast(temperatures_.data(), temperatures_.size(), MPI_DOUBLE);
 
       // For each OpenMC cell instance, volume average temperatures and set
       for (size_t i = 0; i < openmc_driver_->cells_.size(); ++i) {
@@ -413,7 +417,7 @@ void OpenmcNekDriver::set_density()
     // OpenMC's master rank were updated.  Now we broadcast to the other OpenMC ranks.
     // TODO: This won't work if the Nek/OpenMC communicators are disjoint
     if (openmc_driver_->active()) {
-      openmc_driver_->comm_.Bcast(densities_.data(), n_global_elem_, MPI_DOUBLE);
+      openmc_driver_->comm_.Bcast(densities_.data(), densities_.size(), MPI_DOUBLE);
 
       // For each OpenMC cell instance in a fluid cell, volume average the
       // densities and set

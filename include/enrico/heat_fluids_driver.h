@@ -6,6 +6,8 @@
 #include "enrico/driver.h"
 #include "xtensor/xtensor.hpp"
 
+#include <cstddef> // for size_t
+
 namespace enrico {
 
 //! Base class for driver that controls a heat-fluids solve
@@ -29,6 +31,14 @@ public:
   //! elements, is to the discretion of the particular driver.
   //! \return Temperature in each region as [g/cm^3]
   virtual xt::xtensor<double, 1> density() const = 0;
+
+  //! Get the number of local mesh elements
+  // TODO: make pure virtual
+  virtual int n_local_elem() const { return 0; }
+
+  //! Get the number of global mesh elements
+  // TODO: make pure virtual
+  virtual std::size_t n_global_elem() const { return 0; }
 
   double pressure_bc_; //! System pressure in [MPa]
 };

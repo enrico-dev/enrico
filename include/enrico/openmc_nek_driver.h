@@ -130,14 +130,6 @@ private:
 
   //! Number of cell instances in OpenMC model
   int32_t n_cells_;
-
-  //! Number of Nek local elements on this MPI rank.
-  //! If nek_driver_ is active, this equals nek_driver.nelt_.  If not, it equals 0.
-  int32_t n_local_elem_;
-
-  //! Number of Nek global elements across all ranks.
-  //! Always equals nek_driver_.nelgt_.
-  int32_t n_global_elem_;
 };
 
 } // namespace enrico
