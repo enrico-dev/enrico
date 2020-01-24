@@ -81,9 +81,10 @@ void OpenmcNekDriver::init_mappings()
 {
   comm_.message("Initializing mappings");
 
-  if (nek_driver_->active()) {
+  const auto& heat = this->get_heat_driver();
+  if (heat.active()) {
     // Get centroids from heat driver
-    elem_centroids_ = this->get_heat_driver().centroids();
+    elem_centroids_ = heat.centroids();
 
     // Broadcast global_element_centroids/fluid-identities onto all the OpenMC procs
     if (openmc_driver_->active()) {
@@ -191,9 +192,10 @@ void OpenmcNekDriver::init_volumes()
 {
   comm_.message("Initializing volumes");
 
-  if (nek_driver_->active()) {
+  const auto& heat = this->get_heat_driver();
+  if (heat.active()) {
     // Gather all the local element volumes on the Nek5000/OpenMC root
-    elem_volumes_ = this->get_heat_driver().volumes();
+    elem_volumes_ = heat.volumes();
 
     // Broadcast global_element_volumes onto all the OpenMC procs
     if (openmc_driver_->active()) {
@@ -268,15 +270,17 @@ void OpenmcNekDriver::init_elem_fluid_mask()
 {
   comm_.message("Initializing element fluid mask");
 
-  auto n_global = this->get_heat_driver().n_global_elem();
+  const auto& heat = this->get_heat_driver();
+  auto n_global = heat.n_global_elem();
   if (this->has_global_coupling_data()) {
     elem_fluid_mask_.resize({n_global});
   }
-  if (nek_driver_->active()) {
+
+  if (heat.active()) {
     // On Nek's master rank, fm gets global data. On Nek's other ranks, fm is empty
-    auto fm = nek_driver_->fluid_mask();
+    auto fm = heat.fluid_mask();
     // Initialize elem_fluid_mask_ on Nek's master rank only
-    if (nek_driver_->has_coupling_data()) {
+    if (heat.has_coupling_data()) {
       elem_fluid_mask_ = fm;
     }
     // Since OpenMC's and Nek's master ranks are the same, we know that elem_fluid_mask_
@@ -293,7 +297,7 @@ void OpenmcNekDriver::init_cell_fluid_mask()
 {
   comm_.message("Initializing cell fluid mask");
 
-  if (nek_driver_->active() && openmc_driver_->active()) {
+  if (this->has_global_coupling_data()) {
     auto& cells = openmc_driver_->cells_;
     cell_fluid_mask_.resize({cells.size()});
 
@@ -346,7 +350,7 @@ void OpenmcNekDriver::set_heat_source()
 
 void OpenmcNekDriver::set_temperature()
 {
-  if (nek_driver_->active()) {
+  if (this->get_heat_driver().active()) {
     if (openmc_driver_->active()) {
       // Broadcast global_element_temperatures onto all the OpenMC procs
       openmc_driver_->comm_.Bcast(temperatures_.data(), temperatures_.size(), MPI_DOUBLE);
@@ -379,7 +383,7 @@ void OpenmcNekDriver::set_temperature()
 
 void OpenmcNekDriver::set_density()
 {
-  if (nek_driver_->active()) {
+  if (this->get_heat_driver().active()) {
     // Since OpenMC's and Nek's master ranks are the same, we know that elem_densities_ on
     // OpenMC's master rank were updated.  Now we broadcast to the other OpenMC ranks.
     // TODO: This won't work if the Nek/OpenMC communicators are disjoint
