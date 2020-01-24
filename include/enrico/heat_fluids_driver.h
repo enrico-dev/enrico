@@ -4,6 +4,7 @@
 #define HEAT_FLUIDS_DRIVER_H
 
 #include "enrico/driver.h"
+#include "enrico/message_passing.h"
 #include "xtensor/xtensor.hpp"
 
 #include <cstddef> // for size_t
@@ -40,6 +41,9 @@ public:
   // TODO: make pure virtual
   virtual std::size_t n_global_elem() const { return 0; }
 
+  template<typename T>
+  std::vector<T> gather(const std::vector<T>& local_field);
+
   double pressure_bc_; //! System pressure in [MPa]
 
   //! The displacements of local elements, relative to rank 0. Used in an MPI
@@ -55,6 +59,26 @@ protected:
   //! Initialize the counts and displacements of local elements for each MPI Rank.
   void init_displs();
 };
+
+template<typename T>
+std::vector<T> HeatFluidsDriver::gather(const std::vector<T>& local_field)
+{
+  std::vector<T> global_field;
+
+  if (this->active()) {
+    // Gather all the local quantities on to the root process
+    global_field.resize(this->n_global_elem());
+    comm_.Gatherv(local_field.data(),
+                  local_field.size(),
+                  get_mpi_type<T>(),
+                  global_field.data(),
+                  local_counts_.data(),
+                  local_displs_.data(),
+                  get_mpi_type<T>());
+  }
+
+  return global_field;
+}
 
 } // namespace enrico
 

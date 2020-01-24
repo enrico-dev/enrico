@@ -81,11 +81,6 @@ void OpenmcNekDriver::init_mappings()
 {
   comm_.message("Initializing mappings");
 
-  std::size_t n_global = this->get_heat_driver().n_global_elem();
-  if (this->has_global_coupling_data()) {
-    elem_centroids_.resize(n_global);
-  }
-
   if (nek_driver_->active()) {
     // Step 1: Get global element centroids/fluid-identities on all OpenMC ranks
     // Each Nek proc finds the centroids/fluid-identities of its local elements
@@ -95,13 +90,8 @@ void OpenmcNekDriver::init_mappings()
       local_element_centroids[i] = nek_driver_->centroid_at(i + 1);
     }
     // Gather all the local element centroids/fluid-identities on the Nek5000/OpenMC root
-    nek_driver_->comm_.Gatherv(local_element_centroids.data(),
-                               n_local,
-                               position_mpi_datatype,
-                               elem_centroids_.data(),
-                               nek_driver_->local_counts_.data(),
-                               nek_driver_->local_displs_.data(),
-                               position_mpi_datatype);
+    elem_centroids_ = this->get_heat_driver().gather(local_element_centroids);
+
     // Broadcast global_element_centroids/fluid-identities onto all the OpenMC procs
     if (openmc_driver_->active()) {
       openmc_driver_->comm_.Bcast(
@@ -112,12 +102,12 @@ void OpenmcNekDriver::init_mappings()
     // Create buffer to store cell instance indices corresponding to each Nek global
     // element. This is needed because calls to OpenMC API functions can only be
     // made from processes
-    std::vector<int32_t> elem_to_cell(n_global);
+    std::vector<int32_t> elem_to_cell(elem_centroids_.size());
 
     if (openmc_driver_->active()) {
       std::unordered_map<CellInstance, index> cell_index;
 
-      for (int32_t i = 0; i < n_global; ++i) {
+      for (int32_t i = 0; i < elem_to_cell.size(); ++i) {
         // Determine cell instance corresponding to global element
         Position elem_pos = elem_centroids_[i];
         CellInstance c{elem_pos};
@@ -210,7 +200,7 @@ void OpenmcNekDriver::init_volumes()
 
   auto n_global = this->get_heat_driver().n_global_elem();
   if (this->has_global_coupling_data()) {
-    elem_volumes_.resize({n_global});
+    elem_volumes_.resize(n_global);
   }
 
   if (nek_driver_->active()) {
@@ -221,13 +211,8 @@ void OpenmcNekDriver::init_volumes()
       local_elem_volumes[i] = nek_driver_->volume_at(i + 1);
     }
     // Gather all the local element volumes on the Nek5000/OpenMC root
-    nek_driver_->comm_.Gatherv(local_elem_volumes.data(),
-                               n_local,
-                               MPI_DOUBLE,
-                               elem_volumes_.data(),
-                               nek_driver_->local_counts_.data(),
-                               nek_driver_->local_displs_.data(),
-                               MPI_DOUBLE);
+    elem_volumes_ = this->get_heat_driver().gather(local_elem_volumes);
+
     // Broadcast global_element_volumes onto all the OpenMC procs
     if (openmc_driver_->active()) {
       openmc_driver_->comm_.Bcast(elem_volumes_.data(), elem_volumes_.size(), MPI_DOUBLE);
