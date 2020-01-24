@@ -45,7 +45,7 @@ void NekDriver::init_session_name()
   session_name.close();
 }
 
-xt::xtensor<double, 1> NekDriver::temperature() const
+std::vector<double> NekDriver::temperature_local() const
 {
   // Each Nek proc finds the temperatures of its local elements
   std::vector<double> local_elem_temperatures(nelt_);
@@ -53,19 +53,34 @@ xt::xtensor<double, 1> NekDriver::temperature() const
     local_elem_temperatures[i] = this->temperature_at(i + 1);
   }
 
+  return local_elem_temperatures;
+}
+
+xt::xtensor<double, 1> NekDriver::temperature() const
+{
+  // Get local tempratures on each rank
+  auto local_temperatures = this->temperature_local();
+
   // Gather all the local element temperatures onto the root
-  auto global_temperatures = this->gather(local_elem_temperatures);
+  auto global_temperatures = this->gather(local_temperatures);
 
   // only the return value from root should be used, or else a broadcast added here
   return xt::adapt(global_temperatures);
 }
 
-xt::xtensor<int, 1> NekDriver::fluid_mask() const
+std::vector<int> NekDriver::fluid_mask_local() const
 {
   std::vector<int> local_fluid_mask(nelt_);
   for (int32_t i = 0; i < nelt_; ++i) {
     local_fluid_mask[i] = this->in_fluid_at(i + 1);
   }
+  return local_fluid_mask;
+}
+
+xt::xtensor<int, 1> NekDriver::fluid_mask() const
+{
+  // Get local fluid masks
+  auto local_fluid_mask = this->fluid_mask_local();
 
   // Gather all the local fluid masks onto the root
   auto global_fluid_mask = this->gather(local_fluid_mask);
@@ -73,7 +88,7 @@ xt::xtensor<int, 1> NekDriver::fluid_mask() const
   return xt::adapt(global_fluid_mask);
 }
 
-xt::xtensor<double, 1> NekDriver::density() const
+std::vector<double> NekDriver::density_local() const
 {
   std::vector<double> local_densities(nelt_);
 
@@ -87,6 +102,15 @@ xt::xtensor<double, 1> NekDriver::density() const
     }
   }
 
+  return local_densities;
+}
+
+xt::xtensor<double, 1> NekDriver::density() const
+{
+  // Get local densities on each rank
+  auto local_densities = this->density_local();
+
+  // Gather all local element densities onto the root
   auto global_densities = this->gather(local_densities);
 
   return xt::adapt(global_densities);

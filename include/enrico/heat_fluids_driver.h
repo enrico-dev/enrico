@@ -34,11 +34,11 @@ public:
   virtual xt::xtensor<double, 1> density() const = 0;
 
   //! Get the number of local mesh elements
-  // TODO: make pure virtual
+  // TODO: make pure virtual and remove implementation
   virtual int n_local_elem() const { return 0; }
 
   //! Get the number of global mesh elements
-  // TODO: make pure virtual
+  // TODO: make pure virtual and remove implementation
   virtual std::size_t n_global_elem() const { return 0; }
 
   template<typename T>
@@ -58,6 +58,12 @@ public:
 protected:
   //! Initialize the counts and displacements of local elements for each MPI Rank.
   void init_displs();
+
+private:
+  // TODO: Make pure virtual and remove implementation
+  virtual std::vector<double> temperature_local() const { return {}; }
+  virtual std::vector<double> density_local() const { return {}; }
+  virtual std::vector<int> fluid_mask_local() const { return {}; }
 };
 
 template<typename T>
