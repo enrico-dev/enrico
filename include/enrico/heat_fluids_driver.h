@@ -58,11 +58,6 @@ public:
   //! \return Vector of all volumes
   std::vector<double> volumes() const;
 
-  //! Gather local distributed field into global field (on rank 0)
-  //! \return Global field collected from all ranks
-  template<typename T>
-  std::vector<T> gather(const std::vector<T>& local_field) const;
-
   double pressure_bc_; //! System pressure in [MPa]
 
   //! The displacements of local elements, relative to rank 0. Used in an MPI
@@ -79,6 +74,11 @@ protected:
   void init_displs();
 
 private:
+  //! Gather local distributed field into global field (on rank 0)
+  //! \return Global field collected from all ranks
+  template<typename T>
+  std::vector<T> gather(const std::vector<T>& local_field) const;
+
   // TODO: Make methods below pure virtual and remove implementation
 
   //! Get temperature of local mesh elements
