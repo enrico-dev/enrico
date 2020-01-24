@@ -103,11 +103,8 @@ public:
   void init_displs();
 
   std::string casename_; //!< Nek5000 casename (name of .rea file)
-  int32_t lelg_;             //!< upper bound on number of mesh elements
-  int32_t lelt_;             //!< upper bound on number of mesh elements per rank
-  int32_t lx1_;              //!< polynomial order of the solution
-  int32_t nelgt_;            //!< total number of mesh elements
-  int32_t nelt_;             //!< number of local mesh elements
+  int32_t nelgt_;        //!< total number of mesh elements
+  int32_t nelt_;         //!< number of local mesh elements
 
   //! The number of local elements in each rank.
   std::vector<int32_t> local_displs_;
