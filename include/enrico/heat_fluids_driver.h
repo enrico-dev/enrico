@@ -31,20 +31,29 @@ public:
   //! Get the density in each region. The interpretation of this density,
   //! i.e. whether it refers to fluid elements or both fluid and solid
   //! elements, is to the discretion of the particular driver.
-  //! \return Temperature in each region as [g/cm^3]
+  //! \return Density in each region as [g/cm^3]
   virtual xt::xtensor<double, 1> density() const = 0;
 
   //! Get the number of local mesh elements
+  //! \return Number of local mesh elements
   // TODO: make pure virtual and remove implementation
   virtual int n_local_elem() const { return 0; }
 
   //! Get the number of global mesh elements
+  //! \return Number of global mesh elements
   // TODO: make pure virtual and remove implementation
   virtual std::size_t n_global_elem() const { return 0; }
 
+  //! Get the centroids of all mesh elements
+  //! \return Vector of all centroids
   std::vector<Position> centroids() const;
+
+  //! Get the volumes of all mesh elements
+  //! \return Vector of all volumes
   std::vector<double> volumes() const;
 
+  //! Gather local distributed field into global field (on rank 0)
+  //! \return Global field collected from all ranks
   template<typename T>
   std::vector<T> gather(const std::vector<T>& local_field) const;
 
@@ -64,11 +73,26 @@ protected:
   void init_displs();
 
 private:
-  // TODO: Make pure virtual and remove implementation
+  // TODO: Make methods below pure virtual and remove implementation
+
+  //! Get temperature of local mesh elements
+  //! \return Temperature on local mesh elements in [K]
   virtual std::vector<double> temperature_local() const { return {}; }
+
+  //! Get density of local mesh elements
+  //! \return Density on local mesh elements in [g/cm^3]
   virtual std::vector<double> density_local() const { return {}; }
+
+  //! States whether each local region is in fluid
+  //! \return For each local region, 1 if region is in fluid and 0 otherwise
   virtual std::vector<int> fluid_mask_local() const { return {}; }
+
+  //! Get centroids on local mesh elements
+  //! \return Centroids on local mesh elements
   virtual std::vector<Position> centroid_local() const { return {}; }
+
+  //! Get volumes on local mesh elements
+  //! \return Volumes on local mesh elements
   virtual std::vector<double> volume_local() const { return {}; }
 };
 
