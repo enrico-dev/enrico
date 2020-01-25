@@ -38,7 +38,7 @@ public:
 
   //! States whether each region is in fluid
   //! \return For each region, 1 if region is in fluid and 0 otherwise
-  xt::xtensor<int, 1> fluid_mask() const;
+  std::vector<int> fluid_mask() const;
 
   //! Get the number of local mesh elements
   //! \return Number of local mesh elements
@@ -108,8 +108,11 @@ std::vector<T> HeatFluidsDriver::gather(const std::vector<T>& local_field) const
   std::vector<T> global_field;
 
   if (this->active()) {
+    if (this->has_coupling_data()) {
+      global_field.resize(this->n_global_elem());
+    }
+
     // Gather all the local quantities on to the root process
-    global_field.resize(this->n_global_elem());
     comm_.Gatherv(local_field.data(),
                   local_field.size(),
                   get_mpi_type<T>(),

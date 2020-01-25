@@ -106,7 +106,7 @@ private:
   //! States whether a global element is in the fluid region
   //! These are **not** ordered by Nek's global element indices.  Rather, these are
   //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
-  xt::xtensor<int, 1> elem_fluid_mask_;
+  std::vector<int> elem_fluid_mask_;
 
   //! States whether an OpenMC cell in the fluid region
   xt::xtensor<int, 1> cell_fluid_mask_;

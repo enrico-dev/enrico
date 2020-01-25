@@ -86,17 +86,14 @@ void OpenmcNekDriver::init_mappings()
     // Get centroids from heat driver
     elem_centroids_ = heat.centroids();
 
-    // Broadcast global_element_centroids/fluid-identities onto all the OpenMC procs
-    if (openmc_driver_->active()) {
-      openmc_driver_->comm_.Bcast(
-        elem_centroids_.data(), elem_centroids_.size(), position_mpi_datatype);
-    }
+    // Broadcast centroids onto all the neutronics procs
+    this->get_neutronics_driver().broadcast(elem_centroids_);
 
     // Step 2: Set element->cell and cell->element mappings
     // Create buffer to store cell instance indices corresponding to each Nek global
     // element. This is needed because calls to OpenMC API functions can only be
     // made from processes
-    std::vector<int32_t> elem_to_cell(elem_centroids_.size());
+    std::vector<int32_t> elem_to_cell(heat.n_global_elem());
 
     if (openmc_driver_->active()) {
       std::unordered_map<CellInstance, index> cell_index;
@@ -198,9 +195,7 @@ void OpenmcNekDriver::init_volumes()
     elem_volumes_ = heat.volumes();
 
     // Broadcast global_element_volumes onto all the OpenMC procs
-    if (openmc_driver_->active()) {
-      openmc_driver_->comm_.Bcast(elem_volumes_.data(), elem_volumes_.size(), MPI_DOUBLE);
-    }
+    this->get_neutronics_driver().broadcast(elem_volumes_);
   }
 
   // Volume check
@@ -271,25 +266,13 @@ void OpenmcNekDriver::init_elem_fluid_mask()
   comm_.message("Initializing element fluid mask");
 
   const auto& heat = this->get_heat_driver();
-  auto n_global = heat.n_global_elem();
-  if (this->has_global_coupling_data()) {
-    elem_fluid_mask_.resize({n_global});
-  }
 
   if (heat.active()) {
     // On Nek's master rank, fm gets global data. On Nek's other ranks, fm is empty
-    auto fm = heat.fluid_mask();
-    // Initialize elem_fluid_mask_ on Nek's master rank only
-    if (heat.has_coupling_data()) {
-      elem_fluid_mask_ = fm;
-    }
-    // Since OpenMC's and Nek's master ranks are the same, we know that elem_fluid_mask_
-    // on OpenMC's master rank was initialized.  Now we broadcast to the other OpenMC
-    // ranks.
-    // TODO: This won't work if the Nek/OpenMC communicators are disjoint
-    if (openmc_driver_->active()) {
-      openmc_driver_->comm_.Bcast(elem_fluid_mask_.data(), n_global, MPI_INT);
-    }
+    elem_fluid_mask_ = heat.fluid_mask();
+
+    // Broadcast fluid mask to neutronics driver
+    this->get_neutronics_driver().broadcast(elem_fluid_mask_);
   }
 }
 

@@ -69,15 +69,13 @@ xt::xtensor<double, 1> HeatFluidsDriver::density() const
   return xt::adapt(global_densities);
 }
 
-xt::xtensor<int, 1> HeatFluidsDriver::fluid_mask() const
+std::vector<int> HeatFluidsDriver::fluid_mask() const
 {
   // Get local fluid masks
   auto local_fluid_mask = this->fluid_mask_local();
 
   // Gather all the local fluid masks onto the root
-  auto global_fluid_mask = this->gather(local_fluid_mask);
-
-  return xt::adapt(global_fluid_mask);
+  return this->gather(local_fluid_mask);
 }
 
 }
