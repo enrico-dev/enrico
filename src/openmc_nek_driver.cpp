@@ -78,10 +78,10 @@ void OpenmcNekDriver::init_mappings()
   const auto& heat = this->get_heat_driver();
   if (heat.active()) {
     // Get centroids from heat driver
-    elem_centroids_ = heat.centroids();
+    auto elem_centroids = heat.centroids();
 
     // Broadcast centroids onto all the neutronics procs
-    this->get_neutronics_driver().broadcast(elem_centroids_);
+    this->get_neutronics_driver().broadcast(elem_centroids);
 
     // Step 2: Set element->cell and cell->element mappings
     // Create buffer to store cell instance indices corresponding to each Nek global
@@ -94,7 +94,7 @@ void OpenmcNekDriver::init_mappings()
 
       for (int32_t i = 0; i < elem_to_cell.size(); ++i) {
         // Determine cell instance corresponding to global element
-        Position elem_pos = elem_centroids_[i];
+        Position elem_pos = elem_centroids[i];
         CellInstance c{elem_pos};
 
         // If this cell instance hasn't been saved yet, add it to cells_ and
