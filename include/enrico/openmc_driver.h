@@ -3,9 +3,9 @@
 #ifndef ENRICO_OPENMC_DRIVER_H
 #define ENRICO_OPENMC_DRIVER_H
 
-#include "cell_instance.h"
-#include "geom.h"
-#include "neutronics_driver.h"
+#include "enrico/cell_instance.h"
+#include "enrico/geom.h"
+#include "enrico/neutronics_driver.h"
 
 #include "openmc/cell.h"
 #include "openmc/tallies/filter_cell_instance.h"
@@ -27,9 +27,18 @@ public:
   //! One-time finalization of OpenMC
   ~OpenmcDriver();
 
+  std::vector<CellHandle> find(const std::vector<Position>& position) override;
+  void set_density(CellHandle cell, double rho) const override;
+  void set_temperature(CellHandle cell, double T) const override;
+  double get_density(CellHandle cell) const override;
+  double get_temperature(CellHandle cell) const override;
+  double get_volume(CellHandle cell) const override;
+  bool is_fissionable(CellHandle cell) const override;
+  std::size_t n_cells() const override { return cells_.size(); }
+
   //! Create energy production tallies for a list of cell instances
   //! \param[in] cells  Sequence of OpenMC cell instances
-  void create_tallies(gsl::span<openmc::CellInstance> cells);
+  void create_tallies(std::size_t n) override;
 
   xt::xtensor<double, 1> heat_source(double power) const final;
 

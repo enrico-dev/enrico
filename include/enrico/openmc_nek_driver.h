@@ -108,17 +108,17 @@ private:
   //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
   std::vector<double> elem_volumes_;
 
-  //! Map that gives a list of Nek element global indices for a given OpenMC
-  //! cell instance index. The Nek global element indices refer to indices
-  //! defined by the MPI_Gatherv operation, and do not reflect Nek's internal
-  //! global element indexing.
-  std::unordered_map<int32_t, std::vector<int32_t>> cell_to_elems_;
-
-  //! Map that gives the OpenMC cell instance indices for a given Nek global
-  //! element index. The Nek global element indices refer to indices defined by
+  //! Map that gives a list of Nek element global indices for a given neutronics
+  //! cell handle. The Nek global element indices refer to indices defined by
   //! the MPI_Gatherv operation, and do not reflect Nek's internal global
   //! element indexing.
-  std::vector<int32_t> elem_to_cell_;
+  std::unordered_map<CellHandle, std::vector<int32_t>> cell_to_elems_;
+
+  //! Map that gives the neutronics cell handle for a given Nek global element
+  //! index. The Nek global element indices refer to indices defined by the
+  //! MPI_Gatherv operation, and do not reflect Nek's internal global element
+  //! indexing.
+  std::vector<CellHandle> elem_to_cell_;
 
   //! Number of cell instances in OpenMC model
   int32_t n_cells_;
