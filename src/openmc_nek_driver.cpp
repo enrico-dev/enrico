@@ -284,20 +284,21 @@ void OpenmcNekDriver::set_heat_source()
   // source available on each Nek rank.
   intranode_comm_.Bcast(heat_source_.data(), n_cells_, MPI_DOUBLE);
 
-  if (nek_driver_->active()) {
+  auto& heat = this->get_heat_driver();
+  if (heat.active()) {
     // Determine displacement for this rank
-    auto displacement = nek_driver_->local_displs_[nek_driver_->comm_.rank];
+    auto displacement = heat.local_displs_[heat.comm_.rank];
 
     // Loop over local elements to set heat source
-    int n_local = this->get_heat_driver().n_local_elem();
+    int n_local = heat.n_local_elem();
     for (int32_t local_elem = 1; local_elem <= n_local; ++local_elem) {
       // get corresponding global element
-      int32_t global_index = local_elem + displacement - 1;
+      int32_t global_elem = local_elem + displacement - 1;
 
       // get index to cell instance
-      int32_t cell_index = elem_to_cell_.at(global_index);
+      CellHandle cell = elem_to_cell_.at(global_elem);
 
-      err_chk(nek_driver_->set_heat_source_at(local_elem, heat_source_[cell_index]),
+      err_chk(heat.set_heat_source_at(local_elem, heat_source_[cell]),
               "Error setting heat source for local element " +
                 std::to_string(local_elem));
     }
