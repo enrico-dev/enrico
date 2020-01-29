@@ -27,9 +27,6 @@ public:
   //! \param node XML node containing settings
   explicit OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node);
 
-  //! Frees any data structures that need manual freeing.
-  ~OpenmcNekDriver();
-
   //! Whether the calling rank has access to global coupling fields. Because the OpenMC
   //! and Nek communicators are assumed to overlap (though they are not the same), and
   //! Nek broadcasts its solution onto the OpenMC ranks, we need to check that both

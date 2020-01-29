@@ -43,7 +43,6 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
   openmc_driver_ = std::make_unique<OpenmcDriver>(openmc_comm);
   nek_driver_ = std::make_unique<NekDriver>(comm, pressure_bc, nek_node);
 
-  init_mpi_datatypes();
   init_mappings();
   init_tallies();
   init_volumes();
@@ -55,11 +54,6 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
   init_temperatures();
   init_densities();
   init_heat_source();
-}
-
-OpenmcNekDriver::~OpenmcNekDriver()
-{
-  free_mpi_datatypes();
 }
 
 bool OpenmcNekDriver::has_global_coupling_data() const
