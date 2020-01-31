@@ -3,7 +3,9 @@
 #ifndef NEUTRONICS_DRIVER_H
 #define NEUTRONICS_DRIVER_H
 
-#include "driver.h"
+#include "enrico/driver.h"
+#include "enrico/message_passing.h"
+
 #include "xtensor/xtensor.hpp"
 
 namespace enrico {

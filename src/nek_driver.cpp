@@ -4,6 +4,7 @@
 #include "gsl/gsl"
 #include "iapws/iapws.h"
 #include "nek5000/core/nek_interface.h"
+#include "xtensor/xadapt.hpp"
 
 #include <climits>
 #include <fstream>
@@ -16,10 +17,6 @@ namespace enrico {
 NekDriver::NekDriver(MPI_Comm comm, double pressure_bc, pugi::xml_node node)
   : HeatFluidsDriver(comm, pressure_bc)
 {
-  lelg_ = nek_get_lelg();
-  lelt_ = nek_get_lelt();
-  lx1_ = nek_get_lx1();
-
   if (active()) {
     casename_ = node.child_value("casename");
     if (comm_.rank == 0) {
@@ -48,22 +45,7 @@ void NekDriver::init_session_name()
   session_name.close();
 }
 
-void NekDriver::init_displs()
-{
-  if (active()) {
-    local_counts_.resize(comm_.size);
-    local_displs_.resize(comm_.size);
-
-    comm_.Allgather(&nelt_, 1, MPI_INT32_T, local_counts_.data(), 1, MPI_INT32_T);
-
-    local_displs_.at(0) = 0;
-    for (gsl::index i = 1; i < comm_.size; ++i) {
-      local_displs_.at(i) = local_displs_.at(i - 1) + local_counts_.at(i - 1);
-    }
-  }
-}
-
-xt::xtensor<double, 1> NekDriver::temperature() const
+std::vector<double> NekDriver::temperature_local() const
 {
   // Each Nek proc finds the temperatures of its local elements
   std::vector<double> local_elem_temperatures(nelt_);
@@ -71,50 +53,19 @@ xt::xtensor<double, 1> NekDriver::temperature() const
     local_elem_temperatures[i] = this->temperature_at(i + 1);
   }
 
-  xt::xtensor<double, 1> global_elem_temperatures = xt::xtensor<double, 1>();
-
-  // only the rank 0 process allocates the size for the receive buffer
-  if (comm_.rank == 0) {
-    global_elem_temperatures.resize({gsl::narrow<std::size_t>(nelgt_)});
-  }
-
-  // Gather all the local element temperatures onto the root
-  comm_.Gatherv(local_elem_temperatures.data(),
-                nelt_,
-                MPI_DOUBLE,
-                global_elem_temperatures.data(),
-                local_counts_.data(),
-                local_displs_.data(),
-                MPI_DOUBLE);
-
-  // only the return value from root should be used, or else a broadcast added here
-  return global_elem_temperatures;
+  return local_elem_temperatures;
 }
 
-xt::xtensor<int, 1> NekDriver::fluid_mask() const
+std::vector<int> NekDriver::fluid_mask_local() const
 {
   std::vector<int> local_fluid_mask(nelt_);
   for (int32_t i = 0; i < nelt_; ++i) {
     local_fluid_mask[i] = this->in_fluid_at(i + 1);
   }
-
-  xt::xtensor<int, 1> global_fluid_mask;
-  if (comm_.rank == 0) {
-    global_fluid_mask.resize({gsl::narrow<std::size_t>(nelgt_)});
-  }
-
-  comm_.Gatherv(local_fluid_mask.data(),
-                nelt_,
-                MPI_INT,
-                global_fluid_mask.data(),
-                local_counts_.data(),
-                local_displs_.data(),
-                MPI_INT);
-
-  return global_fluid_mask;
+  return local_fluid_mask;
 }
 
-xt::xtensor<double, 1> NekDriver::density() const
+std::vector<double> NekDriver::density_local() const
 {
   std::vector<double> local_densities(nelt_);
 
@@ -128,21 +79,7 @@ xt::xtensor<double, 1> NekDriver::density() const
     }
   }
 
-  xt::xtensor<double, 1> global_densities;
-
-  if (comm_.rank == 0) {
-    global_densities.resize({gsl::narrow<std::size_t>(nelgt_)});
-  }
-
-  comm_.Gatherv(local_densities.data(),
-                nelt_,
-                MPI_DOUBLE,
-                global_densities.data(),
-                local_counts_.data(),
-                local_displs_.data(),
-                MPI_DOUBLE);
-
-  return global_densities;
+  return local_densities;
 }
 
 void NekDriver::solve_step()
@@ -159,12 +96,32 @@ Position NekDriver::centroid_at(int32_t local_elem) const
   return {x, y, z};
 }
 
+std::vector<Position> NekDriver::centroid_local() const
+{
+  int n_local = this->n_local_elem();
+  std::vector<Position> local_element_centroids(n_local);
+  for (int32_t i = 0; i < n_local; ++i) {
+    local_element_centroids[i] = this->centroid_at(i + 1);
+  }
+  return local_element_centroids;
+}
+
 double NekDriver::volume_at(int32_t local_elem) const
 {
   double volume;
   err_chk(nek_get_local_elem_volume(local_elem, &volume),
           "Could not find volume of local element " + std::to_string(local_elem));
   return volume;
+}
+
+std::vector<double> NekDriver::volume_local() const
+{
+  int n_local = this->n_local_elem();
+  std::vector<double> local_elem_volumes(n_local);
+  for (int32_t i = 0; i < n_local; ++i) {
+    local_elem_volumes[i] = this->volume_at(i + 1);
+  }
+  return local_elem_volumes;
 }
 
 double NekDriver::temperature_at(int32_t local_elem) const

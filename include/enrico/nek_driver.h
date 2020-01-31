@@ -48,14 +48,6 @@ public:
   //! Only Nek's master rank has access to the global data; data on other ranks is empty
   bool has_coupling_data() const final { return comm_.rank == 0; }
 
-  xt::xtensor<double, 1> temperature() const final;
-
-  xt::xtensor<double, 1> density() const final;
-
-  //! States whether each region is in fluid
-  //! \return For each region, 1 if region is in fluid and 0 otherwise
-  xt::xtensor<int, 1> fluid_mask() const;
-
   //! Get the coordinate of a local element's centroid.
   //!
   //! The coordinate is dimensionless.  Its units depend on the unit system used that was
@@ -99,27 +91,43 @@ public:
   //! \return Error code
   int set_heat_source_at(int32_t local_elem, double heat);
 
-  //! Initialize the counts and displacements of local elements for each MPI Rank.
-  void init_displs();
+  //! Get the number of local mesh elements
+  //! \return Number of local mesh elements
+  int n_local_elem() const override { return active() ? nelt_ : 0; }
+
+  //! Get the number of global mesh elements
+  //! \return Number of global mesh elements
+  std::size_t n_global_elem() const override { return active() ? nelgt_ : 0; }
 
   std::string casename_; //!< Nek5000 casename (name of .rea file)
-  int32_t lelg_;             //!< upper bound on number of mesh elements
-  int32_t lelt_;             //!< upper bound on number of mesh elements per rank
-  int32_t lx1_;              //!< polynomial order of the solution
-  int32_t nelgt_;            //!< total number of mesh elements
-  int32_t nelt_;             //!< number of local mesh elements
-
-  //! The number of local elements in each rank.
-  std::vector<int32_t> local_displs_;
-
-  //! The displacements of local elements, relative to rank 0. Used in an MPI gatherv
-  //! operation.
-  std::vector<int32_t> local_counts_;
 
   // Intended to be the local-to-global element ordering, as ensured by a Gatherv
   // operation. It is currently unused, as the coupling does not need to know the
   // local-global ordering.
   // std::vector<int> local_ordering_;
+private:
+  //! Get temperature of local mesh elements
+  //! \return Temperature on local mesh elements in [K]
+  std::vector<double> temperature_local() const override;
+
+  //! Get density of local mesh elements
+  //! \return Density on local mesh elements in [g/cm^3]
+  std::vector<double> density_local() const override;
+
+  //! States whether each local region is in fluid
+  //! \return For each local region, 1 if region is in fluid and 0 otherwise
+  std::vector<int> fluid_mask_local() const override;
+
+  //! Get centroids on local mesh elements
+  //! \return Centroids on local mesh elements
+  std::vector<Position> centroid_local() const override;
+
+  //! Get volumes on local mesh elements
+  //! \return Volumes on local mesh elements
+  std::vector<double> volume_local() const override;
+
+  int32_t nelgt_; //!< total number of mesh elements
+  int32_t nelt_;  //!< number of local mesh elements
 };
 
 } // namespace enrico

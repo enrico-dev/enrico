@@ -11,6 +11,7 @@ int main(int argc, char* argv[])
 {
   // Initialize MPI
   MPI_Init(&argc, &argv);
+  enrico::init_mpi_datatypes();
 
   // Define enums for selecting drivers
   enum class Transport { OpenMC, Shift, Surrogate };
@@ -71,6 +72,7 @@ int main(int argc, char* argv[])
     break;
   }
 
+  enrico::free_mpi_datatypes();
   MPI_Finalize();
   return 0;
 }

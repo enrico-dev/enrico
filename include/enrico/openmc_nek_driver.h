@@ -27,9 +27,6 @@ public:
   //! \param node XML node containing settings
   explicit OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node);
 
-  //! Frees any data structures that need manual freeing.
-  ~OpenmcNekDriver();
-
   //! Whether the calling rank has access to global coupling fields. Because the OpenMC
   //! and Nek communicators are assumed to overlap (though they are not the same), and
   //! Nek broadcasts its solution onto the OpenMC ranks, we need to check that both
@@ -85,9 +82,6 @@ protected:
   void init_cell_fluid_mask();
 
 private:
-  //! Initialize MPI datatypes (currently, only position_mpi_datatype)
-  void init_mpi_datatypes();
-
   //! Create bidirectional mappings from OpenMC cell instances to/from Nek5000 elements
   void init_mappings();
 
@@ -97,15 +91,9 @@ private:
   //! Initialize global volume buffers for OpenMC ranks
   void init_volumes();
 
-  //! Frees the MPI datatypes (currently, only position_mpi_datatype)
-  void free_mpi_datatypes();
-
   std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
 
   std::unique_ptr<NekDriver> nek_driver_; //!< The Nek5000 driver
-
-  //! MPI datatype for sending/receiving Position objects.
-  MPI_Datatype position_mpi_datatype;
 
   //! Gives a Position of a global element's centroid
   //! These are **not** ordered by Nek's global element indices.  Rather, these are
@@ -115,7 +103,7 @@ private:
   //! States whether a global element is in the fluid region
   //! These are **not** ordered by Nek's global element indices.  Rather, these are
   //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
-  xt::xtensor<int, 1> elem_fluid_mask_;
+  std::vector<int> elem_fluid_mask_;
 
   //! States whether an OpenMC cell in the fluid region
   xt::xtensor<int, 1> cell_fluid_mask_;
@@ -123,7 +111,7 @@ private:
   //! The dimensionless volumes of Nek's global elements
   //! These are **not** ordered by Nek's global element indices.  Rather, these are
   //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
-  xt::xtensor<double, 1> elem_volumes_;
+  std::vector<double> elem_volumes_;
 
   //! Map that gives a list of Nek element global indices for a given OpenMC
   //! cell instance index. The Nek global element indices refer to indices
@@ -139,14 +127,6 @@ private:
 
   //! Number of cell instances in OpenMC model
   int32_t n_cells_;
-
-  //! Number of Nek local elements on this MPI rank.
-  //! If nek_driver_ is active, this equals nek_driver.nelt_.  If not, it equals 0.
-  int32_t n_local_elem_;
-
-  //! Number of Nek global elements across all ranks.
-  //! Always equals nek_driver_.nelgt_.
-  int32_t n_global_elem_;
 };
 
 } // namespace enrico

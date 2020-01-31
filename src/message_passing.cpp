@@ -1,8 +1,20 @@
 #include "enrico/message_passing.h"
 
+#include "enrico/geom.h"
+
 #include <mpi.h>
 
 namespace enrico {
+
+//==============================================================================
+// Global variables
+//==============================================================================
+
+MPI_Datatype position_mpi_datatype{MPI_DATATYPE_NULL};
+
+//==============================================================================
+// Functions
+//==============================================================================
 
 void get_node_comms(MPI_Comm super_comm,
                     int procs_per_node,
@@ -30,9 +42,8 @@ void get_node_comms(MPI_Comm super_comm,
     MPI_Comm_free(sub_comm);
 }
 
-MPI_Datatype define_position_mpi_datatype()
+void init_mpi_datatypes()
 {
-
   Position p;
   int blockcounts[3] = {1, 1, 1};
   MPI_Datatype types[3] = {MPI_DOUBLE, MPI_DOUBLE, MPI_DOUBLE};
@@ -49,11 +60,30 @@ MPI_Datatype define_position_mpi_datatype()
   displs[0] = 0;
 
   // Make datatype
-  MPI_Datatype type;
-  MPI_Type_create_struct(3, blockcounts, displs, types, &type);
-  MPI_Type_commit(&type);
+  MPI_Type_create_struct(3, blockcounts, displs, types, &position_mpi_datatype);
+  MPI_Type_commit(&position_mpi_datatype);
+}
 
-  return type;
+void free_mpi_datatypes()
+{
+  MPI_Type_free(&position_mpi_datatype);
+}
+
+// Traits for mapping plain types to corresponding MPI types
+template<>
+MPI_Datatype get_mpi_type<int>()
+{
+  return MPI_INT;
+}
+template<>
+MPI_Datatype get_mpi_type<double>()
+{
+  return MPI_DOUBLE;
+}
+template<>
+MPI_Datatype get_mpi_type<Position>()
+{
+  return position_mpi_datatype;
 }
 
 } // namespace enrico
