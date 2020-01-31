@@ -60,7 +60,6 @@ void init_mpi_datatypes()
   displs[0] = 0;
 
   // Make datatype
-  MPI_Datatype type;
   MPI_Type_create_struct(3, blockcounts, displs, types, &position_mpi_datatype);
   MPI_Type_commit(&position_mpi_datatype);
 }
