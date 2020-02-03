@@ -85,16 +85,16 @@ void OpenmcNekDriver::init_mappings()
 
     // Set element->cell and cell->element mappings. Create buffer to store cell
     // handles corresponding to each heat-fluids global element.
-    std::vector<CellHandle> elem_to_cell(heat.n_global_elem());
+    elem_to_cell_.resize(heat.n_global_elem());
 
     auto& neutronics = this->get_neutronics_driver();
     if (neutronics.active()) {
       // Get cell handle corresponding to each element centroid
-      elem_to_cell = neutronics.find(elem_centroids);
+      elem_to_cell_ = neutronics.find(elem_centroids);
 
       // Create a vector of elements for each neutronics cell
-      for (int32_t elem = 0; elem < elem_to_cell.size(); ++elem) {
-        auto cell = elem_to_cell[elem];
+      for (int32_t elem = 0; elem < elem_to_cell_.size(); ++elem) {
+        auto cell = elem_to_cell_[elem];
         cell_to_elems_[cell].push_back(elem);
       }
 
@@ -103,8 +103,7 @@ void OpenmcNekDriver::init_mappings()
     }
 
     // Set element -> cell instance mapping on each Nek rank
-    intranode_comm_.Bcast(elem_to_cell.data(), elem_to_cell.size(), MPI_UINT64_T);
-    elem_to_cell_ = elem_to_cell;
+    intranode_comm_.Bcast(elem_to_cell_.data(), elem_to_cell_.size(), MPI_UINT64_T);
 
     // Broadcast number of cell instances
     intranode_comm_.Bcast(&n_cells_, 1, MPI_INT32_T);
