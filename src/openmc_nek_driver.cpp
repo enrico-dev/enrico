@@ -3,6 +3,8 @@
 #include "enrico/const.h"
 #include "enrico/error.h"
 #include "enrico/message_passing.h"
+#include "enrico/nek_driver.h"
+#include "enrico/openmc_driver.h"
 
 #include "gsl/gsl"
 #include "nek5000/core/nek_interface.h"
@@ -40,8 +42,8 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
   intranode_comm_ = Comm(intranode_comm);
 
   // Instantiate OpenMC and Nek drivers
-  openmc_driver_ = std::make_unique<OpenmcDriver>(openmc_comm);
-  nek_driver_ = std::make_unique<NekDriver>(comm, pressure_bc, nek_node);
+  neutronics_driver_ = std::make_unique<OpenmcDriver>(openmc_comm);
+  heat_fluids_driver_ = std::make_unique<NekDriver>(comm, pressure_bc, nek_node);
 
   init_mappings();
   init_tallies();
@@ -58,17 +60,17 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
 
 bool OpenmcNekDriver::has_global_coupling_data() const
 {
-  return openmc_driver_->active() && nek_driver_->active();
+  return this->get_neutronics_driver().active() && this->get_heat_driver().active();
 }
 
 NeutronicsDriver& OpenmcNekDriver::get_neutronics_driver() const
 {
-  return *openmc_driver_;
+  return *neutronics_driver_;
 }
 
 HeatFluidsDriver& OpenmcNekDriver::get_heat_driver() const
 {
-  return *nek_driver_;
+  return *heat_fluids_driver_;
 }
 
 void OpenmcNekDriver::init_mappings()

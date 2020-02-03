@@ -4,12 +4,13 @@
 #define ENRICO_OPENMC_NEK_DRIVER_H
 
 #include "enrico/coupled_driver.h"
+#include "enrico/heat_fluids_driver.h"
 #include "enrico/message_passing.h"
-#include "enrico/nek_driver.h"
-#include "enrico/openmc_driver.h"
-#include "mpi.h"
+#include "enrico/neutronics_driver.h"
 
-#include <unordered_set>
+#include <mpi.h>
+
+#include <unordered_map>
 
 namespace enrico {
 
@@ -91,9 +92,8 @@ private:
   //! Initialize global volume buffers for OpenMC ranks
   void init_volumes();
 
-  std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
-
-  std::unique_ptr<NekDriver> nek_driver_; //!< The Nek5000 driver
+  std::unique_ptr<NeutronicsDriver> neutronics_driver_;  //!< The neutronics driver
+  std::unique_ptr<HeatFluidsDriver> heat_fluids_driver_; //!< The heat-fluids driver
 
   //! States whether a global element is in the fluid region
   //! These are **not** ordered by Nek's global element indices.  Rather, these are
