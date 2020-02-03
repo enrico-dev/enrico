@@ -180,10 +180,16 @@ void OpenmcNekDriver::init_volumes()
       for (const auto& elem : cell_to_elems_.at(cell)) {
         v_nek += elem_volumes_.at(elem);
       }
-      // std::stringstream msg;
-      // msg << "Cell " << openmc::model::cells[c.index_]->id_ << " (" << c.instance_
-      //     << "), V = " << v_openmc << " (OpenMC), " << v_nek << " (Nek)";
-      // comm_.message(msg.str());
+
+      // TODO: Refactor to avoid dynamic_cast
+      const auto* openmc_driver = dynamic_cast<const OpenmcDriver*>(&neutronics);
+      if (openmc_driver) {
+        const auto& c = openmc_driver->cells_[cell];
+        std::stringstream msg;
+        msg << "Cell " << openmc::model::cells[c.index_]->id_ << " (" << c.instance_
+            << "), V = " << v_openmc << " (OpenMC), " << v_nek << " (Nek)";
+        comm_.message(msg.str());
+      }
     }
   }
 }
