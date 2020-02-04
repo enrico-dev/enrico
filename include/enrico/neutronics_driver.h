@@ -4,6 +4,7 @@
 #define NEUTRONICS_DRIVER_H
 
 #include "enrico/driver.h"
+#include "enrico/geom.h"
 #include "enrico/message_passing.h"
 
 #include <gsl/gsl>

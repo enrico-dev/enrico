@@ -83,7 +83,7 @@ void OpenmcNekDriver::init_mappings()
     auto elem_centroids = heat.centroids();
 
     // Broadcast centroids onto all the neutronics procs
-    this->get_neutronics_driver().broadcast(elem_centroids);
+    this->get_neutronics_driver().comm_.broadcast(elem_centroids);
 
     // Set element->cell and cell->element mappings. Create buffer to store cell
     // handles corresponding to each heat-fluids global element.
@@ -105,7 +105,7 @@ void OpenmcNekDriver::init_mappings()
     }
 
     // Set element -> cell instance mapping on each Nek rank
-    intranode_comm_.Bcast(elem_to_cell_.data(), elem_to_cell_.size(), MPI_UINT64_T);
+    intranode_comm_.broadcast(elem_to_cell_);
 
     // Broadcast number of cell instances
     intranode_comm_.Bcast(&n_cells_, 1, MPI_INT32_T);
@@ -169,7 +169,7 @@ void OpenmcNekDriver::init_volumes()
     elem_volumes_ = heat.volumes();
 
     // Broadcast global_element_volumes onto all the OpenMC procs
-    this->get_neutronics_driver().broadcast(elem_volumes_);
+    this->get_neutronics_driver().comm_.broadcast(elem_volumes_);
   }
 
   // Volume check
@@ -252,7 +252,7 @@ void OpenmcNekDriver::init_elem_fluid_mask()
     elem_fluid_mask_ = heat.fluid_mask();
 
     // Broadcast fluid mask to neutronics driver
-    this->get_neutronics_driver().broadcast(elem_fluid_mask_);
+    this->get_neutronics_driver().comm_.broadcast(elem_fluid_mask_);
   }
 }
 

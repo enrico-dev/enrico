@@ -4,7 +4,7 @@ namespace enrico {
 
 bool Driver::active() const
 {
-  return comm_.comm != MPI_COMM_NULL;
+  return comm_.active();
 }
 
 } // namespace enrico
