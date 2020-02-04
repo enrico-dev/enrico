@@ -3,8 +3,7 @@
 #ifndef ENRICO_MESSAGE_PASSING_H
 #define ENRICO_MESSAGE_PASSING_H
 
-#include "geom.h"
-#include "mpi.h"
+#include <mpi.h>
 
 //! The ENRICO namespace
 namespace enrico {
@@ -62,10 +61,7 @@ void free_mpi_datatypes();
 
 //! Map types to corresponding MPI datatypes
 template<typename T>
-MPI_Datatype get_mpi_type()
-{
-  return MPI_DATATYPE_NULL;
-}
+MPI_Datatype get_mpi_type();
 
 } // namespace enrico
 

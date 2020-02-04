@@ -3,9 +3,13 @@
 #ifndef ENRICO_COMM_H
 #define ENRICO_COMM_H
 
-#include "mpi.h"
+#include "enrico/message_passing.h"
+
+#include <mpi.h>
+
 #include <iostream>
 #include <string>
+#include <vector>
 
 namespace enrico {
 
@@ -27,6 +31,10 @@ public:
     }
   }
 
+  //! Queries whether the communicator is active
+  //! \return True if the communicator is not MPI_COMM_NULL
+  bool active() const { return comm != MPI_COMM_NULL; }
+
   //! Block until all processes have reached this call
   //!
   //! \return Error value
@@ -46,6 +54,11 @@ public:
   {
     return MPI_Bcast(buffer, count, datatype, root, comm);
   }
+
+  //! Broadcast a vector across ranks, possibly resizing it
+  //! \param values Values to broadcast (significant at rank 0)
+  template<typename T>
+  void broadcast(std::vector<T>& values) const;
 
   //! Gathers together values from the processes in this comm onto a given root.
   //!
@@ -139,6 +152,21 @@ public:
   int size = 0;                     //!< The size of Comm::comm.
   int rank = MPI_PROC_NULL;         //!< The calling process's rank in Comm:comm
 };
+
+template<typename T>
+void Comm::broadcast(std::vector<T>& values) const
+{
+  if (this->active()) {
+    // First broadcast the size of the vector
+    int n = values.size();
+    this->Bcast(&n, 1, MPI_INT);
+
+    // Resize vector (for rank != 0) and broacast data
+    if (values.size() != n)
+      values.resize(n);
+    this->Bcast(values.data(), n, get_mpi_type<T>());
+  }
+}
 
 } // namespace enrico
 

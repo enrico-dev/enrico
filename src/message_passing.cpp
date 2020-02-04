@@ -69,17 +69,61 @@ void free_mpi_datatypes()
   MPI_Type_free(&position_mpi_datatype);
 }
 
-// Traits for mapping plain types to corresponding MPI types
+// Traits for mapping plain types to corresponding MPI types (ints)
+template<>
+MPI_Datatype get_mpi_type<char>()
+{
+  return MPI_CHAR;
+}
+template<>
+MPI_Datatype get_mpi_type<short>()
+{
+  return MPI_SHORT;
+}
 template<>
 MPI_Datatype get_mpi_type<int>()
 {
   return MPI_INT;
 }
 template<>
+MPI_Datatype get_mpi_type<long>()
+{
+  return MPI_LONG;
+}
+template<>
+MPI_Datatype get_mpi_type<long long>()
+{
+  return MPI_LONG_LONG;
+}
+template<>
+MPI_Datatype get_mpi_type<unsigned int>()
+{
+  return MPI_UNSIGNED;
+}
+template<>
+MPI_Datatype get_mpi_type<unsigned long>()
+{
+  return MPI_UNSIGNED_LONG;
+}
+template<>
+MPI_Datatype get_mpi_type<unsigned long long>()
+{
+  return MPI_UNSIGNED_LONG_LONG;
+}
+
+// Traits for mapping plain types to corresponding MPI types (reals)
+template<>
+MPI_Datatype get_mpi_type<float>()
+{
+  return MPI_FLOAT;
+}
+template<>
 MPI_Datatype get_mpi_type<double>()
 {
   return MPI_DOUBLE;
 }
+
+// Traits for mapping plain types to corresponding MPI types (user defined)
 template<>
 MPI_Datatype get_mpi_type<Position>()
 {

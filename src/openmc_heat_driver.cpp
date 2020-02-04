@@ -181,20 +181,8 @@ void OpenmcHeatDriver::init_mappings()
 
 void OpenmcHeatDriver::init_tallies()
 {
-  using gsl::index;
-  using gsl::narrow_cast;
-
   if (openmc_driver_->active()) {
-    // Build vector of cell instances to construct tallies; tallies are only
-    // used in the solid regions
-    std::vector<openmc::CellInstance> cells;
-    for (gsl::index c = 0; c < n_solid_cells_; ++c) {
-      const auto& cell = openmc_driver_->cells_[c];
-      cells.push_back(
-        {narrow_cast<index>(cell.index_), narrow_cast<index>(cell.instance_)});
-    }
-
-    openmc_driver_->create_tallies(cells);
+    openmc_driver_->create_tallies(n_solid_cells_);
   }
 }
 

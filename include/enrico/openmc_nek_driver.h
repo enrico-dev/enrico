@@ -4,12 +4,13 @@
 #define ENRICO_OPENMC_NEK_DRIVER_H
 
 #include "enrico/coupled_driver.h"
+#include "enrico/heat_fluids_driver.h"
 #include "enrico/message_passing.h"
-#include "enrico/nek_driver.h"
-#include "enrico/openmc_driver.h"
-#include "mpi.h"
+#include "enrico/neutronics_driver.h"
 
-#include <unordered_set>
+#include <mpi.h>
+
+#include <unordered_map>
 
 namespace enrico {
 
@@ -91,14 +92,8 @@ private:
   //! Initialize global volume buffers for OpenMC ranks
   void init_volumes();
 
-  std::unique_ptr<OpenmcDriver> openmc_driver_; //!< The OpenMC driver
-
-  std::unique_ptr<NekDriver> nek_driver_; //!< The Nek5000 driver
-
-  //! Gives a Position of a global element's centroid
-  //! These are **not** ordered by Nek's global element indices.  Rather, these are
-  //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
-  std::vector<Position> elem_centroids_;
+  std::unique_ptr<NeutronicsDriver> neutronics_driver_;  //!< The neutronics driver
+  std::unique_ptr<HeatFluidsDriver> heat_fluids_driver_; //!< The heat-fluids driver
 
   //! States whether a global element is in the fluid region
   //! These are **not** ordered by Nek's global element indices.  Rather, these are
@@ -113,17 +108,17 @@ private:
   //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
   std::vector<double> elem_volumes_;
 
-  //! Map that gives a list of Nek element global indices for a given OpenMC
-  //! cell instance index. The Nek global element indices refer to indices
-  //! defined by the MPI_Gatherv operation, and do not reflect Nek's internal
-  //! global element indexing.
-  std::unordered_map<int32_t, std::vector<int32_t>> cell_to_elems_;
-
-  //! Map that gives the OpenMC cell instance indices for a given Nek global
-  //! element index. The Nek global element indices refer to indices defined by
+  //! Map that gives a list of Nek element global indices for a given neutronics
+  //! cell handle. The Nek global element indices refer to indices defined by
   //! the MPI_Gatherv operation, and do not reflect Nek's internal global
   //! element indexing.
-  std::vector<int32_t> elem_to_cell_;
+  std::unordered_map<CellHandle, std::vector<int32_t>> cell_to_elems_;
+
+  //! Map that gives the neutronics cell handle for a given Nek global element
+  //! index. The Nek global element indices refer to indices defined by the
+  //! MPI_Gatherv operation, and do not reflect Nek's internal global element
+  //! indexing.
+  std::vector<CellHandle> elem_to_cell_;
 
   //! Number of cell instances in OpenMC model
   int32_t n_cells_;

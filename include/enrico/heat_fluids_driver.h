@@ -40,6 +40,8 @@ public:
   //! \return For each region, 1 if region is in fluid and 0 otherwise
   std::vector<int> fluid_mask() const;
 
+  virtual int set_heat_source_at(int32_t local_elem, double heat) const { return 0; }
+
   //! Get the number of local mesh elements
   //! \return Number of local mesh elements
   // TODO: make pure virtual and remove implementation
