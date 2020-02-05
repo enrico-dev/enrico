@@ -183,7 +183,7 @@ void Comm::broadcast(xt::xtensor<T, N>& values) const
     std::copy(s.begin(), s.end(), std::back_inserter(my_shape));
 
     std::vector<int> root_shape(my_shape);
-    broadcast<int>(root_shape);
+    broadcast(root_shape);
 
     if (my_shape != root_shape) {
       values.resize(root_shape);
