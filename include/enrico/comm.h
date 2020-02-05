@@ -4,6 +4,7 @@
 #define ENRICO_COMM_H
 
 #include "enrico/message_passing.h"
+#include "xtensor/xtensor.hpp"
 
 #include <mpi.h>
 
@@ -59,6 +60,9 @@ public:
   //! \param values Values to broadcast (significant at rank 0)
   template<typename T>
   void broadcast(std::vector<T>& values) const;
+
+  template<typename T, size_t N>
+  void broadcast(xt::xtensor<T, N>& values) const;
 
   //! Gathers together values from the processes in this comm onto a given root.
   //!
@@ -164,6 +168,32 @@ void Comm::broadcast(std::vector<T>& values) const
     // Resize vector (for rank != 0) and broacast data
     if (values.size() != n)
       values.resize(n);
+    this->Bcast(values.data(), n, get_mpi_type<T>());
+  }
+}
+
+template<typename T, size_t N>
+void Comm::broadcast(xt::xtensor<T, N>& values) const
+{
+  if (this->active()) {
+    // First, make sure shape of `values` matches root's
+    auto& s = values.shape();
+
+    std::vector<int> my_shape;
+    std::copy(s.begin(), s.end(), std::back_inserter(my_shape));
+
+    std::vector<int> root_shape(my_shape);
+    broadcast<int>(root_shape);
+
+    if (my_shape != root_shape) {
+      values.resize(root_shape);
+    }
+
+    // Next, broadcast size
+    int n = values.size();
+    this->Bcast(&n, 1, MPI_INT);
+
+    // Finally, broadcast data
     this->Bcast(values.data(), n, get_mpi_type<T>());
   }
 }
