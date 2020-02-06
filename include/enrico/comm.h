@@ -178,13 +178,10 @@ void Comm::broadcast(xt::xtensor<T, N>& values) const
   if (this->active()) {
     // First, make sure shape of `values` matches root's
     auto& s = values.shape();
+    std::vector<size_t> my_shape(s.begin(), s.end());
+    std::vector<size_t> root_shape(my_shape);
 
-    std::vector<int> my_shape;
-    std::copy(s.begin(), s.end(), std::back_inserter(my_shape));
-
-    std::vector<int> root_shape(my_shape);
-    broadcast(root_shape);
-
+    this->broadcast(root_shape);
     if (my_shape != root_shape) {
       values.resize(root_shape);
     }
