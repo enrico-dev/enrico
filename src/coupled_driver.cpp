@@ -151,7 +151,7 @@ bool CoupledDriver::is_converged()
     comm_.message(msg);
   }
 
-  comm_.Bcast(&converged, 1, MPI_CXX_BOOL);
+  comm_.broadcast(converged);
   return converged;
 }
 

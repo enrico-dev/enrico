@@ -56,11 +56,18 @@ public:
     return MPI_Bcast(buffer, count, datatype, root, comm);
   }
 
+  //! Broadcast a scalar value across ranks
+  //! \param value Value to broadcast (significant at rank 0)
+  template<typename T>
+  std::enable_if_t<std::is_scalar<std::decay_t<T>>::value> broadcast(T& value) const;
+
   //! Broadcast a vector across ranks, possibly resizing it
   //! \param values Values to broadcast (significant at rank 0)
   template<typename T>
   void broadcast(std::vector<T>& values) const;
 
+  //! Broadcast an xtensor across ranks, possibly resizing it to match root's shape
+  //! \param values Values to broadcast (significant at rank 0)
   template<typename T, size_t N>
   void broadcast(xt::xtensor<T, N>& values) const;
 
@@ -158,12 +165,18 @@ public:
 };
 
 template<typename T>
+std::enable_if_t<std::is_scalar<std::decay_t<T>>::value> Comm::broadcast(T& value) const
+{
+  this->Bcast(&value, 1, get_mpi_type<T>());
+}
+
+template<typename T>
 void Comm::broadcast(std::vector<T>& values) const
 {
   if (this->active()) {
     // First broadcast the size of the vector
     int n = values.size();
-    this->Bcast(&n, 1, MPI_INT);
+    this->broadcast(n);
 
     // Resize vector (for rank != 0) and broacast data
     if (values.size() != n)
@@ -188,7 +201,7 @@ void Comm::broadcast(xt::xtensor<T, N>& values) const
 
     // Next, broadcast size
     int n = values.size();
-    this->Bcast(&n, 1, MPI_INT);
+    this->broadcast(n);
 
     // Finally, broadcast data
     this->Bcast(values.data(), n, get_mpi_type<T>());

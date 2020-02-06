@@ -108,7 +108,7 @@ void OpenmcNekDriver::init_mappings()
     intranode_comm_.broadcast(elem_to_cell_);
 
     // Broadcast number of cell instances
-    intranode_comm_.Bcast(&n_cells_, 1, MPI_INT32_T);
+    intranode_comm_.broadcast(n_cells_);
   }
 }
 

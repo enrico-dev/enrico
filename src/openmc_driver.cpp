@@ -85,7 +85,7 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
 
   // Broadcast number of realizations
   // TODO: Change OpenMC so that it's correct on all ranks
-  comm_.Bcast(&m, 1, MPI_INT);
+  comm_.broadcast(m);
 
   // Determine energy production in each material
   auto mean_value = xt::view(tally_->results_, xt::all(), 0, openmc::RESULT_SUM);
