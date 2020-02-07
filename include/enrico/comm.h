@@ -200,7 +200,7 @@ void Comm::broadcast(xt::xtensor<T, N>& values) const
     }
 
     // Next, broadcast size
-    int n = values.size();
+    auto n = values.size();
     this->broadcast(n);
 
     // Finally, broadcast data
