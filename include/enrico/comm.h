@@ -190,7 +190,7 @@ void Comm::broadcast(xt::xtensor<T, N>& values) const
 {
   if (this->active()) {
     // First, make sure shape of `values` matches root's
-    auto& s = values.shape();
+    const auto& s = values.shape();
     std::vector<size_t> my_shape(s.begin(), s.end());
     std::vector<size_t> root_shape(my_shape);
 
