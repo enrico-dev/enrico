@@ -123,6 +123,12 @@ MPI_Datatype get_mpi_type<double>()
   return MPI_DOUBLE;
 }
 
+template<>
+MPI_Datatype get_mpi_type<bool>()
+{
+  return MPI_CXX_BOOL;
+}
+
 // Traits for mapping plain types to corresponding MPI types (user defined)
 template<>
 MPI_Datatype get_mpi_type<Position>()

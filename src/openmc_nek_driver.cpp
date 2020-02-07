@@ -108,7 +108,7 @@ void OpenmcNekDriver::init_mappings()
     intranode_comm_.broadcast(elem_to_cell_);
 
     // Broadcast number of cell instances
-    intranode_comm_.Bcast(&n_cells_, 1, MPI_INT32_T);
+    intranode_comm_.broadcast(n_cells_);
   }
 }
 
@@ -289,7 +289,7 @@ void OpenmcNekDriver::set_heat_source()
 {
   // OpenMC has heat source on each of its ranks. We need to make heat
   // source available on each Nek rank.
-  intranode_comm_.Bcast(heat_source_.data(), n_cells_, MPI_DOUBLE);
+  intranode_comm_.broadcast(heat_source_);
 
   auto& heat = this->get_heat_driver();
   if (heat.active()) {
@@ -318,7 +318,7 @@ void OpenmcNekDriver::set_temperature()
     auto& neutronics = this->get_neutronics_driver();
     if (neutronics.active()) {
       // Broadcast global_element_temperatures onto all the OpenMC procs
-      neutronics.comm_.Bcast(temperatures_.data(), temperatures_.size(), MPI_DOUBLE);
+      neutronics.comm_.broadcast(temperatures_);
 
       // For each OpenMC cell instance, volume average temperatures and set
       for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
@@ -353,7 +353,7 @@ void OpenmcNekDriver::set_density()
     // TODO: This won't work if the Nek/OpenMC communicators are disjoint
     auto& neutronics = this->get_neutronics_driver();
     if (neutronics.active()) {
-      neutronics.comm_.Bcast(densities_.data(), densities_.size(), MPI_DOUBLE);
+      neutronics.comm_.broadcast(densities_);
 
       // For each OpenMC cell instance in a fluid cell, volume average the
       // densities and set
