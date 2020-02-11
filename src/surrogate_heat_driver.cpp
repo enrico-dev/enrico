@@ -1,13 +1,13 @@
 #include "enrico/surrogate_heat_driver.h"
 
 #include "enrico/vtk_viz.h"
+#include "iapws/iapws.h"
 #include "openmc/xml_interface.h"
 #include "surrogates/heat_xfer_backend.h"
-#include "iapws/iapws.h"
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xbuilder.hpp"
-#include "xtensor/xview.hpp"
 #include "xtensor/xnorm.hpp"
+#include "xtensor/xview.hpp"
 
 #include <iostream>
 
@@ -41,9 +41,9 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
   if (node.child("max_subchannel_its"))
     max_subchannel_its_ = node.child("max_subchannel_its").text().as_int();
   if (node.child("subchannel_tol_h"))
-    subchannel_tol_h_= node.child("subchannel_tol_h").text().as_double();
+    subchannel_tol_h_ = node.child("subchannel_tol_h").text().as_double();
   if (node.child("subchannel_tol_p"))
-    subchannel_tol_p_= node.child("subchannel_tol_p").text().as_double();
+    subchannel_tol_p_ = node.child("subchannel_tol_p").text().as_double();
   if (node.child("heat_tol"))
     heat_tol_ = node.child("heat_tol").text().as_double();
 
@@ -105,18 +105,23 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
       std::size_t b = row / n_pins_y_;
 
       if ((row == 0 || row == n_pins_y_) && (col == 0 || col == n_pins_x_))
-        channels_.push_back(channel_factory.make_corner({a * (n_pins_x_ - 1) + b * n_pins_x_ * (n_pins_y_ - 1)}));
+        channels_.push_back(channel_factory.make_corner(
+          {a * (n_pins_x_ - 1) + b * n_pins_x_ * (n_pins_y_ - 1)}));
       else if (row == 0)
         channels_.push_back(channel_factory.make_edge({col - 1, col}));
       else if (row == n_pins_y_)
-        channels_.push_back(channel_factory.make_edge({(row - 1) * n_pins_x_ + col - 1, (row - 1) * n_pins_x_ + col}));
+        channels_.push_back(channel_factory.make_edge(
+          {(row - 1) * n_pins_x_ + col - 1, (row - 1) * n_pins_x_ + col}));
       else if (col == 0)
-        channels_.push_back(channel_factory.make_edge({(row - 1) * n_pins_x_, row * n_pins_x_}));
+        channels_.push_back(
+          channel_factory.make_edge({(row - 1) * n_pins_x_, row * n_pins_x_}));
       else if (col == n_pins_x_)
-        channels_.push_back(channel_factory.make_edge({row * n_pins_x_ - 1, (row + 1) * n_pins_x_ - 1}));
+        channels_.push_back(
+          channel_factory.make_edge({row * n_pins_x_ - 1, (row + 1) * n_pins_x_ - 1}));
       else {
         std::size_t i = (row - 1) * n_pins_x_ + col - 1;
-        channels_.push_back(channel_factory.make_interior({i, i + 1, i + n_pins_x_, i + n_pins_x_ + 1}));
+        channels_.push_back(
+          channel_factory.make_interior({i, i + 1, i + n_pins_x_, i + n_pins_x_ + 1}));
       }
     }
   }
@@ -127,8 +132,8 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
     std::size_t row = rod / n_pins_x_;
     std::size_t col = rod % n_pins_x_;
     std::size_t a = n_pins_x_ + 1;
-    rods_.push_back(rod_factory.make_rod({row * a + col, row * a + col + 1,
-      (row + 1) * a + col, (row + 1) * a + col + 1}));
+    rods_.push_back(rod_factory.make_rod(
+      {row * a + col, row * a + col + 1, (row + 1) * a + col, (row + 1) * a + col + 1}));
   }
 
   double total_flow_area = 0.0;
@@ -186,10 +191,12 @@ void SurrogateHeatDriver::generate_arrays()
   solid_areas_ = xt::empty<double>({n_rings()});
   for (gsl::index i = 0; i < n_rings(); ++i) {
     if (i < n_fuel_rings_)
-      solid_areas_(i) = M_PI * (r_grid_fuel_(i + 1) * r_grid_fuel_(i + 1) - r_grid_fuel_(i) * r_grid_fuel_(i));
+      solid_areas_(i) = M_PI * (r_grid_fuel_(i + 1) * r_grid_fuel_(i + 1) -
+                                r_grid_fuel_(i) * r_grid_fuel_(i));
     else {
       int r = i - n_fuel_rings_;
-      solid_areas_(i) = M_PI * (r_grid_clad_(r + 1) * r_grid_clad_(r + 1) - r_grid_clad_(r) * r_grid_clad_(r));
+      solid_areas_(i) = M_PI * (r_grid_clad_(r + 1) * r_grid_clad_(r + 1) -
+                                r_grid_clad_(r) * r_grid_clad_(r));
     }
   }
 
@@ -242,7 +249,8 @@ void SurrogateHeatDriver::solve_fluid()
   // are h (kJ/kg), P (MPa), u (m/s), rho (kg/m^3). Unit conversions are performed as
   // necessary on the converged results before being used in the Monte Carlo solver.
   // Enthalpy here requires a factor of 1e-3 to convert from J/kg to kJ/kg.
-  xt::xtensor<double, 2> h({n_channels_, n_axial_ + 1}, iapws::h1(pressure_bc_, inlet_temperature_));
+  xt::xtensor<double, 2> h({n_channels_, n_axial_ + 1},
+                           iapws::h1(pressure_bc_, inlet_temperature_));
   xt::xtensor<double, 2> p({n_channels_, n_axial_ + 1}, pressure_bc_);
 
   // for certain verbosity settings, we will need to save the velocity solutions
@@ -262,7 +270,8 @@ void SurrogateHeatDriver::solve_fluid()
       // divide term on RHS by 1e3 to convert from J/kg to kJ/kg
       h(chan, 0) = iapws::h1(p(chan, 0), inlet_temperature_);
       for (gsl::index axial = 0; axial < n_axial_; ++axial)
-        h(chan, axial + 1) = h(chan, axial) + 1e-3 * channel_powers(chan, axial) / channel_flowrates_(chan);
+        h(chan, axial + 1) =
+          h(chan, axial) + 1e-3 * channel_powers(chan, axial) / channel_flowrates_(chan);
 
       // solve for pressure using one-sided finite difference approximation by marching
       // from outlet and solving the axial momentum equation.
@@ -275,15 +284,16 @@ void SurrogateHeatDriver::solve_fluid()
         u(chan, axial - 1) = channel_flowrates_(chan) / (rho_low * c.area_);
 
         // factor of 1e-6 needed for convert from Pa to MPa
-        p[axial - 1] = p[axial] + 1.0e-6 * (channel_flowrates_(chan) / c.area_ * (u(chan, axial) - u(chan, axial - 1)) +
-          g_ * (z_(axial) - z_(axial - 1)) * rho_low);
+        p[axial - 1] = p[axial] + 1.0e-6 * (channel_flowrates_(chan) / c.area_ *
+                                              (u(chan, axial) - u(chan, axial - 1)) +
+                                            g_ * (z_(axial) - z_(axial - 1)) * rho_low);
       }
     }
 
-    // after solving all channels, check for convergence; although all channels are independent,
-    // to enable crossflow coupling between channels in the future, this convergence check is
-    // performed on all channels together, rather than each separately, since in a more sophisticated
-    // solver the channels would all be linked
+    // after solving all channels, check for convergence; although all channels are
+    // independent, to enable crossflow coupling between channels in the future, this
+    // convergence check is performed on all channels together, rather than each
+    // separately, since in a more sophisticated solver the channels would all be linked
     auto h_norm = xt::norm_l1(h - h_old)();
     auto p_norm = xt::norm_l1(p - p_old)();
 
@@ -295,8 +305,8 @@ void SurrogateHeatDriver::solve_fluid()
     // check if the solve didn't converge
     if (iter == max_subchannel_its_ - 1) {
       if (verbosity_ >= verbose::LOW) {
-        std::cout << "Subchannel solver failed to converge! Enthalpy norm: " << h_norm <<
-          " Pressure norm: " << p_norm << std::endl;
+        std::cout << "Subchannel solver failed to converge! Enthalpy norm: " << h_norm
+                  << " Pressure norm: " << p_norm << std::endl;
       }
     }
   }
@@ -316,10 +326,10 @@ void SurrogateHeatDriver::solve_fluid()
   }
 
   // After solving the subchannel equations, convert the solution to a rod-centered basis,
-  // since this will most likely be the form desired by neutronics codes. At this point only
-  // do we apply the conversion of kg/m^3 to g/cm^3 assumed by the neutronics codes.
+  // since this will most likely be the form desired by neutronics codes. At this point
+  // only do we apply the conversion of kg/m^3 to g/cm^3 assumed by the neutronics codes.
   for (gsl::index rod = 0; rod < n_pins_; ++rod) {
-    for (gsl::index  axial = 0; axial < n_axial_; ++axial) {
+    for (gsl::index axial = 0; axial < n_axial_; ++axial) {
       fluid_temperature_(rod, axial) = 0.0;
       fluid_density_(rod, axial) = 0.0;
 
@@ -342,13 +352,14 @@ void SurrogateHeatDriver::solve_fluid()
   }
 }
 
-bool SurrogateHeatDriver::is_mass_conserved(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u) const
+bool SurrogateHeatDriver::is_mass_conserved(const xt::xtensor<double, 2>& rho,
+                                            const xt::xtensor<double, 2>& u) const
 {
   bool mass_conserved = true;
 
   for (gsl::index axial = 0; axial < n_axial_; ++axial) {
     double mass_flowrate = 0.0;
-    for (gsl::index chan = 0; chan < n_channels_; ++ chan) {
+    for (gsl::index chan = 0; chan < n_channels_; ++chan) {
       double u_cell_centered = 0.5 * (u(chan, axial) + u(chan, axial + 1));
       mass_flowrate += u_cell_centered * channels_[chan].area_ * rho(chan, axial);
     }
@@ -360,15 +371,18 @@ bool SurrogateHeatDriver::is_mass_conserved(const xt::xtensor<double, 2>& rho, c
     }
 
     if (verbosity_ == verbose::HIGH) {
-      std::cout << "Mass on plane " << axial << " conserved to a tolerance of " << tol << std::endl;
+      std::cout << "Mass on plane " << axial << " conserved to a tolerance of " << tol
+                << std::endl;
     }
   }
 
   return mass_conserved;
 }
 
-bool SurrogateHeatDriver::is_energy_conserved(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u,
-  const xt::xtensor<double, 2>& h, const xt::xtensor<double, 2>& q) const
+bool SurrogateHeatDriver::is_energy_conserved(const xt::xtensor<double, 2>& rho,
+                                              const xt::xtensor<double, 2>& u,
+                                              const xt::xtensor<double, 2>& h,
+                                              const xt::xtensor<double, 2>& q) const
 {
   bool energy_conserved = true;
 
@@ -378,7 +392,8 @@ bool SurrogateHeatDriver::is_energy_conserved(const xt::xtensor<double, 2>& rho,
       double mass_flowrate = rho(chan, axial) * channels_[chan].area_ * u_cell_centered;
 
       // conversion factor of 1e3 to convert enthalpy from kJ/kg to J/kg
-      double channel_energy_change = mass_flowrate * (h(chan, axial + 1) - h(chan, axial)) * 1.0e3;
+      double channel_energy_change =
+        mass_flowrate * (h(chan, axial + 1) - h(chan, axial)) * 1.0e3;
 
       double tol = std::abs(channel_energy_change - q(chan, axial)) / q(chan, axial);
 
@@ -387,8 +402,8 @@ bool SurrogateHeatDriver::is_energy_conserved(const xt::xtensor<double, 2>& rho,
       }
 
       if (verbosity_ == verbose::HIGH) {
-        std::cout << "Energy deposition in channel " << chan << ", axial node " << axial <<
-          " conserved to a tolerance of " << tol << std::endl;
+        std::cout << "Energy deposition in channel " << chan << ", axial node " << axial
+                  << " conserved to a tolerance of " << tol << std::endl;
       }
     }
   }
@@ -435,7 +450,9 @@ xt::xtensor<double, 1> SurrogateHeatDriver::temperature() const
   return xt::concatenate(xt::xtuple(Ts, Tf), 0);
 }
 
-double SurrogateHeatDriver::solid_temperature(std::size_t pin, std::size_t axial, std::size_t ring) const
+double SurrogateHeatDriver::solid_temperature(std::size_t pin,
+                                              std::size_t axial,
+                                              std::size_t ring) const
 {
   return solid_temperature_(pin, axial, ring);
 }

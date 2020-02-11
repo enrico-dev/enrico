@@ -47,86 +47,90 @@ struct Rod {
 
 //! Class to construct flow channels for a Cartesian lattice of pins
 class ChannelFactory {
-  public:
-    ChannelFactory(double pitch, double rod_radius) :
-      pitch_(pitch),
-      radius_(rod_radius),
-      interior_area_(pitch_ * pitch_ - M_PI * radius_ * radius_)
-      {}
+public:
+  ChannelFactory(double pitch, double rod_radius)
+    : pitch_(pitch)
+    , radius_(rod_radius)
+    , interior_area_(pitch_ * pitch_ - M_PI * radius_ * radius_)
+  {}
 
-    //! Make a corner subchannel connected to given rods
-    Channel make_corner(const std::vector<std::size_t>& rods) const {
-      Channel c;
-      c.index_ = index_++;
-      c.area_ = 0.25 * interior_area_;
-      c.rod_ids_ = rods;
-      return c;
-    }
+  //! Make a corner subchannel connected to given rods
+  Channel make_corner(const std::vector<std::size_t>& rods) const
+  {
+    Channel c;
+    c.index_ = index_++;
+    c.area_ = 0.25 * interior_area_;
+    c.rod_ids_ = rods;
+    return c;
+  }
 
-    //! Make an edge subchannel connected to given rods
-    Channel make_edge(const std::vector<std::size_t>& rods) const {
-      Channel c;
-      c.index_ = index_++;
-      c.area_ = 0.5 * interior_area_;
-      c.rod_ids_ = rods;
-      return c;
-    }
+  //! Make an edge subchannel connected to given rods
+  Channel make_edge(const std::vector<std::size_t>& rods) const
+  {
+    Channel c;
+    c.index_ = index_++;
+    c.area_ = 0.5 * interior_area_;
+    c.rod_ids_ = rods;
+    return c;
+  }
 
-    //! Make an interior subchannel connected to given rods
-    Channel make_interior(const std::vector<std::size_t>& rods) const {
-      Channel c;
-      c.index_ = index_++;
-      c.area_ = interior_area_;
-      c.rod_ids_ = rods;
-      return c;
-    }
+  //! Make an interior subchannel connected to given rods
+  Channel make_interior(const std::vector<std::size_t>& rods) const
+  {
+    Channel c;
+    c.index_ = index_++;
+    c.area_ = interior_area_;
+    c.rod_ids_ = rods;
+    return c;
+  }
 
-  private:
-    //! rod pitch
-    double pitch_;
+private:
+  //! rod pitch
+  double pitch_;
 
-    //! rod outer radius
-    double radius_;
+  //! rod outer radius
+  double radius_;
 
-    //! interior channel flow area, which is proportional to flow areas for all
-    //! other channel types
-    double interior_area_;
+  //! interior channel flow area, which is proportional to flow areas for all
+  //! other channel types
+  double interior_area_;
 
-    //! index of constructed channel
-    static int index_;
+  //! index of constructed channel
+  static int index_;
 };
 
 class RodFactory {
-  public:
-    RodFactory(double clad_OR, double clad_IR, double pellet_OR) :
-      clad_outer_r_(clad_OR),
-      clad_inner_r_(clad_IR),
-      pellet_outer_r_(pellet_OR)
-      {}
+public:
+  RodFactory(double clad_OR, double clad_IR, double pellet_OR)
+    : clad_outer_r_(clad_OR)
+    , clad_inner_r_(clad_IR)
+    , pellet_outer_r_(pellet_OR)
+  {}
 
-    //! Make a rod connected to given channels
-    Rod make_rod(const std::vector<std::size_t>& channels) const {
-      Rod r;
-      r.index_ = index_++;
-      r.clad_inner_radius_ = clad_inner_r_;
-      r.clad_outer_radius_ = clad_outer_r_;
-      r.pellet_radius_ = pellet_outer_r_;
-      r.channel_ids_ = channels;
-      return r;
-    }
+  //! Make a rod connected to given channels
+  Rod make_rod(const std::vector<std::size_t>& channels) const
+  {
+    Rod r;
+    r.index_ = index_++;
+    r.clad_inner_radius_ = clad_inner_r_;
+    r.clad_outer_radius_ = clad_outer_r_;
+    r.pellet_radius_ = pellet_outer_r_;
+    r.channel_ids_ = channels;
+    return r;
+  }
 
-  private:
-    //! Cladding outer radius
-    double clad_outer_r_;
+private:
+  //! Cladding outer radius
+  double clad_outer_r_;
 
-    //! Cladding inner radius
-    double clad_inner_r_;
+  //! Cladding inner radius
+  double clad_inner_r_;
 
-    //! Pellet outer radius
-    double pellet_outer_r_;
+  //! Pellet outer radius
+  double pellet_outer_r_;
 
-    //! Index of constructed rod
-    static int index_;
+  //! Index of constructed rod
+  static int index_;
 };
 
 /**
@@ -288,7 +292,8 @@ private:
   //! positions) to the specified inlet mass flowrate.
   //! \param rho density in a cell-centered basis
   //! \param u   axial velocity in a face-centered basis
-  bool is_mass_conserved(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u) const;
+  bool is_mass_conserved(const xt::xtensor<double, 2>& rho,
+                         const xt::xtensor<double, 2>& u) const;
 
   //! Diagnostic function to assess whether the energy is conserved by the subchannel
   //! solver by comparing the energy deposition in each channel in each axial plane
@@ -297,8 +302,10 @@ private:
   //! \param u   axial velocity in a face-centered basis
   //! \param h   enthalpy in a face-centered basis
   //! \param q   powers in each channel in a cell-centered basis
-  bool is_energy_conserved(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u,
-    const xt::xtensor<double, 2>&h, const xt::xtensor<double, 2>& q) const;
+  bool is_energy_conserved(const xt::xtensor<double, 2>& rho,
+                           const xt::xtensor<double, 2>& u,
+                           const xt::xtensor<double, 2>& h,
+                           const xt::xtensor<double, 2>& q) const;
 
   //!< solid temperature in [K] for each (pin, axial segment, ring)
   xt::xtensor<double, 3> solid_temperature_;
