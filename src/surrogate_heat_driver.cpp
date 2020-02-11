@@ -9,6 +9,8 @@
 #include "xtensor/xnorm.hpp"
 #include "xtensor/xview.hpp"
 
+#define _USE_MATH_DEFINES
+#include <cmath>
 #include <iostream>
 
 namespace enrico {
@@ -207,6 +209,72 @@ void SurrogateHeatDriver::generate_arrays()
   // Create empty arrays for temperature and density in the fluid phase
   fluid_temperature_ = xt::empty<double>({n_pins_, n_axial_});
   fluid_density_ = xt::empty<double>({n_pins_, n_axial_});
+}
+
+std::vector<Position> SurrogateHeatDriver::centroid_local() const
+{
+  // TODO: Don't hardcode number of azimuthal segments
+  int n_azimuthal = 4;
+
+  std::vector<Position> centroids;
+
+  // Establish mappings between solid regions and OpenMC cells. The center
+  // coordinate for each region in the T/H model is obtained and used to
+  // determine the OpenMC cell at that position.
+  for (gsl::index i = 0; i < n_pins_; ++i) {
+    double x_center = pin_centers_(i, 0);
+    double y_center = pin_centers_(i, 1);
+
+    for (gsl::index j = 0; j < n_axial_; ++j) {
+      double zavg = 0.5 * (z_(j) + z_(j + 1));
+
+      for (gsl::index k = 0; k < n_rings(); ++k) {
+        double ravg;
+        if (k < n_fuel_rings_) {
+          ravg = 0.5 * (r_grid_fuel_(k) + r_grid_fuel_(k + 1));
+        } else {
+          int m = k - n_fuel_rings_;
+          ravg = 0.5 * (r_grid_clad_(m) + r_grid_clad_(m + 1));
+        }
+
+        for (gsl::index m = 0; m < n_azimuthal; ++m) {
+          double m_avg = m + 0.5;
+          double theta = 2.0 * m_avg * M_PI / n_azimuthal;
+          double x = x_center + ravg * std::cos(theta);
+          double y = y_center + ravg * std::sin(theta);
+
+          // Determine cell instance corresponding to given pin location
+          centroids.emplace_back(x, y, zavg);
+
+          // TODO: How are we going to know that that this position should be
+          // fissionable?
+        }
+      }
+    }
+  }
+
+  // Establish mappings between fluid regions and OpenMC cells; it is assumed that there
+  // are no azimuthal divisions in the fluid phase in the OpenMC model so that we
+  // can take a point on a 45 degree ray from the pin center. TODO: add a check to make
+  // sure that the T/H model is finer than the OpenMC model.
+
+  for (gsl::index i = 0; i < n_pins_; ++i) {
+    double x_center = pin_centers_(i, 0);
+    double y_center = pin_centers_(i, 1);
+
+    for (gsl::index j = 0; j < n_axial_; ++j) {
+      double zavg = 0.5 * (z_(j) + z_(j + 1));
+      double l = pin_pitch() / std::sqrt(2.0);
+      double d = (l - clad_outer_radius_) / 2.0;
+      double x = x_center + (clad_outer_radius_ + d) * std::sqrt(2.0) / 2.0;
+      double y = y_center + (clad_outer_radius_ + d) * std::sqrt(2.0) / 2.0;
+
+      // Determine cell instance corresponding to given fluid location
+      centroids.emplace_back(x, y, zavg);
+    }
+  }
+
+  return centroids;
 }
 
 double SurrogateHeatDriver::rod_axial_node_power(const int pin, const int axial) const

@@ -4,10 +4,12 @@
 #define ENRICO_SURROGATE_HEAT_DRIVER_H
 
 #include "enrico/heat_fluids_driver.h"
-#include "gsl/gsl"
-#include "mpi.h"
-#include "pugixml.hpp"
-#include "xtensor/xtensor.hpp"
+#include "enrico/geom.h"
+
+#include <gsl/gsl>
+#include <mpi.h>
+#include <pugixml.hpp>
+#include <xtensor/xtensor.hpp>
 
 #include <cstddef>
 
@@ -159,6 +161,10 @@ public:
 
   //! Verbosity options for printing simulation results
   enum class verbose { NONE, LOW, HIGH };
+
+  //! Get centroids on local mesh elements
+  //! \return Centroids on local mesh elements
+  std::vector<Position> centroid_local() const override;
 
   bool has_coupling_data() const final { return true; }
 

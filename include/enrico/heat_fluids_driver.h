@@ -97,7 +97,7 @@ private:
 
   //! Get centroids on local mesh elements
   //! \return Centroids on local mesh elements
-  virtual std::vector<Position> centroid_local() const { return {}; }
+  virtual std::vector<Position> centroid_local() const = 0;
 
   //! Get volumes on local mesh elements
   //! \return Volumes on local mesh elements
