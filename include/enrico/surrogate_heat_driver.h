@@ -164,6 +164,14 @@ public:
 
   bool has_coupling_data() const final { return true; }
 
+  //! Get the number of local mesh elements
+  //! \return Number of local mesh elements
+  int n_local_elem() const override;
+
+  //! Get the number of global mesh elements
+  //! \return Number of global mesh elements
+  std::size_t n_global_elem() const override;
+
   //! Set the heat source for a given local element
   //!
   //! \param local_elem A local element ID

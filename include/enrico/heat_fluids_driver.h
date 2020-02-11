@@ -44,13 +44,11 @@ public:
 
   //! Get the number of local mesh elements
   //! \return Number of local mesh elements
-  // TODO: make pure virtual and remove implementation
-  virtual int n_local_elem() const { return 0; }
+  virtual int n_local_elem() const = 0;
 
   //! Get the number of global mesh elements
   //! \return Number of global mesh elements
-  // TODO: make pure virtual and remove implementation
-  virtual std::size_t n_global_elem() const { return 0; }
+  virtual std::size_t n_global_elem() const = 0;
 
   //! Get the centroids of all mesh elements
   //! \return Vector of all centroids

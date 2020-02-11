@@ -214,6 +214,18 @@ void SurrogateHeatDriver::generate_arrays()
   fluid_density_ = xt::empty<double>({n_pins_, n_axial_});
 }
 
+int SurrogateHeatDriver::n_local_elem() const
+{
+  return this->has_coupling_data() ? this->n_global_elem() : 0;
+}
+
+std::size_t SurrogateHeatDriver::n_global_elem() const
+{
+  auto n_solid = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
+  auto n_fluid = n_pins_ * n_axial_;
+  return n_solid + n_fluid;
+}
+
 std::vector<Position> SurrogateHeatDriver::centroid_local() const
 {
   std::vector<Position> centroids;
