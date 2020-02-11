@@ -84,23 +84,23 @@ private:
   // TODO: Make methods below pure virtual and remove implementation
 
   //! Get temperature of local mesh elements
-  //! \return Temperature on local mesh elements in [K]
+  //! \return Temperature of local mesh elements in [K]
   virtual std::vector<double> temperature_local() const { return {}; }
 
   //! Get density of local mesh elements
-  //! \return Density on local mesh elements in [g/cm^3]
+  //! \return Density of local mesh elements in [g/cm^3]
   virtual std::vector<double> density_local() const { return {}; }
 
   //! States whether each local region is in fluid
   //! \return For each local region, 1 if region is in fluid and 0 otherwise
   virtual std::vector<int> fluid_mask_local() const { return {}; }
 
-  //! Get centroids on local mesh elements
-  //! \return Centroids on local mesh elements
+  //! Get centroids of local mesh elements
+  //! \return Centroids of local mesh elements
   virtual std::vector<Position> centroid_local() const = 0;
 
-  //! Get volumes on local mesh elements
-  //! \return Volumes on local mesh elements
+  //! Get volumes of local mesh elements
+  //! \return Volumes of local mesh elements
   virtual std::vector<double> volume_local() const { return {}; }
 };
 

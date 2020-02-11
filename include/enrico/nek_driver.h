@@ -107,19 +107,19 @@ public:
   // std::vector<int> local_ordering_;
 private:
   //! Get temperature of local mesh elements
-  //! \return Temperature on local mesh elements in [K]
+  //! \return Temperature of local mesh elements in [K]
   std::vector<double> temperature_local() const override;
 
   //! Get density of local mesh elements
-  //! \return Density on local mesh elements in [g/cm^3]
+  //! \return Density of local mesh elements in [g/cm^3]
   std::vector<double> density_local() const override;
 
   //! States whether each local region is in fluid
   //! \return For each local region, 1 if region is in fluid and 0 otherwise
   std::vector<int> fluid_mask_local() const override;
 
-  //! Get centroids on local mesh elements
-  //! \return Centroids on local mesh elements
+  //! Get centroids of local mesh elements
+  //! \return Centroids of local mesh elements
   std::vector<Position> centroid_local() const override;
 
   //! Get volumes on local mesh elements

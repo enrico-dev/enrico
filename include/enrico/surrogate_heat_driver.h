@@ -3,8 +3,8 @@
 #ifndef ENRICO_SURROGATE_HEAT_DRIVER_H
 #define ENRICO_SURROGATE_HEAT_DRIVER_H
 
-#include "enrico/heat_fluids_driver.h"
 #include "enrico/geom.h"
+#include "enrico/heat_fluids_driver.h"
 
 #include <gsl/gsl>
 #include <mpi.h>
@@ -162,10 +162,6 @@ public:
   //! Verbosity options for printing simulation results
   enum class verbose { NONE, LOW, HIGH };
 
-  //! Get centroids on local mesh elements
-  //! \return Centroids on local mesh elements
-  std::vector<Position> centroid_local() const override;
-
   bool has_coupling_data() const final { return true; }
 
   //! Solves the heat-fluids surrogate solver
@@ -281,6 +277,26 @@ public:
   size_t vtk_radial_res_{20};      //!< radial resolution of resulting vtk files
 
 private:
+  //! Get temperature of local mesh elements
+  //! \return Temperature of local mesh elements in [K]
+  std::vector<double> temperature_local() const override;
+
+  //! Get density of local mesh elements
+  //! \return Density of local mesh elements in [g/cm^3]
+  std::vector<double> density_local() const override;
+
+  //! States whether each local region is in fluid
+  //! \return For each local region, 1 if region is in fluid and 0 otherwise
+  std::vector<int> fluid_mask_local() const override;
+
+  //! Get centroids of local mesh elements
+  //! \return Centroids of local mesh elements
+  std::vector<Position> centroid_local() const override;
+
+  //! Get volumes of local mesh elements
+  //! \return Volumes of local mesh elements
+  std::vector<double> volume_local() const override;
+
   //! Create internal arrays used for heat equation solver
   void generate_arrays();
 
@@ -315,9 +331,6 @@ private:
 
   //!< solid temperature in [K] for each (pin, axial segment, ring)
   xt::xtensor<double, 3> solid_temperature_;
-
-  //! Value is 1 if region is in fluid; otherwise 0
-  xt::xtensor<int, 1> fluid_mask_;
 
   //! Flow areas for coolant-centered channels
   xt::xtensor<double, 1> channel_areas_;

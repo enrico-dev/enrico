@@ -9,9 +9,11 @@
 #include "xtensor/xnorm.hpp"
 #include "xtensor/xview.hpp"
 
+#include <algorithm> // for fill_n
 #define _USE_MATH_DEFINES
 #include <cmath>
 #include <iostream>
+#include <iterator> // for back_inserter
 
 namespace enrico {
 
@@ -277,6 +279,100 @@ std::vector<Position> SurrogateHeatDriver::centroid_local() const
   return centroids;
 }
 
+std::vector<double> SurrogateHeatDriver::temperature_local() const
+{
+  // TODO: Don't hardcode number of azimuthal segments
+  int n_azimuthal = 4;
+
+  std::vector<double> local_temperatures;
+  for (gsl::index i = 0; i < n_pins_; ++i) {
+    for (gsl::index j = 0; j < n_axial_; ++j) {
+      for (gsl::index k = 0; k < n_rings(); ++k) {
+        for (gsl::index m = 0; m < n_azimuthal; ++m) {
+          local_temperatures.push_back(solid_temperature_(i, j, k));
+        }
+      }
+    }
+  }
+
+  for (double T : fluid_temperature_) {
+    local_temperatures.push_back(T);
+  }
+  return local_temperatures;
+}
+
+std::vector<double> SurrogateHeatDriver::density_local() const
+{
+  std::vector<double> local_densities;
+
+  // TODO: Don't hardcode number of azimuthal segments
+  int n_azimuthal = 4;
+
+  // Solid region just gets zeros for densities (not used)
+  auto n = n_pins_ * n_axial_ * n_rings() * n_azimuthal;
+  std::fill_n(std::back_inserter(local_densities), n, 0.0);
+
+  // Add fluid densities and return
+  for (double rho : fluid_density_) {
+    local_densities.push_back(rho);
+  }
+  return local_densities;
+}
+
+std::vector<int> SurrogateHeatDriver::fluid_mask_local() const
+{
+  // TODO: Don't hardcode number of azimuthal segments
+  int n_azimuthal = 4;
+
+  std::vector<int> fluid_mask;
+  auto n_solid = n_pins_ * n_axial_ * n_rings() * n_azimuthal;
+  auto n_fluid = n_pins_ * n_axial_;
+  std::fill_n(std::back_inserter(fluid_mask), n_solid, 0);
+  std::fill_n(std::back_inserter(fluid_mask), n_fluid, 1);
+  return fluid_mask;
+}
+
+std::vector<double> SurrogateHeatDriver::volume_local() const
+{
+  // TODO: Don't hardcode number of azimuthal segments
+  int n_azimuthal = 4;
+
+  std::vector<double> volumes;
+
+  // Volume of solid regions
+  for (gsl::index i = 0; i < n_pins_; ++i) {
+    for (gsl::index j = 0; j < n_axial_; ++j) {
+      double dz = z_(j + 1) - z_(j);
+      for (gsl::index k = 0; k < n_rings(); ++k) {
+        double area;
+        if (k < n_fuel_rings_) {
+          area = M_PI * (r_grid_fuel_(k + 1) * r_grid_fuel_(k + 1) -
+                         r_grid_fuel_(k) * r_grid_fuel_(k));
+        } else {
+          int m = k - n_fuel_rings_;
+          area = M_PI * (r_grid_clad_(m + 1) * r_grid_clad_(m + 1) -
+                         r_grid_clad_(m) * r_grid_clad_(m));
+        }
+        for (gsl::index m = 0; m < n_azimuthal; ++m) {
+          volumes.push_back(area * dz / n_azimuthal);
+        }
+      }
+    }
+  }
+
+  // Volume of fluid regions
+  for (gsl::index i = 0; i < n_pins_; ++i) {
+    for (gsl::index j = 0; j < n_axial_; ++j) {
+      double dz = z_(j + 1) - z_(j);
+      double area =
+        pin_pitch_ * pin_pitch_ - M_PI * clad_outer_radius_ * clad_outer_radius_;
+      volumes.push_back(area * dz);
+    }
+  }
+
+  return volumes;
+}
+
 double SurrogateHeatDriver::rod_axial_node_power(const int pin, const int axial) const
 {
   Expects(axial < n_axial_);
@@ -298,11 +394,11 @@ void SurrogateHeatDriver::solve_step()
 
 void SurrogateHeatDriver::solve_fluid()
 {
-  // determine the power deposition in each channel; the target applications will always
-  // be steady-state or pseudo-steady-state cases with no axial conduction such that
-  // the power deposition in each channel is independent of a convective heat transfer
-  // coefficient and only depends on the rod power at that axial elevation. The channel
-  // powers are indexed by channel ID, axial ID
+  // determine the power deposition in each channel; the target applications will
+  // always be steady-state or pseudo-steady-state cases with no axial conduction such
+  // that the power deposition in each channel is independent of a convective heat
+  // transfer coefficient and only depends on the rod power at that axial elevation.
+  // The channel powers are indexed by channel ID, axial ID
   xt::xtensor<double, 2> channel_powers({n_channels_, n_axial_}, 0.0);
   for (int i = 0; i < n_channels_; ++i) {
     for (int j = 0; j < n_axial_; ++j) {
@@ -334,15 +430,15 @@ void SurrogateHeatDriver::solve_fluid()
     for (gsl::index chan = 0; chan < n_channels_; ++chan) {
       const auto& c = channels_[chan];
 
-      // solve for enthalpy by simple energy balance q = mdot * dh by marching from inlet;
-      // divide term on RHS by 1e3 to convert from J/kg to kJ/kg
+      // solve for enthalpy by simple energy balance q = mdot * dh by marching from
+      // inlet; divide term on RHS by 1e3 to convert from J/kg to kJ/kg
       h(chan, 0) = iapws::h1(p(chan, 0), inlet_temperature_);
       for (gsl::index axial = 0; axial < n_axial_; ++axial)
         h(chan, axial + 1) =
           h(chan, axial) + 1e-3 * channel_powers(chan, axial) / channel_flowrates_(chan);
 
-      // solve for pressure using one-sided finite difference approximation by marching
-      // from outlet and solving the axial momentum equation.
+      // solve for pressure using one-sided finite difference approximation by
+      // marching from outlet and solving the axial momentum equation.
       p(chan, n_axial_) = pressure_bc_;
       for (gsl::index axial = n_axial_; axial > 0; axial--) {
         double rho_high = iapws::rho_from_p_h(p(chan, axial), h(chan, axial));
@@ -361,7 +457,8 @@ void SurrogateHeatDriver::solve_fluid()
     // after solving all channels, check for convergence; although all channels are
     // independent, to enable crossflow coupling between channels in the future, this
     // convergence check is performed on all channels together, rather than each
-    // separately, since in a more sophisticated solver the channels would all be linked
+    // separately, since in a more sophisticated solver the channels would all be
+    // linked
     auto h_norm = xt::norm_l1(h - h_old)();
     auto p_norm = xt::norm_l1(p - p_old)();
 
@@ -379,7 +476,8 @@ void SurrogateHeatDriver::solve_fluid()
     }
   }
 
-  // compute temperature and density from enthalpy and pressure in a cell-centered basis
+  // compute temperature and density from enthalpy and pressure in a cell-centered
+  // basis
   xt::xtensor<double, 2> T({n_channels_, n_axial_});
   xt::xtensor<double, 2> rho({n_channels_, n_axial_});
 
@@ -393,9 +491,10 @@ void SurrogateHeatDriver::solve_fluid()
     }
   }
 
-  // After solving the subchannel equations, convert the solution to a rod-centered basis,
-  // since this will most likely be the form desired by neutronics codes. At this point
-  // only do we apply the conversion of kg/m^3 to g/cm^3 assumed by the neutronics codes.
+  // After solving the subchannel equations, convert the solution to a rod-centered
+  // basis, since this will most likely be the form desired by neutronics codes. At
+  // this point only do we apply the conversion of kg/m^3 to g/cm^3 assumed by the
+  // neutronics codes.
   for (gsl::index rod = 0; rod < n_pins_; ++rod) {
     for (gsl::index axial = 0; axial < n_axial_; ++axial) {
       fluid_temperature_(rod, axial) = 0.0;
