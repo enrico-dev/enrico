@@ -79,19 +79,17 @@ private:
   template<typename T>
   std::vector<T> gather(const std::vector<T>& local_field) const;
 
-  // TODO: Make methods below pure virtual and remove implementation
-
   //! Get temperature of local mesh elements
   //! \return Temperature of local mesh elements in [K]
-  virtual std::vector<double> temperature_local() const { return {}; }
+  virtual std::vector<double> temperature_local() const = 0;
 
   //! Get density of local mesh elements
   //! \return Density of local mesh elements in [g/cm^3]
-  virtual std::vector<double> density_local() const { return {}; }
+  virtual std::vector<double> density_local() const = 0;
 
   //! States whether each local region is in fluid
   //! \return For each local region, 1 if region is in fluid and 0 otherwise
-  virtual std::vector<int> fluid_mask_local() const { return {}; }
+  virtual std::vector<int> fluid_mask_local() const = 0;
 
   //! Get centroids of local mesh elements
   //! \return Centroids of local mesh elements
@@ -99,7 +97,7 @@ private:
 
   //! Get volumes of local mesh elements
   //! \return Volumes of local mesh elements
-  virtual std::vector<double> volume_local() const { return {}; }
+  virtual std::vector<double> volume_local() const = 0;
 };
 
 template<typename T>
