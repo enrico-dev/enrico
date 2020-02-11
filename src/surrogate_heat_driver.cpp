@@ -6,6 +6,7 @@
 #include "surrogates/heat_xfer_backend.h"
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xbuilder.hpp"
+#include "xtensor/xmath.hpp"
 #include "xtensor/xnorm.hpp"
 #include "xtensor/xview.hpp"
 
@@ -205,7 +206,7 @@ void SurrogateHeatDriver::generate_arrays()
   }
 
   // Create empty arrays for source term and temperature in the solid phase
-  source_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
+  source_ = xt::empty<double>({n_pins_, n_axial_, n_rings(), n_azimuthal_});
   solid_temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
 
   // Create empty arrays for temperature and density in the fluid phase
@@ -329,17 +330,8 @@ std::vector<double> SurrogateHeatDriver::volume_local() const
     for (gsl::index j = 0; j < n_axial_; ++j) {
       double dz = z_(j + 1) - z_(j);
       for (gsl::index k = 0; k < n_rings(); ++k) {
-        double area;
-        if (k < n_fuel_rings_) {
-          area = M_PI * (r_grid_fuel_(k + 1) * r_grid_fuel_(k + 1) -
-                         r_grid_fuel_(k) * r_grid_fuel_(k));
-        } else {
-          int m = k - n_fuel_rings_;
-          area = M_PI * (r_grid_clad_(m + 1) * r_grid_clad_(m + 1) -
-                         r_grid_clad_(m) * r_grid_clad_(m));
-        }
         for (gsl::index m = 0; m < n_azimuthal_; ++m) {
-          volumes.push_back(area * dz / n_azimuthal_);
+          volumes.push_back(solid_areas_(k) * dz / n_azimuthal_);
         }
       }
     }
@@ -365,8 +357,11 @@ double SurrogateHeatDriver::rod_axial_node_power(const int pin, const int axial)
   double power = 0.0;
   double dz = z_(axial + 1) - z_(axial);
 
-  for (gsl::index i = 0; i < n_rings(); ++i)
-    power += source_(pin, axial, i) * solid_areas_(i) * dz;
+  for (gsl::index i = 0; i < n_rings(); ++i) {
+    for (gsl::index j = 0; j < n_azimuthal_; ++j) {
+      power += source_(pin, axial, i, j) * solid_areas_(i) * dz / n_azimuthal_;
+    }
+  }
 
   return power;
 }
@@ -568,7 +563,7 @@ void SurrogateHeatDriver::solve_heat()
   comm_.message("Solving heat equation...");
 
   // Convert source to [W/m^3] as expected by Magnolia
-  xt::xtensor<double, 3> q = 1e6 * source_;
+  xt::xtensor<double, 3> q = 1e6 * xt::mean(source_, 3);
 
   // Convert radial grids to [m] as expected by Magnolia
   xt::xtensor<double, 1> r_fuel = 0.01 * r_grid_fuel_;

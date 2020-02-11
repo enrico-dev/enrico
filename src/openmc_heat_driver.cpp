@@ -323,8 +323,10 @@ void OpenmcHeatDriver::set_heat_source()
           }
           q_avg /= cell_instances.size();
 
-          // Set Q in appropriate (pin, axial, ring)
-          heat_driver_->source_.at(i, j, k) = q_avg;
+          for (gsl::index m = 0; m < heat_driver_->n_azimuthal_; ++m) {
+            // Set Q in appropriate (pin, axial, ring, azimuth)
+            heat_driver_->source_.at(i, j, k, m) = q_avg;
+          }
         }
         ++ring_index;
       }
