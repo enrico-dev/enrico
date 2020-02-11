@@ -238,6 +238,7 @@ public:
   xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins
   xt::xtensor<double, 1> z_;           //!< Bounding z-values for axial segments
   std::size_t n_axial_;                //!< number of axial segments
+  std::size_t n_azimuthal_{4};         //!< number of azimuthal segments
 
   //! Total number of pins
   std::size_t n_pins_;

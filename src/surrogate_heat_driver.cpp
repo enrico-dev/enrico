@@ -215,9 +215,6 @@ void SurrogateHeatDriver::generate_arrays()
 
 std::vector<Position> SurrogateHeatDriver::centroid_local() const
 {
-  // TODO: Don't hardcode number of azimuthal segments
-  int n_azimuthal = 4;
-
   std::vector<Position> centroids;
 
   // Establish mappings between solid regions and OpenMC cells. The center
@@ -239,9 +236,9 @@ std::vector<Position> SurrogateHeatDriver::centroid_local() const
           ravg = 0.5 * (r_grid_clad_(m) + r_grid_clad_(m + 1));
         }
 
-        for (gsl::index m = 0; m < n_azimuthal; ++m) {
+        for (gsl::index m = 0; m < n_azimuthal_; ++m) {
           double m_avg = m + 0.5;
-          double theta = 2.0 * m_avg * M_PI / n_azimuthal;
+          double theta = 2.0 * m_avg * M_PI / n_azimuthal_;
           double x = x_center + ravg * std::cos(theta);
           double y = y_center + ravg * std::sin(theta);
 
@@ -281,14 +278,11 @@ std::vector<Position> SurrogateHeatDriver::centroid_local() const
 
 std::vector<double> SurrogateHeatDriver::temperature_local() const
 {
-  // TODO: Don't hardcode number of azimuthal segments
-  int n_azimuthal = 4;
-
   std::vector<double> local_temperatures;
   for (gsl::index i = 0; i < n_pins_; ++i) {
     for (gsl::index j = 0; j < n_axial_; ++j) {
       for (gsl::index k = 0; k < n_rings(); ++k) {
-        for (gsl::index m = 0; m < n_azimuthal; ++m) {
+        for (gsl::index m = 0; m < n_azimuthal_; ++m) {
           local_temperatures.push_back(solid_temperature_(i, j, k));
         }
       }
@@ -305,11 +299,8 @@ std::vector<double> SurrogateHeatDriver::density_local() const
 {
   std::vector<double> local_densities;
 
-  // TODO: Don't hardcode number of azimuthal segments
-  int n_azimuthal = 4;
-
   // Solid region just gets zeros for densities (not used)
-  auto n = n_pins_ * n_axial_ * n_rings() * n_azimuthal;
+  auto n = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
   std::fill_n(std::back_inserter(local_densities), n, 0.0);
 
   // Add fluid densities and return
@@ -321,11 +312,8 @@ std::vector<double> SurrogateHeatDriver::density_local() const
 
 std::vector<int> SurrogateHeatDriver::fluid_mask_local() const
 {
-  // TODO: Don't hardcode number of azimuthal segments
-  int n_azimuthal = 4;
-
   std::vector<int> fluid_mask;
-  auto n_solid = n_pins_ * n_axial_ * n_rings() * n_azimuthal;
+  auto n_solid = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
   auto n_fluid = n_pins_ * n_axial_;
   std::fill_n(std::back_inserter(fluid_mask), n_solid, 0);
   std::fill_n(std::back_inserter(fluid_mask), n_fluid, 1);
@@ -334,9 +322,6 @@ std::vector<int> SurrogateHeatDriver::fluid_mask_local() const
 
 std::vector<double> SurrogateHeatDriver::volume_local() const
 {
-  // TODO: Don't hardcode number of azimuthal segments
-  int n_azimuthal = 4;
-
   std::vector<double> volumes;
 
   // Volume of solid regions
@@ -353,8 +338,8 @@ std::vector<double> SurrogateHeatDriver::volume_local() const
           area = M_PI * (r_grid_clad_(m + 1) * r_grid_clad_(m + 1) -
                          r_grid_clad_(m) * r_grid_clad_(m));
         }
-        for (gsl::index m = 0; m < n_azimuthal; ++m) {
-          volumes.push_back(area * dz / n_azimuthal);
+        for (gsl::index m = 0; m < n_azimuthal_; ++m) {
+          volumes.push_back(area * dz / n_azimuthal_);
         }
       }
     }
