@@ -350,6 +350,19 @@ std::vector<double> SurrogateHeatDriver::volume_local() const
   return volumes;
 }
 
+int SurrogateHeatDriver::set_heat_source_at(int32_t local_elem, double heat)
+{
+  // Determine indices
+  gsl::index pin = (local_elem - 1) / (n_axial_ * n_rings() * n_azimuthal_);
+  gsl::index axial = (local_elem - 1) / (n_rings() * n_azimuthal_);
+  gsl::index ring = (local_elem - 1) / n_azimuthal_;
+  gsl::index azimuthal = (local_elem - 1) % n_azimuthal_;
+
+  // Set heat source
+  source_(pin, axial, ring, azimuthal) = heat;
+  return 0;
+}
+
 double SurrogateHeatDriver::rod_axial_node_power(const int pin, const int axial) const
 {
   Expects(axial < n_axial_);

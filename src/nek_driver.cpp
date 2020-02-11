@@ -137,7 +137,7 @@ int NekDriver::in_fluid_at(int32_t local_elem) const
   return nek_local_elem_is_in_fluid(local_elem);
 }
 
-int NekDriver::set_heat_source_at(int32_t local_elem, double heat) const
+int NekDriver::set_heat_source_at(int32_t local_elem, double heat)
 {
   Expects(local_elem >= 1 && local_elem <= nelt_);
   return nek_set_heat_source(local_elem, heat);

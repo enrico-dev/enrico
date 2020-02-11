@@ -164,6 +164,13 @@ public:
 
   bool has_coupling_data() const final { return true; }
 
+  //! Set the heat source for a given local element
+  //!
+  //! \param local_elem A local element ID
+  //! \param heat A heat source term
+  //! \return Error code
+  int set_heat_source_at(int32_t local_elem, double heat) override;
+
   //! Solves the heat-fluids surrogate solver
   void solve_step() final;
 
@@ -261,7 +268,8 @@ public:
   xt::xtensor<double, 1> channel_flowrates_;
 
   // solver variables and settings
-  xt::xtensor<double, 4> source_;      //!< heat source for each (pin, axial segment, ring, azimuthal segment)
+  xt::xtensor<double, 4>
+    source_; //!< heat source for each (pin, axial segment, ring, azimuthal segment)
   xt::xtensor<double, 1> r_grid_clad_; //!< radii of each clad ring in [cm]
   xt::xtensor<double, 1> r_grid_fuel_; //!< radii of each fuel ring in [cm]
 

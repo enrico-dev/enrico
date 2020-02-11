@@ -89,7 +89,7 @@ public:
   //! \param local_elem A local element ID
   //! \param heat A heat source term
   //! \return Error code
-  int set_heat_source_at(int32_t local_elem, double heat) const override;
+  int set_heat_source_at(int32_t local_elem, double heat) override;
 
   //! Get the number of local mesh elements
   //! \return Number of local mesh elements
