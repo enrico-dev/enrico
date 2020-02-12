@@ -32,6 +32,19 @@ public:
     }
   }
 
+  //! Frees the underlying MPI Communicator and nullifies/zeroes the group, rank, and size
+  //! \return Error value
+  int free()
+  {
+    auto ierr = MPI_Comm_free(&comm);
+    if (ierr == MPI_SUCCESS) {
+      group = MPI_GROUP_NULL;
+      rank = MPI_PROC_NULL;
+      size = 0;
+    }
+    return ierr;
+  };
+
   //! Queries whether the communicator is active
   //! \return True if the communicator is not MPI_COMM_NULL
   bool active() const { return comm != MPI_COMM_NULL; }
