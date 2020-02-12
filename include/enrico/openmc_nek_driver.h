@@ -26,7 +26,7 @@ public:
   //!
   //! \param comm The MPI communicator used for the coupled driver
   //! \param node XML node containing settings
-  explicit OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node);
+  explicit OpenmcNekDriver(Comm comm, pugi::xml_node node);
 
   //! Whether the calling rank has access to global coupling fields. Because the OpenMC
   //! and Nek communicators are assumed to overlap (though they are not the same), and

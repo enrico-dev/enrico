@@ -19,7 +19,7 @@
 
 namespace enrico {
 
-OpenmcDriver::OpenmcDriver(MPI_Comm comm)
+OpenmcDriver::OpenmcDriver(Comm comm)
   : NeutronicsDriver(comm)
 {
   if (active()) {

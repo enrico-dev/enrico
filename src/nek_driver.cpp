@@ -14,11 +14,11 @@
 
 namespace enrico {
 
-NekDriver::NekDriver(MPI_Comm comm, double pressure_bc, pugi::xml_node node)
+NekDriver::NekDriver(Comm comm, double pressure_bc, pugi::xml_node xml_root)
   : HeatFluidsDriver(comm, pressure_bc)
 {
   if (active()) {
-    casename_ = node.child_value("casename");
+    casename_ = xml_root.child_value("casename");
     if (comm_.rank == 0) {
       init_session_name();
     }

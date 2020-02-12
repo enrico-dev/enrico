@@ -7,7 +7,7 @@
 
 namespace enrico {
 
-CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
+CoupledDriver::CoupledDriver(Comm comm, pugi::xml_node node)
   : comm_(comm)
 {
   // get required coupling parameters

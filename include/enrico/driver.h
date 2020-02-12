@@ -17,7 +17,7 @@ class Driver {
 public:
   //! Initializes the solver with the given MPI communicator.
   //! \param comm An existing MPI communicator used to initialize the solver
-  explicit Driver(MPI_Comm comm)
+  explicit Driver(Comm comm)
     : comm_(comm)
   {}
 

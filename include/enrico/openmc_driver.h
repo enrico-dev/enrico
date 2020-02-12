@@ -22,7 +22,7 @@ class OpenmcDriver : public NeutronicsDriver {
 public:
   //! One-time initalization of OpenMC and member variables
   //! \param comm An existing MPI communicator used to inialize OpenMC
-  explicit OpenmcDriver(MPI_Comm comm);
+  explicit OpenmcDriver(Comm comm);
 
   //! One-time finalization of OpenMC
   ~OpenmcDriver();

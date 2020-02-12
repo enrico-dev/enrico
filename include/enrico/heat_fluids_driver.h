@@ -15,7 +15,7 @@ namespace enrico {
 //! Base class for driver that controls a heat-fluids solve
 class HeatFluidsDriver : public Driver {
 public:
-  explicit HeatFluidsDriver(MPI_Comm comm, double pressure_bc);
+  explicit HeatFluidsDriver(Comm comm, double pressure_bc);
 
   virtual ~HeatFluidsDriver() = default;
 

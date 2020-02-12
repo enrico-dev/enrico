@@ -19,7 +19,7 @@ using CellHandle = gsl::index;
 //! Base class for driver that controls a neutronics solve
 class NeutronicsDriver : public Driver {
 public:
-  explicit NeutronicsDriver(MPI_Comm comm)
+  explicit NeutronicsDriver(Comm comm)
     : Driver(comm)
   {}
 

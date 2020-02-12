@@ -5,7 +5,7 @@
 
 namespace enrico {
 
-HeatFluidsDriver::HeatFluidsDriver(MPI_Comm comm, double pressure_bc)
+HeatFluidsDriver::HeatFluidsDriver(Comm comm, double pressure_bc)
   : Driver(comm)
   , pressure_bc_(pressure_bc)
 {

@@ -3,6 +3,7 @@
 #include "pugixml.hpp"
 #include <mpi.h>
 
+#include "enrico/comm.h"
 #include "enrico/mpi_types.h"
 #include "enrico/openmc_heat_driver.h"
 #include "enrico/openmc_nek_driver.h"
@@ -12,6 +13,7 @@ int main(int argc, char* argv[])
   // Initialize MPI
   MPI_Init(&argc, &argv);
   enrico::init_mpi_datatypes();
+  enrico::Comm comm_world(MPI_COMM_WORLD);
 
   // Define enums for selecting drivers
   enum class Transport { OpenMC, Shift, Surrogate };
@@ -54,12 +56,12 @@ int main(int argc, char* argv[])
   case Transport::OpenMC:
     switch (driver_heatfluids) {
     case HeatFluids::Nek5000: {
-      enrico::OpenmcNekDriver driver{MPI_COMM_WORLD, root};
+      enrico::OpenmcNekDriver driver{comm_world, root};
       driver.execute();
     } break;
     case HeatFluids::Surrogate: {
       // Pass XML node for reading settings
-      enrico::OpenmcHeatDriver driver{MPI_COMM_WORLD, root};
+      enrico::OpenmcHeatDriver driver{comm_world, root};
       driver.execute();
     } break;
     }

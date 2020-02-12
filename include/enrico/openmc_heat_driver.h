@@ -22,7 +22,7 @@ public:
   //!
   //! \param comm  The MPI communicator used for the coupled driver
   //! \param node  XML node containing settings
-  explicit OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node);
+  explicit OpenmcHeatDriver(Comm comm, pugi::xml_node node);
 
   //! Whether the calling rank has access to global coupling fields. Because OpenMC
   //! and the surrogate driver share the same communicator, and the surrogate driver does not

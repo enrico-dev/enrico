@@ -16,7 +16,7 @@ namespace enrico {
 int ChannelFactory::index_ = 0;
 int RodFactory::index_ = 0;
 
-SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
+SurrogateHeatDriver::SurrogateHeatDriver(Comm comm,
                                          double pressure_bc,
                                          pugi::xml_node node)
   : HeatFluidsDriver(comm, pressure_bc)

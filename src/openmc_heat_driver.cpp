@@ -12,7 +12,7 @@
 
 namespace enrico {
 
-OpenmcHeatDriver::OpenmcHeatDriver(MPI_Comm comm, pugi::xml_node node)
+OpenmcHeatDriver::OpenmcHeatDriver(Comm comm, pugi::xml_node node)
   : CoupledDriver(comm, node)
 {
   // Initialize OpenMC and surrogate heat drivers

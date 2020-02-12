@@ -1,7 +1,7 @@
 #ifndef ENRICO_COMM_SPLIT_H
 #define ENRICO_COMM_SPLIT_H
 
-#include <mpi.h>
+#include "comm.h"
 
 namespace enrico {
 
@@ -35,10 +35,10 @@ namespace enrico {
 //! communicator (sub_comm) \param[out] sub_comm A new internode comm with the desired
 //! number of procs per node \param[out] intranode_comm A new intranode comm wil procs in
 //! the same node
-void get_node_comms(MPI_Comm super_comm,
+void get_node_comms(Comm super_comm,
                     int procs_per_node,
-                    MPI_Comm* sub_comm,
-                    MPI_Comm* intranode_comm);
+                    Comm& sub_comm,
+                    Comm& intranode_comm);
 
 }
 
