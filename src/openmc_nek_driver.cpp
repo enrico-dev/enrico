@@ -1,8 +1,9 @@
 #include "enrico/openmc_nek_driver.h"
 
+#include "enrico/comm_split.h"
 #include "enrico/const.h"
 #include "enrico/error.h"
-#include "enrico/message_passing.h"
+#include "enrico/mpi_types.h"
 #include "enrico/nek_driver.h"
 #include "enrico/openmc_driver.h"
 

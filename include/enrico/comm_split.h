@@ -1,22 +1,9 @@
-//! \file message_passing.h
-//! Utility functions for constucting MPI communicators
-#ifndef ENRICO_MESSAGE_PASSING_H
-#define ENRICO_MESSAGE_PASSING_H
+#ifndef ENRICO_COMM_SPLIT_H
+#define ENRICO_COMM_SPLIT_H
 
 #include <mpi.h>
 
-//! The ENRICO namespace
 namespace enrico {
-
-//==============================================================================
-// Global variables
-//==============================================================================
-
-extern MPI_Datatype position_mpi_datatype;
-
-//==============================================================================
-// Functions
-//==============================================================================
 
 //! Splits a given MPI comunicator into new inter- and intra-node communicators
 //!
@@ -53,16 +40,6 @@ void get_node_comms(MPI_Comm super_comm,
                     MPI_Comm* sub_comm,
                     MPI_Comm* intranode_comm);
 
-//! Create MPI datatype for Position struct
-void init_mpi_datatypes();
+}
 
-//! Free any MPI datatypes
-void free_mpi_datatypes();
-
-//! Map types to corresponding MPI datatypes
-template<typename T>
-MPI_Datatype get_mpi_type();
-
-} // namespace enrico
-
-#endif // ENRICO_MESSAGE_PASSING_H
+#endif // ENRICO_COMM_SPLIT_H

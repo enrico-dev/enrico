@@ -1,7 +1,7 @@
 #include "enrico/openmc_heat_driver.h"
 
 #include "enrico/error.h"
-#include "enrico/message_passing.h"
+#include "enrico/mpi_types.h"
 #include "gsl/gsl"
 #include "openmc/constants.h"
 #include "openmc/tallies/filter_cell_instance.h"

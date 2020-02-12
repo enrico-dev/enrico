@@ -5,7 +5,7 @@
 
 #include "enrico/coupled_driver.h"
 #include "enrico/heat_fluids_driver.h"
-#include "enrico/message_passing.h"
+#include "enrico/mpi_types.h"
 #include "enrico/neutronics_driver.h"
 
 #include <mpi.h>

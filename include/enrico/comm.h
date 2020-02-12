@@ -3,7 +3,7 @@
 #ifndef ENRICO_COMM_H
 #define ENRICO_COMM_H
 
-#include "enrico/message_passing.h"
+#include "enrico/mpi_types.h"
 #include "xtensor/xtensor.hpp"
 
 #include <mpi.h>
