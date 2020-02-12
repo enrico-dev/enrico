@@ -162,7 +162,7 @@ public:
   //! Verbosity options for printing simulation results
   enum class verbose { NONE, LOW, HIGH };
 
-  bool has_coupling_data() const final { return true; }
+  bool has_coupling_data() const final { return comm_.rank == 0; }
 
   //! Get the number of local mesh elements
   //! \return Number of local mesh elements
@@ -233,12 +233,6 @@ public:
 
   //! Write data to VTK
   void write_step(int timestep, int iteration) final;
-
-  xt::xtensor<double, 1> temperature() const final;
-
-  //! The surrogate heat driver does not compute solid density, so this method
-  //! only returns the fluid density.
-  xt::xtensor<double, 1> density() const final;
 
   //! Returns solid temperature in [K] for given region
   double solid_temperature(std::size_t pin, std::size_t axial, std::size_t ring) const;

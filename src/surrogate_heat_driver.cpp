@@ -181,6 +181,10 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
 
   // Initialize heat transfer solver
   generate_arrays();
+
+  if (active()) {
+    init_displs();
+  }
 };
 
 void SurrogateHeatDriver::generate_arrays()
@@ -205,13 +209,15 @@ void SurrogateHeatDriver::generate_arrays()
     }
   }
 
-  // Create empty arrays for source term and temperature in the solid phase
-  source_ = xt::empty<double>({n_pins_, n_axial_, n_rings(), n_azimuthal_});
-  solid_temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
+  if (this->has_coupling_data()) {
+    // Create empty arrays for source term and temperature in the solid phase
+    source_ = xt::empty<double>({n_pins_, n_axial_, n_rings(), n_azimuthal_});
+    solid_temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
 
-  // Create empty arrays for temperature and density in the fluid phase
-  fluid_temperature_ = xt::empty<double>({n_pins_, n_axial_});
-  fluid_density_ = xt::empty<double>({n_pins_, n_axial_});
+    // Create empty arrays for temperature and density in the fluid phase
+    fluid_temperature_ = xt::empty<double>({n_pins_, n_axial_});
+    fluid_density_ = xt::empty<double>({n_pins_, n_axial_});
+  }
 }
 
 int SurrogateHeatDriver::n_local_elem() const
@@ -228,6 +234,9 @@ std::size_t SurrogateHeatDriver::n_global_elem() const
 
 std::vector<Position> SurrogateHeatDriver::centroid_local() const
 {
+  if (!this->has_coupling_data())
+    return {};
+
   std::vector<Position> centroids;
 
   // Establish mappings between solid regions and OpenMC cells. The center
@@ -292,19 +301,23 @@ std::vector<Position> SurrogateHeatDriver::centroid_local() const
 std::vector<double> SurrogateHeatDriver::temperature_local() const
 {
   std::vector<double> local_temperatures;
-  for (gsl::index i = 0; i < n_pins_; ++i) {
-    for (gsl::index j = 0; j < n_axial_; ++j) {
-      for (gsl::index k = 0; k < n_rings(); ++k) {
-        for (gsl::index m = 0; m < n_azimuthal_; ++m) {
-          local_temperatures.push_back(solid_temperature_(i, j, k));
+
+  if (this->has_coupling_data()) {
+    for (gsl::index i = 0; i < n_pins_; ++i) {
+      for (gsl::index j = 0; j < n_axial_; ++j) {
+        for (gsl::index k = 0; k < n_rings(); ++k) {
+          for (gsl::index m = 0; m < n_azimuthal_; ++m) {
+            local_temperatures.push_back(solid_temperature_(i, j, k));
+          }
         }
       }
     }
+
+    for (double T : fluid_temperature_) {
+      local_temperatures.push_back(T);
+    }
   }
 
-  for (double T : fluid_temperature_) {
-    local_temperatures.push_back(T);
-  }
   return local_temperatures;
 }
 
@@ -312,13 +325,15 @@ std::vector<double> SurrogateHeatDriver::density_local() const
 {
   std::vector<double> local_densities;
 
-  // Solid region just gets zeros for densities (not used)
-  auto n = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
-  std::fill_n(std::back_inserter(local_densities), n, 0.0);
+  if (this->has_coupling_data()) {
+    // Solid region just gets zeros for densities (not used)
+    auto n = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
+    std::fill_n(std::back_inserter(local_densities), n, 0.0);
 
-  // Add fluid densities and return
-  for (double rho : fluid_density_) {
-    local_densities.push_back(rho);
+    // Add fluid densities and return
+    for (double rho : fluid_density_) {
+      local_densities.push_back(rho);
+    }
   }
   return local_densities;
 }
@@ -326,10 +341,13 @@ std::vector<double> SurrogateHeatDriver::density_local() const
 std::vector<int> SurrogateHeatDriver::fluid_mask_local() const
 {
   std::vector<int> fluid_mask;
-  auto n_solid = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
-  auto n_fluid = n_pins_ * n_axial_;
-  std::fill_n(std::back_inserter(fluid_mask), n_solid, 0);
-  std::fill_n(std::back_inserter(fluid_mask), n_fluid, 1);
+
+  if (this->has_coupling_data()) {
+    auto n_solid = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
+    auto n_fluid = n_pins_ * n_axial_;
+    std::fill_n(std::back_inserter(fluid_mask), n_solid, 0);
+    std::fill_n(std::back_inserter(fluid_mask), n_fluid, 1);
+  }
   return fluid_mask;
 }
 
@@ -337,25 +355,27 @@ std::vector<double> SurrogateHeatDriver::volume_local() const
 {
   std::vector<double> volumes;
 
-  // Volume of solid regions
-  for (gsl::index i = 0; i < n_pins_; ++i) {
-    for (gsl::index j = 0; j < n_axial_; ++j) {
-      double dz = z_(j + 1) - z_(j);
-      for (gsl::index k = 0; k < n_rings(); ++k) {
-        for (gsl::index m = 0; m < n_azimuthal_; ++m) {
-          volumes.push_back(solid_areas_(k) * dz / n_azimuthal_);
+  if (this->has_coupling_data()) {
+    // Volume of solid regions
+    for (gsl::index i = 0; i < n_pins_; ++i) {
+      for (gsl::index j = 0; j < n_axial_; ++j) {
+        double dz = z_(j + 1) - z_(j);
+        for (gsl::index k = 0; k < n_rings(); ++k) {
+          for (gsl::index m = 0; m < n_azimuthal_; ++m) {
+            volumes.push_back(solid_areas_(k) * dz / n_azimuthal_);
+          }
         }
       }
     }
-  }
 
-  // Volume of fluid regions
-  for (gsl::index i = 0; i < n_pins_; ++i) {
-    for (gsl::index j = 0; j < n_axial_; ++j) {
-      double dz = z_(j + 1) - z_(j);
-      double area =
-        pin_pitch_ * pin_pitch_ - M_PI * clad_outer_radius_ * clad_outer_radius_;
-      volumes.push_back(area * dz);
+    // Volume of fluid regions
+    for (gsl::index i = 0; i < n_pins_; ++i) {
+      for (gsl::index j = 0; j < n_axial_; ++j) {
+        double dz = z_(j + 1) - z_(j);
+        double area =
+          pin_pitch_ * pin_pitch_ - M_PI * clad_outer_radius_ * clad_outer_radius_;
+        volumes.push_back(area * dz);
+      }
     }
   }
 
@@ -364,10 +384,13 @@ std::vector<double> SurrogateHeatDriver::volume_local() const
 
 int SurrogateHeatDriver::set_heat_source_at(int32_t local_elem, double heat)
 {
+  if (local_elem > n_pins_ * n_axial_ * n_rings() * n_azimuthal_)
+    return 0;
+
   // Determine indices
   gsl::index pin = (local_elem - 1) / (n_axial_ * n_rings() * n_azimuthal_);
-  gsl::index axial = (local_elem - 1) / (n_rings() * n_azimuthal_);
-  gsl::index ring = (local_elem - 1) / n_azimuthal_;
+  gsl::index axial = ((local_elem - 1) / (n_rings() * n_azimuthal_)) % n_axial_;
+  gsl::index ring = ((local_elem - 1) / n_azimuthal_) % n_rings();
   gsl::index azimuthal = (local_elem - 1) % n_azimuthal_;
 
   // Set heat source
@@ -393,8 +416,10 @@ double SurrogateHeatDriver::rod_axial_node_power(const int pin, const int axial)
 
 void SurrogateHeatDriver::solve_step()
 {
-  solve_fluid();
-  solve_heat();
+  if (has_coupling_data()) {
+    solve_fluid();
+    solve_heat();
+  }
 }
 
 void SurrogateHeatDriver::solve_fluid()
@@ -615,13 +640,6 @@ void SurrogateHeatDriver::solve_heat()
   }
 }
 
-xt::xtensor<double, 1> SurrogateHeatDriver::temperature() const
-{
-  xt::xarray<double> Ts = {xt::flatten(solid_temperature_)};
-  xt::xarray<double> Tf = {xt::flatten(fluid_temperature_)};
-  return xt::concatenate(xt::xtuple(Ts, Tf), 0);
-}
-
 double SurrogateHeatDriver::solid_temperature(std::size_t pin,
                                               std::size_t axial,
                                               std::size_t ring) const
@@ -639,13 +657,11 @@ double SurrogateHeatDriver::fluid_temperature(std::size_t pin, std::size_t axial
   return fluid_temperature_(pin, axial);
 }
 
-xt::xtensor<double, 1> SurrogateHeatDriver::density() const
-{
-  return xt::flatten(fluid_density_);
-}
-
 void SurrogateHeatDriver::write_step(int timestep, int iteration)
 {
+  if (!has_coupling_data())
+    return;
+
   // if called, but viz isn't requested for the situation,
   // exit early - no output
   if ((iteration < 0 && "final" != viz_iterations_) ||
