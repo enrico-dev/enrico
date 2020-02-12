@@ -16,7 +16,7 @@ int main(int argc, char* argv[])
   auto root = doc.document_element();
 
   {
-    enrico::NekDriver test_driver(MPI_COMM_WORLD,
+    enrico::NekDriver test_driver(enrico::Comm(MPI_COMM_WORLD),
                                   root.child("pressure_bc").text().as_double(),
                                   root.child("nek5000"));
     test_driver.init_step();

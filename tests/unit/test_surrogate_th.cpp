@@ -18,7 +18,7 @@ TEST_CASE("Verify construction of surrogate thermal-hydraulics driver", "[constr
   auto node = root.child("heat_surrogate");
 
   double outlet_pressure = 101325.0;
-  enrico::SurrogateHeatDriver driver(MPI_COMM_NULL, outlet_pressure, node);
+  enrico::SurrogateHeatDriver driver(enrico::Comm(MPI_COMM_NULL), outlet_pressure, node);
 
   SECTION("Verify XML input file reading") {
     CHECK(driver.clad_inner_radius() == Approx(0.414));
