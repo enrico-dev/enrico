@@ -9,12 +9,12 @@ endif ()
 # =============================================================================
 # Check for SCALE (optional)
 # =============================================================================
-find_package(SCALE PATHS ${SCALE_DIR} COMPONENTS OmnibusDriver Tpetra)
+find_package(SCALE PATHS ${SCALE_DIR} COMPONENTS Shift OmnibusDriver Tpetra)
 
 if (SCALE_FOUND)
-    MESSAGE(" SCALE_FOUND!")
-    MESSAGE(" SCALE_DIR = ${SCALE_DIR}")
-    MESSAGE(" SCALE_VERSION = ${SCALE_VERSION}")
+    MESSAGE(STATUS "SCALE found!")
+    MESSAGE(STATUS "SCALE_DIR = ${SCALE_DIR}")
+    MESSAGE(STATUS "SCALE_VERSION = ${SCALE_VERSION}")
 endif ()
 
 # =============================================================================
