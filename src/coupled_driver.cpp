@@ -72,17 +72,18 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
 
   // Get parameters from enrico.xml
   double pressure_bc = node.child("pressure_bc").text().as_double();
-  openmc_procs_per_node_ = node.child("openmc_procs_per_node").text().as_int();
+  neutronics_procs_per_node_ = node.child("openmc_procs_per_node").text().as_int();
 
   // Postcondition checks on user inputs
-  Expects(openmc_procs_per_node_ > 0);
+  Expects(neutronics_procs_per_node_ > 0);
 
-  // Create communicator for OpenMC with requested processes per node
-  Comm openmc_comm;
-  enrico::get_node_comms(comm_, openmc_procs_per_node_, openmc_comm, intranode_comm_);
+  // Create communicator for neutronics with requested processes per node
+  Comm neutronics_comm;
+  enrico::get_node_comms(
+    comm_, neutronics_procs_per_node_, neutronics_comm, intranode_comm_);
 
-  // Instantiate OpenMC driver
-  neutronics_driver_ = std::make_unique<OpenmcDriver>(openmc_comm.comm);
+  // Instantiate neutronics driver
+  neutronics_driver_ = std::make_unique<OpenmcDriver>(neutronics_comm.comm);
 
   // Instantiate heat-fluids driver
   std::string s = node.child_value("driver_heatfluids");
@@ -300,11 +301,11 @@ void CoupledDriver::init_mappings()
         cell_to_elems_[cell].push_back(elem);
       }
 
-      // Determine number of OpenMC cell instances
+      // Determine number of neutronic cell instances
       n_cells_ = cell_to_elems_.size();
     }
 
-    // Set element -> cell instance mapping on each Nek rank
+    // Set element -> cell instance mapping on each TH rank
     intranode_comm_.broadcast(elem_to_cell_);
 
     // Broadcast number of cell instances
@@ -346,8 +347,8 @@ void CoupledDriver::init_temperatures()
         temperatures_prev_[elem] = T;
       }
     } else if (temperature_ic_ == Initial::heat) {
-      // Use whatever temperature is in Nek's internal arrays, either from a restart
-      // file or from a useric fortran routine.
+      // Use whatever temperature is in TH solver. For Nek5000, this would be
+      // either from a restart file or from a useric fortran routine.
       update_temperature();
 
       // update_temperature() begins by saving temperatures_ to temperatures_prev_, and
@@ -365,10 +366,10 @@ void CoupledDriver::init_volumes()
 
   const auto& heat = this->get_heat_driver();
   if (heat.active()) {
-    // Gather all the local element volumes on the Nek5000/OpenMC root
+    // Gather all the local element volumes on the TH root
     elem_volumes_ = heat.volumes();
 
-    // Broadcast global_element_volumes onto all the OpenMC procs
+    // Broadcast global_element_volumes onto all the neutronics procs
     this->get_neutronics_driver().comm_.broadcast(elem_volumes_);
   }
 
@@ -376,10 +377,10 @@ void CoupledDriver::init_volumes()
   if (this->has_global_coupling_data()) {
     const auto& neutronics = this->get_neutronics_driver();
     for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
-      double v_openmc = neutronics.get_volume(cell);
-      double v_nek = 0.0;
+      double v_neutronics = neutronics.get_volume(cell);
+      double v_heatfluids = 0.0;
       for (const auto& elem : cell_to_elems_.at(cell)) {
-        v_nek += elem_volumes_.at(elem);
+        v_heatfluids += elem_volumes_.at(elem);
       }
 
       // TODO: Refactor to avoid dynamic_cast
@@ -388,7 +389,8 @@ void CoupledDriver::init_volumes()
         const auto& c = openmc_driver->cells_[cell];
         std::stringstream msg;
         msg << "Cell " << openmc::model::cells[c.index_]->id_ << " (" << c.instance_
-            << "), V = " << v_openmc << " (OpenMC), " << v_nek << " (Nek)";
+            << "), V = " << v_neutronics << " (Neutronics), " << v_heatfluids
+            << " (Heat/Fluids)";
         comm_.message(msg.str());
       }
     }
@@ -405,11 +407,11 @@ void CoupledDriver::init_densities()
     densities_prev_.resize({n_global});
 
     if (density_ic_ == Initial::neutronics) {
-      // Loop over the OpenMC cells, then loop over the global Nek elements
-      // corresponding to that cell and assign the OpenMC cell density to
-      // the correct index in the densities_ array. This mapping assumes that
-      // each Nek element is fully contained within an OpenMC cell, i.e. Nek
-      // elements are not split between multiple OpenMC cells.
+      // Loop over the neutronics cells, then loop over the TH elements
+      // corresponding to that cell and assign the cell density to the correct
+      // index in the densities_ array. This mapping assumes that each TH
+      // element is fully contained within a neutronics cell, i.e., TH elements
+      // are not split between multiple neutronics cells.
       const auto& neutronics = this->get_neutronics_driver();
       for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
         const auto& global_elems = cell_to_elems_.at(cell);
@@ -428,8 +430,8 @@ void CoupledDriver::init_densities()
         }
       }
     } else if (density_ic_ == Initial::heat) {
-      // Use whatever density is in Nek's internal arrays, either from a restart
-      // file or from a useric fortran routine
+      // Use whatever density is in TH solver. For Nek5000, this would be either
+      // from a restart file or from a useric fortran routine
       update_density();
 
       // update_density() begins by saving densities_ to densities_prev_, and
@@ -448,7 +450,8 @@ void CoupledDriver::init_elem_fluid_mask()
   const auto& heat = this->get_heat_driver();
 
   if (heat.active()) {
-    // On Nek's master rank, fm gets global data. On Nek's other ranks, fm is empty
+    // On TH master rank, fluid mask gets global data. On TH other ranks, fluid
+    // mask is empty
     elem_fluid_mask_ = heat.fluid_mask();
 
     // Broadcast fluid mask to neutronics driver
@@ -487,8 +490,8 @@ void CoupledDriver::init_heat_source()
 
 void CoupledDriver::set_heat_source()
 {
-  // OpenMC has heat source on each of its ranks. We need to make heat
-  // source available on each Nek rank.
+  // Neutronics driver has heat source on each of its ranks. We need to make
+  // heat source available on each TH rank.
   intranode_comm_.broadcast(heat_source_);
 
   auto& heat = this->get_heat_driver();
@@ -517,10 +520,10 @@ void CoupledDriver::set_temperature()
   if (this->get_heat_driver().active()) {
     auto& neutronics = this->get_neutronics_driver();
     if (neutronics.active()) {
-      // Broadcast global_element_temperatures onto all the OpenMC procs
+      // Broadcast global_element_temperatures onto all the neutronics procs
       neutronics.comm_.broadcast(temperatures_);
 
-      // For each OpenMC cell instance, volume average temperatures and set
+      // For each neutronics cell, volume average temperatures and set
       for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
 
         // Get corresponding global elements
@@ -548,16 +551,16 @@ void CoupledDriver::set_temperature()
 void CoupledDriver::set_density()
 {
   if (this->get_heat_driver().active()) {
-    // Since OpenMC's and Nek's master ranks are the same, we know that elem_densities_ on
-    // OpenMC's master rank were updated.  Now we broadcast to the other OpenMC ranks.
-    // TODO: This won't work if the Nek/OpenMC communicators are disjoint
+    // Since neutronics and TH master ranks are the same, we know that
+    // elem_densities_ on neutronics master rank were updated.  Now we broadcast
+    // to the other neutronics ranks.
+    // TODO: This won't work if the communicators are disjoint
     auto& neutronics = this->get_neutronics_driver();
     if (neutronics.active()) {
       neutronics.comm_.broadcast(densities_);
 
-      // For each OpenMC cell instance in a fluid cell, volume average the
-      // densities and set
-      // TODO:  Might be able to use xtensor masking to do some of this
+      // For each neutronics cell in a fluid cell, volume average the densities
+      // and set in driver
       for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
         if (cell_fluid_mask_[cell] == 1) {
           double average_density = 0.0;

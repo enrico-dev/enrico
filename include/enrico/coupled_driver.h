@@ -126,23 +126,19 @@ public:
   Initial density_ic_{Initial::neutronics};
 
 private:
-  //! Create bidirectional mappings from OpenMC cell instances to/from Nek5000 elements
+  //! Create bidirectional mappings from neutronics cell instances to/from TH elements
   void init_mappings();
 
-  //! Initialize the tallies for all OpenMC materials
+  //! Initialize the Monte Carlo tallies for all cells
   void init_tallies();
 
-  //! Initialize global volume buffers for OpenMC ranks
+  //! Initialize global volume buffers for neutronics ranks
   void init_volumes();
 
-  //! Initialize global fluid masks on all OpenMC ranks.
-  //!
-  //! These arrays store the dimensionless source of Nek's global elements. These are
-  //! **not** ordered by Nek's global element indices. Rather, these are ordered according
-  //! to an MPI_Gatherv operation on Nek5000's local elements.
+  //! Initialize global fluid masks on all TH ranks.
   void init_elem_fluid_mask();
 
-  //! Initialize fluid masks for OpenMC cells on all OpenMC ranks.
+  //! Initialize fluid masks for neutronics cells on all neutronic ranks.
   void init_cell_fluid_mask();
 
   //! Initialize current and previous Picard temperature fields
@@ -161,9 +157,9 @@ private:
 
   int i_picard_; //!< Index pertaining to current Picard iteration
 
-  Comm intranode_comm_;       //!< The communicator representing intranode ranks
-  int openmc_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in OpenMC
-                              //!< comm
+  Comm intranode_comm_;           //!< The communicator representing intranode ranks
+  int neutronics_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in
+                                  //!< neutronics comm
 
   //! Current Picard iteration temperature; this temperature is the temperature
   //! computed by the thermal-hydraulic solver, and data mappings may result in
@@ -196,31 +192,29 @@ private:
   std::unique_ptr<HeatFluidsDriver> heat_fluids_driver_; //!< The heat-fluids driver
 
   //! States whether a global element is in the fluid region
-  //! These are **not** ordered by Nek's global element indices.  Rather, these are
-  //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
+  //! These are **not** ordered by TH global element indices.  Rather, these are
+  //! ordered according to an MPI_Gatherv operation on TH local elements.
   std::vector<int> elem_fluid_mask_;
 
-  //! States whether an OpenMC cell in the fluid region
+  //! States whether a neutronic cell is in the fluid region
   xt::xtensor<int, 1> cell_fluid_mask_;
 
-  //! The dimensionless volumes of Nek's global elements
-  //! These are **not** ordered by Nek's global element indices.  Rather, these are
-  //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
+  //! Volumes of global elements in TH solver
+  //! These are **not** ordered by TH global element indices.  Rather, these are
+  //! ordered according to an MPI_Gatherv operation on TH local elements.
   std::vector<double> elem_volumes_;
 
-  //! Map that gives a list of Nek element global indices for a given neutronics
-  //! cell handle. The Nek global element indices refer to indices defined by
-  //! the MPI_Gatherv operation, and do not reflect Nek's internal global
-  //! element indexing.
+  //! Map that gives a list of TH element indices for a given neutronics cell
+  //! handle. The TH element indices refer to indices defined by the MPI_Gatherv
+  //! operation, and do not reflect TH internal global element indexing.
   std::unordered_map<CellHandle, std::vector<int32_t>> cell_to_elems_;
 
-  //! Map that gives the neutronics cell handle for a given Nek global element
-  //! index. The Nek global element indices refer to indices defined by the
-  //! MPI_Gatherv operation, and do not reflect Nek's internal global element
-  //! indexing.
+  //! Map that gives the neutronics cell handle for a given TH element index.
+  //! The TH element indices refer to indices defined by the MPI_Gatherv
+  //! operation, and do not reflect TH internal global element indexing.
   std::vector<CellHandle> elem_to_cell_;
 
-  //! Number of cell instances in OpenMC model
+  //! Number of cell instances in neutronics model
   int32_t n_cells_;
 };
 
