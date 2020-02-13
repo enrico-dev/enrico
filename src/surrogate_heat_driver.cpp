@@ -150,9 +150,7 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm,
     channel_flowrates_(i) = channels_[i].area_ / total_flow_area * mass_flowrate_;
 
   // Get z values
-  // TODO: Switch to get_node_xarray on OpenMC update
-  auto z_values = openmc::get_node_array<double>(node, "z");
-  z_ = xt::adapt(z_values);
+  z_ = openmc::get_node_xarray<double>(node, "z");
   n_axial_ = z_.size() - 1;
 
   // Check for visualization input
@@ -266,9 +264,6 @@ std::vector<Position> SurrogateHeatDriver::centroid_local() const
 
           // Determine cell instance corresponding to given pin location
           centroids.emplace_back(x, y, zavg);
-
-          // TODO: How are we going to know that that this position should be
-          // fissionable?
         }
       }
     }
