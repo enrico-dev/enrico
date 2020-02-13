@@ -4,7 +4,7 @@
 #define ENRICO_DRIVERS_H
 
 #include "enrico/comm.h"
-#include "enrico/message_passing.h"
+#include "enrico/mpi_types.h"
 
 #include <mpi.h>
 

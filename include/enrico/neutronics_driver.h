@@ -5,7 +5,7 @@
 
 #include "enrico/driver.h"
 #include "enrico/geom.h"
-#include "enrico/message_passing.h"
+#include "enrico/mpi_types.h"
 
 #include <gsl/gsl>
 #include <xtensor/xtensor.hpp>
