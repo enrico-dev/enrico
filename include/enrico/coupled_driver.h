@@ -125,11 +125,26 @@ public:
   //! in the neutronics input file.
   Initial density_ic_{Initial::neutronics};
 
-  Comm intranode_comm_;       //!< The communicator representing intranode ranks
-  int openmc_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in OpenMC
-                              //!< comm
+private:
+  //! Create bidirectional mappings from OpenMC cell instances to/from Nek5000 elements
+  void init_mappings();
 
-protected:
+  //! Initialize the tallies for all OpenMC materials
+  void init_tallies();
+
+  //! Initialize global volume buffers for OpenMC ranks
+  void init_volumes();
+
+  //! Initialize global fluid masks on all OpenMC ranks.
+  //!
+  //! These arrays store the dimensionless source of Nek's global elements. These are
+  //! **not** ordered by Nek's global element indices. Rather, these are ordered according
+  //! to an MPI_Gatherv operation on Nek5000's local elements.
+  void init_elem_fluid_mask();
+
+  //! Initialize fluid masks for OpenMC cells on all OpenMC ranks.
+  void init_cell_fluid_mask();
+
   //! Initialize current and previous Picard temperature fields
   void init_temperatures();
 
@@ -141,6 +156,14 @@ protected:
   //! condition is required for the heat source. So, unlike init_temperatures(),
   //! this method does not set any initial values.
   void init_heat_source();
+
+  int i_timestep_; //!< Index pertaining to current timestep
+
+  int i_picard_; //!< Index pertaining to current Picard iteration
+
+  Comm intranode_comm_;       //!< The communicator representing intranode ranks
+  int openmc_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in OpenMC
+                              //!< comm
 
   //! Current Picard iteration temperature; this temperature is the temperature
   //! computed by the thermal-hydraulic solver, and data mappings may result in
@@ -168,30 +191,6 @@ protected:
   xt::xtensor<double, 1> heat_source_;
 
   xt::xtensor<double, 1> heat_source_prev_; //!< Previous Picard iteration heat source
-
-private:
-  //! Create bidirectional mappings from OpenMC cell instances to/from Nek5000 elements
-  void init_mappings();
-
-  //! Initialize the tallies for all OpenMC materials
-  void init_tallies();
-
-  //! Initialize global volume buffers for OpenMC ranks
-  void init_volumes();
-
-  //! Initialize global fluid masks on all OpenMC ranks.
-  //!
-  //! These arrays store the dimensionless source of Nek's global elements. These are
-  //! **not** ordered by Nek's global element indices. Rather, these are ordered according
-  //! to an MPI_Gatherv operation on Nek5000's local elements.
-  void init_elem_fluid_mask();
-
-  //! Initialize fluid masks for OpenMC cells on all OpenMC ranks.
-  void init_cell_fluid_mask();
-
-  int i_timestep_; //!< Index pertaining to current timestep
-
-  int i_picard_; //!< Index pertaining to current Picard iteration
 
   std::unique_ptr<NeutronicsDriver> neutronics_driver_;  //!< The neutronics driver
   std::unique_ptr<HeatFluidsDriver> heat_fluids_driver_; //!< The heat-fluids driver
