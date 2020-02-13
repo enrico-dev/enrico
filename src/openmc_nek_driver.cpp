@@ -34,16 +34,11 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
   Expects(openmc_procs_per_node_ > 0);
 
   // Create communicator for OpenMC with requested processes per node
-  MPI_Comm openmc_comm;
-  MPI_Comm intranode_comm;
-  enrico::get_node_comms(
-    comm_.comm, openmc_procs_per_node_, &openmc_comm, &intranode_comm);
-
-  // Set intranode communicator
-  intranode_comm_ = Comm(intranode_comm);
+  Comm openmc_comm;
+  enrico::get_node_comms(comm_, openmc_procs_per_node_, openmc_comm, intranode_comm_);
 
   // Instantiate OpenMC and Nek drivers
-  neutronics_driver_ = std::make_unique<OpenmcDriver>(openmc_comm);
+  neutronics_driver_ = std::make_unique<OpenmcDriver>(openmc_comm.comm);
   heat_fluids_driver_ = std::make_unique<NekDriver>(comm, pressure_bc, nek_node);
 
   init_mappings();
