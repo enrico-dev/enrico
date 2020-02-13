@@ -6,6 +6,7 @@
 #include "enrico/mpi_types.h"
 #include "enrico/nek_driver.h"
 #include "enrico/openmc_driver.h"
+#include "enrico/surrogate_heat_driver.h"
 
 #include "gsl/gsl"
 #include "nek5000/core/nek_interface.h"
@@ -26,7 +27,6 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
   : CoupledDriver{comm, node}
 {
   // Get parameters from enrico.xml
-  pugi::xml_node nek_node = node.child("nek5000");
   double pressure_bc = node.child("pressure_bc").text().as_double();
   openmc_procs_per_node_ = node.child("openmc_procs_per_node").text().as_int();
 
@@ -37,9 +37,21 @@ OpenmcNekDriver::OpenmcNekDriver(MPI_Comm comm, pugi::xml_node node)
   Comm openmc_comm;
   enrico::get_node_comms(comm_, openmc_procs_per_node_, openmc_comm, intranode_comm_);
 
-  // Instantiate OpenMC and Nek drivers
+  // Instantiate OpenMC driver
   neutronics_driver_ = std::make_unique<OpenmcDriver>(openmc_comm.comm);
-  heat_fluids_driver_ = std::make_unique<NekDriver>(comm, pressure_bc, nek_node);
+
+  // Instantiate heat-fluids driver
+  std::string s = node.child_value("driver_heatfluids");
+  if (s == "nek5000") {
+    auto heat_node = node.child("nek5000");
+    heat_fluids_driver_ = std::make_unique<NekDriver>(comm, pressure_bc, heat_node);
+  } else if (s == "surrogate") {
+    auto heat_node = node.child("heat_surrogate");
+    heat_fluids_driver_ =
+      std::make_unique<SurrogateHeatDriver>(comm, pressure_bc, heat_node);
+  } else {
+    throw std::runtime_error{"Invalid value for <driver_heatfluids>"};
+  }
 
   init_mappings();
   init_tallies();

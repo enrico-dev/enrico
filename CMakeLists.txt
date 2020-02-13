@@ -81,7 +81,6 @@ set(SOURCES
     src/openmc_nek_driver.cpp
     src/nek_driver.cpp
     src/vtk_viz.cpp
-    src/openmc_heat_driver.cpp
     src/heat_fluids_driver.cpp)
 
 if (SCALE_FOUND)

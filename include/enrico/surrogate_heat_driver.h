@@ -3,11 +3,13 @@
 #ifndef ENRICO_SURROGATE_HEAT_DRIVER_H
 #define ENRICO_SURROGATE_HEAT_DRIVER_H
 
+#include "enrico/geom.h"
 #include "enrico/heat_fluids_driver.h"
-#include "gsl/gsl"
-#include "mpi.h"
-#include "pugixml.hpp"
-#include "xtensor/xtensor.hpp"
+
+#include <gsl/gsl>
+#include <mpi.h>
+#include <pugixml.hpp>
+#include <xtensor/xtensor.hpp>
 
 #include <cstddef>
 
@@ -47,86 +49,90 @@ struct Rod {
 
 //! Class to construct flow channels for a Cartesian lattice of pins
 class ChannelFactory {
-  public:
-    ChannelFactory(double pitch, double rod_radius) :
-      pitch_(pitch),
-      radius_(rod_radius),
-      interior_area_(pitch_ * pitch_ - M_PI * radius_ * radius_)
-      {}
+public:
+  ChannelFactory(double pitch, double rod_radius)
+    : pitch_(pitch)
+    , radius_(rod_radius)
+    , interior_area_(pitch_ * pitch_ - M_PI * radius_ * radius_)
+  {}
 
-    //! Make a corner subchannel connected to given rods
-    Channel make_corner(const std::vector<std::size_t>& rods) const {
-      Channel c;
-      c.index_ = index_++;
-      c.area_ = 0.25 * interior_area_;
-      c.rod_ids_ = rods;
-      return c;
-    }
+  //! Make a corner subchannel connected to given rods
+  Channel make_corner(const std::vector<std::size_t>& rods) const
+  {
+    Channel c;
+    c.index_ = index_++;
+    c.area_ = 0.25 * interior_area_;
+    c.rod_ids_ = rods;
+    return c;
+  }
 
-    //! Make an edge subchannel connected to given rods
-    Channel make_edge(const std::vector<std::size_t>& rods) const {
-      Channel c;
-      c.index_ = index_++;
-      c.area_ = 0.5 * interior_area_;
-      c.rod_ids_ = rods;
-      return c;
-    }
+  //! Make an edge subchannel connected to given rods
+  Channel make_edge(const std::vector<std::size_t>& rods) const
+  {
+    Channel c;
+    c.index_ = index_++;
+    c.area_ = 0.5 * interior_area_;
+    c.rod_ids_ = rods;
+    return c;
+  }
 
-    //! Make an interior subchannel connected to given rods
-    Channel make_interior(const std::vector<std::size_t>& rods) const {
-      Channel c;
-      c.index_ = index_++;
-      c.area_ = interior_area_;
-      c.rod_ids_ = rods;
-      return c;
-    }
+  //! Make an interior subchannel connected to given rods
+  Channel make_interior(const std::vector<std::size_t>& rods) const
+  {
+    Channel c;
+    c.index_ = index_++;
+    c.area_ = interior_area_;
+    c.rod_ids_ = rods;
+    return c;
+  }
 
-  private:
-    //! rod pitch
-    double pitch_;
+private:
+  //! rod pitch
+  double pitch_;
 
-    //! rod outer radius
-    double radius_;
+  //! rod outer radius
+  double radius_;
 
-    //! interior channel flow area, which is proportional to flow areas for all
-    //! other channel types
-    double interior_area_;
+  //! interior channel flow area, which is proportional to flow areas for all
+  //! other channel types
+  double interior_area_;
 
-    //! index of constructed channel
-    static int index_;
+  //! index of constructed channel
+  static int index_;
 };
 
 class RodFactory {
-  public:
-    RodFactory(double clad_OR, double clad_IR, double pellet_OR) :
-      clad_outer_r_(clad_OR),
-      clad_inner_r_(clad_IR),
-      pellet_outer_r_(pellet_OR)
-      {}
+public:
+  RodFactory(double clad_OR, double clad_IR, double pellet_OR)
+    : clad_outer_r_(clad_OR)
+    , clad_inner_r_(clad_IR)
+    , pellet_outer_r_(pellet_OR)
+  {}
 
-    //! Make a rod connected to given channels
-    Rod make_rod(const std::vector<std::size_t>& channels) const {
-      Rod r;
-      r.index_ = index_++;
-      r.clad_inner_radius_ = clad_inner_r_;
-      r.clad_outer_radius_ = clad_outer_r_;
-      r.pellet_radius_ = pellet_outer_r_;
-      r.channel_ids_ = channels;
-      return r;
-    }
+  //! Make a rod connected to given channels
+  Rod make_rod(const std::vector<std::size_t>& channels) const
+  {
+    Rod r;
+    r.index_ = index_++;
+    r.clad_inner_radius_ = clad_inner_r_;
+    r.clad_outer_radius_ = clad_outer_r_;
+    r.pellet_radius_ = pellet_outer_r_;
+    r.channel_ids_ = channels;
+    return r;
+  }
 
-  private:
-    //! Cladding outer radius
-    double clad_outer_r_;
+private:
+  //! Cladding outer radius
+  double clad_outer_r_;
 
-    //! Cladding inner radius
-    double clad_inner_r_;
+  //! Cladding inner radius
+  double clad_inner_r_;
 
-    //! Pellet outer radius
-    double pellet_outer_r_;
+  //! Pellet outer radius
+  double pellet_outer_r_;
 
-    //! Index of constructed rod
-    static int index_;
+  //! Index of constructed rod
+  static int index_;
 };
 
 /**
@@ -156,7 +162,22 @@ public:
   //! Verbosity options for printing simulation results
   enum class verbose { NONE, LOW, HIGH };
 
-  bool has_coupling_data() const final { return true; }
+  bool has_coupling_data() const final { return comm_.rank == 0; }
+
+  //! Get the number of local mesh elements
+  //! \return Number of local mesh elements
+  int n_local_elem() const override;
+
+  //! Get the number of global mesh elements
+  //! \return Number of global mesh elements
+  std::size_t n_global_elem() const override;
+
+  //! Set the heat source for a given local element
+  //!
+  //! \param local_elem A local element ID
+  //! \param heat A heat source term
+  //! \return Error code
+  int set_heat_source_at(int32_t local_elem, double heat) override;
 
   //! Solves the heat-fluids surrogate solver
   void solve_step() final;
@@ -213,12 +234,6 @@ public:
   //! Write data to VTK
   void write_step(int timestep, int iteration) final;
 
-  xt::xtensor<double, 1> temperature() const final;
-
-  //! The surrogate heat driver does not compute solid density, so this method
-  //! only returns the fluid density.
-  xt::xtensor<double, 1> density() const final;
-
   //! Returns solid temperature in [K] for given region
   double solid_temperature(std::size_t pin, std::size_t axial, std::size_t ring) const;
 
@@ -232,6 +247,7 @@ public:
   xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins
   xt::xtensor<double, 1> z_;           //!< Bounding z-values for axial segments
   std::size_t n_axial_;                //!< number of axial segments
+  std::size_t n_azimuthal_{4};         //!< number of azimuthal segments
 
   //! Total number of pins
   std::size_t n_pins_;
@@ -254,7 +270,8 @@ public:
   xt::xtensor<double, 1> channel_flowrates_;
 
   // solver variables and settings
-  xt::xtensor<double, 3> source_;      //!< heat source for each (axial segment, ring)
+  xt::xtensor<double, 4>
+    source_; //!< heat source for each (pin, axial segment, ring, azimuthal segment)
   xt::xtensor<double, 1> r_grid_clad_; //!< radii of each clad ring in [cm]
   xt::xtensor<double, 1> r_grid_fuel_; //!< radii of each fuel ring in [cm]
 
@@ -271,6 +288,26 @@ public:
   size_t vtk_radial_res_{20};      //!< radial resolution of resulting vtk files
 
 private:
+  //! Get temperature of local mesh elements
+  //! \return Temperature of local mesh elements in [K]
+  std::vector<double> temperature_local() const override;
+
+  //! Get density of local mesh elements
+  //! \return Density of local mesh elements in [g/cm^3]
+  std::vector<double> density_local() const override;
+
+  //! States whether each local region is in fluid
+  //! \return For each local region, 1 if region is in fluid and 0 otherwise
+  std::vector<int> fluid_mask_local() const override;
+
+  //! Get centroids of local mesh elements
+  //! \return Centroids of local mesh elements
+  std::vector<Position> centroid_local() const override;
+
+  //! Get volumes of local mesh elements
+  //! \return Volumes of local mesh elements
+  std::vector<double> volume_local() const override;
+
   //! Create internal arrays used for heat equation solver
   void generate_arrays();
 
@@ -288,7 +325,8 @@ private:
   //! positions) to the specified inlet mass flowrate.
   //! \param rho density in a cell-centered basis
   //! \param u   axial velocity in a face-centered basis
-  bool is_mass_conserved(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u) const;
+  bool is_mass_conserved(const xt::xtensor<double, 2>& rho,
+                         const xt::xtensor<double, 2>& u) const;
 
   //! Diagnostic function to assess whether the energy is conserved by the subchannel
   //! solver by comparing the energy deposition in each channel in each axial plane
@@ -297,14 +335,13 @@ private:
   //! \param u   axial velocity in a face-centered basis
   //! \param h   enthalpy in a face-centered basis
   //! \param q   powers in each channel in a cell-centered basis
-  bool is_energy_conserved(const xt::xtensor<double, 2>& rho, const xt::xtensor<double, 2>& u,
-    const xt::xtensor<double, 2>&h, const xt::xtensor<double, 2>& q) const;
+  bool is_energy_conserved(const xt::xtensor<double, 2>& rho,
+                           const xt::xtensor<double, 2>& u,
+                           const xt::xtensor<double, 2>& h,
+                           const xt::xtensor<double, 2>& q) const;
 
   //!< solid temperature in [K] for each (pin, axial segment, ring)
   xt::xtensor<double, 3> solid_temperature_;
-
-  //! Value is 1 if region is in fluid; otherwise 0
-  xt::xtensor<int, 1> fluid_mask_;
 
   //! Flow areas for coolant-centered channels
   xt::xtensor<double, 1> channel_areas_;
