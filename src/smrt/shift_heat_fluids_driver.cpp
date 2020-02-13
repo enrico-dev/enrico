@@ -20,9 +20,7 @@
 #include <gsl/gsl>
 
 // enrico includes
-#ifdef USE_SHIFT
 #include "smrt/shift_driver.h"
-#endif
 
 namespace enrico {
 //---------------------------------------------------------------------------//
@@ -36,11 +34,6 @@ ShiftHeatFluidsDriver::ShiftHeatFluidsDriver(SP_Assembly assembly,
   Expects(assembly != nullptr);
 
   Expects(nemesis::soft_equiv(z_edges.back(), d_assembly->height()));
-
-  // shift must be enabled in this build if this class constructor is called
-  #ifndef USE_SHIFT
-    Expects(false);
-  #endif
 
   Vec_Dbl dz(z_edges.size() - 1);
   for (int edge = 0; edge < dz.size(); ++edge)
@@ -73,7 +66,6 @@ ShiftHeatFluidsDriver::ShiftHeatFluidsDriver(SP_Assembly assembly,
   auto neutronics_params = Teuchos::sublist(params, "Neutronics");
   auto shift_input = neutronics_params->get<std::string>("shift_input");
   d_neutronics = std::make_shared<ShiftDriver>(assembly, shift_input, z_edges);
-  }
 }
 
 //---------------------------------------------------------------------------//

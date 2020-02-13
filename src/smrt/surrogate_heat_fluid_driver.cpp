@@ -1,6 +1,6 @@
 #include <algorithm>
 
-#include "smrt/SurrogateHeatFluidDriver.h"
+#include "smrt/surrogate_heat_fluid_driver.h"
 
 #include "Nemesis/harness/Soft_Equivalence.hh"
 #include <gsl/gsl>
@@ -89,6 +89,8 @@ void SurrogateHeatFluidDriver::solve_fluid(const std::vector<double>& powers)
   d_pin_powers = powers;
 
   // Convenience function to compute pin index
+  int pins_x = d_assembly->num_pins_x();
+  int pins_y = d_assembly->num_pins_y();
   auto pin_index = [pins_x, pins_y](int ix, int iy, int iz) {
     Expects(ix >= 0);
     Expects(iy >= 0);

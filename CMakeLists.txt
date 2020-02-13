@@ -94,8 +94,7 @@ if (SCALE_FOUND)
         src/smrt/Single_Pin_Conduction.cpp
         src/smrt/Single_Pin_Subchannel.cpp
         src/smrt/Two_Group_Cross_Sections.cpp
-        src/smrt/Two_Group_Diffusion.cpp
-        src/smrt/Water_Properties.cpp)
+        src/smrt/Two_Group_Diffusion.cpp)
 endif ()
 
 # Build all compoments of libenrico

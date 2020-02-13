@@ -80,6 +80,9 @@ public:
   // get the heat source normalized to the given total power
   std::vector<double> heat_source(double power) const;
 
+  // Accessors
+  const std::vector<std::vector<int>>& power_map() const { return d_power_map; }
+
 private:
   // Add power tally to parameter list
   void add_power_tally(RCP_PL& pl, const std::vector<double>& z_edges);
