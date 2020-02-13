@@ -3,7 +3,7 @@
 #include "pugixml.hpp"
 #include <mpi.h>
 
-#include "enrico/message_passing.h"
+#include "enrico/mpi_types.h"
 #include "enrico/openmc_heat_driver.h"
 #include "enrico/openmc_nek_driver.h"
 

@@ -73,8 +73,9 @@ target_link_libraries(heat_xfer PUBLIC iapws)
 set(SOURCES
     src/driver.cpp
     src/coupled_driver.cpp
+    src/comm_split.cpp
     src/surrogate_heat_driver.cpp
-    src/message_passing.cpp
+    src/mpi_types.cpp
     src/openmc_driver.cpp
     src/cell_instance.cpp
     src/openmc_nek_driver.cpp

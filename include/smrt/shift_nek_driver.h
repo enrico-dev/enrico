@@ -8,7 +8,7 @@
 
 #include "Assembly_Model.h"
 #include "enrico/error.h"
-#include "enrico/message_passing.h"
+#include "enrico/mpi_types.h"
 #include "enrico/nek_driver.h"
 #include "nek5000/core/nek_interface.h"
 #include "shift_driver.h"

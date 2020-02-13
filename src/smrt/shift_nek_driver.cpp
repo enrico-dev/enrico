@@ -1,7 +1,7 @@
 #include <iostream>
 
 #include "enrico/error.h"
-#include "enrico/message_passing.h"
+#include "enrico/mpi_types.h"
 #include "enrico/nek_driver.h"
 #include "nek5000/core/nek_interface.h"
 #include "smrt/shift_nek_driver.h"
