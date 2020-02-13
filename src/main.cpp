@@ -3,8 +3,8 @@
 #include "pugixml.hpp"
 #include <mpi.h>
 
+#include "enrico/coupled_driver.h"
 #include "enrico/mpi_types.h"
-#include "enrico/openmc_nek_driver.h"
 
 int main(int argc, char* argv[])
 {
@@ -39,7 +39,7 @@ int main(int argc, char* argv[])
   // Create driver according to selections
   switch (driver_transport) {
   case Transport::OpenMC: {
-    enrico::OpenmcNekDriver driver{MPI_COMM_WORLD, root};
+    enrico::CoupledDriver driver{MPI_COMM_WORLD, root};
     driver.execute();
   } break;
   case Transport::Shift:

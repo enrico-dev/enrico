@@ -5,12 +5,15 @@
 #define ENRICO_COUPLED_DRIVER_H
 
 #include "enrico/driver.h"
+#include "enrico/heat_fluids_driver.h"
 #include "enrico/neutronics_driver.h"
-#include "heat_fluids_driver.h"
-#include "pugixml.hpp"
-#include "xtensor/xtensor.hpp"
 
-#include <memory>
+#include <pugixml.hpp>
+#include <xtensor/xtensor.hpp>
+
+#include <memory> // for unique_ptr
+#include <unordered_map>
+#include <vector>
 
 namespace enrico {
 
@@ -33,28 +36,28 @@ public:
   //! Whether the calling rank has access to the coupled solution
   //! fields for the heat source, temperature, density, and other protected member
   //! variables of this class.
-  virtual bool has_global_coupling_data() const = 0;
+  bool has_global_coupling_data() const;
 
   //! Update the heat source for the thermal-hydraulics solver
   void update_heat_source();
 
   //! Set the heat source in the thermal-hydraulics solver
-  virtual void set_heat_source() {}
+  void set_heat_source();
 
   //! Update the temperature for the neutronics solver
   void update_temperature();
 
   //! Set the temperature in the neutronics solver
-  virtual void set_temperature() {};
+  void set_temperature();
 
   //! Update the density for the neutronics solver
   void update_density();
 
   //! Update the density for the neutronics solver
-  virtual void set_density() {}
+  void set_density();
 
   //! Check convergence of the coupled solve for the current Picard iteration.
-  virtual bool is_converged();
+  bool is_converged();
 
   enum class Norm { L1, L2, LINF }; //! Types of norms
 
@@ -66,11 +69,11 @@ public:
 
   //! Get reference to neutronics driver
   //! \return reference to driver
-  virtual NeutronicsDriver& get_neutronics_driver() const = 0;
+  NeutronicsDriver& get_neutronics_driver() const { return *neutronics_driver_; }
 
   //! Get reference to thermal-fluids driver
   //! \return reference to driver
-  virtual HeatFluidsDriver& get_heat_driver() const = 0;
+  HeatFluidsDriver& get_heat_driver() const { return *heat_fluids_driver_; }
 
   //! Get timestep iteration index
   //! \return timestep iteration index
@@ -112,7 +115,7 @@ public:
   //! Enumeration of available temperature initial condition specifications.
   //! 'neutronics' sets temperature condition from the neutronics input files,
   //! while 'heat' sets temperature based on a thermal-fluids input (or restart) file.
-  enum class Initial {neutronics, heat};
+  enum class Initial { neutronics, heat };
 
   //! Where to obtain the temperature initial condition from. Defaults to the
   //! temperatures in the neutronics input file.
@@ -122,18 +125,22 @@ public:
   //! in the neutronics input file.
   Initial density_ic_{Initial::neutronics};
 
+  Comm intranode_comm_;       //!< The communicator representing intranode ranks
+  int openmc_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in OpenMC
+                              //!< comm
+
 protected:
   //! Initialize current and previous Picard temperature fields
-  virtual void init_temperatures() {}
+  void init_temperatures();
 
   //! Initialize current and previous Picard density fields
-  virtual void init_densities() {}
+  void init_densities();
 
   //! Initialize current and previous Picard heat source fields. Note that
   //! because the neutronics solver is assumed to run first, that no initial
   //! condition is required for the heat source. So, unlike init_temperatures(),
   //! this method does not set any initial values.
-  virtual void init_heat_source() {}
+  void init_heat_source();
 
   //! Current Picard iteration temperature; this temperature is the temperature
   //! computed by the thermal-hydraulic solver, and data mappings may result in
@@ -163,9 +170,59 @@ protected:
   xt::xtensor<double, 1> heat_source_prev_; //!< Previous Picard iteration heat source
 
 private:
+  //! Create bidirectional mappings from OpenMC cell instances to/from Nek5000 elements
+  void init_mappings();
+
+  //! Initialize the tallies for all OpenMC materials
+  void init_tallies();
+
+  //! Initialize global volume buffers for OpenMC ranks
+  void init_volumes();
+
+  //! Initialize global fluid masks on all OpenMC ranks.
+  //!
+  //! These arrays store the dimensionless source of Nek's global elements. These are
+  //! **not** ordered by Nek's global element indices. Rather, these are ordered according
+  //! to an MPI_Gatherv operation on Nek5000's local elements.
+  void init_elem_fluid_mask();
+
+  //! Initialize fluid masks for OpenMC cells on all OpenMC ranks.
+  void init_cell_fluid_mask();
+
   int i_timestep_; //!< Index pertaining to current timestep
 
   int i_picard_; //!< Index pertaining to current Picard iteration
+
+  std::unique_ptr<NeutronicsDriver> neutronics_driver_;  //!< The neutronics driver
+  std::unique_ptr<HeatFluidsDriver> heat_fluids_driver_; //!< The heat-fluids driver
+
+  //! States whether a global element is in the fluid region
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are
+  //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
+  std::vector<int> elem_fluid_mask_;
+
+  //! States whether an OpenMC cell in the fluid region
+  xt::xtensor<int, 1> cell_fluid_mask_;
+
+  //! The dimensionless volumes of Nek's global elements
+  //! These are **not** ordered by Nek's global element indices.  Rather, these are
+  //! ordered according to an MPI_Gatherv operation on Nek5000's local elements.
+  std::vector<double> elem_volumes_;
+
+  //! Map that gives a list of Nek element global indices for a given neutronics
+  //! cell handle. The Nek global element indices refer to indices defined by
+  //! the MPI_Gatherv operation, and do not reflect Nek's internal global
+  //! element indexing.
+  std::unordered_map<CellHandle, std::vector<int32_t>> cell_to_elems_;
+
+  //! Map that gives the neutronics cell handle for a given Nek global element
+  //! index. The Nek global element indices refer to indices defined by the
+  //! MPI_Gatherv operation, and do not reflect Nek's internal global element
+  //! indexing.
+  std::vector<CellHandle> elem_to_cell_;
+
+  //! Number of cell instances in OpenMC model
+  int32_t n_cells_;
 };
 
 } // namespace enrico
