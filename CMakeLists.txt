@@ -73,14 +73,14 @@ target_link_libraries(heat_xfer PUBLIC iapws)
 set(SOURCES
     src/driver.cpp
     src/coupled_driver.cpp
+    src/comm_split.cpp
     src/surrogate_heat_driver.cpp
-    src/message_passing.cpp
+    src/mpi_types.cpp
     src/openmc_driver.cpp
     src/cell_instance.cpp
     src/openmc_nek_driver.cpp
     src/nek_driver.cpp
     src/vtk_viz.cpp
-    src/openmc_heat_driver.cpp
     src/heat_fluids_driver.cpp)
 
 if (SCALE_FOUND)

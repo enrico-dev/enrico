@@ -3,8 +3,7 @@
 #include "pugixml.hpp"
 #include <mpi.h>
 
-#include "enrico/message_passing.h"
-#include "enrico/openmc_heat_driver.h"
+#include "enrico/mpi_types.h"
 #include "enrico/openmc_nek_driver.h"
 
 int main(int argc, char* argv[])
@@ -15,7 +14,6 @@ int main(int argc, char* argv[])
 
   // Define enums for selecting drivers
   enum class Transport { OpenMC, Shift, Surrogate };
-  enum class HeatFluids { Nek5000, Surrogate };
 
   // Parse enrico.xml file
   pugi::xml_document doc;
@@ -38,32 +36,12 @@ int main(int argc, char* argv[])
     throw std::runtime_error{"Invalid value for <driver_transport>"};
   }
 
-  // Determine heat/fluids driver
-  s = std::string{root.child_value("driver_heatfluids")};
-  HeatFluids driver_heatfluids;
-  if (s == "nek5000") {
-    driver_heatfluids = HeatFluids::Nek5000;
-  } else if (s == "surrogate") {
-    driver_heatfluids = HeatFluids::Surrogate;
-  } else {
-    throw std::runtime_error{"Invalid value for <driver_heatfluids>"};
-  }
-
   // Create driver according to selections
   switch (driver_transport) {
-  case Transport::OpenMC:
-    switch (driver_heatfluids) {
-    case HeatFluids::Nek5000: {
-      enrico::OpenmcNekDriver driver{MPI_COMM_WORLD, root};
-      driver.execute();
-    } break;
-    case HeatFluids::Surrogate: {
-      // Pass XML node for reading settings
-      enrico::OpenmcHeatDriver driver{MPI_COMM_WORLD, root};
-      driver.execute();
-    } break;
-    }
-    break;
+  case Transport::OpenMC: {
+    enrico::OpenmcNekDriver driver{MPI_COMM_WORLD, root};
+    driver.execute();
+  } break;
   case Transport::Shift:
     throw std::runtime_error{"Shift transport driver not implemented"};
     break;

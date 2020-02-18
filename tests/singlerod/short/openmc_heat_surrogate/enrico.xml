@@ -2,6 +2,7 @@
 <stream>
   <driver_transport>openmc</driver_transport>
   <driver_heatfluids>surrogate</driver_heatfluids>
+  <openmc_procs_per_node>1</openmc_procs_per_node>
   <communication>overlapping</communication>
   <power>820.0</power>
   <pressure_bc>12.7553</pressure_bc>

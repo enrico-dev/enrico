@@ -7,9 +7,17 @@ namespace enrico {
 
 //! Describes an (x,y,z) coordinate in 3D space.
 struct Position {
-  double x; //!< x-coordinate
-  double y; //!< y-coordinate
-  double z; //!< z-coordinate
+  // Constructors
+  Position() {}
+  Position(double x0, double y0, double z0)
+    : x{x0}
+    , y{y0}
+    , z{z0}
+  {}
+
+  double x{}; //!< x-coordinate
+  double y{}; //!< y-coordinate
+  double z{}; //!< z-coordinate
 };
 
 } // namespace enrico
