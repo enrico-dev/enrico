@@ -25,13 +25,6 @@ namespace enrico {
  */
 //===========================================================================//
 class ShiftNekDriver : public SmrtCoupledDriver {
-public:
-  //! Power in [W]
-  double power_;
-
-  //! Maximum number of Picard iterations
-  int max_picard_iter_;
-
 private:
   //
   // Data
