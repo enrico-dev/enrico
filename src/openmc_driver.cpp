@@ -53,15 +53,14 @@ OpenmcDriver::OpenmcDriver(MPI_Comm comm)
   }
 }
 
-void OpenmcDriver::create_tallies(std::size_t n)
+void OpenmcDriver::create_tallies()
 {
   using gsl::index;
   using gsl::narrow_cast;
 
   // Build vector of material indices
   std::vector<openmc::CellInstance> instances;
-  for (index i = 0; i < n; ++i) {
-    const auto& c = cells_[i];
+  for (const auto& c : cells_) {
     instances.push_back({narrow_cast<index>(c.index_), narrow_cast<index>(c.instance_)});
   }
 

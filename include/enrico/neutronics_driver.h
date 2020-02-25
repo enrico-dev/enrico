@@ -70,8 +70,7 @@ public:
   virtual std::size_t n_cells() const = 0;
 
   //! Create energy production tallies
-  // TODO: Remove argument
-  virtual void create_tallies(std::size_t n) = 0;
+  virtual void create_tallies() = 0;
 };
 
 } // namespace enrico

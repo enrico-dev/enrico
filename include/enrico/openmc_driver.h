@@ -65,7 +65,7 @@ public:
   std::size_t n_cells() const override { return cells_.size(); }
 
   //! Create energy production tallies
-  void create_tallies(std::size_t n) override;
+  void create_tallies() override;
 
   //! Determine number of cells participating in coupling
   //! \return Number of cells

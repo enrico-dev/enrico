@@ -320,8 +320,7 @@ void CoupledDriver::init_tallies()
 
   auto& neutronics = this->get_neutronics_driver();
   if (neutronics.active()) {
-    auto n = cell_to_elems_.size();
-    neutronics.create_tallies(n);
+    neutronics.create_tallies();
   }
 }
 
