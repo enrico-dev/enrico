@@ -78,7 +78,6 @@ set(SOURCES
     src/mpi_types.cpp
     src/openmc_driver.cpp
     src/cell_instance.cpp
-    src/openmc_nek_driver.cpp
     src/nek_driver.cpp
     src/vtk_viz.cpp
     src/heat_fluids_driver.cpp)
