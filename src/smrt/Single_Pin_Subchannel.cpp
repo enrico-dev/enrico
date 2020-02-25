@@ -8,7 +8,7 @@
 
 // vendored includes
 #include <gsl/gsl>
-#include <iapws.h>
+#include <iapws/iapws.h>
 
 namespace enrico {
 //---------------------------------------------------------------------------//

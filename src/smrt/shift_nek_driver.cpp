@@ -36,8 +36,8 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
       std::make_shared<NekDriver>(th_comm, pressure_bc, root.child("nek5000"));
   }
 
-  d_th_num_local = d_nek_solver->nelt_;
-  d_th_num_global = d_nek_solver->nelgt_;
+  d_th_num_local = d_nek_solver->n_local_elem();
+  d_th_num_global = d_nek_solver->n_global_elem();
 
   // Allocate fields (on global T/H mesh for now)
   d_temperatures.resize(d_th_num_local, 565.0);
@@ -94,8 +94,8 @@ void ShiftNekDriver::solve()
   for (int iteration = 0; iteration < max_picard_iter_; ++iteration) {
     // Set heat source in Nek; first, get heat source indexed by cell ID
     // from Shift and map it to Nek elements
-    for (int cellid = 0; cellid < d_shift_solver->d_power_map.size(); ++cellid) {
-      const auto& elem_list = d_shift_solver->d_power_map[cellid];
+    for (int cellid = 0; cellid < d_shift_solver->power_map().size(); ++cellid) {
+      const auto& elem_list = d_shift_solver->power_map()[cellid];
 
       for (const auto& elem : elem_list)
         d_powers[elem] = d_power_shift[cellid];
