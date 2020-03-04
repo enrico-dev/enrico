@@ -6,17 +6,92 @@ their respective input files. Parameters related to the coupled simulation are
 listed in a special ``enrico.xml`` file. This file accepts the following
 elements:
 
-``<driver_heatfluids>``
+``<heat_fluids>``
+~~~~~~~~~~~~~~~~~
+
+Base element for heat/fluids driver parameters
+
+``<driver>``
 -----------------------
 
 The physics driver for solving fluid and heat transfer equations. Valid options
 are "nek5000" and "surrogate".
 
-``<driver_transport>``
+``<pressure_bc>``
+-----------------
+
+The pressure of the outlet boundary condition in units of [MPa].
+
+Nek5000-specific Parameters
+---------------------------
+
+Under the ``<heat_fluids>`` element, these Nek5000-specific sub-elements are available:
+
+* ``<casename>``: The Nek5000 casename.
+
+Surrogate-specific Parameters
+-----------------------------
+
+Under the ``<heat_fluids>`` element, these surrogate-specific sub-elements are available:
+
+* ``<heat_surrogate>``: Holds settings specific to the surrogate heat transfer solver.
+* ``<clad_inner_radius>``: The cladding inner radius in units of [cm].
+* ``<clad_outer_radius>``: The cladding outer radius in units of [cm].
+* ``<pellet_radius>``: The fuel pellet radius in units of [cm].
+* ``<fuel_rings>``: The number of rings the fuel pellet should be subdivided
+  into when solving the heat equation.
+* ``<clad_rings>``: The number of rings in the cladding should be subdivided
+  into when solving the heat equation.
+* ``<n_pins_x>``: Number of pins in the assembly in the x-direction.
+* ``<n_pins_y>``: Number of pins in the assembly in the y-direction.
+* ``<pin_pitch>``: Pitch, or distance between centers along the x- and y-axes,
+  between pins. The pitch must be greater than the outer diameter of the pins,
+  which would correspond to touching pins. This pitch is used to determine the
+  pin-pin spacing and the pin- to assembly-edge spacing, which is taken to be
+  half a pitch.
+* ``<z>``: Values along the z-axis that subdivide the fuel region in units of [cm].
+* ``<inlet_temperature>``: Fluid inlet temperature in [K].
+* ``<mass_flowrate>``: Fluid mass flowrate in [kg/s].
+* ``<max_subchannel_its>`` * Maximum number of iterations to perform in the
+  solution of the subchannel equations. Convergence is based on the relative
+  change measured in the 1-norm in enthalpy and pressure between two
+  successive iterations. This defaults to 100.
+* ``<subchannel_tol_h>``: Convergence tolerance to use for enthalpy between
+  two successive iterations of the subchannel solver. This defaults to a
+  value of 1e-2.
+* ``<subchannel_tol_p>``: Convergence tolerance to use for pressure between
+  two successive iterations of the subchannel solver. This defaults to a value
+  of 1e-2.
+* ``<heat_tol>``: Tolerance on the heat equation solver. This defaults to a value of 1e-4.
+* ``<verbosity>``: Degree of output printing for diagnostic checking. This
+  defaults to `none`, but may be set to `low` and `high`. Both `low` and `high`
+  perform error checks such as ensuring conservation of mass and energy, while
+  `high` prints some subchannel solution metrics for each channel.
+* ``<viz>``: This element indicates visualization settings for the heat solver.
+
+  - ``filename`` (attribute): File prefix for output VTK files
+  - ``<iterations>``: what iterations to write output at
+  - ``<resolution>``: resolution of the VTK objects. When fluid regions are
+    included, the resolution must be divisible by the number of channels per rod
+    (typically 4)
+  - ``<data>``: what data to write. Either "all", "source", "temperature", or "density".
+  - ``<regions>``: what regions to write output for. Either "all", "solid", or "fluid".
+
+``<neutronics>``
+~~~~~~~~~~~~~~~~
+
+Base element for neutron transport driver parameters
+
+``<driver>``
 ----------------------
 
 The physics driver for solving particle transport. Valid options are "openmc",
 "shift", and "surrogate".
+
+``<coupling>``
+~~~~~~~~~~~~~~
+
+Base node for coupling parameters
 
 ``<power>``
 -----------
@@ -113,133 +188,3 @@ to the fluid density - the solid density is constant throughout the simulation,
 and is unchanged from the value used in the neutronics input.
 
 *Default*: neutronics
-
-``<pressure_bc>``
------------------
-
-The pressure of the outlet boundary condition in units of [MPa].
-
-``<nek5000>``
--------------
-
-This element holds settings specific to Nek5000 that are not contained in the
-Nek5000 user files.
-
-``<casename>``
-~~~~~~~~~~~~~~
-
-The Nek5000 casename.
-
-``<heat_surrogate>``
---------------------
-
-This element holds settings specific to the surrogate heat transfer solver.
-
-``<clad_inner_radius>``
-~~~~~~~~~~~~~~~~~~~~~~~
-
-The cladding inner radius in units of [cm].
-
-``<clad_outer_radius>``
-~~~~~~~~~~~~~~~~~~~~~~~
-
-The cladding outer radius in units of [cm].
-
-``<pellet_radius>``
-~~~~~~~~~~~~~~~~~~~
-
-The fuel pellet radius in units of [cm].
-
-``<fuel_rings>``
-~~~~~~~~~~~~~~~~
-
-The number of rings the fuel pellet should be subdivided into when solving the
-heat equation.
-
-``<clad_rings>``
-~~~~~~~~~~~~~~~~
-
-The number of rings in the cladding should be subdivided into when solving the
-heat equation.
-
-``<n_pins_x>``
-~~~~~~~~~~~~~~
-
-Number of pins in the assembly in the x-direction.
-
-``<n_pins_y>``
-~~~~~~~~~~~~~~
-
-Number of pins in the assembly in the y-direction.
-
-``<pin_pitch>``
-~~~~~~~~~~~~~~~
-
-Pitch, or distance between centers along the x- and y-axes, between pins. The
-pitch must be greater than the outer diameter of the pins, which would
-correspond to touching pins. This pitch is used to determine the pin-pin spacing
-and the pin- to assembly-edge spacing, which is taken to be half a pitch.
-
-``<z>``
-~~~~~~~
-
-Values along the z-axis that subdivide the fuel region in units of [cm].
-
-``<inlet_temperature>``
-~~~~~~~~~~~~~~~~~~~~~~~
-
-Fluid inlet temperature in [K].
-
-``<mass_flowrate>``
-~~~~~~~~~~~~~~~~~~~
-
-Fluid mass flowrate in [kg/s].
-
-``<max_subchannel_its>``
-~~~~~~~~~~~~~~~~~~~~~~~~
-
-Maximum number of iterations to perform in the solution of the subchannel
-equations. Convergence is based on the relative change measured in the 1-norm in
-enthalpy and pressure between two successive iterations. This defaults to 100.
-
-``<subchannel_tol_h>``
-~~~~~~~~~~~~~~~~~~~~~~
-
-Convergence tolerance to use for enthalpy between two successive iterations of
-the subchannel solver. This defaults to a value of 1e-2.
-
-``<subchannel_tol_p>``
-~~~~~~~~~~~~~~~~~~~~~~
-
-Convergence tolerance to use for pressure between two successive iterations of
-the subchannel solver. This defaults to a value of 1e-2.
-
-``<heat_tol>``
-~~~~~~~~~~~~~~~
-
-Tolerance on the heat equation solver. This defaults to a value of 1e-4.
-
-``<verbosity>``
-~~~~~~~~~~~~~~~
-
-Degree of output printing for diagnostic checking. This defaults to `none`,
-but may be set to `low` and `high`. Both `low` and `high` perform error
-checks such as ensuring conservation of mass and energy, while `high` prints
-some subchannel solution metrics for each channel.
-
-``<viz>``
-~~~~~~~~~
-
-This element indicates visualization settings for the heat solver. It has the
-following attributes:
-
-- `filename`: File prefix for output VTK files
-
-It also has the following subelements:
-
-- ``<iterations>``: what iterations to write output at
-- ``<resolution>``: resolution of the VTK objects. When fluid regions are
-  included, the resolution must be divisible by the number of channels per rod
-  (typically 4)
-- ``<data>``: what data to write. Either "all", "source", "temperature", or "density".
-- ``<regions>``: what regions to write output for. Either "all", "solid", or "fluid".
