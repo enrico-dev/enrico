@@ -92,10 +92,9 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   // Instantiate heat-fluids driver
   std::string s = heat_node.child_value("driver");
   if (s == "nek5000") {
-    heat_fluids_driver_ = std::make_unique<NekDriver>(comm, pressure_bc, heat_node);
+    heat_fluids_driver_ = std::make_unique<NekDriver>(comm, heat_node);
   } else if (s == "surrogate") {
-    heat_fluids_driver_ =
-      std::make_unique<SurrogateHeatDriver>(comm, pressure_bc, heat_node);
+    heat_fluids_driver_ = std::make_unique<SurrogateHeatDriver>(comm, heat_node);
   } else {
     throw std::runtime_error{"Invalid value for <heat_fluids><driver>"};
   }
