@@ -20,42 +20,46 @@ namespace enrico {
 CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   : comm_(comm)
 {
+  auto neut_node = node.child("neutronics");
+  auto heat_node = node.child("heat_fluids");
+  auto coup_node = node.child("coupling");
+
   // get required coupling parameters
-  power_ = node.child("power").text().as_double();
-  max_timesteps_ = node.child("max_timesteps").text().as_int();
-  max_picard_iter_ = node.child("max_picard_iter").text().as_int();
+  power_ = coup_node.child("power").text().as_double();
+  max_timesteps_ = coup_node.child("max_timesteps").text().as_int();
+  max_picard_iter_ = coup_node.child("max_picard_iter").text().as_int();
 
   // get optional coupling parameters, using defaults if not provided
-  if (node.child("epsilon"))
-    epsilon_ = node.child("epsilon").text().as_double();
+  if (coup_node.child("epsilon"))
+    epsilon_ = coup_node.child("epsilon").text().as_double();
 
-  if (node.child("alpha"))
-    alpha_ = node.child("alpha").text().as_double();
+  if (coup_node.child("alpha"))
+    alpha_ = coup_node.child("alpha").text().as_double();
 
-  if (node.child("alpha_T"))
-    alpha_T_ = node.child("alpha_T").text().as_double();
+  if (coup_node.child("alpha_T"))
+    alpha_T_ = coup_node.child("alpha_T").text().as_double();
 
-  if (node.child("alpha_rho"))
-    alpha_rho_ = node.child("alpha_rho").text().as_double();
+  if (coup_node.child("alpha_rho"))
+    alpha_rho_ = coup_node.child("alpha_rho").text().as_double();
 
-  if (node.child("temperature_ic")) {
-    auto s = std::string{node.child_value("temperature_ic")};
+  if (coup_node.child("temperature_ic")) {
+    auto s = std::string{coup_node.child_value("temperature_ic")};
 
     if (s == "neutronics") {
       temperature_ic_ = Initial::neutronics;
-    } else if (s == "heat") {
+    } else if (s == "heat_fluids") {
       temperature_ic_ = Initial::heat;
     } else {
       throw std::runtime_error{"Invalid value for <temperature_ic>"};
     }
   }
 
-  if (node.child("density_ic")) {
-    auto s = std::string{node.child_value("density_ic")};
+  if (coup_node.child("density_ic")) {
+    auto s = std::string{coup_node.child_value("density_ic")};
 
     if (s == "neutronics") {
       density_ic_ = Initial::neutronics;
-    } else if (s == "heat") {
+    } else if (s == "heat_fluids") {
       density_ic_ = Initial::heat;
     } else {
       throw std::runtime_error{"Invalid value for <density_ic>"};
@@ -71,8 +75,8 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   Expects(alpha_rho_ > 0);
 
   // Get parameters from enrico.xml
-  double pressure_bc = node.child("pressure_bc").text().as_double();
-  neutronics_procs_per_node_ = node.child("openmc_procs_per_node").text().as_int();
+  double pressure_bc = heat_node.child("pressure_bc").text().as_double();
+  neutronics_procs_per_node_ = neut_node.child("procs_per_node").text().as_int();
 
   // Postcondition checks on user inputs
   Expects(neutronics_procs_per_node_ > 0);
@@ -86,12 +90,10 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   neutronics_driver_ = std::make_unique<OpenmcDriver>(neutronics_comm.comm);
 
   // Instantiate heat-fluids driver
-  std::string s = node.child_value("driver_heatfluids");
+  std::string s = heat_node.child_value("driver");
   if (s == "nek5000") {
-    auto heat_node = node.child("nek5000");
     heat_fluids_driver_ = std::make_unique<NekDriver>(comm, pressure_bc, heat_node);
   } else if (s == "surrogate") {
-    auto heat_node = node.child("heat_surrogate");
     heat_fluids_driver_ =
       std::make_unique<SurrogateHeatDriver>(comm, pressure_bc, heat_node);
   } else {
