@@ -26,14 +26,15 @@ int main(int argc, char* argv[])
   auto root = doc.document_element();
 
   // Determine transport driver
-  auto s = std::string{root.child_value("driver_transport")};
+  auto neut_driver = std::string{root.child("neutronics").child_value("driver")};
+  auto heat_driver = std::string{root.child("heat_fluids").child_value("driver")};
   Transport driver_transport;
-  if (s == "openmc") {
+  if (neut_driver == "openmc") {
     driver_transport = Transport::OpenMC;
-  } else if (s == "surrogate") {
+  } else if (neut_driver == "surrogate") {
     driver_transport = Transport::Surrogate;
   } else {
-    throw std::runtime_error{"Invalid value for <driver_transport>"};
+    throw std::runtime_error{"Invalid value for <neutronics><driver>"};
   }
 
   // Create driver according to selections

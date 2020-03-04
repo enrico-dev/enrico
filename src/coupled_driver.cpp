@@ -97,7 +97,7 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
     heat_fluids_driver_ =
       std::make_unique<SurrogateHeatDriver>(comm, pressure_bc, heat_node);
   } else {
-    throw std::runtime_error{"Invalid value for <driver_heatfluids>"};
+    throw std::runtime_error{"Invalid value for <heat_fluids><driver>"};
   }
 
   init_mappings();
