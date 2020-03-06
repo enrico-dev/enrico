@@ -34,7 +34,6 @@ Surrogate-specific Parameters
 
 Under the ``<heat_fluids>`` element, these surrogate-specific sub-elements are available:
 
-* ``<heat_surrogate>``: Holds settings specific to the surrogate heat transfer solver.
 * ``<clad_inner_radius>``: The cladding inner radius in units of [cm].
 * ``<clad_outer_radius>``: The cladding outer radius in units of [cm].
 * ``<pellet_radius>``: The fuel pellet radius in units of [cm].
