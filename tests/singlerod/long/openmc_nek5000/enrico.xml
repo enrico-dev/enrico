@@ -1,15 +1,19 @@
 <?xml version="1.0"?>
 <enrico>
-  <driver_transport>openmc</driver_transport>
-  <driver_heatfluids>nek5000</driver_heatfluids>
-  <nek5000>
+  <neutronics>
+    <driver>openmc</driver>
+    <procs_per_node>1</procs_per_node>
+  </neutronics>
+  <heat_fluids>
+    <driver>nek5000</driver>
     <casename>rod_l</casename>
-  </nek5000>
-  <communication>overlapping</communication>
-  <power>16.4e3</power>
-  <pressure_bc>12.7553</pressure_bc>
-  <max_timesteps>1</max_timesteps>
-  <max_picard_iter>4</max_picard_iter>
-  <openmc_procs_per_node>1</openmc_procs_per_node>
-  <epsilon>0.5</epsilon>
+    <pressure_bc>12.7553</pressure_bc>
+  </heat_fluids>
+  <coupling>
+    <communication>overlapping</communication>
+    <power>16.4e3</power>
+    <max_timesteps>1</max_timesteps>
+    <max_picard_iter>4</max_picard_iter>
+    <epsilon>0.5</epsilon>
+  </coupling>
 </enrico>

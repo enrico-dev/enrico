@@ -6,6 +6,7 @@
 #include "enrico/driver.h"
 #include "enrico/geom.h"
 #include "enrico/mpi_types.h"
+#include "pugixml.hpp"
 #include "xtensor/xtensor.hpp"
 
 #include <cstddef> // for size_t
@@ -15,7 +16,7 @@ namespace enrico {
 //! Base class for driver that controls a heat-fluids solve
 class HeatFluidsDriver : public Driver {
 public:
-  explicit HeatFluidsDriver(MPI_Comm comm, double pressure_bc);
+  explicit HeatFluidsDriver(MPI_Comm comm, pugi::xml_node node);
 
   virtual ~HeatFluidsDriver() = default;
 

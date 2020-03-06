@@ -157,7 +157,7 @@ public:
   //!
   //! \param comm  The MPI communicator used to initialze the surrogate
   //! \param node  XML node containing settings for surrogate
-  explicit SurrogateHeatDriver(MPI_Comm comm, double pressure_bc, pugi::xml_node node);
+  explicit SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node);
 
   //! Verbosity options for printing simulation results
   enum class verbose { NONE, LOW, HIGH };
