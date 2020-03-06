@@ -49,6 +49,10 @@ public:
   //! \return True if the communicator is not MPI_COMM_NULL
   bool active() const { return comm != MPI_COMM_NULL; }
 
+  //! Queries whether the calling rank is the root of this comm
+  //! \return True if the calling rank is the root of this comm
+  bool is_root() const { return rank == 0; }
+
   //! Block until all processes have reached this call
   //!
   //! \return Error value
@@ -83,6 +87,28 @@ public:
   //! \param values Values to broadcast (significant at rank 0)
   template<typename T, size_t N>
   void broadcast(xt::xtensor<T, N>& values) const;
+
+  //! Send a scalar from one rank to another
+  //! \param value Value to broadcast (significant at source rank)
+  //! \param dest Destination rank
+  //! \param source Source rank
+  template<typename T>
+  std::enable_if_t<std::is_scalar<std::decay_t<T>>::value>
+  sendrecv_replace(T& value, int dest, int source) const;
+
+  //! Send a vector from one rank to another, possibly resizing it at destination
+  //! \param values Values to broadcast (significant at source rank)
+  //! \param dest Destination rank
+  //! \param source Source rank
+  template<typename T>
+  void sendrecv_replace(std::vector<T>& values, int dest, int source) const;
+
+  //! Send an xtensor from one rank to another, possibly resizing it at destination
+  //! \param values Values to broadcast (significant at source rank)
+  //! \param dest Destination rank
+  //! \param source Source rank
+  template<typename T, size_t N>
+  void sendrecv_replace(xt::xtensor<T, N>& values, int dest, int source) const;
 
   //! Gathers together values from the processes in this comm onto a given root.
   //!
@@ -176,6 +202,62 @@ public:
   int size = 0;                     //!< The size of Comm::comm.
   int rank = MPI_PROC_NULL;         //!< The calling process's rank in Comm:comm
 };
+
+template<typename T>
+std::enable_if_t<std::is_scalar<std::decay_t<T>>::value>
+Comm::sendrecv_replace(T& value, int dest, int source) const
+{
+  MPI_Sendrecv_replace(
+    &value, 1, get_mpi_type<T>(), dest, 0, source, MPI_ANY_TAG, comm, MPI_STATUS_IGNORE);
+};
+
+template<typename T>
+void Comm::sendrecv_replace(std::vector<T>& values, int dest, int source) const
+{
+  // Send the size of the vector from the source
+  auto n = values.size();
+  sendrecv_replace(n, dest, source);
+  // Resize the vector on dest
+  if (rank == dest && values.size() != n) {
+    values.resize(n);
+  }
+  // Send the vector
+  MPI_Sendrecv_replace(values.data(),
+                       n,
+                       get_mpi_type<T>(),
+                       dest,
+                       0,
+                       source,
+                       MPI_ANY_TAG,
+                       comm,
+                       MPI_STATUS_IGNORE);
+}
+
+template<typename T, size_t N>
+void Comm::sendrecv_replace(xt::xtensor<T, N>& values, int dest, int source) const
+{
+  // Make sure the shapes match
+  const auto& s = values.shape();
+  std::vector<size_t> my_shape(s.begin(), s.end());
+  std::vector<size_t> root_shape(my_shape);
+  sendrecv_replace(root_shape, dest, source);
+  if (rank == dest && my_shape != root_shape) {
+    values.resize(root_shape);
+  }
+  // Next, broadcast size
+  auto n = values.size();
+  sendrecv_replace(n, dest, source);
+  // Finally, broadcast data
+  MPI_Sendrecv_replace(values.data(),
+                       n,
+                       get_mpi_type<T>(),
+                       dest,
+                       0,
+                       source,
+                       MPI_ANY_TAG,
+                       comm,
+                       MPI_STATUS_IGNORE);
+}
 
 template<typename T>
 std::enable_if_t<std::is_scalar<std::decay_t<T>>::value> Comm::broadcast(T& value) const

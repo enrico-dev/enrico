@@ -81,10 +81,24 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   // Postcondition checks on user inputs
   Expects(neutronics_procs_per_node_ > 0);
 
-  // Create communicator for neutronics with requested processes per node
-  Comm neutronics_comm;
-  enrico::get_node_comms(
-    comm_, neutronics_procs_per_node_, neutronics_comm, intranode_comm_);
+  // Create communicators
+  std::array<int, 2> nodes{node.child("openmc_nodes").text().as_int(),
+                           node.child("nek5000_nodes").text().as_int()};
+  std::array<int, 2> procs_per_node{node.child("openmc_procs_per_node").text().as_int(),
+                                    node.child("nek5000_procs_per_node").text().as_int()};
+  std::array<enrico::Comm, 2> driver_comms;
+  enrico::get_driver_comms(
+    comm_, nodes, procs_per_node, driver_comms, intranode_comm_, coupling_comm_);
+  auto& neutronics_comm = driver_comms[0];
+  auto& heat_comm = driver_comms[1];
+
+  // Send rank of neutronics root to all procs
+  neutronics_root_ = neutronics_comm.is_root() ? comm_.rank : -1;
+  MPI_Allreduce(MPI_IN_PLACE, &neutronics_root_, 1, MPI_INT, MPI_MAX, comm_.comm);
+
+  // Send rank of heat root to all procs
+  heat_root_ = heat_comm.is_root() ? comm_.rank : -1;
+  MPI_Allreduce(MPI_IN_PLACE, &heat_root_, 1, MPI_INT, MPI_MAX, comm_.comm);
 
   // Instantiate neutronics driver
   neutronics_driver_ = std::make_unique<OpenmcDriver>(neutronics_comm.comm);

@@ -157,9 +157,17 @@ private:
 
   int i_picard_; //!< Index pertaining to current Picard iteration
 
-  Comm intranode_comm_;           //!< The communicator representing intranode ranks
+  Comm intranode_comm_; //!< The communicator representing intranode ranks
+  Comm coupling_comm_;  //!< The communicator spanning all nodes
+
   int neutronics_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in
                                   //!< neutronics comm
+
+  //! The rank in comm_ that corresponds to the root of the neutronics comm
+  int neutronics_root_ = MPI_PROC_NULL;
+
+  //! The rank in comm_ that corresponds to the root of the heat comm
+  int heat_root_ = MPI_PROC_NULL;
 
   //! Current Picard iteration temperature; this temperature is the temperature
   //! computed by the thermal-hydraulic solver, and data mappings may result in

@@ -3,6 +3,7 @@
 
 #include "comm.h"
 
+#include <array>
 #include <mpi.h>
 
 namespace enrico {
@@ -41,6 +42,13 @@ void get_node_comms(Comm super_comm,
                     int procs_per_node,
                     Comm& sub_comm,
                     Comm& intranode_comm);
+
+void get_driver_comms(Comm super_comm,
+                      std::array<int, 2> num_nodes,
+                      std::array<int, 2> procs_per_node,
+                      std::array<Comm, 2>& driver_comms,
+                      Comm& intranode_comm,
+                      Comm& coupling_comm);
 
 }
 
