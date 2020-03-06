@@ -1,7 +1,7 @@
 #include "enrico/heat_fluids_driver.h"
 
 #include <gsl/gsl>
-#include <openmc/vendor/pugixml/src/pugixml.hpp>
+#include <pugixml.hpp>
 #include <xtensor/xadapt.hpp>
 
 namespace enrico {
