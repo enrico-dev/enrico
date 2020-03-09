@@ -375,17 +375,15 @@ void CoupledDriver::init_volumes()
   comm_.message("Initializing volumes");
 
   const auto& heat = this->get_heat_driver();
-  if (heat.active()) {
-    // Gather all the local element volumes on the TH root
-    elem_volumes_ = heat.volumes();
+  const auto& neutronics = this->get_neutronics_driver();
 
-    // Broadcast global_element_volumes onto all the neutronics procs
-    this->get_neutronics_driver().comm_.broadcast(elem_volumes_);
-  }
+  // Gather all the local element volumes on heat root and send to all neutronics procs
+  elem_volumes_ = heat.volumes();
+  this->comm_.sendrecv_replace(elem_volumes_, neutronics_root_, heat_root_);
+  neutronics.comm_.broadcast(elem_volumes_);
 
   // Volume check
-  if (this->has_global_coupling_data()) {
-    const auto& neutronics = this->get_neutronics_driver();
+  if (neutronics.comm_.is_root()) {
     for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
       double v_neutronics = neutronics.get_volume(cell);
       double v_heatfluids = 0.0;
@@ -404,6 +402,7 @@ void CoupledDriver::init_volumes()
         comm_.message(msg.str());
       }
     }
+    MPI_Abort(comm_.comm, MPI_ERR_BASE);
   }
 }
 
