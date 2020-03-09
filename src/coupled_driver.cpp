@@ -294,38 +294,34 @@ void CoupledDriver::init_mappings()
   comm_.message("Initializing mappings");
 
   const auto& heat = this->get_heat_driver();
-  if (heat.active()) {
-    // Get centroids from heat driver
-    auto elem_centroids = heat.centroids();
+  auto& neutronics = this->get_neutronics_driver();
 
-    // Broadcast centroids onto all the neutronics procs
-    this->get_neutronics_driver().comm_.broadcast(elem_centroids);
+  // Get centroids from heat driver and send to all neutronics procs
+  auto elem_centroids = heat.centroids(); // Available only on heat root
+  this->comm_.sendrecv_replace(elem_centroids, neutronics_root_, heat_root_);
+  neutronics.comm_.broadcast(elem_centroids);
 
-    // Set element->cell and cell->element mappings. Create buffer to store cell
-    // handles corresponding to each heat-fluids global element.
-    elem_to_cell_.resize(heat.n_global_elem());
+  if (neutronics.active()) {
+    // Get cell handle corresponding to each element centroid
+    elem_to_cell_ = neutronics.find(elem_centroids);
 
-    auto& neutronics = this->get_neutronics_driver();
-    if (neutronics.active()) {
-      // Get cell handle corresponding to each element centroid
-      elem_to_cell_ = neutronics.find(elem_centroids);
-
-      // Create a vector of elements for each neutronics cell
-      for (int32_t elem = 0; elem < elem_to_cell_.size(); ++elem) {
-        auto cell = elem_to_cell_[elem];
-        cell_to_elems_[cell].push_back(elem);
-      }
-
-      // Determine number of neutronic cell instances
-      n_cells_ = cell_to_elems_.size();
+    // Create a vector of elements for each neutronics cell
+    for (int32_t elem = 0; elem < elem_to_cell_.size(); ++elem) {
+      auto cell = elem_to_cell_[elem];
+      cell_to_elems_[cell].push_back(elem);
     }
 
-    // Set element -> cell instance mapping on each TH rank
-    intranode_comm_.broadcast(elem_to_cell_);
-
-    // Broadcast number of cell instances
-    intranode_comm_.broadcast(n_cells_);
+    // Determine number of neutronic cell instances
+    n_cells_ = cell_to_elems_.size();
   }
+
+  // Send element -> cell instance mapping to all heat procs
+  this->comm_.sendrecv_replace(elem_to_cell_, heat_root_, neutronics_root_);
+  heat.comm_.broadcast(elem_to_cell_);
+
+  // Send number of cell instances to all heat procs
+  this->comm_.sendrecv_replace(n_cells_, heat_root_, neutronics_root_);
+  heat.comm_.broadcast(n_cells_);
 }
 
 void CoupledDriver::init_tallies()
