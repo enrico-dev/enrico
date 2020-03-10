@@ -12,8 +12,11 @@
 #include <xtensor/xnorm.hpp>    // for norm_l1, norm_l2, norm_linf
 
 #include <algorithm> // for copy
-#include <memory>    // for make_unique
+#include <iomanip>
+#include <memory> // for make_unique
 #include <string>
+#include <sys/param.h>
+#include <unistd.h> // for hostname
 
 namespace enrico {
 
@@ -74,18 +77,11 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   Expects(alpha_T_ > 0);
   Expects(alpha_rho_ > 0);
 
-  // Get parameters from enrico.xml
-  double pressure_bc = heat_node.child("pressure_bc").text().as_double();
-  neutronics_procs_per_node_ = neut_node.child("procs_per_node").text().as_int();
-
-  // Postcondition checks on user inputs
-  Expects(neutronics_procs_per_node_ > 0);
-
   // Create communicators
-  std::array<int, 2> nodes{node.child("openmc_nodes").text().as_int(),
-                           node.child("nek5000_nodes").text().as_int()};
-  std::array<int, 2> procs_per_node{node.child("openmc_procs_per_node").text().as_int(),
-                                    node.child("nek5000_procs_per_node").text().as_int()};
+  std::array<int, 2> nodes{neut_node.child("nodes").text().as_int(),
+                           heat_node.child("nodes").text().as_int()};
+  std::array<int, 2> procs_per_node{neut_node.child("procs_per_node").text().as_int(),
+                                    heat_node.child("procs_per_node").text().as_int()};
   std::array<enrico::Comm, 2> driver_comms;
   enrico::get_driver_comms(
     comm_, nodes, procs_per_node, driver_comms, intranode_comm_, coupling_comm_);
@@ -112,6 +108,9 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   } else {
     throw std::runtime_error{"Invalid value for <heat_fluids><driver>"};
   }
+
+  comm_.message("Communicator layout:");
+  comm_report();
 
   init_mappings();
   init_tallies();
@@ -584,6 +583,41 @@ void CoupledDriver::set_density()
         }
       }
     }
+  }
+}
+
+void CoupledDriver::comm_report()
+{
+  char c[_POSIX_HOST_NAME_MAX];
+  gethostname(c, _POSIX_HOST_NAME_MAX);
+  std::string hostname{c};
+
+  Comm world(MPI_COMM_WORLD);
+
+  // Padding for fields
+  int hostw = MAX(8, hostname.size()) + 2;
+  int rankw = 7;
+
+  for (int i = 0; i < world.size; ++i) {
+    if (world.rank == i) {
+      if (i == 0) {
+        std::cout << std::left << std::setw(hostw) << "Hostname"
+                  << std::right << std::setw(rankw) << "World"
+                  << std::right << std::setw(rankw) << "Coup"
+                  << std::right << std::setw(rankw) << "Neut"
+                  << std::right << std::setw(rankw) << "Heat"
+                  << std::endl;
+      }
+      std::cout << std::left << std::setw(hostw) << hostname
+                << std::right << std::setw(rankw) << world.rank
+                << std::right << std::setw(rankw) << comm_.rank
+                << std::right << std::setw(rankw)
+                    << this->get_neutronics_driver().comm_.rank
+                << std::right << std::setw(rankw)
+                    << this->get_heat_driver().comm_.rank
+                << std::endl;
+    }
+    MPI_Barrier(world.comm);
   }
 }
 

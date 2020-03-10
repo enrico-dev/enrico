@@ -89,6 +89,9 @@ public:
     return get_timestep_index() == 0 and get_picard_index() == 0;
   }
 
+  //! Print report of communicator layout
+  void comm_report();
+
   Comm comm_; //!< The MPI communicator used to run the driver
 
   double power_; //!< Power in [W]
