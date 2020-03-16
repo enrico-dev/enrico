@@ -85,8 +85,8 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   std::array<enrico::Comm, 2> driver_comms;
   enrico::get_driver_comms(
     comm_, nodes, procs_per_node, driver_comms, intranode_comm_, coupling_comm_);
-  auto& neutronics_comm = driver_comms[0];
-  auto& heat_comm = driver_comms[1];
+  auto neutronics_comm = driver_comms[0];
+  auto heat_comm = driver_comms[1];
 
   // Send rank of neutronics root to all procs
   neutronics_root_ = neutronics_comm.is_root() ? comm_.rank : -1;
@@ -102,9 +102,10 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   // Instantiate heat-fluids driver
   std::string s = heat_node.child_value("driver");
   if (s == "nek5000") {
-    heat_fluids_driver_ = std::make_unique<NekDriver>(comm, heat_node);
+    heat_fluids_driver_ = std::make_unique<NekDriver>(heat_comm.comm, heat_node);
   } else if (s == "surrogate") {
-    heat_fluids_driver_ = std::make_unique<SurrogateHeatDriver>(comm, heat_node);
+    heat_fluids_driver_ =
+      std::make_unique<SurrogateHeatDriver>(heat_comm.comm, heat_node);
   } else {
     throw std::runtime_error{"Invalid value for <heat_fluids><driver>"};
   }
@@ -298,9 +299,10 @@ void CoupledDriver::init_mappings()
   // Get centroids from heat driver and send to all neutronics procs
   auto elem_centroids = heat.centroids(); // Available only on heat root
   this->comm_.sendrecv_replace(elem_centroids, neutronics_root_, heat_root_);
-  neutronics.comm_.broadcast(elem_centroids);
 
   if (neutronics.active()) {
+    neutronics.comm_.broadcast(elem_centroids);
+
     // Get cell handle corresponding to each element centroid
     elem_to_cell_ = neutronics.find(elem_centroids);
 

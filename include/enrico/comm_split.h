@@ -1,7 +1,7 @@
 #ifndef ENRICO_COMM_SPLIT_H
 #define ENRICO_COMM_SPLIT_H
 
-#include "comm.h"
+#include "enrico/comm.h"
 
 #include <array>
 #include <mpi.h>
