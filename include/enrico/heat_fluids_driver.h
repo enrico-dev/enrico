@@ -110,7 +110,6 @@ std::vector<T> HeatFluidsDriver::gather(const std::vector<T>& local_field) const
     }
 
     // Gather all the local quantities on to the root process
-    comm_.message("Begin vector Gatherv");
     comm_.Gatherv(local_field.data(),
                   local_field.size(),
                   get_mpi_type<T>(),

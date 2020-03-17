@@ -1,5 +1,4 @@
 #include "enrico/comm_split.h"
-#include <initializer_list>
 
 namespace enrico {
 
