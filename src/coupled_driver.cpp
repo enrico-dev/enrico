@@ -300,9 +300,9 @@ void CoupledDriver::init_mappings()
   auto elem_centroids = heat.centroids(); // Available only on heat root
   this->comm_.sendrecv_replace(elem_centroids, neutronics_root_, heat_root_);
 
-  if (neutronics.active()) {
-    neutronics.comm_.broadcast(elem_centroids);
+  neutronics.comm_.broadcast(elem_centroids);
 
+  if (neutronics.active()) {
     // Get cell handle corresponding to each element centroid
     elem_to_cell_ = neutronics.find(elem_centroids);
 
@@ -382,28 +382,26 @@ void CoupledDriver::init_volumes()
   elem_volumes_ = heat.volumes();
   this->comm_.sendrecv_replace(elem_volumes_, neutronics_root_, heat_root_);
 
-  if (neutronics.active()) {
-    neutronics.comm_.broadcast(elem_volumes_);
+  neutronics.comm_.broadcast(elem_volumes_);
 
-    // Volume check
-    if (neutronics.comm_.is_root()) {
-      for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
-        double v_neutronics = neutronics.get_volume(cell);
-        double v_heatfluids = 0.0;
-        for (const auto& elem : cell_to_elems_.at(cell)) {
-          v_heatfluids += elem_volumes_.at(elem);
-        }
+  // Volume check
+  if (neutronics.comm_.is_root()) {
+    for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
+      double v_neutronics = neutronics.get_volume(cell);
+      double v_heatfluids = 0.0;
+      for (const auto& elem : cell_to_elems_.at(cell)) {
+        v_heatfluids += elem_volumes_.at(elem);
+      }
 
-        // TODO: Refactor to avoid dynamic_cast
-        const auto* openmc_driver = dynamic_cast<const OpenmcDriver*>(&neutronics);
-        if (openmc_driver) {
-          const auto& c = openmc_driver->cells_[cell];
-          std::stringstream msg;
-          msg << "Cell " << openmc::model::cells[c.index_]->id_ << " (" << c.instance_
-              << "), V = " << v_neutronics << " (Neutronics), " << v_heatfluids
-              << " (Heat/Fluids)";
-          comm_.message(msg.str());
-        }
+      // TODO: Refactor to avoid dynamic_cast
+      const auto* openmc_driver = dynamic_cast<const OpenmcDriver*>(&neutronics);
+      if (openmc_driver) {
+        const auto& c = openmc_driver->cells_[cell];
+        std::stringstream msg;
+        msg << "Cell " << openmc::model::cells[c.index_]->id_ << " (" << c.instance_
+            << "), V = " << v_neutronics << " (Neutronics), " << v_heatfluids
+            << " (Heat/Fluids)";
+        comm_.message(msg.str());
       }
     }
   }
@@ -460,15 +458,15 @@ void CoupledDriver::init_elem_fluid_mask()
   comm_.message("Initializing element fluid mask");
 
   const auto& heat = this->get_heat_driver();
+  const auto& neutronics = this->get_neutronics_driver();
 
-  if (heat.active()) {
-    // On TH master rank, fluid mask gets global data. On TH other ranks, fluid
-    // mask is empty
-    elem_fluid_mask_ = heat.fluid_mask();
+  // On TH master rank, fluid mask gets global data. On TH other ranks, fluid
+  // mask is empty
+  elem_fluid_mask_ = heat.fluid_mask();
 
-    // Broadcast fluid mask to neutronics driver
-    this->get_neutronics_driver().comm_.broadcast(elem_fluid_mask_);
-  }
+  // Send fluid mask to neutronics procs
+  this->comm_.sendrecv_replace(elem_fluid_mask_, neutronics_root_, heat_root_);
+  neutronics.comm_.broadcast(elem_fluid_mask_);
 }
 
 void CoupledDriver::init_cell_fluid_mask()
