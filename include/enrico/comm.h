@@ -207,8 +207,17 @@ template<typename T>
 std::enable_if_t<std::is_scalar<std::decay_t<T>>::value>
 Comm::sendrecv_replace(T& value, int dest, int source) const
 {
-  MPI_Sendrecv_replace(
-    &value, 1, get_mpi_type<T>(), dest, 0, source, MPI_ANY_TAG, comm, MPI_STATUS_IGNORE);
+  if (rank == dest || rank == source) {
+    MPI_Sendrecv_replace(&value,
+                         1,
+                         get_mpi_type<T>(),
+                         dest,
+                         0,
+                         source,
+                         MPI_ANY_TAG,
+                         comm,
+                         MPI_STATUS_IGNORE);
+  }
 };
 
 template<typename T>
@@ -222,15 +231,17 @@ void Comm::sendrecv_replace(std::vector<T>& values, int dest, int source) const
     values.resize(n);
   }
   // Send the vector
-  MPI_Sendrecv_replace(values.data(),
-                       n,
-                       get_mpi_type<T>(),
-                       dest,
-                       0,
-                       source,
-                       MPI_ANY_TAG,
-                       comm,
-                       MPI_STATUS_IGNORE);
+  if (rank == dest || rank == source) {
+    MPI_Sendrecv_replace(values.data(),
+                         n,
+                         get_mpi_type<T>(),
+                         dest,
+                         0,
+                         source,
+                         MPI_ANY_TAG,
+                         comm,
+                         MPI_STATUS_IGNORE);
+  }
 }
 
 template<typename T, size_t N>
@@ -248,15 +259,17 @@ void Comm::sendrecv_replace(xt::xtensor<T, N>& values, int dest, int source) con
   auto n = values.size();
   sendrecv_replace(n, dest, source);
   // Finally, broadcast data
-  MPI_Sendrecv_replace(values.data(),
-                       n,
-                       get_mpi_type<T>(),
-                       dest,
-                       0,
-                       source,
-                       MPI_ANY_TAG,
-                       comm,
-                       MPI_STATUS_IGNORE);
+  if (rank == dest || rank == source) {
+    MPI_Sendrecv_replace(values.data(),
+                         n,
+                         get_mpi_type<T>(),
+                         dest,
+                         0,
+                         source,
+                         MPI_ANY_TAG,
+                         comm,
+                         MPI_STATUS_IGNORE);
+  }
 }
 
 template<typename T>
