@@ -205,18 +205,18 @@ void CoupledDriver::compute_temperature_norm(const CoupledDriver::Norm& n,
 bool CoupledDriver::is_converged()
 {
   bool converged;
+  const auto& neutron = this->get_neutronics_driver();
 
-  // assumes that the rank 0 process is in the communicator that has access
-  // to global coupling data
-  if (comm_.rank == 0) {
+  // assumes that the neutronics root has access to global coupling data
+  if (neutron.comm_.is_root()) {
     double norm;
     this->compute_temperature_norm(Norm::LINF, norm, converged);
 
     std::string msg = "temperature norm_linf: " + std::to_string(norm);
-    comm_.message(msg);
+    neutron.comm_.message(msg);
   }
 
-  comm_.broadcast(converged);
+  comm_.Bcast(&converged, 1, get_mpi_type<bool>(), neutronics_root_);
   return converged;
 }
 
@@ -245,19 +245,19 @@ void CoupledDriver::update_heat_source()
 
 void CoupledDriver::update_temperature()
 {
-  // Store previous temperature solution; a previous solution will always be present
-  // because a temperature IC is set and the neutronics solver runs first
-  if (has_global_coupling_data()) {
+  const auto& neutronics = this->get_neutronics_driver();
+  const auto& heat = this->get_heat_driver();
+
+  // Send heat solver's temperatures to neutronics root
+  auto t = heat.temperature();
+  this->comm_.sendrecv_replace(t, neutronics_root_, heat_root_);
+
+  if (neutronics.comm_.is_root()) {
+    // Store previous temperature solution; a previous solution will always be present
+    // because a temperature IC is set and the neutronics solver runs first
     std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
-  }
-
-  // Compute the next iterate of the temperature
-  auto& heat = get_heat_driver();
-  if (heat.active()) {
-    auto t = heat.temperature();
-
-    if (heat.has_coupling_data())
-      temperatures_ = alpha_T_ * t + (1.0 - alpha_T_) * temperatures_prev_;
+    // Compute the next iterate of the temperature
+    temperatures_ = alpha_T_ * t + (1.0 - alpha_T_) * temperatures_prev_;
   }
 
   // Set temperature in the neutronics solver
@@ -340,34 +340,39 @@ void CoupledDriver::init_temperatures()
 {
   comm_.message("Initializing temperatures");
 
-  if (this->has_global_coupling_data()) {
-    auto n_global = this->get_heat_driver().n_global_elem();
+  const auto& neutronics = this->get_neutronics_driver();
+  const auto& heat = this->get_heat_driver();
+
+  auto n_global = heat.n_global_elem();
+
+  if (neutronics.comm_.is_root()) {
     temperatures_.resize({n_global});
     temperatures_prev_.resize({n_global});
+  }
 
-    if (temperature_ic_ == Initial::neutronics) {
+  if (temperature_ic_ == Initial::neutronics) {
+    if (neutronics.comm_.is_root()) {
       // Loop over heat-fluids elements and determine temperature based on
       // corresponding neutronics cell. This mapping assumes that each
       // heat-fluids element is fully contained within a neutronic cell, i.e.,
       // heat-fluids elements are not split between multiple neutronics cells.
-      const auto& neutronics = this->get_neutronics_driver();
       for (gsl::index elem = 0; elem < elem_to_cell_.size(); ++elem) {
         auto cell = elem_to_cell_[elem];
         double T = neutronics.get_temperature(cell);
         temperatures_[elem] = T;
         temperatures_prev_[elem] = T;
       }
-    } else if (temperature_ic_ == Initial::heat) {
-      // Use whatever temperature is in TH solver. For Nek5000, this would be
-      // either from a restart file or from a useric fortran routine.
-      update_temperature();
-
-      // update_temperature() begins by saving temperatures_ to temperatures_prev_, and
-      // then changes temperatures_. We need to save temperatures_ here to
-      // temperatures_prev_ manually because init_temperatures() initializes both
-      // temperatures_ and temperatures_prev_.
-      std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
     }
+  } else if (temperature_ic_ == Initial::heat) {
+    // Use whatever temperature is in TH solver. For Nek5000, this would be
+    // either from a restart file or from a useric fortran routine.
+    update_temperature();
+
+    // update_temperature() begins by saving temperatures_ to temperatures_prev_, and
+    // then changes temperatures_. We need to save temperatures_ here to
+    // temperatures_prev_ manually because init_temperatures() initializes both
+    // temperatures_ and temperatures_prev_.
+    std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
   }
 }
 
@@ -473,7 +478,9 @@ void CoupledDriver::init_cell_fluid_mask()
 {
   comm_.message("Initializing cell fluid mask");
 
-  if (this->has_global_coupling_data()) {
+  // Because init_elem_fluid_mask is *expected* to be called first, it's assumed that
+  // all neutron procs will have the correct values for elem_fluid_mask_
+  if (this->get_neutronics_driver().active()) {
     auto n = cell_to_elems_.size();
     cell_fluid_mask_.resize({n});
 
@@ -603,21 +610,16 @@ void CoupledDriver::comm_report()
   for (int i = 0; i < world.size; ++i) {
     if (world.rank == i) {
       if (i == 0) {
-        std::cout << std::left << std::setw(hostw) << "Hostname"
-                  << std::right << std::setw(rankw) << "World"
-                  << std::right << std::setw(rankw) << "Coup"
-                  << std::right << std::setw(rankw) << "Neut"
-                  << std::right << std::setw(rankw) << "Heat"
-                  << std::endl;
+        std::cout << std::left << std::setw(hostw) << "Hostname" << std::right
+                  << std::setw(rankw) << "World" << std::right << std::setw(rankw)
+                  << "Coup" << std::right << std::setw(rankw) << "Neut" << std::right
+                  << std::setw(rankw) << "Heat" << std::endl;
       }
-      std::cout << std::left << std::setw(hostw) << hostname
-                << std::right << std::setw(rankw) << world.rank
-                << std::right << std::setw(rankw) << comm_.rank
-                << std::right << std::setw(rankw)
-                    << this->get_neutronics_driver().comm_.rank
-                << std::right << std::setw(rankw)
-                    << this->get_heat_driver().comm_.rank
-                << std::endl;
+      std::cout << std::left << std::setw(hostw) << hostname << std::right
+                << std::setw(rankw) << world.rank << std::right << std::setw(rankw)
+                << comm_.rank << std::right << std::setw(rankw)
+                << this->get_neutronics_driver().comm_.rank << std::right
+                << std::setw(rankw) << this->get_heat_driver().comm_.rank << std::endl;
     }
     MPI_Barrier(world.comm);
   }
