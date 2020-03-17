@@ -266,18 +266,18 @@ void CoupledDriver::update_temperature()
 
 void CoupledDriver::update_density()
 {
-  // Store previous density solution; a previous solution will always be present
-  // because a density IC is set and the neutronics solver runs first
-  if (has_global_coupling_data()) {
+  const auto& neutronics = this->get_neutronics_driver();
+  const auto& heat = this->get_heat_driver();
+
+  // Send heat solver's densities to neutronics root
+  auto d = heat.density();
+  this->comm_.sendrecv_replace(d, neutronics_root_, heat_root_);
+
+  if (neutronics.comm_.is_root()) {
+    // Store previous density solution; a previous solution will always be present
+    // because a density IC is set and the neutronics solver runs first
     std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
-  }
-
-  auto& heat = get_heat_driver();
-  if (heat.active()) {
-    auto d = heat.density();
-
-    if (heat.has_coupling_data())
-      densities_ = alpha_rho_ * d + (1.0 - alpha_rho_) * densities_prev_;
+    densities_ = alpha_rho_ * d + (1.0 - alpha_rho_) * densities_prev_;
   }
 
   // Set density in the neutronics solver
@@ -343,9 +343,8 @@ void CoupledDriver::init_temperatures()
   const auto& neutronics = this->get_neutronics_driver();
   const auto& heat = this->get_heat_driver();
 
-  auto n_global = heat.n_global_elem();
-
   if (neutronics.comm_.is_root()) {
+    auto n_global = heat.n_global_elem();
     temperatures_.resize({n_global});
     temperatures_prev_.resize({n_global});
   }
@@ -416,18 +415,23 @@ void CoupledDriver::init_densities()
 {
   comm_.message("Initializing densities");
 
-  if (this->has_global_coupling_data()) {
-    auto n_global = this->get_heat_driver().n_global_elem();
+  const auto& neutronics = this->get_neutronics_driver();
+  const auto& heat = this->get_heat_driver();
+
+  auto n_global = this->get_heat_driver().n_global_elem();
+
+  if (neutronics.comm_.is_root()) {
     densities_.resize({n_global});
     densities_prev_.resize({n_global});
+  }
 
-    if (density_ic_ == Initial::neutronics) {
+  if (density_ic_ == Initial::neutronics) {
+    if (neutronics.comm_.is_root()) {
       // Loop over the neutronics cells, then loop over the TH elements
       // corresponding to that cell and assign the cell density to the correct
       // index in the densities_ array. This mapping assumes that each TH
       // element is fully contained within a neutronics cell, i.e., TH elements
       // are not split between multiple neutronics cells.
-      const auto& neutronics = this->get_neutronics_driver();
       for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
         const auto& global_elems = cell_to_elems_.at(cell);
 
@@ -444,17 +448,17 @@ void CoupledDriver::init_densities()
           }
         }
       }
-    } else if (density_ic_ == Initial::heat) {
-      // Use whatever density is in TH solver. For Nek5000, this would be either
-      // from a restart file or from a useric fortran routine
-      update_density();
-
-      // update_density() begins by saving densities_ to densities_prev_, and
-      // then changes densities_. We need to save densities_ here to densities_prev_
-      // manually because init_densities() initializes both densities_ and
-      // densities_prev_
-      std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
     }
+  } else if (density_ic_ == Initial::heat) {
+    // Use whatever density is in TH solver. For Nek5000, this would be either
+    // from a restart file or from a useric fortran routine
+    update_density();
+
+    // update_density() begins by saving densities_ to densities_prev_, and
+    // then changes densities_. We need to save densities_ here to densities_prev_
+    // manually because init_densities() initializes both densities_ and
+    // densities_prev_
+    std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
   }
 }
 
