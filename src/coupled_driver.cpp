@@ -222,16 +222,14 @@ bool CoupledDriver::is_converged()
 
 void CoupledDriver::update_heat_source()
 {
-  // Store previous heat source solution if more than one iteration has been performed
-  // (otherwise there is not an initial condition for the heat source)
-  if (!is_first_iteration()) {
-    std::copy(heat_source_.begin(), heat_source_.end(), heat_source_prev_.begin());
-  }
+  const auto& neutronics = this->get_neutronics_driver();
 
   // Compute the next iterate of the heat source
-  auto& neutronics = get_neutronics_driver();
-  if (neutronics.active()) {
+  if (neutronics.comm_.is_root()) {
     if (!is_first_iteration()) {
+      // Store previous heat source solution if more than one iteration has been performed
+      // (otherwise there is not an initial condition for the heat source)
+      std::copy(heat_source_.begin(), heat_source_.end(), heat_source_prev_.begin());
       heat_source_ =
         alpha_ * neutronics.heat_source(power_) + (1.0 - alpha_) * heat_source_prev_;
     } else {
@@ -282,11 +280,6 @@ void CoupledDriver::update_density()
 
   // Set density in the neutronics solver
   set_density();
-}
-
-bool CoupledDriver::has_global_coupling_data() const
-{
-  return this->get_neutronics_driver().active() && this->get_heat_driver().active();
 }
 
 void CoupledDriver::init_mappings()
@@ -505,17 +498,25 @@ void CoupledDriver::init_heat_source()
 {
   comm_.message("Initializing heat source");
 
-  heat_source_ = xt::empty<double>({n_cells_});
-  heat_source_prev_ = xt::empty<double>({n_cells_});
+  const auto& neutronics = this->get_neutronics_driver();
+  const auto& heat = this->get_heat_driver();
+
+  if (neutronics.comm_.is_root() || heat.active()) {
+    heat_source_ = xt::empty<double>({n_cells_});
+    heat_source_prev_ = xt::empty<double>({n_cells_});
+  }
 }
 
 void CoupledDriver::set_heat_source()
 {
-  // Neutronics driver has heat source on each of its ranks. We need to make
-  // heat source available on each TH rank.
-  intranode_comm_.broadcast(heat_source_);
-
+  const auto& neutronics = this->get_neutronics_driver();
   auto& heat = this->get_heat_driver();
+
+  // Neutronics root has heat source on each of its ranks. We need to make
+  // heat source available on each TH rank.
+  this->comm_.sendrecv_replace(heat_source_, heat_root_, neutronics_root_);
+  heat.comm_.broadcast(heat_source_);
+
   if (heat.active()) {
     // Determine displacement for this rank
     auto displacement = heat.local_displs_[heat.comm_.rank];
