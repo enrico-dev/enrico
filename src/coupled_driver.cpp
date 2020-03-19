@@ -15,7 +15,13 @@
 #include <iomanip>
 #include <memory> // for make_unique
 #include <string>
-#include <unistd.h> // for hostname
+
+// For gethostname
+#ifdef _WIN32
+#include <winsock.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace enrico {
 
@@ -508,12 +514,12 @@ void CoupledDriver::init_heat_source()
 
 void CoupledDriver::set_heat_source()
 {
-  const auto& neutronics = this->get_neutronics_driver();
-  auto& heat = this->get_heat_driver();
 
   // Neutronics root has heat source on each of its ranks. We need to make
   // heat source available on each TH rank.
   this->comm_.sendrecv_replace(heat_source_, heat_root_, neutronics_root_);
+
+  auto& heat = this->get_heat_driver();
   heat.comm_.broadcast(heat_source_);
 
   if (heat.active()) {
