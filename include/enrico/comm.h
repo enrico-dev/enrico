@@ -104,7 +104,7 @@ public:
   void sendrecv_replace(std::vector<T>& values, int dest, int source) const;
 
   //! Send an xtensor from one rank to another, possibly resizing it at destination
-  //! \param values Values to broadcast (significant at source rank)
+  //! \param values Values to send (significant at source rank)
   //! \param dest Destination rank
   //! \param source Source rank
   template<typename T, size_t N>
