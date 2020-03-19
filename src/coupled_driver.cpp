@@ -15,7 +15,6 @@
 #include <iomanip>
 #include <memory> // for make_unique
 #include <string>
-#include <sys/param.h>
 #include <unistd.h> // for hostname
 
 namespace enrico {
@@ -609,7 +608,7 @@ void CoupledDriver::comm_report()
   Comm world(MPI_COMM_WORLD);
 
   // Padding for fields
-  int hostw = std::max(8, hostname.size()) + 2;
+  int hostw = std::max(8UL, hostname.size()) + 2;
   int rankw = 7;
 
   for (int i = 0; i < world.size; ++i) {
