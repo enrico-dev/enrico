@@ -602,8 +602,9 @@ void CoupledDriver::set_density()
 
 void CoupledDriver::comm_report()
 {
-  std::string hostname{_POSIX_HOST_NAME_MAX};
-  gethostname(hostname.data(), _POSIX_HOST_NAME_MAX);
+  char c[_POSIX_HOST_NAME_MAX];
+  gethostname(c, _POSIX_HOST_NAME_MAX);
+  std::string hostname{c};
 
   Comm world(MPI_COMM_WORLD);
 
