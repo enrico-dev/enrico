@@ -89,7 +89,7 @@ public:
   void broadcast(xt::xtensor<T, N>& values) const;
 
   //! Send a scalar from one rank to another
-  //! \param value Value to broadcast (significant at source rank)
+  //! \param value Value to send (significant at source rank)
   //! \param dest Destination rank
   //! \param source Source rank
   template<typename T>
