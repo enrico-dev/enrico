@@ -97,7 +97,7 @@ public:
   sendrecv_replace(T& value, int dest, int source) const;
 
   //! Send a vector from one rank to another, possibly resizing it at destination
-  //! \param values Values to broadcast (significant at source rank)
+  //! \param values Values to send (significant at source rank)
   //! \param dest Destination rank
   //! \param source Source rank
   template<typename T>
