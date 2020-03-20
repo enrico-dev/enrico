@@ -118,6 +118,12 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   comm_.message("Communicator layout:");
   comm_report();
 
+  // Send number of global elements to all procs
+  const auto& heat = get_heat_driver();
+  n_global_elem_ = heat.n_global_elem();
+  comm_.sendrecv_replace(n_global_elem_, neutronics_root_, heat_root_);
+  heat.comm_.broadcast(n_global_elem_);
+
   init_mappings();
   init_tallies();
   init_volumes();
@@ -342,9 +348,8 @@ void CoupledDriver::init_temperatures()
   const auto& heat = this->get_heat_driver();
 
   if (neutronics.comm_.is_root()) {
-    auto n_global = heat.n_global_elem();
-    temperatures_.resize({n_global});
-    temperatures_prev_.resize({n_global});
+    temperatures_.resize({static_cast<unsigned long>(n_global_elem_)});
+    temperatures_prev_.resize({static_cast<unsigned long>(n_global_elem_)});
   }
 
   if (temperature_ic_ == Initial::neutronics) {
@@ -416,11 +421,9 @@ void CoupledDriver::init_densities()
   const auto& neutronics = this->get_neutronics_driver();
   const auto& heat = this->get_heat_driver();
 
-  auto n_global = this->get_heat_driver().n_global_elem();
-
   if (neutronics.comm_.is_root()) {
-    densities_.resize({n_global});
-    densities_prev_.resize({n_global});
+    densities_.resize({static_cast<unsigned long>(n_global_elem_)});
+    densities_prev_.resize({static_cast<unsigned long>(n_global_elem_)});
   }
 
   if (density_ic_ == Initial::neutronics) {

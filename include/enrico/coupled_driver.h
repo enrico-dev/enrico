@@ -222,6 +222,9 @@ private:
 
   //! Number of cell instances in neutronics model
   int32_t n_cells_;
+
+  //! Number of global elements in heat/fluids model
+  int32_t n_global_elem_;
 };
 
 } // namespace enrico
