@@ -76,17 +76,18 @@ public:
   //! Broadcast a scalar value across ranks
   //! \param value Value to broadcast (significant at rank 0)
   template<typename T>
-  std::enable_if_t<std::is_scalar<std::decay_t<T>>::value> broadcast(T& value) const;
+  std::enable_if_t<std::is_scalar<std::decay_t<T>>::value> broadcast(T& value,
+                                                                     int root = 0) const;
 
   //! Broadcast a vector across ranks, possibly resizing it
   //! \param values Values to broadcast (significant at rank 0)
   template<typename T>
-  void broadcast(std::vector<T>& values) const;
+  void broadcast(std::vector<T>& values, int root = 0) const;
 
   //! Broadcast an xtensor across ranks, possibly resizing it to match root's shape
   //! \param values Values to broadcast (significant at rank 0)
   template<typename T, size_t N>
-  void broadcast(xt::xtensor<T, N>& values) const;
+  void broadcast(xt::xtensor<T, N>& values, int root = 0) const;
 
   //! Send a scalar from one rank to another
   //! \param value Value to send (significant at source rank)
@@ -273,28 +274,29 @@ void Comm::sendrecv_replace(xt::xtensor<T, N>& values, int dest, int source) con
 }
 
 template<typename T>
-std::enable_if_t<std::is_scalar<std::decay_t<T>>::value> Comm::broadcast(T& value) const
+std::enable_if_t<std::is_scalar<std::decay_t<T>>::value> Comm::broadcast(T& value,
+                                                                         int root) const
 {
-  this->Bcast(&value, 1, get_mpi_type<T>());
+  this->Bcast(&value, 1, get_mpi_type<T>(), root);
 }
 
 template<typename T>
-void Comm::broadcast(std::vector<T>& values) const
+void Comm::broadcast(std::vector<T>& values, int root) const
 {
   if (this->active()) {
     // First broadcast the size of the vector
     int n = values.size();
-    this->broadcast(n);
+    this->broadcast(n, root);
 
     // Resize vector (for rank != 0) and broacast data
     if (values.size() != n)
       values.resize(n);
-    this->Bcast(values.data(), n, get_mpi_type<T>());
+    this->Bcast(values.data(), n, get_mpi_type<T>(), root);
   }
 }
 
 template<typename T, size_t N>
-void Comm::broadcast(xt::xtensor<T, N>& values) const
+void Comm::broadcast(xt::xtensor<T, N>& values, int root) const
 {
   if (this->active()) {
     // First, make sure shape of `values` matches root's
@@ -302,17 +304,17 @@ void Comm::broadcast(xt::xtensor<T, N>& values) const
     std::vector<size_t> my_shape(s.begin(), s.end());
     std::vector<size_t> root_shape(my_shape);
 
-    this->broadcast(root_shape);
+    this->broadcast(root_shape, root);
     if (my_shape != root_shape) {
       values.resize(root_shape);
     }
 
     // Next, broadcast size
     auto n = values.size();
-    this->broadcast(n);
+    this->broadcast(n, root);
 
     // Finally, broadcast data
-    this->Bcast(values.data(), n, get_mpi_type<T>());
+    this->Bcast(values.data(), n, get_mpi_type<T>(), root);
   }
 }
 

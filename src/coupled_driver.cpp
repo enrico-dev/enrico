@@ -221,7 +221,7 @@ bool CoupledDriver::is_converged()
     neutron.comm_.message(msg);
   }
 
-  comm_.Bcast(&converged, 1, get_mpi_type<bool>(), neutronics_root_);
+  comm_.broadcast(converged, neutronics_root_);
   return converged;
 }
 
