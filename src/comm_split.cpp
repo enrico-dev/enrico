@@ -53,16 +53,7 @@ void get_driver_comms(Comm super_comm,
   intranode_comm.broadcast(total_nodes);
 
   // Each rank gets its node index (inferred from the ranks of the coupling comms)
-  int node_idx;
-  if (coupling_comm.active()) {
-    std::vector<int> v;
-    if (coupling_comm.is_root()) {
-      for (int i = 0; i < total_nodes; ++i) {
-        v.push_back(i);
-      }
-    }
-    MPI_Scatter(v.data(), 1, MPI_INT, &node_idx, 1, MPI_INT, 0, coupling_comm.comm);
-  }
+  int node_idx = coupling_comm.rank;
   intranode_comm.broadcast(node_idx);
 
   // Get the driver comms. driver_comms[0] gets the left-hand nodes, and
