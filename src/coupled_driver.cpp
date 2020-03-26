@@ -93,14 +93,6 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   auto neutronics_comm = driver_comms[0];
   auto heat_comm = driver_comms[1];
 
-  // Send rank of neutronics root to all procs
-  neutronics_root_ = neutronics_comm.is_root() ? comm_.rank : -1;
-  MPI_Allreduce(MPI_IN_PLACE, &neutronics_root_, 1, MPI_INT, MPI_MAX, comm_.comm);
-
-  // Send rank of heat root to all procs
-  heat_root_ = heat_comm.is_root() ? comm_.rank : -1;
-  MPI_Allreduce(MPI_IN_PLACE, &heat_root_, 1, MPI_INT, MPI_MAX, comm_.comm);
-
   // Instantiate neutronics driver
   neutronics_driver_ = std::make_unique<OpenmcDriver>(neutronics_comm.comm);
 
@@ -115,14 +107,20 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
     throw std::runtime_error{"Invalid value for <heat_fluids><driver>"};
   }
 
-  comm_.message("Communicator layout:");
-  comm_report();
+  // Send rank of neutronics root to all procs
+  neutronics_root_ = this->get_neutronics_driver().comm_.is_root() ? comm_.rank : -1;
+  MPI_Allreduce(MPI_IN_PLACE, &neutronics_root_, 1, MPI_INT, MPI_MAX, comm_.comm);
+
+  // Send rank of heat root to all procs
+  heat_root_ = this->get_heat_driver().comm_.is_root() ? comm_.rank : -1;
+  MPI_Allreduce(MPI_IN_PLACE, &heat_root_, 1, MPI_INT, MPI_MAX, comm_.comm);
 
   // Send number of global elements to all procs
-  const auto& heat = get_heat_driver();
-  n_global_elem_ = heat.n_global_elem();
-  comm_.sendrecv_replace(n_global_elem_, neutronics_root_, heat_root_);
-  heat.comm_.broadcast(n_global_elem_);
+  n_global_elem_ = this->get_heat_driver().n_global_elem();
+  comm_.broadcast(n_global_elem_, heat_root_);
+
+  comm_.message("Communicator layout:");
+  comm_report();
 
   init_mappings();
   init_tallies();
