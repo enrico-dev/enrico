@@ -16,21 +16,22 @@ ShiftDriverNew::ShiftDriverNew(MPI_Comm comm, pugi::xml_node node)
   }
   std::string filename = node.child_value("filename");
 
-  // Make a temporary Parameter list
-  auto plist = Teuchos::RCP<Teuchos::ParameterList>(
+  // Create a Parameter list; note that it is stored as a member since it is
+  // used in the create_tallies method, which takes no arguments
+  plist_ = Teuchos::RCP<Teuchos::ParameterList>(
     new Teuchos::ParameterList("Omnibus_plist_root"));
 
   // Save the input XML path for later output
-  plist->set("input_path", filename);
+  plist_->set("input_path", filename);
 
   // Build a Teuchos communicator
   auto teuchos_comm = Teuchos::MpiComm<int>(comm);
 
   // Load parameters from disk on processor zero and broadcast them
-  Teuchos::updateParametersFromXmlFileAndBroadcast(filename, plist.ptr(), teuchos_comm);
+  Teuchos::updateParametersFromXmlFileAndBroadcast(filename, plist_.ptr(), teuchos_comm);
 
   // Build Problem
-  auto problem = std::make_shared<omnibus::Problem>(plist);
+  auto problem = std::make_shared<omnibus::Problem>(plist_);
 
   // Build driver
   driver_ = std::make_shared<omnibus::Multiphysics_Driver>(problem);
@@ -40,9 +41,6 @@ ShiftDriverNew::ShiftDriverNew(MPI_Comm comm, pugi::xml_node node)
   Expects(problem_geom != nullptr);
   geometry_ = std::dynamic_pointer_cast<geometria::RTK_Core>(problem_geom);
   Expects(geometry_ != nullptr);
-
-  // Need to initialize:
-  //  - matids_
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -60,6 +58,31 @@ std::vector<CellHandle> ShiftDriverNew::find(const std::vector<Position>& positi
     matids_.push_back(geometry_->matid(handles.back()));
   }
   return handles;
+}
+
+void ShiftDriverNew::create_tallies()
+{
+  auto tally_pl = Teuchos::sublist(plist_, "TALLY");
+  auto cell_pl = Teuchos::sublist(tally_pl, "CELL");
+
+  using Teuchos::Array;
+
+  auto power_pl = Teuchos::sublist(cell_pl, "power");
+  power_pl->set("name", "power");
+  power_pl->set("normalization", 1.0);
+  power_pl->set("description", std::string("power tally"));
+  Array<std::string> rxns(1, "fission");
+  power_pl->set("reactions", rxns);
+  power_pl->set("cycles", std::string("active"));
+
+  // Create an array of cells -- note that all cells are used here, not just
+  // ones that map to a TH element
+  Array<std::string> cells(geometry_->num_cells());
+  for (int cellid = 0; cellid < geometry_->num_cells(); ++cellid)
+    cells[cellid] = std::to_string(cellid);
+  Array<int> counts(geometry_->num_cells(), 1);
+  power_pl->set("union_cells", cells);
+  power_pl->set("union_lengths", counts);
 }
 
 void ShiftDriverNew::set_density(CellHandle cell, double rho) const
@@ -103,9 +126,6 @@ bool ShiftDriverNew::is_fissionable(CellHandle cell) const
 
 // TODO: Implement
 xt::xtensor<double, 1> ShiftDriverNew::heat_source(double power) const {}
-
-// TODO: Implement
-void ShiftDriverNew::create_tallies() {}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Driver interface
