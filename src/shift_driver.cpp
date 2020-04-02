@@ -4,9 +4,15 @@
 
 namespace enrico {
 
-ShiftDriverNew::ShiftDriverNew(MPI_Comm comm)
+ShiftDriverNew::ShiftDriverNew(MPI_Comm comm, pugi::xml_node node)
   : NeutronicsDriver{comm}
 {
+  // Get Shift filename
+  if (!node.child("filename")) {
+    throw std::runtime_error{"Must provide Shift filename in enrico.xml"};
+  }
+  std::string filename = node.child_value("filename");
+
   // Need to initialize:
   //  - matids_
   //  - driver_

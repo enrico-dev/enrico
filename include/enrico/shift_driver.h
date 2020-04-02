@@ -4,6 +4,8 @@
 #include "enrico/geom.h"
 #include "enrico/neutronics_driver.h"
 
+#include <pugixml.hpp>
+
 #include "Geometria/rtk/RTK_Geometry.hh"         // for Geometry
 #include "Omnibus/driver/Multiphysics_Driver.hh" // for MultiPhysics_Driver
 #include "Shift/mc_physics/SCE_Physics.hh"
@@ -18,7 +20,7 @@ namespace enrico {
 class ShiftDriverNew : public NeutronicsDriver {
 public:
   // Constructor
-  ShiftDriverNew(MPI_Comm comm);
+  ShiftDriverNew(MPI_Comm comm, pugi::xml_node node);
 
   //////////////////////////////////////////////////////////////////////////////
   // NeutronicsDriver interface

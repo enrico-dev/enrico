@@ -12,7 +12,7 @@ elements:
 Base element for heat/fluids driver parameters
 
 ``<driver>``
------------------------
+------------
 
 The physics driver for solving fluid and heat transfer equations. Valid options
 are "nek5000" and "surrogate".
@@ -82,10 +82,17 @@ Under the ``<heat_fluids>`` element, these surrogate-specific sub-elements are a
 Base element for neutron transport driver parameters
 
 ``<driver>``
-----------------------
+------------
 
 The physics driver for solving particle transport. Valid options are "openmc",
 "shift", and "surrogate".
+
+Shift-specific Parameters
+-------------------------
+
+Under the ``<neutronics>`` element, these Shift-specific sub-elements are available:
+
+* ``<filename>``: Path to the Shift XML input file
 
 ``<coupling>``
 ~~~~~~~~~~~~~~
