@@ -1,6 +1,9 @@
 #include "enrico/shift_driver.h"
 
-#include <gsl/gsl>
+#include <gsl/gsl> // for Expects
+
+#include "Teuchos_DefaultComm.hpp"             // for DefaultComm
+#include "Teuchos_XMLParameterListHelpers.hpp" // for RCP, ParameterList
 
 namespace enrico {
 
@@ -13,10 +16,33 @@ ShiftDriverNew::ShiftDriverNew(MPI_Comm comm, pugi::xml_node node)
   }
   std::string filename = node.child_value("filename");
 
+  // Make a temporary Parameter list
+  auto plist = Teuchos::RCP<Teuchos::ParameterList>(
+    new Teuchos::ParameterList("Omnibus_plist_root"));
+
+  // Save the input XML path for later output
+  plist->set("input_path", filename);
+
+  // Build a Teuchos communicator
+  auto teuchos_comm = Teuchos::DefaultComm<int>::getComm();
+
+  // Load parameters from disk on processor zero and broadcast them
+  Teuchos::updateParametersFromXmlFileAndBroadcast(filename, plist.ptr(), *teuchos_comm);
+
+  // Build Problem
+  auto problem = std::make_shared<omnibus::Problem>(plist);
+
+  // Build driver
+  driver_ = std::make_shared<omnibus::Multiphysics_Driver>(problem);
+
+  // Store geometry
+  auto problem_geom = problem->geometry();
+  Expects(problem_geom != nullptr);
+  geometry_ = std::dynamic_pointer_cast<geometria::RTK_Core>(problem_geom);
+  Expects(geometry_ != nullptr);
+
   // Need to initialize:
   //  - matids_
-  //  - driver_
-  //  - geometry_
 }
 
 ////////////////////////////////////////////////////////////////////////////////
