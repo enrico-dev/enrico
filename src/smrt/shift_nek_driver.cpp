@@ -30,10 +30,9 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
 
     // Get root element
     auto root = doc.document_element();
-    double pressure_bc = root.child("pressure_bc").text().as_double();
 
-    d_nek_solver =
-      std::make_shared<NekDriver>(th_comm, pressure_bc, root.child("nek5000"));
+    auto heat_node = root.child("heat_fluids");
+    d_nek_solver = std::make_shared<NekDriver>(th_comm, heat_node);
   }
 
   d_th_num_local = d_nek_solver->n_local_elem();
