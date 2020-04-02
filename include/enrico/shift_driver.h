@@ -1,8 +1,8 @@
 #ifndef ENRICO_SHIFT_DRIVER_H
 #define ENRICO_SHIFT_DRIVER_H
 
-#include <memory> // for shared_ptr
-#include <vector>
+#include "enrico/geom.h"
+#include "enrico/neutronics_driver.h"
 
 #include "Geometria/rtk/RTK_Geometry.hh"         // for Geometry
 #include "Omnibus/driver/Multiphysics_Driver.hh" // for MultiPhysics_Driver
@@ -10,8 +10,8 @@
 #include "Teuchos_ParameterList.hpp"
 #include "Teuchos_RCP.hpp"
 
-#include "enrico/geom.h"
-#include "enrico/neutronics_driver.h"
+#include <memory> // for shared_ptr
+#include <vector>
 
 namespace enrico {
 

@@ -6,7 +6,12 @@ namespace enrico {
 
 ShiftDriverNew::ShiftDriverNew(MPI_Comm comm)
   : NeutronicsDriver{comm}
-{}
+{
+  // Need to initialize:
+  //  - matids_
+  //  - driver_
+  //  - geometry_
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // NeutronicsDriver interface
@@ -64,4 +69,25 @@ bool ShiftDriverNew::is_fissionable(CellHandle cell) const
   return driver_->compositions()[matid]->is_fissionable();
 }
 
-}
+// TODO: Implement
+xt::xtensor<double, 1> ShiftDriverNew::heat_source(double power) const {}
+
+// TODO: Implement
+void ShiftDriverNew::create_tallies() {}
+
+////////////////////////////////////////////////////////////////////////////////
+// Driver interface
+
+// TODO: Implement
+void ShiftDriverNew::init_step() {}
+
+// TODO: Implement
+void ShiftDriverNew::solve_step() {}
+
+// TODO: Implement
+void ShiftDriverNew::write_step(int timestep, int iteration) {}
+
+// TODO: Implement
+void ShiftDriverNew::finalize_step() {}
+
+} // end namespace enrico

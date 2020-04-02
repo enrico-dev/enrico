@@ -77,6 +77,7 @@ set(SOURCES
     src/surrogate_heat_driver.cpp
     src/mpi_types.cpp
     src/openmc_driver.cpp
+    src/shift_driver.cpp
     src/cell_instance.cpp
     src/nek_driver.cpp
     src/vtk_viz.cpp
