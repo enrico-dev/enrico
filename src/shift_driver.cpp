@@ -2,7 +2,7 @@
 
 #include <gsl/gsl> // for Expects
 
-#include "Teuchos_DefaultComm.hpp"             // for DefaultComm
+#include "Teuchos_DefaultMpiComm.hpp"          // for MpiComm
 #include "Teuchos_XMLParameterListHelpers.hpp" // for RCP, ParameterList
 
 namespace enrico {
@@ -24,10 +24,10 @@ ShiftDriverNew::ShiftDriverNew(MPI_Comm comm, pugi::xml_node node)
   plist->set("input_path", filename);
 
   // Build a Teuchos communicator
-  auto teuchos_comm = Teuchos::DefaultComm<int>::getComm();
+  auto teuchos_comm = Teuchos::MpiComm<int>(comm);
 
   // Load parameters from disk on processor zero and broadcast them
-  Teuchos::updateParametersFromXmlFileAndBroadcast(filename, plist.ptr(), *teuchos_comm);
+  Teuchos::updateParametersFromXmlFileAndBroadcast(filename, plist.ptr(), teuchos_comm);
 
   // Build Problem
   auto problem = std::make_shared<omnibus::Problem>(plist);
