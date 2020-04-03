@@ -198,16 +198,15 @@ std::string ShiftDriverNew::cell_label(CellHandle cell) const
 ////////////////////////////////////////////////////////////////////////////////
 // Driver interface
 
-// TODO: Implement
-void ShiftDriverNew::init_step() {}
+void ShiftDriverNew::init_step()
+{
+  // Rebuild problem (loading any new data needed and run transport
+  driver_->rebuild();
+}
 
-// TODO: Implement
-void ShiftDriverNew::solve_step() {}
-
-// TODO: Implement
-void ShiftDriverNew::write_step(int timestep, int iteration) {}
-
-// TODO: Implement
-void ShiftDriverNew::finalize_step() {}
+void ShiftDriverNew::solve_step()
+{
+  driver_->run();
+}
 
 } // end namespace enrico

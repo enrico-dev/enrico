@@ -83,14 +83,6 @@ public:
   //! Runs Shift for one Picard iteration
   void solve_step() final;
 
-  //! Writes Shift output for given timestep and iteration
-  //! \param timestep timestep index
-  //! \param iteration iteration index
-  void write_step(int timestep, int iteration) final;
-
-  //! Finalization required in each Picard iteration
-  void finalize_step() final;
-
 private:
   // Data members
   std::shared_ptr<geometria::RTK_Core> geometry_;        //!< Core model
