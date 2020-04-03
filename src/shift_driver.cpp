@@ -190,6 +190,11 @@ xt::xtensor<double, 1> ShiftDriverNew::heat_source(double power) const
   return heat;
 }
 
+std::string ShiftDriverNew::cell_label(CellHandle cell) const
+{
+  return std::to_string(cells_.at(cell));
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Driver interface
 

@@ -72,6 +72,8 @@ public:
   //! Create energy production tallies
   void create_tallies() override;
 
+  std::string cell_label(CellHandle cell) const override;
+
   //////////////////////////////////////////////////////////////////////////////
   // Driver interface
 
