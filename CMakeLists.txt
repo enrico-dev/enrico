@@ -77,7 +77,6 @@ set(SOURCES
     src/surrogate_heat_driver.cpp
     src/mpi_types.cpp
     src/openmc_driver.cpp
-    src/shift_driver.cpp
     src/cell_instance.cpp
     src/nek_driver.cpp
     src/vtk_viz.cpp
@@ -85,6 +84,7 @@ set(SOURCES
 
 if (SCALE_FOUND)
     list(APPEND SOURCES
+        src/shift_driver.cpp
         src/smrt/Assembly_Model.cpp
         src/smrt/shift_nek_driver.cpp
         src/smrt/surrogate_heat_fluid_driver.cpp
@@ -106,6 +106,7 @@ target_link_libraries(libenrico PUBLIC iapws libnek5000 libopenmc xtensor heat_x
 target_compile_definitions(libenrico PRIVATE GSL_THROW_ON_CONTRACT_VIOLATION)
 
 if (SCALE_FOUND)
+  target_compile_definitions(libenrico PRIVATE USE_SHIFT)
   target_link_libraries(libenrico PUBLIC ${SCALE_LIBRARIES})
   target_link_libraries(libenrico PUBLIC ${SCALE_TPL_LIBRARIES})
 endif ()

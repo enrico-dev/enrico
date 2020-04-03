@@ -5,7 +5,9 @@
 #include "enrico/error.h"
 #include "enrico/nek_driver.h"
 #include "enrico/openmc_driver.h"
+#ifdef USE_SHIFT
 #include "enrico/shift_driver.h"
+#endif
 #include "enrico/surrogate_heat_driver.h"
 
 #include <gsl/gsl>
@@ -121,7 +123,11 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   if (neut_driver == "openmc") {
     neutronics_driver_ = std::make_unique<OpenmcDriver>(neutronics_comm.comm);
   } else if (neut_driver == "shift") {
+#ifdef USE_SHIFT
     neutronics_driver_ = std::make_unique<ShiftDriver>(comm, neut_node);
+#else
+    throw std::runtime_error{"ENRICO has not been built with Shift support enabled."};
+#endif
   } else {
     throw std::runtime_error{"Invalid value for <neutronics><driver>"};
   }
