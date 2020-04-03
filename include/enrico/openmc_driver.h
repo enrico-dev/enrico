@@ -27,6 +27,9 @@ public:
   //! One-time finalization of OpenMC
   ~OpenmcDriver();
 
+  //////////////////////////////////////////////////////////////////////////////
+  // NeutronicsDriver interface
+
   //! Find cells corresponding to a vector of positions
   //! \param positions (x,y,z) coordinates to search for
   //! \return Handles to cells
@@ -70,6 +73,9 @@ public:
   //! Determine number of cells participating in coupling
   //! \return Number of cells
   xt::xtensor<double, 1> heat_source(double power) const final;
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Driver interface
 
   //! Initialization required in each Picard iteration
   void init_step() final;
