@@ -17,7 +17,7 @@ ShiftNekDriver::ShiftNekDriver(std::shared_ptr<Assembly_Model> assembly,
   : SmrtCoupledDriver()
 {
   d_shift_solver =
-    std::make_shared<enrico::ShiftDriver>(assembly, shift_filename, z_edges);
+    std::make_shared<enrico::Shift_Driver>(assembly, shift_filename, z_edges);
 
   // Build Nek driver
   {

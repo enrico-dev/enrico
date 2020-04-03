@@ -3,7 +3,7 @@
  * \file   shift_driver.cpp
  * \author Steven Hamilton
  * \date   Wed Aug 15 09:25:43 2018
- * \brief  ShiftDriver class definitions.
+ * \brief  Shift_Driver class definitions.
  * \note   Copyright (c) 2018 Oak Ridge National Laboratory, UT-Battelle, LLC.
  */
 //---------------------------------------------------------------------------//
@@ -24,9 +24,9 @@ namespace enrico {
 //---------------------------------------------------------------------------//
 // Constructor
 //---------------------------------------------------------------------------//
-ShiftDriver::ShiftDriver(SP_Assembly_Model assembly,
-                         std::string shift_input,
-                         const std::vector<double>& z_edges)
+Shift_Driver::Shift_Driver(SP_Assembly_Model assembly,
+                           std::string shift_input,
+                           const std::vector<double>& z_edges)
   : d_assembly(assembly)
   , d_power_tally_name("power")
 {
@@ -59,7 +59,7 @@ ShiftDriver::ShiftDriver(SP_Assembly_Model assembly,
   add_power_tally(plist, z_edges);
 }
 
-std::vector<double> ShiftDriver::heat_source(double power) const
+std::vector<double> Shift_Driver::heat_source(double power) const
 {
   // Extract fission rate from Shift tally
   auto sequence = d_driver->sequence();
@@ -97,16 +97,15 @@ std::vector<double> ShiftDriver::heat_source(double power) const
   for (auto& val : power_by_cell_ID)
     val *= norm_factor;
 
-
   return power_by_cell_ID;
 }
 
 //---------------------------------------------------------------------------//
 // Solve
 //---------------------------------------------------------------------------//
-void ShiftDriver::solve(const std::vector<double>& th_temperature,
-                        const std::vector<double>& coolant_density,
-                        std::vector<double>& power)
+void Shift_Driver::solve(const std::vector<double>& th_temperature,
+                         const std::vector<double>& coolant_density,
+                         std::vector<double>& power)
 {
   update_temperature(th_temperature);
 
@@ -116,10 +115,9 @@ void ShiftDriver::solve(const std::vector<double>& th_temperature,
   // Rebuild problem (loading any new data needed and run transport
   d_driver->rebuild();
   d_driver->run();
-
 }
 
-void ShiftDriver::update_temperature(const std::vector<double>& temperatures)
+void Shift_Driver::update_temperature(const std::vector<double>& temperatures)
 {
   Expects(temperatures.size() == d_matids.size());
   auto& comps = d_driver->compositions();
@@ -140,7 +138,7 @@ void ShiftDriver::update_temperature(const std::vector<double>& temperatures)
 //---------------------------------------------------------------------------//
 // Register list of centroids and cell volumes from T/H solver
 //---------------------------------------------------------------------------//
-void ShiftDriver::set_centroids_and_volumes(
+void Shift_Driver::set_centroids_and_volumes(
   const std::vector<enrico::Position>& centroids,
   const std::vector<double>& volumes)
 {
@@ -190,7 +188,7 @@ void ShiftDriver::set_centroids_and_volumes(
 //---------------------------------------------------------------------------//
 // Add power (fission rate) tally to shift problem
 //---------------------------------------------------------------------------//
-void ShiftDriver::add_power_tally(RCP_PL& pl, const std::vector<double>& z_edges)
+void Shift_Driver::add_power_tally(RCP_PL& pl, const std::vector<double>& z_edges)
 {
   Expects(d_assembly != nullptr);
   auto tally_pl = Teuchos::sublist(pl, "TALLY");

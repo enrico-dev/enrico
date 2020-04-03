@@ -18,13 +18,13 @@
 
 namespace enrico {
 
-class ShiftDriverNew : public NeutronicsDriver {
+class ShiftDriver : public NeutronicsDriver {
 public:
   // Types, aliases
   using cell_type = geometria::Geometry::cell_type;
 
   // Constructor
-  ShiftDriverNew(MPI_Comm comm, pugi::xml_node node);
+  ShiftDriver(MPI_Comm comm, pugi::xml_node node);
 
   //////////////////////////////////////////////////////////////////////////////
   // NeutronicsDriver interface

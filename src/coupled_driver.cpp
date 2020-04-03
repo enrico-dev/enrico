@@ -121,7 +121,7 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   if (neut_driver == "openmc") {
     neutronics_driver_ = std::make_unique<OpenmcDriver>(neutronics_comm.comm);
   } else if (neut_driver == "shift") {
-    neutronics_driver_ = std::make_unique<ShiftDriverNew>(comm, neut_node);
+    neutronics_driver_ = std::make_unique<ShiftDriver>(comm, neut_node);
   } else {
     throw std::runtime_error{"Invalid value for <neutronics><driver>"};
   }

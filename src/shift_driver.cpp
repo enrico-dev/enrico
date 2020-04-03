@@ -11,7 +11,7 @@
 
 namespace enrico {
 
-ShiftDriverNew::ShiftDriverNew(MPI_Comm comm, pugi::xml_node node)
+ShiftDriver::ShiftDriver(MPI_Comm comm, pugi::xml_node node)
   : NeutronicsDriver{comm}
 {
   if (this->active()) {
@@ -57,7 +57,7 @@ ShiftDriverNew::ShiftDriverNew(MPI_Comm comm, pugi::xml_node node)
 ////////////////////////////////////////////////////////////////////////////////
 // NeutronicsDriver interface
 
-std::vector<CellHandle> ShiftDriverNew::find(const std::vector<Position>& positions)
+std::vector<CellHandle> ShiftDriver::find(const std::vector<Position>& positions)
 {
   std::vector<CellHandle> handles;
   handles.reserve(positions.size());
@@ -80,7 +80,7 @@ std::vector<CellHandle> ShiftDriverNew::find(const std::vector<Position>& positi
   return handles;
 }
 
-void ShiftDriverNew::create_tallies()
+void ShiftDriver::create_tallies()
 {
   auto tally_pl = Teuchos::sublist(plist_, "TALLY");
   auto cell_pl = Teuchos::sublist(tally_pl, "CELL");
@@ -105,7 +105,7 @@ void ShiftDriverNew::create_tallies()
   power_pl->set("union_lengths", counts);
 }
 
-void ShiftDriverNew::set_density(CellHandle cell, double rho) const
+void ShiftDriver::set_density(CellHandle cell, double rho) const
 {
   Expects(rho > 0);
   Expects(cell >= 0 && cell < this->n_cells());
@@ -113,7 +113,7 @@ void ShiftDriverNew::set_density(CellHandle cell, double rho) const
   driver_->compositions()[matid]->set_density(rho);
 }
 
-void ShiftDriverNew::set_temperature(CellHandle cell, double T) const
+void ShiftDriver::set_temperature(CellHandle cell, double T) const
 {
   Expects(T > 0);
   Expects(cell >= 0 && cell < this->n_cells());
@@ -121,30 +121,30 @@ void ShiftDriverNew::set_temperature(CellHandle cell, double T) const
   driver_->compositions()[matid]->set_temperature(T);
 }
 
-double ShiftDriverNew::get_density(CellHandle cell) const
+double ShiftDriver::get_density(CellHandle cell) const
 {
   int matid = geometry_->matid(cell);
   return driver_->compositions()[matid]->density();
 }
 
-double ShiftDriverNew::get_temperature(CellHandle cell) const
+double ShiftDriver::get_temperature(CellHandle cell) const
 {
   int matid = geometry_->matid(cell);
   return driver_->compositions()[matid]->temperature();
 }
 
-double ShiftDriverNew::get_volume(CellHandle cell) const
+double ShiftDriver::get_volume(CellHandle cell) const
 {
   return geometry_->cell_volume(cell);
 }
 
-bool ShiftDriverNew::is_fissionable(CellHandle cell) const
+bool ShiftDriver::is_fissionable(CellHandle cell) const
 {
   int matid = geometry_->matid(cell);
   return driver_->compositions()[matid]->is_fissionable();
 }
 
-xt::xtensor<double, 1> ShiftDriverNew::heat_source(double power) const
+xt::xtensor<double, 1> ShiftDriver::heat_source(double power) const
 {
   // Extract fission rate from Shift tally
   auto sequence = driver_->sequence();
@@ -190,7 +190,7 @@ xt::xtensor<double, 1> ShiftDriverNew::heat_source(double power) const
   return heat;
 }
 
-std::string ShiftDriverNew::cell_label(CellHandle cell) const
+std::string ShiftDriver::cell_label(CellHandle cell) const
 {
   return std::to_string(cells_.at(cell));
 }
@@ -198,13 +198,13 @@ std::string ShiftDriverNew::cell_label(CellHandle cell) const
 ////////////////////////////////////////////////////////////////////////////////
 // Driver interface
 
-void ShiftDriverNew::init_step()
+void ShiftDriver::init_step()
 {
   // Rebuild problem (loading any new data needed and run transport
   driver_->rebuild();
 }
 
-void ShiftDriverNew::solve_step()
+void ShiftDriver::solve_step()
 {
   driver_->run();
 }
