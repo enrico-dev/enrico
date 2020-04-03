@@ -10,37 +10,41 @@ namespace enrico {
 ShiftDriverNew::ShiftDriverNew(MPI_Comm comm, pugi::xml_node node)
   : NeutronicsDriver{comm}
 {
-  // Get Shift filename
-  if (!node.child("filename")) {
-    throw std::runtime_error{"Must provide Shift filename in enrico.xml"};
+  if (this->active()) {
+    // Get Shift filename
+    if (!node.child("filename")) {
+      throw std::runtime_error{"Must provide Shift filename in enrico.xml"};
+    }
+    std::string filename = node.child_value("filename");
+
+    // Create a Parameter list; note that it is stored as a member since it is
+    // used in the create_tallies method, which takes no arguments
+    plist_ = Teuchos::RCP<Teuchos::ParameterList>(
+      new Teuchos::ParameterList("Omnibus_plist_root"));
+
+    // Save the input XML path for later output
+    plist_->set("input_path", filename);
+
+    // Build a Teuchos communicator
+    auto teuchos_comm = Teuchos::MpiComm<int>(comm);
+
+    // Load parameters from disk on processor zero and broadcast them
+    Teuchos::updateParametersFromXmlFileAndBroadcast(
+      filename, plist_.ptr(), teuchos_comm);
+
+    // Build Problem
+    auto problem = std::make_shared<omnibus::Problem>(plist_);
+
+    // Build driver
+    driver_ = std::make_shared<omnibus::Multiphysics_Driver>(problem);
+
+    // Store geometry
+    auto problem_geom = problem->geometry();
+    Expects(problem_geom != nullptr);
+    geometry_ = std::dynamic_pointer_cast<geometria::RTK_Core>(problem_geom);
+    Expects(geometry_ != nullptr);
   }
-  std::string filename = node.child_value("filename");
-
-  // Create a Parameter list; note that it is stored as a member since it is
-  // used in the create_tallies method, which takes no arguments
-  plist_ = Teuchos::RCP<Teuchos::ParameterList>(
-    new Teuchos::ParameterList("Omnibus_plist_root"));
-
-  // Save the input XML path for later output
-  plist_->set("input_path", filename);
-
-  // Build a Teuchos communicator
-  auto teuchos_comm = Teuchos::MpiComm<int>(comm);
-
-  // Load parameters from disk on processor zero and broadcast them
-  Teuchos::updateParametersFromXmlFileAndBroadcast(filename, plist_.ptr(), teuchos_comm);
-
-  // Build Problem
-  auto problem = std::make_shared<omnibus::Problem>(plist_);
-
-  // Build driver
-  driver_ = std::make_shared<omnibus::Multiphysics_Driver>(problem);
-
-  // Store geometry
-  auto problem_geom = problem->geometry();
-  Expects(problem_geom != nullptr);
-  geometry_ = std::dynamic_pointer_cast<geometria::RTK_Core>(problem_geom);
-  Expects(geometry_ != nullptr);
+  MPI_Barrier(MPI_COMM_WORLD);
 }
 
 ////////////////////////////////////////////////////////////////////////////////
