@@ -43,6 +43,9 @@ ShiftDriverNew::ShiftDriverNew(MPI_Comm comm, pugi::xml_node node)
     Expects(problem_geom != nullptr);
     geometry_ = std::dynamic_pointer_cast<geometria::RTK_Core>(problem_geom);
     Expects(geometry_ != nullptr);
+
+    // Initialize number of cells
+    num_cells_ = geometry_->num_cells();
   }
   MPI_Barrier(MPI_COMM_WORLD);
 }
@@ -92,7 +95,7 @@ void ShiftDriverNew::create_tallies()
 void ShiftDriverNew::set_density(CellHandle cell, double rho) const
 {
   Expects(rho > 0);
-  Expects(cell >= 0 && cell < num_shift_cells_);
+  Expects(cell >= 0 && cell < this->n_cells());
   int matid = geometry_->matid(cell);
   driver_->compositions()[matid]->set_density(rho);
 }
@@ -100,7 +103,7 @@ void ShiftDriverNew::set_density(CellHandle cell, double rho) const
 void ShiftDriverNew::set_temperature(CellHandle cell, double T) const
 {
   Expects(T > 0);
-  Expects(cell >= 0 && cell < num_shift_cells_);
+  Expects(cell >= 0 && cell < this->n_cells());
   int matid = geometry_->matid(cell);
   driver_->compositions()[matid]->set_temperature(T);
 }

@@ -63,7 +63,7 @@ public:
   //! \return Whether the cell contains fissionable nuclides
   bool is_fissionable(CellHandle cell) const override;
 
-  std::size_t n_cells() const override { return num_shift_cells_; }
+  std::size_t n_cells() const override { return num_cells_; }
 
   //! Create energy production tallies
   void create_tallies() override;
@@ -93,7 +93,7 @@ private:
   Teuchos::RCP<Teuchos::ParameterList> plist_; //!< parameter list from input file
 
   std::vector<int> matids_; //!< Matids corresponding to T/H mesh elements
-  int num_shift_cells_;     //!< Number of Shift cells
+  int num_cells_;           //!< Number of Shift cells
 };
 
 } // end namespace enrico
