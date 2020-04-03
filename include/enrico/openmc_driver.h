@@ -74,6 +74,8 @@ public:
   //! \return Number of cells
   xt::xtensor<double, 1> heat_source(double power) const final;
 
+  std::string cell_label(CellHandle cell) const;
+
   //////////////////////////////////////////////////////////////////////////////
   // Driver interface
 
@@ -91,7 +93,8 @@ public:
   //! Finalization required in each Picard iteration
   void finalize_step() final;
 
-  // Data
+private:
+  // Data members
   openmc::Tally* tally_;               //!< Fission energy deposition tally
   openmc::CellInstanceFilter* filter_; //!< Cell instance filter
   std::vector<CellInstance> cells_;    //!< Array of cell instances

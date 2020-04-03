@@ -163,6 +163,17 @@ bool OpenmcDriver::is_fissionable(CellHandle cell) const
   return cells_[cell].material()->fissionable();
 }
 
+std::string OpenmcDriver::cell_label(CellHandle cell) const
+{
+  // Get cell instance
+  const auto& c = cells_[cell];
+
+  // Build label
+  std::stringstream label;
+  label << openmc::model::cells[c.index_]->id_ << " (" << c.instance_ << ")";
+  return label.str();
+}
+
 void OpenmcDriver::init_step()
 {
   err_chk(openmc_simulation_init());

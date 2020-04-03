@@ -494,16 +494,11 @@ void CoupledDriver::init_volumes()
         v_heatfluids += elem_volumes_.at(elem);
       }
 
-      // TODO: Refactor to avoid dynamic_cast
-      const auto* openmc_driver = dynamic_cast<const OpenmcDriver*>(&neutronics);
-      if (openmc_driver) {
-        const auto& c = openmc_driver->cells_[cell];
-        std::stringstream msg;
-        msg << "Cell " << openmc::model::cells[c.index_]->id_ << " (" << c.instance_
-            << "), V = " << v_neutronics << " (Neutronics), " << v_heatfluids
-            << " (Heat/Fluids)";
-        comm_.message(msg.str());
-      }
+      // Display volumes
+      std::stringstream msg;
+      msg << "Cell " << neutronics.cell_label(cell) << ", V = " << v_neutronics
+          << " (Neutronics), " << v_heatfluids << " (Heat/Fluids)";
+      comm_.message(msg.str());
     }
   }
 }

@@ -71,6 +71,11 @@ public:
 
   //! Create energy production tallies
   virtual void create_tallies() = 0;
+
+  //! Get a label for a cell
+  //! \param cell Handle to a clel
+  //! \return Label for the cell
+  virtual std::string cell_label(CellHandle cell) const = 0;
 };
 
 } // namespace enrico
