@@ -13,12 +13,16 @@
 #include "Teuchos_RCP.hpp"           // for RCP
 
 #include <memory> // for shared_ptr
+#include <unordered_map>
 #include <vector>
 
 namespace enrico {
 
 class ShiftDriverNew : public NeutronicsDriver {
 public:
+  // Types, aliases
+  using cell_type = geometria::Geometry::cell_type;
+
   // Constructor
   ShiftDriverNew(MPI_Comm comm, pugi::xml_node node);
 
@@ -92,8 +96,9 @@ private:
 
   Teuchos::RCP<Teuchos::ParameterList> plist_; //!< parameter list from input file
 
-  std::vector<int> matids_; //!< Matids corresponding to T/H mesh elements
-  int num_cells_;           //!< Number of Shift cells
+  std::vector<cell_type> cells_;                         //!< Shift cells
+  std::unordered_map<cell_type, CellHandle> cell_index_; //!< Map cells to handles
+  int num_cells_; //!< Total number of Shift cells (not size of cells_)
 };
 
 } // end namespace enrico

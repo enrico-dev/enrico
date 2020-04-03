@@ -2,8 +2,12 @@
 
 #include <gsl/gsl> // for Expects
 
+#include "Omnibus/driver/Sequence_Shift.hh" // for Sequence_Shift
+#include "Shift/mc_tallies/Cell_Union_Tally.hh"
 #include "Teuchos_DefaultMpiComm.hpp"          // for MpiComm
 #include "Teuchos_XMLParameterListHelpers.hpp" // for RCP, ParameterList
+
+#include <unordered_map>
 
 namespace enrico {
 
@@ -57,12 +61,21 @@ std::vector<CellHandle> ShiftDriverNew::find(const std::vector<Position>& positi
 {
   std::vector<CellHandle> handles;
   handles.reserve(positions.size());
-  matids_.reserve(positions.size());
 
   for (const auto& r : positions) {
     // Find geometric cell and corresponding material
-    handles.push_back(geometry_->find_cell({r.x, r.y, r.z}));
-    matids_.push_back(geometry_->matid(handles.back()));
+    cell_type cell = geometry_->find_cell({r.x, r.y, r.z});
+
+    // If this cell hasn't been saved yet, add it to cells_ and
+    // keep track of what index it corresponds to
+    if (cell_index_.find(cell) == cell_index_.end()) {
+      cell_index_[cell] = cells_.size();
+      cells_.push_back(cell);
+    }
+    auto h = cell_index_.at(cell);
+
+    // Set value for cell instance in array
+    handles.push_back(h);
   }
   return handles;
 }
@@ -131,8 +144,51 @@ bool ShiftDriverNew::is_fissionable(CellHandle cell) const
   return driver_->compositions()[matid]->is_fissionable();
 }
 
-// TODO: Implement
-xt::xtensor<double, 1> ShiftDriverNew::heat_source(double power) const {}
+xt::xtensor<double, 1> ShiftDriverNew::heat_source(double power) const
+{
+  // Extract fission rate from Shift tally
+  auto sequence = driver_->sequence();
+  auto shift_seq = std::dynamic_pointer_cast<omnibus::Sequence_Shift>(sequence);
+  const auto& tallies = shift_seq->tallies();
+
+  // Initialize an array of zeros for the heat source
+  xt::xtensor<double, 1> heat({cells_.size()}, 0.0);
+
+  const auto& cell_tallies = tallies.cell_tallies();
+  for (const auto& tally : cell_tallies) {
+    if (tally->name() == "power") {
+      // Tally results are volume-integrated,
+      // divide by volume to get volumetric power
+      const auto& result = tally->result();
+      auto mean = result.mean(0);
+      Expects(result.num_multipliers() == 1);
+
+      // Compute global sum for normalization
+      double total_heat = std::accumulate(mean.begin(), mean.end(), 0.0);
+
+      for (cell_type cell = 0; cell < mean.size(); ++cell) {
+        // Determine if this cell corresponds to any TH elements
+        auto it = cell_index_.find(cell);
+
+        if (it != cell_index_.end()) {
+          // Get volume
+          double V = geometry_->cell_volume(cell);
+
+          // Get handle for cell
+          CellHandle h = it->second;
+
+          // Convert heat to [W/cm^3]. Dividing by total_heat gives the fraction
+          // of heat deposited in each material. Multiplying by power gives an
+          // absolute value in W.
+          heat(h) = power * mean[cell] / (total_heat * V);
+        }
+      }
+    }
+    break;
+  }
+
+  return heat;
+}
 
 ////////////////////////////////////////////////////////////////////////////////
 // Driver interface
