@@ -257,7 +257,7 @@ void CoupledDriver::update_temperature()
 
   // Send heat solver's temperatures to neutronics root
   auto t = heat.temperature();
-  this->comm_.sendrecv_replace(t, neutronics_root_, heat_root_);
+  this->comm_.send_and_recv(t, neutronics_root_, heat_root_);
 
   if (neutronics.comm_.is_root()) {
     // Store previous temperature solution; a previous solution will always be present
@@ -278,7 +278,7 @@ void CoupledDriver::update_density()
 
   // Send heat solver's densities to neutronics root
   auto d = heat.density();
-  this->comm_.sendrecv_replace(d, neutronics_root_, heat_root_);
+  this->comm_.send_and_recv(d, neutronics_root_, heat_root_);
 
   if (neutronics.comm_.is_root()) {
     // Store previous density solution; a previous solution will always be present
@@ -300,7 +300,7 @@ void CoupledDriver::init_mappings()
 
   // Get centroids from heat driver and send to all neutronics procs
   auto elem_centroids = heat.centroids(); // Available only on heat root
-  this->comm_.sendrecv_replace(elem_centroids, neutronics_root_, heat_root_);
+  this->comm_.send_and_recv(elem_centroids, neutronics_root_, heat_root_);
 
   neutronics.comm_.broadcast(elem_centroids);
 
@@ -319,11 +319,11 @@ void CoupledDriver::init_mappings()
   }
 
   // Send element -> cell instance mapping to all heat procs
-  this->comm_.sendrecv_replace(elem_to_cell_, heat_root_, neutronics_root_);
+  this->comm_.send_and_recv(elem_to_cell_, heat_root_, neutronics_root_);
   heat.comm_.broadcast(elem_to_cell_);
 
   // Send number of cell instances to all heat procs
-  this->comm_.sendrecv_replace(n_cells_, heat_root_, neutronics_root_);
+  this->comm_.send_and_recv(n_cells_, heat_root_, neutronics_root_);
   heat.comm_.broadcast(n_cells_);
 }
 
@@ -385,7 +385,7 @@ void CoupledDriver::init_volumes()
 
   // Gather all the local element volumes on heat root and send to all neutronics procs
   elem_volumes_ = heat.volumes();
-  this->comm_.sendrecv_replace(elem_volumes_, neutronics_root_, heat_root_);
+  this->comm_.send_and_recv(elem_volumes_, neutronics_root_, heat_root_);
 
   neutronics.comm_.broadcast(elem_volumes_);
 
@@ -473,7 +473,7 @@ void CoupledDriver::init_elem_fluid_mask()
   elem_fluid_mask_ = heat.fluid_mask();
 
   // Send fluid mask to neutronics procs
-  this->comm_.sendrecv_replace(elem_fluid_mask_, neutronics_root_, heat_root_);
+  this->comm_.send_and_recv(elem_fluid_mask_, neutronics_root_, heat_root_);
   neutronics.comm_.broadcast(elem_fluid_mask_);
 }
 
@@ -518,7 +518,7 @@ void CoupledDriver::set_heat_source()
 
   // Neutronics root has heat source on each of its ranks. We need to make
   // heat source available on each TH rank.
-  this->comm_.sendrecv_replace(heat_source_, heat_root_, neutronics_root_);
+  this->comm_.send_and_recv(heat_source_, heat_root_, neutronics_root_);
 
   auto& heat = this->get_heat_driver();
   heat.comm_.broadcast(heat_source_);
