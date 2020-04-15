@@ -129,6 +129,9 @@ target_link_libraries(test_nek5000_singlerod PUBLIC libenrico)
 add_executable(test_openmc_singlerod tests/singlerod/short/test_openmc.cpp)
 target_link_libraries(test_openmc_singlerod PUBLIC libenrico)
 
+add_executable(disjoint_bcast_debug tests/disjoint_bcast_debug/main.cpp)
+target_link_libraries(disjoint_bcast_debug PUBLIC libenrico)
+
 # Ensure C++14 standard is used
 set_target_properties(
         enrico libenrico
