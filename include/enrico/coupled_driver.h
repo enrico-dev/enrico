@@ -36,20 +36,11 @@ public:
   //! Update the heat source for the thermal-hydraulics solver
   void update_heat_source();
 
-  //! Set the heat source in the thermal-hydraulics solver
-  void set_heat_source();
-
   //! Update the temperature for the neutronics solver
   void update_temperature();
 
-  //! Set the temperature in the neutronics solver
-  void set_temperature();
-
   //! Update the density for the neutronics solver
   void update_density();
-
-  //! Update the density for the neutronics solver
-  void set_density();
 
   //! Check convergence of the coupled solve for the current Picard iteration.
   bool is_converged();
@@ -155,17 +146,14 @@ private:
 
   int i_picard_; //!< Index pertaining to current Picard iteration
 
-  Comm intranode_comm_; //!< The communicator representing intranode ranks
-  Comm coupling_comm_;  //!< The communicator spanning all nodes
-
-  int neutronics_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in
-                                  //!< neutronics comm
-
   //! The rank in comm_ that corresponds to the root of the neutronics comm
   int neutronics_root_ = MPI_PROC_NULL;
 
   //! The rank in comm_ that corresponds to the root of the heat comm
   int heat_root_ = MPI_PROC_NULL;
+
+  //! The rank in comm_ that has global coupling data.  Currently neutronics_root_
+  int coupling_root_ = MPI_PROC_NULL;
 
   //! Current Picard iteration temperature; this temperature is the temperature
   //! computed by the thermal-hydraulic solver, and data mappings may result in
