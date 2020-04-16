@@ -95,8 +95,6 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
 
   auto neutronics_comm = driver_comms[0];
   auto heat_comm = driver_comms[1];
-  intranode_comm.free();
-  coupling_comm.free();
 
   // Instantiate neutronics driver
   neutronics_driver_ = std::make_unique<OpenmcDriver>(neutronics_comm.comm);
@@ -245,16 +243,22 @@ void CoupledDriver::update_heat_source()
   // ****************************************************************************
   // Send neutron driver's heat source to coupling root and apply underrelaxation
   // ****************************************************************************
+  
+  if (comm_.rank == coupling_root_ && !is_first_iteration()) {
+      // Store previous heat source solution if more than one iteration has been performed
+      // (otherwise there is not an initial condition for the heat source)
+    std::copy(heat_source_.begin(), heat_source_.end(), heat_source_prev_.begin());
+  }
 
-  auto h = neutronics.heat_source(power_);
-  comm_.send_and_recv(h, coupling_root_, neutronics_root_);
+  if (neutronics.active()) {
+    heat_source_ = neutronics.heat_source(power_);
+  }
+
+  comm_.send_and_recv(heat_source_, coupling_root_, neutronics_root_);
 
   // Compute the next iterate of the heat source
   if (comm_.rank == coupling_root_) {
     if (!is_first_iteration()) {
-      // Store previous heat source solution if more than one iteration has been performed
-      // (otherwise there is not an initial condition for the heat source)
-      std::copy(heat_source_.begin(), heat_source_.end(), heat_source_prev_.begin());
       heat_source_ = alpha_ * heat_source_ + (1.0 - alpha_) * heat_source_prev_;
     }
   }
@@ -268,13 +272,14 @@ void CoupledDriver::update_heat_source()
 
   if (heat.active()) {
     // Determine displacement for this rank
-    auto displacement = heat.local_displs_[heat.comm_.rank];
+    auto displacement = heat.local_displs_.at(heat.comm_.rank);
+    int n_local_elem = heat.n_local_elem();
     // Set heat source in every element
-    for (int32_t local_elem = 1; local_elem <= n_global_elem_; ++local_elem) {
+    for (int32_t local_elem = 1; local_elem <= n_local_elem; ++local_elem) {
       int32_t global_elem = local_elem + displacement - 1;
       // Get heat source for this element
       CellHandle cell = elem_to_cell_.at(global_elem);
-      err_chk(heat.set_heat_source_at(local_elem, heat_source_[cell]),
+      err_chk(heat.set_heat_source_at(local_elem, heat_source_.at(cell)),
               "Error setting heat source for local element " +
                 std::to_string(local_elem));
     }
@@ -283,22 +288,29 @@ void CoupledDriver::update_heat_source()
 
 void CoupledDriver::update_temperature()
 {
+  comm_.message("Updating temperature");
+
   auto& neutronics = this->get_neutronics_driver();
   auto& heat = this->get_heat_driver();
 
   // *************************************************************************
   // Send heat driver's temperature to coupling root and apply underrelaxation
   // *************************************************************************
-
-  auto t = heat.temperature();
-  this->comm_.send_and_recv(t, coupling_root_, heat_root_);
-
+  
   if (comm_.rank == coupling_root_) {
     // Store previous temperature solution; a previous solution will always be present
     // because a temperature IC is set and the neutronics solver runs first
     std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
-    // Compute the next iterate of the temperature
-    temperatures_ = alpha_T_ * t + (1.0 - alpha_T_) * temperatures_prev_;
+  }
+
+  if (heat.active()) {
+    temperatures_ == heat.temperature();
+  }
+
+  this->comm_.send_and_recv(temperatures_, coupling_root_, heat_root_);
+
+  if (comm_.rank == coupling_root_) {
+    temperatures_ = alpha_T_ * temperatures_ + (1.0 - alpha_T_) * temperatures_prev_;
   }
 
   // ****************************************************************************
@@ -331,6 +343,7 @@ void CoupledDriver::update_temperature()
 
 void CoupledDriver::update_density()
 {
+
   auto& neutronics = this->get_neutronics_driver();
   auto& heat = this->get_heat_driver();
 
@@ -338,15 +351,17 @@ void CoupledDriver::update_density()
   // Send heat driver's density to coupling root and apply underrelaxation
   // *********************************************************************
 
-  auto d = heat.density();
-  comm_.send_and_recv(d, coupling_root_, heat_root_);
-
   if (comm_.rank == coupling_root_) {
     // Store previous density solution; a previous solution will always be present
     // because a density IC is set and the neutronics solver runs first
     std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
-    // Compute next iterate of density
-    densities_ = alpha_rho_ * d + (1.0 - alpha_rho_) * densities_prev_;
+  }
+  if (heat.active()) {
+    densities_ = heat.density();
+  }
+  comm_.send_and_recv(densities_, coupling_root_, heat_root_);
+  if (comm_.rank == coupling_root_) {
+    densities_ = alpha_rho_ * densities_ (1.0 - alpha_rho_) * densities_prev_;
   }
 
   // ************************************************************************
@@ -387,7 +402,6 @@ void CoupledDriver::init_mappings()
   // Get centroids from heat driver and send to all neutronics procs
   auto elem_centroids = heat.centroids(); // Available only on heat root
   this->comm_.send_and_recv(elem_centroids, neutronics_root_, heat_root_);
-
   neutronics.comm_.broadcast(elem_centroids);
 
   if (neutronics.active()) {

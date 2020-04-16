@@ -208,12 +208,11 @@ template<typename T>
 std::enable_if_t<std::is_scalar<std::decay_t<T>>::value>
 Comm::send_and_recv(T& value, int dest, int source) const
 {
-  if (active()) {
-    int tag = source;
+  if (active() && dest != source) {
     if (rank == source) {
-      MPI_Send(&value, 1, get_mpi_type<T>(), dest, tag, comm);
+      MPI_Send(&value, 1, get_mpi_type<T>(), dest, 81620, comm);
     } else if (rank == dest) {
-      MPI_Recv(&value, 1, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
+      MPI_Recv(&value, 1, get_mpi_type<T>(), source, MPI_ANY_TAG, comm, MPI_STATUS_IGNORE);
     }
   }
 };
@@ -221,7 +220,7 @@ Comm::send_and_recv(T& value, int dest, int source) const
 template<typename T>
 void Comm::send_and_recv(std::vector<T>& values, int dest, int source) const
 {
-  if (active()) {
+  if (active() && dest != source) {
     // Send the size of the vector from the source
     auto n = values.size();
     send_and_recv(n, dest, source);
@@ -233,9 +232,9 @@ void Comm::send_and_recv(std::vector<T>& values, int dest, int source) const
     // Send the vector
     int tag = source;
     if (rank == source) {
-      MPI_Send(values.data(), n, get_mpi_type<T>(), dest, tag, comm);
+      MPI_Send(values.data(), n, get_mpi_type<T>(), dest, 81620, comm);
     } else if (rank == dest) {
-      MPI_Recv(values.data(), n, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
+      MPI_Recv(values.data(), n, get_mpi_type<T>(), source, MPI_ANY_TAG, comm, MPI_STATUS_IGNORE);
     }
   }
 }
@@ -243,7 +242,7 @@ void Comm::send_and_recv(std::vector<T>& values, int dest, int source) const
 template<typename T, size_t N>
 void Comm::send_and_recv(xt::xtensor<T, N>& values, int dest, int source) const
 {
-  if (active()) {
+  if (active() && dest != source) {
     // Make sure the shapes match
     const auto& s = values.shape();
     std::vector<size_t> my_shape(s.begin(), s.end());
@@ -259,9 +258,9 @@ void Comm::send_and_recv(xt::xtensor<T, N>& values, int dest, int source) const
     // Finally, send data
     int tag = source;
     if (rank == source) {
-      MPI_Send(values.data(), n, get_mpi_type<T>(), dest, tag, comm);
+      MPI_Send(values.data(), n, get_mpi_type<T>(), dest, 81620, comm);
     } else if (rank == dest) {
-      MPI_Recv(values.data(), n, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
+      MPI_Recv(values.data(), n, get_mpi_type<T>(), source, MPI_ANY_TAG, comm, MPI_STATUS_IGNORE);
     }
   }
 }
