@@ -208,55 +208,61 @@ template<typename T>
 std::enable_if_t<std::is_scalar<std::decay_t<T>>::value>
 Comm::send_and_recv(T& value, int dest, int source) const
 {
-  int tag = source;
-  if (rank == source) {
-    MPI_Send(&value, 1, get_mpi_type<T>(), dest, tag, comm);
-  } else if (rank == dest) {
-    MPI_Recv(&value, 1, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
+  if (active()) {
+    int tag = source;
+    if (rank == source) {
+      MPI_Send(&value, 1, get_mpi_type<T>(), dest, tag, comm);
+    } else if (rank == dest) {
+      MPI_Recv(&value, 1, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
+    }
   }
 };
 
 template<typename T>
 void Comm::send_and_recv(std::vector<T>& values, int dest, int source) const
 {
-  // Send the size of the vector from the source
-  auto n = values.size();
-  send_and_recv(n, dest, source);
-  // Resize the vector on dest
-  if (rank == dest && values.size() != n) {
-    values.resize(n);
-  }
+  if (active()) {
+    // Send the size of the vector from the source
+    auto n = values.size();
+    send_and_recv(n, dest, source);
+    // Resize the vector on dest
+    if (rank == dest && values.size() != n) {
+      values.resize(n);
+    }
 
-  // Send the vector
-  int tag = source;
-  if (rank == source) {
-    MPI_Send(values.data(), n, get_mpi_type<T>(), dest, tag, comm);
-  } else if (rank == dest) {
-    MPI_Recv(values.data(), n, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
+    // Send the vector
+    int tag = source;
+    if (rank == source) {
+      MPI_Send(values.data(), n, get_mpi_type<T>(), dest, tag, comm);
+    } else if (rank == dest) {
+      MPI_Recv(values.data(), n, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
+    }
   }
 }
 
 template<typename T, size_t N>
 void Comm::send_and_recv(xt::xtensor<T, N>& values, int dest, int source) const
 {
-  // Make sure the shapes match
-  const auto& s = values.shape();
-  std::vector<size_t> my_shape(s.begin(), s.end());
-  std::vector<size_t> root_shape(my_shape);
-  send_and_recv(root_shape, dest, source);
-  if (rank == dest && my_shape != root_shape) {
-    values.resize(root_shape);
-  }
-  // Send the size
-  auto n = values.size();
-  send_and_recv(n, dest, source);
+  if (active()) {
+    // Make sure the shapes match
+    const auto& s = values.shape();
+    std::vector<size_t> my_shape(s.begin(), s.end());
+    std::vector<size_t> root_shape(my_shape);
+    send_and_recv(root_shape, dest, source);
+    if (rank == dest && my_shape != root_shape) {
+      values.resize(root_shape);
+    }
+    // Send the size
+    auto n = values.size();
+    send_and_recv(n, dest, source);
 
-  // Finally, send data
-  int tag = source;
-  if (rank == source) {
-    MPI_Send(values.data(), n, get_mpi_type<T>(), dest, tag, comm);
-  } else if (rank == dest) {
-    MPI_Recv(values.data(), n, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
+    // Finally, send data
+    int tag = source;
+    if (rank == source) {
+      MPI_Send(values.data(), n, get_mpi_type<T>(), dest, tag, comm);
+    } else if (rank == dest) {
+      MPI_Recv(values.data(), n, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
+    }
   }
 }
 
@@ -264,34 +270,36 @@ template<typename T>
 std::enable_if_t<std::is_scalar<std::decay_t<T>>::value> Comm::broadcast(T& value,
                                                                          int root) const
 {
-  this->Bcast(&value, 1, get_mpi_type<T>(), root);
+  if (active()) {
+    Bcast(&value, 1, get_mpi_type<T>(), root);
+  }
 }
 
 template<typename T>
 void Comm::broadcast(std::vector<T>& values, int root) const
 {
-  if (this->active()) {
+  if (active()) {
     // First broadcast the size of the vector
     int n = values.size();
-    this->broadcast(n, root);
+    broadcast(n, root);
 
     // Resize vector (for rank != 0) and broacast data
     if (values.size() != n)
       values.resize(n);
-    this->Bcast(values.data(), n, get_mpi_type<T>(), root);
+    Bcast(values.data(), n, get_mpi_type<T>(), root);
   }
 }
 
 template<typename T, size_t N>
 void Comm::broadcast(xt::xtensor<T, N>& values, int root) const
 {
-  if (this->active()) {
+  if (active()) {
     // First, make sure shape of `values` matches root's
     const auto& s = values.shape();
     std::vector<size_t> my_shape(s.begin(), s.end());
     std::vector<size_t> root_shape(my_shape);
 
-    this->broadcast(root_shape, root);
+    broadcast(root_shape, root);
     if (my_shape != root_shape) {
       values.resize(root_shape);
     }
@@ -301,7 +309,7 @@ void Comm::broadcast(xt::xtensor<T, N>& values, int root) const
     this->broadcast(n, root);
 
     // Finally, broadcast data
-    this->Bcast(values.data(), n, get_mpi_type<T>(), root);
+    Bcast(values.data(), n, get_mpi_type<T>(), root);
   }
 }
 

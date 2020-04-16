@@ -329,7 +329,6 @@ void CoupledDriver::init_mappings()
 
 void CoupledDriver::init_tallies()
 {
-
   comm_.message("Initializing tallies");
 
   auto& neutronics = this->get_neutronics_driver();
@@ -374,6 +373,7 @@ void CoupledDriver::init_temperatures()
     // temperatures_ and temperatures_prev_.
     std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
   }
+  // TODO:  Raise error for wrong temperature_ic_ values
 }
 
 void CoupledDriver::init_volumes()
@@ -459,6 +459,7 @@ void CoupledDriver::init_densities()
     // densities_prev_
     std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
   }
+  // TODO: Raise error for invalid density_ic_ value
 }
 
 void CoupledDriver::init_elem_fluid_mask()
@@ -545,62 +546,55 @@ void CoupledDriver::set_heat_source()
 
 void CoupledDriver::set_temperature()
 {
-  if (this->get_heat_driver().active()) {
-    auto& neutronics = this->get_neutronics_driver();
-    if (neutronics.active()) {
-      // Broadcast global_element_temperatures onto all the neutronics procs
-      neutronics.comm_.broadcast(temperatures_);
+  auto& neutronics = this->get_neutronics_driver();
 
-      // For each neutronics cell, volume average temperatures and set
-      for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
+  // Broadcast global_element_temperatures onto all the neutronics procs
+  neutronics.comm_.broadcast(temperatures_);
 
-        // Get corresponding global elements
-        const auto& global_elems = cell_to_elems_.at(cell);
+  if (neutronics.active()) {
+    // For each neutronics cell, volume average temperatures and set
+    for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
 
-        // Get volume-average temperature for this cell instance
-        double average_temp = 0.0;
-        double total_vol = 0.0;
-        for (int elem : global_elems) {
-          double T = temperatures_[elem];
-          double V = elem_volumes_[elem];
-          average_temp += T * V;
-          total_vol += V;
-        }
+      // Get corresponding global elements
+      const auto& global_elems = cell_to_elems_.at(cell);
 
-        // Set temperature for cell instance
-        average_temp /= total_vol;
-        Ensures(average_temp > 0.0);
-        neutronics.set_temperature(cell, average_temp);
+      // Get volume-average temperature for this cell instance
+      double average_temp = 0.0;
+      double total_vol = 0.0;
+      for (int elem : global_elems) {
+        double T = temperatures_[elem];
+        double V = elem_volumes_[elem];
+        average_temp += T * V;
+        total_vol += V;
       }
+
+      // Set temperature for cell instance
+      average_temp /= total_vol;
+      Ensures(average_temp > 0.0);
+      neutronics.set_temperature(cell, average_temp);
     }
   }
 }
 
 void CoupledDriver::set_density()
 {
-  if (this->get_heat_driver().active()) {
-    // Since neutronics and TH master ranks are the same, we know that
-    // elem_densities_ on neutronics master rank were updated.  Now we broadcast
-    // to the other neutronics ranks.
-    // TODO: This won't work if the communicators are disjoint
-    auto& neutronics = this->get_neutronics_driver();
-    if (neutronics.active()) {
-      neutronics.comm_.broadcast(densities_);
+  auto& neutronics = this->get_neutronics_driver();
+  neutronics.comm_.broadcast(densities_);
 
-      // For each neutronics cell in a fluid cell, volume average the densities
-      // and set in driver
-      for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
-        if (cell_fluid_mask_[cell] == 1) {
-          double average_density = 0.0;
-          double total_vol = 0.0;
-          for (int e : cell_to_elems_.at(cell)) {
-            average_density += densities_[e] * elem_volumes_[e];
-            total_vol += elem_volumes_[e];
-          }
-          double density = average_density / total_vol;
-          Ensures(density > 0.0);
-          neutronics.set_density(cell, average_density / total_vol);
+  if (neutronics.active()) {
+    // For each neutronics cell in a fluid cell, volume average the densities
+    // and set in driver
+    for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
+      if (cell_fluid_mask_[cell] == 1) {
+        double average_density = 0.0;
+        double total_vol = 0.0;
+        for (int e : cell_to_elems_.at(cell)) {
+          average_density += densities_[e] * elem_volumes_[e];
+          total_vol += elem_volumes_[e];
         }
+        double density = average_density / total_vol;
+        Ensures(density > 0.0);
+        neutronics.set_density(cell, average_density / total_vol);
       }
     }
   }
