@@ -304,7 +304,7 @@ void CoupledDriver::update_temperature()
   }
 
   if (heat.active()) {
-    temperatures_ == heat.temperature();
+    temperatures_ = heat.temperature();
   }
 
   this->comm_.send_and_recv(temperatures_, coupling_root_, heat_root_);
