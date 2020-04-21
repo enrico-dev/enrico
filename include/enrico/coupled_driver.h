@@ -34,13 +34,19 @@ public:
   virtual void execute();
 
   //! Update the heat source for the thermal-hydraulics solver
-  void update_heat_source();
+  //!
+  //! \param relax Apply relaxation to heat source before updating heat solver
+  void update_heat_source(bool relax);
 
   //! Update the temperature for the neutronics solver
-  void update_temperature();
+  //!
+  //! \param relax Apply relaxation to temperature before updating neutronics solver
+  void update_temperature(bool relax);
 
   //! Update the density for the neutronics solver
-  void update_density();
+  //!
+  //! \param relax Apply relaxation to density before updating neutronics solver
+  void update_density(bool relax);
 
   //! Check convergence of the coupled solve for the current Picard iteration.
   bool is_converged();

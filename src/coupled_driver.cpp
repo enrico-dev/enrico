@@ -156,6 +156,7 @@ void CoupledDriver::execute()
       std::string msg = "i_picard: " + std::to_string(i_picard_);
       comm_.message(msg);
 
+
       if (neutronics.active()) {
         neutronics.init_step();
         neutronics.solve_step();
@@ -165,8 +166,10 @@ void CoupledDriver::execute()
 
       comm_.Barrier();
 
-      // Update heat source
-      update_heat_source();
+      // Update heat source.  
+      // On the first iteration, there is no previous iterate of heat source,
+      // so we can't apply underrelaxation at that point
+      update_heat_source(i_timestep_ == 0 && i_picard_ == 0 ? false : true);
 
       if (heat.active()) {
         heat.init_step();
@@ -178,8 +181,11 @@ void CoupledDriver::execute()
       comm_.Barrier();
 
       // Update temperature and density
-      update_temperature();
-      update_density();
+      // At this point, there is always a previous iterate of temperature and density 
+      // (as assured by the initial conditions set in init_temperature and init_density)
+      // so we always apply underrelaxation here.
+      update_temperature(true);
+      update_density(true);
 
       if (is_converged()) {
         std::string msg = "converged at i_picard = " + std::to_string(i_picard_);
@@ -235,7 +241,7 @@ bool CoupledDriver::is_converged()
   return converged;
 }
 
-void CoupledDriver::update_heat_source()
+void CoupledDriver::update_heat_source(bool relax)
 {
   auto& neutronics = this->get_neutronics_driver();
   auto& heat = this->get_heat_driver();
@@ -244,7 +250,7 @@ void CoupledDriver::update_heat_source()
   // Send neutron driver's heat source to coupling root and apply underrelaxation
   // ****************************************************************************
   
-  if (comm_.rank == coupling_root_ && !is_first_iteration()) {
+  if (relax && comm_.rank == coupling_root_) {
       // Store previous heat source solution if more than one iteration has been performed
       // (otherwise there is not an initial condition for the heat source)
     std::copy(heat_source_.begin(), heat_source_.end(), heat_source_prev_.begin());
@@ -257,10 +263,8 @@ void CoupledDriver::update_heat_source()
   comm_.send_and_recv(heat_source_, coupling_root_, neutronics_root_);
 
   // Compute the next iterate of the heat source
-  if (comm_.rank == coupling_root_) {
-    if (!is_first_iteration()) {
-      heat_source_ = alpha_ * heat_source_ + (1.0 - alpha_) * heat_source_prev_;
-    }
+  if (relax && comm_.rank == coupling_root_) {
+    heat_source_ = alpha_ * heat_source_ + (1.0 - alpha_) * heat_source_prev_;
   }
 
   // ****************************************************************************
@@ -286,7 +290,7 @@ void CoupledDriver::update_heat_source()
   }
 }
 
-void CoupledDriver::update_temperature()
+void CoupledDriver::update_temperature(bool relax)
 {
   comm_.message("Updating temperature");
 
@@ -297,7 +301,7 @@ void CoupledDriver::update_temperature()
   // Send heat driver's temperature to coupling root and apply underrelaxation
   // *************************************************************************
   
-  if (comm_.rank == coupling_root_) {
+  if (relax && comm_.rank == coupling_root_) {
     // Store previous temperature solution; a previous solution will always be present
     // because a temperature IC is set and the neutronics solver runs first
     std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
@@ -309,7 +313,7 @@ void CoupledDriver::update_temperature()
 
   this->comm_.send_and_recv(temperatures_, coupling_root_, heat_root_);
 
-  if (comm_.rank == coupling_root_) {
+  if (relax && comm_.rank == coupling_root_) {
     temperatures_ = alpha_T_ * temperatures_ + (1.0 - alpha_T_) * temperatures_prev_;
   }
 
@@ -341,7 +345,7 @@ void CoupledDriver::update_temperature()
   }
 }
 
-void CoupledDriver::update_density()
+void CoupledDriver::update_density(bool relax)
 {
 
   auto& neutronics = this->get_neutronics_driver();
@@ -351,16 +355,14 @@ void CoupledDriver::update_density()
   // Send heat driver's density to coupling root and apply underrelaxation
   // *********************************************************************
 
-  if (comm_.rank == coupling_root_) {
-    // Store previous density solution; a previous solution will always be present
-    // because a density IC is set and the neutronics solver runs first
+  if (relax && comm_.rank == coupling_root_) {
     std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
   }
   if (heat.active()) {
     densities_ = heat.density();
   }
   comm_.send_and_recv(densities_, coupling_root_, heat_root_);
-  if (comm_.rank == coupling_root_) {
+  if (relax && comm_.rank == coupling_root_) {
     densities_ = alpha_rho_ * densities_ (1.0 - alpha_rho_) * densities_prev_;
   }
 
@@ -447,7 +449,8 @@ void CoupledDriver::init_temperatures()
   if (comm_.rank == coupling_root_) {
     temperatures_.resize({static_cast<unsigned long>(n_global_elem_)});
     temperatures_prev_.resize({static_cast<unsigned long>(n_global_elem_)});
-  } else if (comm_.rank == neutronics_root_) {
+  }
+  else if (comm_.rank == neutronics_root_) {
     temperatures_.resize({static_cast<unsigned long>(n_global_elem_)});
   }
 
@@ -463,12 +466,17 @@ void CoupledDriver::init_temperatures()
         temperatures_[elem] = T;
       }
     }
-  } else if (temperature_ic_ == Initial::heat) {
-    // Use whatever temperature is in TH solver. For Nek5000, this would be
-    // either from a restart file or from a useric fortran routine.
-    update_temperature();
+    comm_.send_and_recv(temperatures_, coupling_root_, neutronics_root_);
+  } 
+  else if (temperature_ic_ == Initial::heat) {
+    // * This sets temperatures_ on the the coupling_root, based on the 
+    //   temperatures received from the heat solver.
+    // * We do not want to apply underrelaxation here (and at this point,
+    //   there is no previous iterate of temperature, anyway).  
+    update_temperature(false);
   }
 
+  // In both cases, only temperatures_ was set, so we explicitly set temperatures_prev_
   if (comm_.rank == coupling_root_) {
     std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
   }
@@ -520,7 +528,8 @@ void CoupledDriver::init_densities()
   if (comm_.rank == coupling_root_) {
     densities_.resize({static_cast<unsigned long>(n_global_elem_)});
     densities_prev_.resize({static_cast<unsigned long>(n_global_elem_)});
-  } else if (comm_.rank == neutronics_root_) {
+  } 
+  else if (comm_.rank == neutronics_root_) {
     densities_.resize({static_cast<unsigned long>(n_global_elem_)});
   }
 
@@ -541,22 +550,19 @@ void CoupledDriver::init_densities()
           }
         }
       }
-      comm_.send_and_recv(densities_, coupling_root_, neutronics_root_);
     }
-
-  } else if (density_ic_ == Initial::heat) {
-    // Use whatever density is in TH solver. For Nek5000, this would be either
-    // from a restart file or from a useric fortran routine
-    update_density();
-
-    // update_density() begins by saving densities_ to densities_prev_, and
-    // then changes densities_. We need to save densities_ here to densities_prev_
-    // manually because init_densities() initializes both densities_ and
-    // densities_prev_
+    comm_.send_and_recv(densities_, coupling_root_, neutronics_root_);
+  } 
+  else if (density_ic_ == Initial::heat) {
+    // * This sets densities_ on the the coupling_root, based on the 
+    //   densities received from the heat solver.
+    // * We do not want to apply underrelaxation here (and at this point,
+    //   there is no previous iterate of density, anyway).  
+    update_density(false);
   }
 
+  // In both cases, we need to explicitly set densities_prev_
   std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
-  // TODO: Raise error for invalid density_ic_ value
 }
 
 void CoupledDriver::init_elem_fluid_mask()
