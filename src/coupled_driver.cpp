@@ -229,7 +229,7 @@ bool CoupledDriver::is_converged()
   const auto& neutron = this->get_neutronics_driver();
 
   // assumes that the neutronics root has access to global coupling data
-  if (neutron.comm_.is_root()) {
+  if (comm_.rank == coupling_root_) {
     double norm;
     this->compute_temperature_norm(Norm::LINF, norm, converged);
 
@@ -237,7 +237,7 @@ bool CoupledDriver::is_converged()
     neutron.comm_.message(msg);
   }
 
-  comm_.broadcast(converged, neutronics_root_);
+  comm_.broadcast(converged, coupling_root_);
   return converged;
 }
 
@@ -307,10 +307,7 @@ void CoupledDriver::update_temperature(bool relax)
     std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
   }
 
-  if (heat.active()) {
-    temperatures_ = heat.temperature();
-  }
-
+  temperatures_ = heat.temperature();
   this->comm_.send_and_recv(temperatures_, coupling_root_, heat_root_);
 
   if (relax && comm_.rank == coupling_root_) {
@@ -358,10 +355,10 @@ void CoupledDriver::update_density(bool relax)
   if (relax && comm_.rank == coupling_root_) {
     std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
   }
-  if (heat.active()) {
-    densities_ = heat.density();
-  }
+
+  densities_ = heat.density();
   comm_.send_and_recv(densities_, coupling_root_, heat_root_);
+
   if (relax && comm_.rank == coupling_root_) {
     densities_ = alpha_rho_ * densities_ (1.0 - alpha_rho_) * densities_prev_;
   }
@@ -401,9 +398,14 @@ void CoupledDriver::init_mappings()
   const auto& heat = this->get_heat_driver();
   auto& neutronics = this->get_neutronics_driver();
 
+  std::vector<Position> elem_centroids;
+  if (comm_.rank == heat_root_ || neutronics.active()) {
+    elem_centroids.resize(n_global_elem_);
+  }
+
   // Get centroids from heat driver and send to all neutronics procs
-  auto elem_centroids = heat.centroids(); // Available only on heat root
-  this->comm_.send_and_recv(elem_centroids, neutronics_root_, heat_root_);
+  elem_centroids = heat.centroids();
+  comm_.send_and_recv(elem_centroids, neutronics_root_, heat_root_);
   neutronics.comm_.broadcast(elem_centroids);
 
   if (neutronics.active()) {
@@ -421,11 +423,11 @@ void CoupledDriver::init_mappings()
   }
 
   // Send element -> cell instance mapping to all heat procs
-  this->comm_.send_and_recv(elem_to_cell_, heat_root_, neutronics_root_);
+  comm_.send_and_recv(elem_to_cell_, heat_root_, neutronics_root_);
   heat.comm_.broadcast(elem_to_cell_);
 
   // Send number of cell instances to all heat procs
-  this->comm_.send_and_recv(n_cells_, heat_root_, neutronics_root_);
+  comm_.send_and_recv(n_cells_, heat_root_, neutronics_root_);
   heat.comm_.broadcast(n_cells_);
 }
 
@@ -489,10 +491,9 @@ void CoupledDriver::init_volumes()
   const auto& heat = this->get_heat_driver();
   const auto& neutronics = this->get_neutronics_driver();
 
-  // Gather all the local element volumes on heat root and send to all neutronics procs
+  // Gather all the element volumes on heat root and send to all neutronics procs
   elem_volumes_ = heat.volumes();
   this->comm_.send_and_recv(elem_volumes_, neutronics_root_, heat_root_);
-
   neutronics.comm_.broadcast(elem_volumes_);
 
   // Volume check
@@ -572,12 +573,9 @@ void CoupledDriver::init_elem_fluid_mask()
   const auto& heat = this->get_heat_driver();
   const auto& neutronics = this->get_neutronics_driver();
 
-  // On TH master rank, fluid mask gets global data. On TH other ranks, fluid
-  // mask is empty
+  // Get fluid mask and send to all neutronics procs
   elem_fluid_mask_ = heat.fluid_mask();
-
-  // Send fluid mask to neutronics procs
-  this->comm_.send_and_recv(elem_fluid_mask_, neutronics_root_, heat_root_);
+  comm_.send_and_recv(elem_fluid_mask_, neutronics_root_, heat_root_);
   neutronics.comm_.broadcast(elem_fluid_mask_);
 }
 
