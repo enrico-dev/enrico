@@ -360,7 +360,7 @@ void CoupledDriver::update_density(bool relax)
   comm_.send_and_recv(densities_, coupling_root_, heat_root_);
 
   if (relax && comm_.rank == coupling_root_) {
-    densities_ = alpha_rho_ * densities_ (1.0 - alpha_rho_) * densities_prev_;
+    densities_ = alpha_rho_ * densities_ + (1.0 - alpha_rho_) * densities_prev_;
   }
 
   // ************************************************************************
