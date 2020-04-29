@@ -81,9 +81,6 @@ public:
     return get_timestep_index() == 0 and get_picard_index() == 0;
   }
 
-  //! Print report of communicator layout
-  void comm_report();
-
   Comm comm_; //!< The MPI communicator used to run the driver
 
   double power_; //!< Power in [W]
@@ -147,6 +144,9 @@ private:
   //! condition is required for the heat source. So, unlike init_temperatures(),
   //! this method does not set any initial values.
   void init_heat_source();
+
+  //! Print report of communicator layout
+  void comm_report();
 
   int i_timestep_; //!< Index pertaining to current timestep
 

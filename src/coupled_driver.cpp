@@ -125,7 +125,6 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   n_global_elem_ = this->get_heat_driver().n_global_elem();
   comm_.broadcast(n_global_elem_, heat_root_);
 
-  comm_.message("Communicator layout:");
   comm_report();
 
   init_mappings();
@@ -622,6 +621,7 @@ void CoupledDriver::comm_report()
   for (int i = 0; i < world.size; ++i) {
     if (world.rank == i) {
       if (i == 0) {
+        std::cout << "[ENRICO]: Communicator layout: " << std::endl;
         std::cout << std::left << std::setw(hostw) << "Hostname" << std::right
                   << std::setw(rankw) << "World" << std::right << std::setw(rankw)
                   << "Coup" << std::right << std::setw(rankw) << "Neut" << std::right
