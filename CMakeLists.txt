@@ -120,23 +120,16 @@ target_link_libraries(enrico PUBLIC libenrico)
 # =============================================================================
 add_executable(comm_split_demo tests/comm_split_demo/main.cpp)
 
-add_executable(disjoint_comm_demo tests/disjoint_comm_demo/main.cpp)
-target_link_libraries(disjoint_comm_demo PUBLIC libenrico)
-
 add_executable(test_nek5000_singlerod tests/singlerod/short/test_nek5000.cpp)
 target_link_libraries(test_nek5000_singlerod PUBLIC libenrico)
 
 add_executable(test_openmc_singlerod tests/singlerod/short/test_openmc.cpp)
 target_link_libraries(test_openmc_singlerod PUBLIC libenrico)
 
-add_executable(disjoint_bcast_debug tests/disjoint_bcast_debug/main.cpp)
-target_link_libraries(disjoint_bcast_debug PUBLIC libenrico)
-
 # Ensure C++14 standard is used
 set_target_properties(
         enrico libenrico
         comm_split_demo
-        disjoint_comm_demo
         heat_xfer
         iapws
         test_nek5000_singlerod

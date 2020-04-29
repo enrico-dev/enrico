@@ -1,5 +1,0 @@
-<?xml version="1.0"?>
-<enrico>
-  <neutronics_procs_per_node>1</neutronics_procs_per_node>
-  <heat_fluids_procs_per_node>3</heat_fluids_procs_per_node>
-</enrico>
