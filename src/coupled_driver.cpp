@@ -88,7 +88,8 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   std::array<int, 2> procs_per_node{neut_node.child("procs_per_node").text().as_int(),
                                     heat_node.child("procs_per_node").text().as_int()};
   std::array<Comm, 2> driver_comms;
-  Comm intranode_comm, coupling_comm; // Not used in current comm scheme
+  Comm intranode_comm; // Not used in current comm scheme
+  Comm coupling_comm;  // Not used in current comm scheme
 
   get_driver_comms(
     comm_, nodes, procs_per_node, driver_comms, intranode_comm, coupling_comm);
@@ -167,7 +168,7 @@ void CoupledDriver::execute()
       // Update heat source.
       // On the first iteration, there is no previous iterate of heat source,
       // so we can't apply underrelaxation at that point
-      update_heat_source(i_timestep_ == 0 && i_picard_ == 0 ? false : true);
+      update_heat_source(i_timestep_ > 0 || i_picard_ > 0);
 
       if (heat.active()) {
         heat.init_step();

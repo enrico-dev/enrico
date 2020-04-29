@@ -208,7 +208,7 @@ template<typename T>
 std::enable_if_t<std::is_scalar<std::decay_t<T>>::value>
 Comm::send_and_recv(T& value, int dest, int source) const
 {
-  if (active() && dest != source) {
+  if (this->active() && dest != source) {
     int tag = source;
     if (rank == source) {
       MPI_Send(&value, 1, get_mpi_type<T>(), dest, tag, comm);
@@ -221,7 +221,7 @@ Comm::send_and_recv(T& value, int dest, int source) const
 template<typename T>
 void Comm::send_and_recv(std::vector<T>& values, int dest, int source) const
 {
-  if (active() && dest != source) {
+  if (this->active() && dest != source) {
     // Send the size of the vector from the source
     auto n = values.size();
     send_and_recv(n, dest, source);
@@ -243,7 +243,7 @@ void Comm::send_and_recv(std::vector<T>& values, int dest, int source) const
 template<typename T, size_t N>
 void Comm::send_and_recv(xt::xtensor<T, N>& values, int dest, int source) const
 {
-  if (active() && dest != source) {
+  if (this->active() && dest != source) {
     // Make sure the shapes match
     const auto& s = values.shape();
     std::vector<size_t> my_shape(s.begin(), s.end());
@@ -270,7 +270,7 @@ template<typename T>
 std::enable_if_t<std::is_scalar<std::decay_t<T>>::value> Comm::broadcast(T& value,
                                                                          int root) const
 {
-  if (active()) {
+  if (this->active()) {
     Bcast(&value, 1, get_mpi_type<T>(), root);
   }
 }
@@ -278,7 +278,7 @@ std::enable_if_t<std::is_scalar<std::decay_t<T>>::value> Comm::broadcast(T& valu
 template<typename T>
 void Comm::broadcast(std::vector<T>& values, int root) const
 {
-  if (active()) {
+  if (this->active()) {
     // First broadcast the size of the vector
     int n = values.size();
     broadcast(n, root);
@@ -293,7 +293,7 @@ void Comm::broadcast(std::vector<T>& values, int root) const
 template<typename T, size_t N>
 void Comm::broadcast(xt::xtensor<T, N>& values, int root) const
 {
-  if (active()) {
+  if (this->active()) {
     // First, make sure shape of `values` matches root's
     const auto& s = values.shape();
     std::vector<size_t> my_shape(s.begin(), s.end());
