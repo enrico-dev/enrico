@@ -156,7 +156,6 @@ void CoupledDriver::execute()
       std::string msg = "i_picard: " + std::to_string(i_picard_);
       comm_.message(msg);
 
-
       if (neutronics.active()) {
         neutronics.init_step();
         neutronics.solve_step();
@@ -166,7 +165,7 @@ void CoupledDriver::execute()
 
       comm_.Barrier();
 
-      // Update heat source.  
+      // Update heat source.
       // On the first iteration, there is no previous iterate of heat source,
       // so we can't apply underrelaxation at that point
       update_heat_source(i_timestep_ == 0 && i_picard_ == 0 ? false : true);
@@ -181,7 +180,7 @@ void CoupledDriver::execute()
       comm_.Barrier();
 
       // Update temperature and density
-      // At this point, there is always a previous iterate of temperature and density 
+      // At this point, there is always a previous iterate of temperature and density
       // (as assured by the initial conditions set in init_temperature and init_density)
       // so we always apply underrelaxation here.
       update_temperature(true);
@@ -226,7 +225,7 @@ void CoupledDriver::compute_temperature_norm(const CoupledDriver::Norm& n,
 bool CoupledDriver::is_converged()
 {
   bool converged;
-  const auto& neutron = this->get_neutronics_driver();
+  const auto& neutronics = this->get_neutronics_driver();
 
   // assumes that the neutronics root has access to global coupling data
   if (comm_.rank == coupling_root_) {
@@ -249,10 +248,10 @@ void CoupledDriver::update_heat_source(bool relax)
   // ****************************************************************************
   // Send neutron driver's heat source to coupling root and apply underrelaxation
   // ****************************************************************************
-  
+
   if (relax && comm_.rank == coupling_root_) {
-      // Store previous heat source solution if more than one iteration has been performed
-      // (otherwise there is not an initial condition for the heat source)
+    // Store previous heat source solution if more than one iteration has been performed
+    // (otherwise there is not an initial condition for the heat source)
     std::copy(heat_source_.begin(), heat_source_.end(), heat_source_prev_.begin());
   }
 
@@ -300,7 +299,7 @@ void CoupledDriver::update_temperature(bool relax)
   // *************************************************************************
   // Send heat driver's temperature to coupling root and apply underrelaxation
   // *************************************************************************
-  
+
   if (relax && comm_.rank == coupling_root_) {
     // Store previous temperature solution; a previous solution will always be present
     // because a temperature IC is set and the neutronics solver runs first
@@ -451,8 +450,7 @@ void CoupledDriver::init_temperatures()
   if (comm_.rank == coupling_root_) {
     temperatures_.resize({static_cast<unsigned long>(n_global_elem_)});
     temperatures_prev_.resize({static_cast<unsigned long>(n_global_elem_)});
-  }
-  else if (comm_.rank == neutronics_root_) {
+  } else if (comm_.rank == neutronics_root_) {
     temperatures_.resize({static_cast<unsigned long>(n_global_elem_)});
   }
 
@@ -469,12 +467,11 @@ void CoupledDriver::init_temperatures()
       }
     }
     comm_.send_and_recv(temperatures_, coupling_root_, neutronics_root_);
-  } 
-  else if (temperature_ic_ == Initial::heat) {
-    // * This sets temperatures_ on the the coupling_root, based on the 
+  } else if (temperature_ic_ == Initial::heat) {
+    // * This sets temperatures_ on the the coupling_root, based on the
     //   temperatures received from the heat solver.
     // * We do not want to apply underrelaxation here (and at this point,
-    //   there is no previous iterate of temperature, anyway).  
+    //   there is no previous iterate of temperature, anyway).
     update_temperature(false);
   }
 
@@ -529,8 +526,7 @@ void CoupledDriver::init_densities()
   if (comm_.rank == coupling_root_) {
     densities_.resize({static_cast<unsigned long>(n_global_elem_)});
     densities_prev_.resize({static_cast<unsigned long>(n_global_elem_)});
-  } 
-  else if (comm_.rank == neutronics_root_) {
+  } else if (comm_.rank == neutronics_root_) {
     densities_.resize({static_cast<unsigned long>(n_global_elem_)});
   }
 
@@ -553,12 +549,11 @@ void CoupledDriver::init_densities()
       }
     }
     comm_.send_and_recv(densities_, coupling_root_, neutronics_root_);
-  } 
-  else if (density_ic_ == Initial::heat) {
-    // * This sets densities_ on the the coupling_root, based on the 
+  } else if (density_ic_ == Initial::heat) {
+    // * This sets densities_ on the the coupling_root, based on the
     //   densities received from the heat solver.
     // * We do not want to apply underrelaxation here (and at this point,
-    //   there is no previous iterate of density, anyway).  
+    //   there is no previous iterate of density, anyway).
     update_density(false);
   }
 
