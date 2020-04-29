@@ -234,7 +234,7 @@ bool CoupledDriver::is_converged()
     this->compute_temperature_norm(Norm::LINF, norm, converged);
 
     std::string msg = "temperature norm_linf: " + std::to_string(norm);
-    neutron.comm_.message(msg);
+    neutronics.comm_.message(msg);
   }
 
   comm_.broadcast(converged, coupling_root_);
