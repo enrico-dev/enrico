@@ -98,7 +98,7 @@ public:
   send_and_recv(T& value, int dest, int source) const;
 
   //! Send a vector from one rank to another, possibly resizing it at destination
-  //! \param values Values to send (significant at source rank)
+  //! \param values Values to send (significant at source and destination)
   //! \param dest Destination rank
   //! \param source Source rank
   template<typename T>
