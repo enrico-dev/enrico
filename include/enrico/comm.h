@@ -209,11 +209,11 @@ std::enable_if_t<std::is_scalar<std::decay_t<T>>::value>
 Comm::send_and_recv(T& value, int dest, int source) const
 {
   if (active() && dest != source) {
+    int tag = source;
     if (rank == source) {
-      MPI_Send(&value, 1, get_mpi_type<T>(), dest, 81620, comm);
+      MPI_Send(&value, 1, get_mpi_type<T>(), dest, tag, comm);
     } else if (rank == dest) {
-      MPI_Recv(
-        &value, 1, get_mpi_type<T>(), source, MPI_ANY_TAG, comm, MPI_STATUS_IGNORE);
+      MPI_Recv(&value, 1, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
     }
   }
 };
@@ -233,15 +233,9 @@ void Comm::send_and_recv(std::vector<T>& values, int dest, int source) const
     // Send the vector
     int tag = source;
     if (rank == source) {
-      MPI_Send(values.data(), n, get_mpi_type<T>(), dest, 81620, comm);
+      MPI_Send(values.data(), n, get_mpi_type<T>(), dest, tag, comm);
     } else if (rank == dest) {
-      MPI_Recv(values.data(),
-               n,
-               get_mpi_type<T>(),
-               source,
-               MPI_ANY_TAG,
-               comm,
-               MPI_STATUS_IGNORE);
+      MPI_Recv(values.data(), n, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
     }
   }
 }
@@ -265,15 +259,9 @@ void Comm::send_and_recv(xt::xtensor<T, N>& values, int dest, int source) const
     // Finally, send data
     int tag = source;
     if (rank == source) {
-      MPI_Send(values.data(), n, get_mpi_type<T>(), dest, 81620, comm);
+      MPI_Send(values.data(), n, get_mpi_type<T>(), dest, tag, comm);
     } else if (rank == dest) {
-      MPI_Recv(values.data(),
-               n,
-               get_mpi_type<T>(),
-               source,
-               MPI_ANY_TAG,
-               comm,
-               MPI_STATUS_IGNORE);
+      MPI_Recv(values.data(), n, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
     }
   }
 }
