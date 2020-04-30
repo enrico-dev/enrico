@@ -119,9 +119,6 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   heat_root_ = this->get_heat_driver().comm_.is_root() ? comm_.rank : -1;
   MPI_Allreduce(MPI_IN_PLACE, &heat_root_, 1, MPI_INT, MPI_MAX, comm_.comm);
 
-  // Currently, the coupling root is the neutronics root.  Could be revisited
-  coupling_root_ = neutronics_root_;
-
   // Send number of global elements to all procs
   n_global_elem_ = this->get_heat_driver().n_global_elem();
   comm_.broadcast(n_global_elem_, heat_root_);
@@ -225,18 +222,18 @@ void CoupledDriver::compute_temperature_norm(const CoupledDriver::Norm& n,
 bool CoupledDriver::is_converged()
 {
   bool converged;
-  const auto& neutronics = this->get_neutronics_driver();
+  double norm;
 
-  // assumes that the neutronics root has access to global coupling data
-  if (comm_.rank == coupling_root_) {
-    double norm;
+  // The heat root has the global temperature data
+  if (comm_.rank == heat_root_) {
     this->compute_temperature_norm(Norm::LINF, norm, converged);
-
-    std::string msg = "temperature norm_linf: " + std::to_string(norm);
-    neutronics.comm_.message(msg);
   }
 
-  comm_.broadcast(converged, coupling_root_);
+  comm_.broadcast(converged, heat_root_);
+  comm_.broadcast(norm, heat_root_);
+
+  std::string msg = "temperature norm_linf: " + std::to_string(norm);
+  comm_.message(msg);
   return converged;
 }
 
@@ -246,23 +243,19 @@ void CoupledDriver::update_heat_source(bool relax)
   auto& heat = this->get_heat_driver();
 
   // ****************************************************************************
-  // Send neutron driver's heat source to coupling root and apply underrelaxation
+  // Gather heat source on neutronics root and apply underrelaxation
   // ****************************************************************************
 
-  if (relax && comm_.rank == coupling_root_) {
+  if (relax && comm_.rank == neutronics_root_) {
     // Store previous heat source solution if more than one iteration has been performed
     // (otherwise there is not an initial condition for the heat source)
     std::copy(heat_source_.begin(), heat_source_.end(), heat_source_prev_.begin());
   }
 
-  if (neutronics.active()) {
-    heat_source_ = neutronics.heat_source(power_);
-  }
-
-  comm_.send_and_recv(heat_source_, coupling_root_, neutronics_root_);
+  heat_source_ = neutronics.heat_source(power_);
 
   // Compute the next iterate of the heat source
-  if (relax && comm_.rank == coupling_root_) {
+  if (relax && comm_.rank == neutronics_root_) {
     heat_source_ = alpha_ * heat_source_ + (1.0 - alpha_) * heat_source_prev_;
   }
 
@@ -270,7 +263,7 @@ void CoupledDriver::update_heat_source(bool relax)
   // Send underrelaxed heat source to all heat ranks and set element temperatures
   // ****************************************************************************
 
-  this->comm_.send_and_recv(heat_source_, heat_root_, coupling_root_);
+  this->comm_.send_and_recv(heat_source_, heat_root_, neutronics_root_);
   heat.comm_.broadcast(heat_source_);
 
   if (heat.active()) {
@@ -297,19 +290,18 @@ void CoupledDriver::update_temperature(bool relax)
   auto& heat = this->get_heat_driver();
 
   // *************************************************************************
-  // Send heat driver's temperature to coupling root and apply underrelaxation
+  // Gather temperature on heat root and apply underrelaxation
   // *************************************************************************
 
-  if (relax && comm_.rank == coupling_root_) {
+  if (relax && comm_.rank == heat_root_) {
     // Store previous temperature solution; a previous solution will always be present
     // because a temperature IC is set and the neutronics solver runs first
     std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
   }
 
   temperatures_ = heat.temperature();
-  this->comm_.send_and_recv(temperatures_, coupling_root_, heat_root_);
 
-  if (relax && comm_.rank == coupling_root_) {
+  if (relax && comm_.rank == heat_root_) {
     temperatures_ = alpha_T_ * temperatures_ + (1.0 - alpha_T_) * temperatures_prev_;
   }
 
@@ -318,7 +310,7 @@ void CoupledDriver::update_temperature(bool relax)
   // ****************************************************************************
 
   // Broadcast global_element_temperatures onto all the neutronics procs
-  comm_.send_and_recv(temperatures_, neutronics_root_, coupling_root_);
+  comm_.send_and_recv(temperatures_, neutronics_root_, heat_root_);
   neutronics.comm_.broadcast(temperatures_);
 
   if (neutronics.active()) {
@@ -348,17 +340,16 @@ void CoupledDriver::update_density(bool relax)
   auto& heat = this->get_heat_driver();
 
   // *********************************************************************
-  // Send heat driver's density to coupling root and apply underrelaxation
+  // Gather densities on heat root and apply underrelaxation
   // *********************************************************************
 
-  if (relax && comm_.rank == coupling_root_) {
+  if (relax && comm_.rank == heat_root_) {
     std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
   }
 
   densities_ = heat.density();
-  comm_.send_and_recv(densities_, coupling_root_, heat_root_);
 
-  if (relax && comm_.rank == coupling_root_) {
+  if (relax && comm_.rank == heat_root_) {
     densities_ = alpha_rho_ * densities_ + (1.0 - alpha_rho_) * densities_prev_;
   }
 
@@ -366,7 +357,7 @@ void CoupledDriver::update_density(bool relax)
   // Send underrelaxed density to all neutron ranks and set cell temperatures
   // ************************************************************************
 
-  comm_.send_and_recv(densities_, neutronics_root_, coupling_root_);
+  comm_.send_and_recv(densities_, neutronics_root_, heat_root_);
   neutronics.comm_.broadcast(densities_);
 
   if (neutronics.active()) {
@@ -442,7 +433,7 @@ void CoupledDriver::init_temperatures()
   const auto& neutronics = this->get_neutronics_driver();
   const auto& heat = this->get_heat_driver();
 
-  if (comm_.rank == coupling_root_) {
+  if (comm_.rank == heat_root_) {
     temperatures_.resize({static_cast<unsigned long>(n_global_elem_)});
     temperatures_prev_.resize({static_cast<unsigned long>(n_global_elem_)});
   } else if (comm_.rank == neutronics_root_) {
@@ -461,7 +452,7 @@ void CoupledDriver::init_temperatures()
         temperatures_[elem] = T;
       }
     }
-    comm_.send_and_recv(temperatures_, coupling_root_, neutronics_root_);
+    comm_.send_and_recv(temperatures_, heat_root_, neutronics_root_);
   } else if (temperature_ic_ == Initial::heat) {
     // * This sets temperatures_ on the the coupling_root, based on the
     //   temperatures received from the heat solver.
@@ -471,7 +462,7 @@ void CoupledDriver::init_temperatures()
   }
 
   // In both cases, only temperatures_ was set, so we explicitly set temperatures_prev_
-  if (comm_.rank == coupling_root_) {
+  if (comm_.rank == heat_root_) {
     std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
   }
 }
@@ -518,7 +509,7 @@ void CoupledDriver::init_densities()
   const auto& neutronics = this->get_neutronics_driver();
   const auto& heat = this->get_heat_driver();
 
-  if (comm_.rank == coupling_root_) {
+  if (comm_.rank == heat_root_) {
     densities_.resize({static_cast<unsigned long>(n_global_elem_)});
     densities_prev_.resize({static_cast<unsigned long>(n_global_elem_)});
   } else if (comm_.rank == neutronics_root_) {
@@ -543,7 +534,7 @@ void CoupledDriver::init_densities()
         }
       }
     }
-    comm_.send_and_recv(densities_, coupling_root_, neutronics_root_);
+    comm_.send_and_recv(densities_, heat_root_, neutronics_root_);
   } else if (density_ic_ == Initial::heat) {
     // * This sets densities_ on the the coupling_root, based on the
     //   densities received from the heat solver.
@@ -553,7 +544,9 @@ void CoupledDriver::init_densities()
   }
 
   // In both cases, we need to explicitly set densities_prev_
-  std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
+  if (comm_.rank == heat_root_) {
+    std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
+  }
 }
 
 void CoupledDriver::init_elem_fluid_mask()
@@ -596,7 +589,7 @@ void CoupledDriver::init_heat_source()
 {
   comm_.message("Initializing heat source");
 
-  if (comm_.rank == coupling_root_ || this->get_heat_driver().active()) {
+  if (comm_.rank == neutronics_root_ || this->get_heat_driver().active()) {
     heat_source_ = xt::empty<double>({n_cells_});
     heat_source_prev_ = xt::empty<double>({n_cells_});
   }

@@ -158,9 +158,6 @@ private:
   //! The rank in comm_ that corresponds to the root of the heat comm
   int heat_root_ = MPI_PROC_NULL;
 
-  //! The rank in comm_ that has global coupling data.  Currently neutronics_root_
-  int coupling_root_ = MPI_PROC_NULL;
-
   //! Current Picard iteration temperature; this temperature is the temperature
   //! computed by the thermal-hydraulic solver, and data mappings may result in
   //! a different temperature actually used in the neutronics solver. For example,
