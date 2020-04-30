@@ -252,7 +252,9 @@ void CoupledDriver::update_heat_source(bool relax)
     std::copy(heat_source_.begin(), heat_source_.end(), heat_source_prev_.begin());
   }
 
-  heat_source_ = neutronics.heat_source(power_);
+  if (neutronics.active()) {
+    heat_source_ = neutronics.heat_source(power_);
+  }
 
   // Compute the next iterate of the heat source
   if (relax && comm_.rank == neutronics_root_) {
