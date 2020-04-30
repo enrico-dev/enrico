@@ -397,13 +397,8 @@ void CoupledDriver::init_mappings()
   const auto& heat = this->get_heat_driver();
   auto& neutronics = this->get_neutronics_driver();
 
-  std::vector<Position> elem_centroids;
-  if (comm_.rank == heat_root_ || neutronics.active()) {
-    elem_centroids.resize(n_global_elem_);
-  }
-
   // Get centroids from heat driver and send to all neutronics procs
-  elem_centroids = heat.centroids();
+  auto elem_centroids = heat.centroids();
   comm_.send_and_recv(elem_centroids, neutronics_root_, heat_root_);
   neutronics.comm_.broadcast(elem_centroids);
 
