@@ -254,7 +254,6 @@ void Comm::send_and_recv(xt::xtensor<T, N>& values, int dest, int source) const
     }
     // Send the size
     auto n = values.size();
-    send_and_recv(n, dest, source);
 
     // Finally, send data
     int tag = source;
@@ -306,7 +305,6 @@ void Comm::broadcast(xt::xtensor<T, N>& values, int root) const
 
     // Next, broadcast size
     auto n = values.size();
-    this->broadcast(n, root);
 
     // Finally, broadcast data
     Bcast(values.data(), n, get_mpi_type<T>(), root);
