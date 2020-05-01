@@ -33,28 +33,20 @@ public:
   //! Execute the coupled driver
   virtual void execute();
 
-  //! Whether the calling rank has access to the coupled solution
-  //! fields for the heat source, temperature, density, and other protected member
-  //! variables of this class.
-  bool has_global_coupling_data() const;
-
   //! Update the heat source for the thermal-hydraulics solver
-  void update_heat_source();
-
-  //! Set the heat source in the thermal-hydraulics solver
-  void set_heat_source();
+  //!
+  //! \param relax Apply relaxation to heat source before updating heat solver
+  void update_heat_source(bool relax);
 
   //! Update the temperature for the neutronics solver
-  void update_temperature();
-
-  //! Set the temperature in the neutronics solver
-  void set_temperature();
-
-  //! Update the density for the neutronics solver
-  void update_density();
+  //!
+  //! \param relax Apply relaxation to temperature before updating neutronics solver
+  void update_temperature(bool relax);
 
   //! Update the density for the neutronics solver
-  void set_density();
+  //!
+  //! \param relax Apply relaxation to density before updating neutronics solver
+  void update_density(bool relax);
 
   //! Check convergence of the coupled solve for the current Picard iteration.
   bool is_converged();
@@ -153,13 +145,18 @@ private:
   //! this method does not set any initial values.
   void init_heat_source();
 
+  //! Print report of communicator layout
+  void comm_report();
+
   int i_timestep_; //!< Index pertaining to current timestep
 
   int i_picard_; //!< Index pertaining to current Picard iteration
 
-  Comm intranode_comm_;           //!< The communicator representing intranode ranks
-  int neutronics_procs_per_node_; //!< Number of MPI ranks per (shared-memory) node in
-                                  //!< neutronics comm
+  //! The rank in comm_ that corresponds to the root of the neutronics comm
+  int neutronics_root_ = MPI_PROC_NULL;
+
+  //! The rank in comm_ that corresponds to the root of the heat comm
+  int heat_root_ = MPI_PROC_NULL;
 
   //! Current Picard iteration temperature; this temperature is the temperature
   //! computed by the thermal-hydraulic solver, and data mappings may result in
@@ -216,6 +213,9 @@ private:
 
   //! Number of cell instances in neutronics model
   int32_t n_cells_;
+
+  //! Number of global elements in heat/fluids model
+  int32_t n_global_elem_;
 };
 
 } // namespace enrico

@@ -12,8 +12,16 @@
 #include <xtensor/xnorm.hpp>    // for norm_l1, norm_l2, norm_linf
 
 #include <algorithm> // for copy
-#include <memory>    // for make_unique
+#include <iomanip>
+#include <memory> // for make_unique
 #include <string>
+
+// For gethostname
+#ifdef _WIN32
+#include <winsock.h>
+#else
+#include <unistd.h>
+#endif
 
 namespace enrico {
 
@@ -74,17 +82,20 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   Expects(alpha_T_ > 0);
   Expects(alpha_rho_ > 0);
 
-  // Get parameters from enrico.xml
-  double pressure_bc = heat_node.child("pressure_bc").text().as_double();
-  neutronics_procs_per_node_ = neut_node.child("procs_per_node").text().as_int();
+  // Create communicators
+  std::array<int, 2> nodes{neut_node.child("nodes").text().as_int(),
+                           heat_node.child("nodes").text().as_int()};
+  std::array<int, 2> procs_per_node{neut_node.child("procs_per_node").text().as_int(),
+                                    heat_node.child("procs_per_node").text().as_int()};
+  std::array<Comm, 2> driver_comms;
+  Comm intranode_comm; // Not used in current comm scheme
+  Comm coupling_comm;  // Not used in current comm scheme
 
-  // Postcondition checks on user inputs
-  Expects(neutronics_procs_per_node_ > 0);
+  get_driver_comms(
+    comm_, nodes, procs_per_node, driver_comms, intranode_comm, coupling_comm);
 
-  // Create communicator for neutronics with requested processes per node
-  Comm neutronics_comm;
-  enrico::get_node_comms(
-    comm_, neutronics_procs_per_node_, neutronics_comm, intranode_comm_);
+  auto neutronics_comm = driver_comms[0];
+  auto heat_comm = driver_comms[1];
 
   // Instantiate neutronics driver
   neutronics_driver_ = std::make_unique<OpenmcDriver>(neutronics_comm.comm);
@@ -92,12 +103,27 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   // Instantiate heat-fluids driver
   std::string s = heat_node.child_value("driver");
   if (s == "nek5000") {
-    heat_fluids_driver_ = std::make_unique<NekDriver>(comm, heat_node);
+    heat_fluids_driver_ = std::make_unique<NekDriver>(heat_comm.comm, heat_node);
   } else if (s == "surrogate") {
-    heat_fluids_driver_ = std::make_unique<SurrogateHeatDriver>(comm, heat_node);
+    heat_fluids_driver_ =
+      std::make_unique<SurrogateHeatDriver>(heat_comm.comm, heat_node);
   } else {
     throw std::runtime_error{"Invalid value for <heat_fluids><driver>"};
   }
+
+  // Send rank of neutronics root to all procs
+  neutronics_root_ = this->get_neutronics_driver().comm_.is_root() ? comm_.rank : -1;
+  MPI_Allreduce(MPI_IN_PLACE, &neutronics_root_, 1, MPI_INT, MPI_MAX, comm_.comm);
+
+  // Send rank of heat root to all procs
+  heat_root_ = this->get_heat_driver().comm_.is_root() ? comm_.rank : -1;
+  MPI_Allreduce(MPI_IN_PLACE, &heat_root_, 1, MPI_INT, MPI_MAX, comm_.comm);
+
+  // Send number of global elements to all procs
+  n_global_elem_ = this->get_heat_driver().n_global_elem();
+  comm_.broadcast(n_global_elem_, heat_root_);
+
+  comm_report();
 
   init_mappings();
   init_tallies();
@@ -136,8 +162,10 @@ void CoupledDriver::execute()
 
       comm_.Barrier();
 
-      // Update heat source
-      update_heat_source();
+      // Update heat source.
+      // On the first iteration, there is no previous iterate of heat source,
+      // so we can't apply underrelaxation at that point
+      update_heat_source(i_timestep_ > 0 || i_picard_ > 0);
 
       if (heat.active()) {
         heat.init_step();
@@ -149,8 +177,11 @@ void CoupledDriver::execute()
       comm_.Barrier();
 
       // Update temperature and density
-      update_temperature();
-      update_density();
+      // At this point, there is always a previous iterate of temperature and density
+      // (as assured by the initial conditions set in init_temperature and init_density)
+      // so we always apply underrelaxation here.
+      update_temperature(true);
+      update_density(true);
 
       if (is_converged()) {
         std::string msg = "converged at i_picard = " + std::to_string(i_picard_);
@@ -191,88 +222,165 @@ void CoupledDriver::compute_temperature_norm(const CoupledDriver::Norm& n,
 bool CoupledDriver::is_converged()
 {
   bool converged;
+  double norm;
 
-  // assumes that the rank 0 process is in the communicator that has access
-  // to global coupling data
-  if (comm_.rank == 0) {
-    double norm;
+  // The heat root has the global temperature data
+  if (comm_.rank == heat_root_) {
     this->compute_temperature_norm(Norm::LINF, norm, converged);
-
-    std::string msg = "temperature norm_linf: " + std::to_string(norm);
-    comm_.message(msg);
   }
 
-  comm_.broadcast(converged);
+  comm_.broadcast(converged, heat_root_);
+  comm_.broadcast(norm, heat_root_);
+
+  std::string msg = "temperature norm_linf: " + std::to_string(norm);
+  comm_.message(msg);
   return converged;
 }
 
-void CoupledDriver::update_heat_source()
+void CoupledDriver::update_heat_source(bool relax)
 {
-  // Store previous heat source solution if more than one iteration has been performed
-  // (otherwise there is not an initial condition for the heat source)
-  if (!is_first_iteration()) {
+  auto& neutronics = this->get_neutronics_driver();
+  auto& heat = this->get_heat_driver();
+
+  // ****************************************************************************
+  // Gather heat source on neutronics root and apply underrelaxation
+  // ****************************************************************************
+
+  if (relax && comm_.rank == neutronics_root_) {
+    // Store previous heat source solution if more than one iteration has been performed
+    // (otherwise there is not an initial condition for the heat source)
     std::copy(heat_source_.begin(), heat_source_.end(), heat_source_prev_.begin());
   }
 
-  // Compute the next iterate of the heat source
-  auto& neutronics = get_neutronics_driver();
   if (neutronics.active()) {
-    if (!is_first_iteration()) {
-      heat_source_ =
-        alpha_ * neutronics.heat_source(power_) + (1.0 - alpha_) * heat_source_prev_;
-    } else {
-      heat_source_ = neutronics.heat_source(power_);
-    }
+    heat_source_ = neutronics.heat_source(power_);
   }
 
-  // Set heat source in the thermal-hydraulics solver
-  set_heat_source();
+  // Compute the next iterate of the heat source
+  if (relax && comm_.rank == neutronics_root_) {
+    heat_source_ = alpha_ * heat_source_ + (1.0 - alpha_) * heat_source_prev_;
+  }
+
+  // ****************************************************************************
+  // Send underrelaxed heat source to all heat ranks and set element temperatures
+  // ****************************************************************************
+
+  this->comm_.send_and_recv(heat_source_, heat_root_, neutronics_root_);
+  heat.comm_.broadcast(heat_source_);
+
+  if (heat.active()) {
+    // Determine displacement for this rank
+    auto displacement = heat.local_displs_.at(heat.comm_.rank);
+    int n_local_elem = heat.n_local_elem();
+    // Set heat source in every element
+    for (int32_t local_elem = 1; local_elem <= n_local_elem; ++local_elem) {
+      int32_t global_elem = local_elem + displacement - 1;
+      // Get heat source for this element
+      CellHandle cell = elem_to_cell_.at(global_elem);
+      err_chk(heat.set_heat_source_at(local_elem, heat_source_.at(cell)),
+              "Error setting heat source for local element " +
+                std::to_string(local_elem));
+    }
+  }
 }
 
-void CoupledDriver::update_temperature()
+void CoupledDriver::update_temperature(bool relax)
 {
-  // Store previous temperature solution; a previous solution will always be present
-  // because a temperature IC is set and the neutronics solver runs first
-  if (has_global_coupling_data()) {
+  comm_.message("Updating temperature");
+
+  auto& neutronics = this->get_neutronics_driver();
+  auto& heat = this->get_heat_driver();
+
+  // *************************************************************************
+  // Gather temperature on heat root and apply underrelaxation
+  // *************************************************************************
+
+  if (relax && comm_.rank == heat_root_) {
+    // Store previous temperature solution; a previous solution will always be present
+    // because a temperature IC is set and the neutronics solver runs first
     std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
   }
 
-  // Compute the next iterate of the temperature
-  auto& heat = get_heat_driver();
-  if (heat.active()) {
-    auto t = heat.temperature();
+  temperatures_ = heat.temperature();
 
-    if (heat.has_coupling_data())
-      temperatures_ = alpha_T_ * t + (1.0 - alpha_T_) * temperatures_prev_;
+  if (relax && comm_.rank == heat_root_) {
+    temperatures_ = alpha_T_ * temperatures_ + (1.0 - alpha_T_) * temperatures_prev_;
   }
 
-  // Set temperature in the neutronics solver
-  set_temperature();
+  // ****************************************************************************
+  // Send underrelaxed temperature to all neutron ranks and set cell temperatures
+  // ****************************************************************************
+
+  // Broadcast global_element_temperatures onto all the neutronics procs
+  comm_.send_and_recv(temperatures_, neutronics_root_, heat_root_);
+  neutronics.comm_.broadcast(temperatures_);
+
+  if (neutronics.active()) {
+    // For each neutronics cell, volume average temperatures and set
+    for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
+      // Get volume-average temperature for this cell instance
+      double average_temp = 0.0;
+      double total_vol = 0.0;
+      for (int elem : cell_to_elems_.at(cell)) {
+        double T = temperatures_[elem];
+        double V = elem_volumes_[elem];
+        average_temp += T * V;
+        total_vol += V;
+      }
+      // Set temperature for cell instance
+      average_temp /= total_vol;
+      Ensures(average_temp > 0.0);
+      neutronics.set_temperature(cell, average_temp);
+    }
+  }
 }
 
-void CoupledDriver::update_density()
+void CoupledDriver::update_density(bool relax)
 {
-  // Store previous density solution; a previous solution will always be present
-  // because a density IC is set and the neutronics solver runs first
-  if (has_global_coupling_data()) {
+
+  auto& neutronics = this->get_neutronics_driver();
+  auto& heat = this->get_heat_driver();
+
+  // *********************************************************************
+  // Gather densities on heat root and apply underrelaxation
+  // *********************************************************************
+
+  if (relax && comm_.rank == heat_root_) {
     std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
   }
 
-  auto& heat = get_heat_driver();
-  if (heat.active()) {
-    auto d = heat.density();
+  densities_ = heat.density();
 
-    if (heat.has_coupling_data())
-      densities_ = alpha_rho_ * d + (1.0 - alpha_rho_) * densities_prev_;
+  if (relax && comm_.rank == heat_root_) {
+    densities_ = alpha_rho_ * densities_ + (1.0 - alpha_rho_) * densities_prev_;
   }
 
-  // Set density in the neutronics solver
-  set_density();
-}
+  // ************************************************************************
+  // Send underrelaxed density to all neutron ranks and set cell temperatures
+  // ************************************************************************
 
-bool CoupledDriver::has_global_coupling_data() const
-{
-  return this->get_neutronics_driver().active() && this->get_heat_driver().active();
+  comm_.send_and_recv(densities_, neutronics_root_, heat_root_);
+  neutronics.comm_.broadcast(densities_);
+
+  if (neutronics.active()) {
+    // For each neutronics cell in a fluid cell, volume average the densities
+    // and set in driver
+    for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
+      if (cell_fluid_mask_[cell] == 1) {
+        // Get volume-averaged density for this cell instance
+        double average_density = 0.0;
+        double total_vol = 0.0;
+        for (int e : cell_to_elems_.at(cell)) {
+          average_density += densities_[e] * elem_volumes_[e];
+          total_vol += elem_volumes_[e];
+        }
+        // Set density for cell instance
+        average_density /= total_vol;
+        Ensures(average_density > 0.0);
+        neutronics.set_density(cell, average_density);
+      }
+    }
+  }
 }
 
 void CoupledDriver::init_mappings()
@@ -280,43 +388,38 @@ void CoupledDriver::init_mappings()
   comm_.message("Initializing mappings");
 
   const auto& heat = this->get_heat_driver();
-  if (heat.active()) {
-    // Get centroids from heat driver
-    auto elem_centroids = heat.centroids();
+  auto& neutronics = this->get_neutronics_driver();
 
-    // Broadcast centroids onto all the neutronics procs
-    this->get_neutronics_driver().comm_.broadcast(elem_centroids);
+  // Get centroids from heat driver and send to all neutronics procs
+  auto elem_centroids = heat.centroids();
+  comm_.send_and_recv(elem_centroids, neutronics_root_, heat_root_);
+  neutronics.comm_.broadcast(elem_centroids);
 
-    // Set element->cell and cell->element mappings. Create buffer to store cell
-    // handles corresponding to each heat-fluids global element.
-    elem_to_cell_.resize(heat.n_global_elem());
+  if (neutronics.active()) {
+    // Get cell handle corresponding to each element centroid
+    elem_to_cell_ = neutronics.find(elem_centroids);
 
-    auto& neutronics = this->get_neutronics_driver();
-    if (neutronics.active()) {
-      // Get cell handle corresponding to each element centroid
-      elem_to_cell_ = neutronics.find(elem_centroids);
-
-      // Create a vector of elements for each neutronics cell
-      for (int32_t elem = 0; elem < elem_to_cell_.size(); ++elem) {
-        auto cell = elem_to_cell_[elem];
-        cell_to_elems_[cell].push_back(elem);
-      }
-
-      // Determine number of neutronic cell instances
-      n_cells_ = cell_to_elems_.size();
+    // Create a vector of elements for each neutronics cell
+    for (int32_t elem = 0; elem < elem_to_cell_.size(); ++elem) {
+      auto cell = elem_to_cell_[elem];
+      cell_to_elems_[cell].push_back(elem);
     }
 
-    // Set element -> cell instance mapping on each TH rank
-    intranode_comm_.broadcast(elem_to_cell_);
-
-    // Broadcast number of cell instances
-    intranode_comm_.broadcast(n_cells_);
+    // Determine number of neutronic cell instances
+    n_cells_ = cell_to_elems_.size();
   }
+
+  // Send element -> cell instance mapping to all heat procs
+  comm_.send_and_recv(elem_to_cell_, heat_root_, neutronics_root_);
+  heat.comm_.broadcast(elem_to_cell_);
+
+  // Send number of cell instances to all heat procs
+  comm_.send_and_recv(n_cells_, heat_root_, neutronics_root_);
+  heat.comm_.broadcast(n_cells_);
 }
 
 void CoupledDriver::init_tallies()
 {
-
   comm_.message("Initializing tallies");
 
   auto& neutronics = this->get_neutronics_driver();
@@ -329,34 +432,40 @@ void CoupledDriver::init_temperatures()
 {
   comm_.message("Initializing temperatures");
 
-  if (this->has_global_coupling_data()) {
-    auto n_global = this->get_heat_driver().n_global_elem();
-    temperatures_.resize({n_global});
-    temperatures_prev_.resize({n_global});
+  const auto& neutronics = this->get_neutronics_driver();
+  const auto& heat = this->get_heat_driver();
 
-    if (temperature_ic_ == Initial::neutronics) {
+  if (comm_.rank == heat_root_) {
+    temperatures_.resize({static_cast<unsigned long>(n_global_elem_)});
+    temperatures_prev_.resize({static_cast<unsigned long>(n_global_elem_)});
+  } else if (comm_.rank == neutronics_root_) {
+    temperatures_.resize({static_cast<unsigned long>(n_global_elem_)});
+  }
+
+  if (temperature_ic_ == Initial::neutronics) {
+    if (comm_.rank == neutronics_root_) {
       // Loop over heat-fluids elements and determine temperature based on
       // corresponding neutronics cell. This mapping assumes that each
       // heat-fluids element is fully contained within a neutronic cell, i.e.,
       // heat-fluids elements are not split between multiple neutronics cells.
-      const auto& neutronics = this->get_neutronics_driver();
       for (gsl::index elem = 0; elem < elem_to_cell_.size(); ++elem) {
         auto cell = elem_to_cell_[elem];
         double T = neutronics.get_temperature(cell);
         temperatures_[elem] = T;
-        temperatures_prev_[elem] = T;
       }
-    } else if (temperature_ic_ == Initial::heat) {
-      // Use whatever temperature is in TH solver. For Nek5000, this would be
-      // either from a restart file or from a useric fortran routine.
-      update_temperature();
-
-      // update_temperature() begins by saving temperatures_ to temperatures_prev_, and
-      // then changes temperatures_. We need to save temperatures_ here to
-      // temperatures_prev_ manually because init_temperatures() initializes both
-      // temperatures_ and temperatures_prev_.
-      std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
     }
+    comm_.send_and_recv(temperatures_, heat_root_, neutronics_root_);
+  } else if (temperature_ic_ == Initial::heat) {
+    // * This sets temperatures_ on the the coupling_root, based on the
+    //   temperatures received from the heat solver.
+    // * We do not want to apply underrelaxation here (and at this point,
+    //   there is no previous iterate of temperature, anyway).
+    update_temperature(false);
+  }
+
+  // In both cases, only temperatures_ was set, so we explicitly set temperatures_prev_
+  if (comm_.rank == heat_root_) {
+    std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
   }
 }
 
@@ -365,17 +474,15 @@ void CoupledDriver::init_volumes()
   comm_.message("Initializing volumes");
 
   const auto& heat = this->get_heat_driver();
-  if (heat.active()) {
-    // Gather all the local element volumes on the TH root
-    elem_volumes_ = heat.volumes();
+  const auto& neutronics = this->get_neutronics_driver();
 
-    // Broadcast global_element_volumes onto all the neutronics procs
-    this->get_neutronics_driver().comm_.broadcast(elem_volumes_);
-  }
+  // Gather all the element volumes on heat root and send to all neutronics procs
+  elem_volumes_ = heat.volumes();
+  this->comm_.send_and_recv(elem_volumes_, neutronics_root_, heat_root_);
+  neutronics.comm_.broadcast(elem_volumes_);
 
   // Volume check
-  if (this->has_global_coupling_data()) {
-    const auto& neutronics = this->get_neutronics_driver();
+  if (neutronics.comm_.is_root()) {
     for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
       double v_neutronics = neutronics.get_volume(cell);
       double v_heatfluids = 0.0;
@@ -401,45 +508,46 @@ void CoupledDriver::init_densities()
 {
   comm_.message("Initializing densities");
 
-  if (this->has_global_coupling_data()) {
-    auto n_global = this->get_heat_driver().n_global_elem();
-    densities_.resize({n_global});
-    densities_prev_.resize({n_global});
+  const auto& neutronics = this->get_neutronics_driver();
+  const auto& heat = this->get_heat_driver();
 
-    if (density_ic_ == Initial::neutronics) {
+  if (comm_.rank == heat_root_) {
+    densities_.resize({static_cast<unsigned long>(n_global_elem_)});
+    densities_prev_.resize({static_cast<unsigned long>(n_global_elem_)});
+  } else if (comm_.rank == neutronics_root_) {
+    densities_.resize({static_cast<unsigned long>(n_global_elem_)});
+  }
+
+  if (density_ic_ == Initial::neutronics) {
+    if (comm_.rank == neutronics_root_) {
       // Loop over the neutronics cells, then loop over the TH elements
       // corresponding to that cell and assign the cell density to the correct
       // index in the densities_ array. This mapping assumes that each TH
       // element is fully contained within a neutronics cell, i.e., TH elements
       // are not split between multiple neutronics cells.
-      const auto& neutronics = this->get_neutronics_driver();
       for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
-        const auto& global_elems = cell_to_elems_.at(cell);
-
-        if (cell_fluid_mask_[cell] == 1) {
-          for (int elem : global_elems) {
+        for (int elem : cell_to_elems_.at(cell)) {
+          if (cell_fluid_mask_[cell] == 1) {
             double rho = neutronics.get_density(cell);
             densities_[elem] = rho;
-            densities_prev_[elem] = rho;
-          }
-        } else {
-          for (int elem : global_elems) {
+          } else {
             densities_[elem] = 0.0;
-            densities_prev_[elem] = 0.0;
           }
         }
       }
-    } else if (density_ic_ == Initial::heat) {
-      // Use whatever density is in TH solver. For Nek5000, this would be either
-      // from a restart file or from a useric fortran routine
-      update_density();
-
-      // update_density() begins by saving densities_ to densities_prev_, and
-      // then changes densities_. We need to save densities_ here to densities_prev_
-      // manually because init_densities() initializes both densities_ and
-      // densities_prev_
-      std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
     }
+    comm_.send_and_recv(densities_, heat_root_, neutronics_root_);
+  } else if (density_ic_ == Initial::heat) {
+    // * This sets densities_ on the the coupling_root, based on the
+    //   densities received from the heat solver.
+    // * We do not want to apply underrelaxation here (and at this point,
+    //   there is no previous iterate of density, anyway).
+    update_density(false);
+  }
+
+  // In both cases, we need to explicitly set densities_prev_
+  if (comm_.rank == heat_root_) {
+    std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
   }
 }
 
@@ -448,22 +556,21 @@ void CoupledDriver::init_elem_fluid_mask()
   comm_.message("Initializing element fluid mask");
 
   const auto& heat = this->get_heat_driver();
+  const auto& neutronics = this->get_neutronics_driver();
 
-  if (heat.active()) {
-    // On TH master rank, fluid mask gets global data. On TH other ranks, fluid
-    // mask is empty
-    elem_fluid_mask_ = heat.fluid_mask();
-
-    // Broadcast fluid mask to neutronics driver
-    this->get_neutronics_driver().comm_.broadcast(elem_fluid_mask_);
-  }
+  // Get fluid mask and send to all neutronics procs
+  elem_fluid_mask_ = heat.fluid_mask();
+  comm_.send_and_recv(elem_fluid_mask_, neutronics_root_, heat_root_);
+  neutronics.comm_.broadcast(elem_fluid_mask_);
 }
 
 void CoupledDriver::init_cell_fluid_mask()
 {
   comm_.message("Initializing cell fluid mask");
 
-  if (this->has_global_coupling_data()) {
+  // Because init_elem_fluid_mask is *expected* to be called first, it's assumed that
+  // all neutron procs will have the correct values for elem_fluid_mask_
+  if (this->get_neutronics_driver().active()) {
     auto n = cell_to_elems_.size();
     cell_fluid_mask_.resize({n});
 
@@ -484,97 +591,40 @@ void CoupledDriver::init_heat_source()
 {
   comm_.message("Initializing heat source");
 
-  heat_source_ = xt::empty<double>({n_cells_});
-  heat_source_prev_ = xt::empty<double>({n_cells_});
-}
-
-void CoupledDriver::set_heat_source()
-{
-  // Neutronics driver has heat source on each of its ranks. We need to make
-  // heat source available on each TH rank.
-  intranode_comm_.broadcast(heat_source_);
-
-  auto& heat = this->get_heat_driver();
-  if (heat.active()) {
-    // Determine displacement for this rank
-    auto displacement = heat.local_displs_[heat.comm_.rank];
-
-    // Loop over local elements to set heat source
-    int n_local = heat.n_local_elem();
-    for (int32_t local_elem = 1; local_elem <= n_local; ++local_elem) {
-      // get corresponding global element
-      int32_t global_elem = local_elem + displacement - 1;
-
-      // get index to cell instance
-      CellHandle cell = elem_to_cell_.at(global_elem);
-
-      err_chk(heat.set_heat_source_at(local_elem, heat_source_[cell]),
-              "Error setting heat source for local element " +
-                std::to_string(local_elem));
-    }
+  if (comm_.rank == neutronics_root_ || this->get_heat_driver().active()) {
+    heat_source_ = xt::empty<double>({n_cells_});
+    heat_source_prev_ = xt::empty<double>({n_cells_});
   }
 }
 
-void CoupledDriver::set_temperature()
+void CoupledDriver::comm_report()
 {
-  if (this->get_heat_driver().active()) {
-    auto& neutronics = this->get_neutronics_driver();
-    if (neutronics.active()) {
-      // Broadcast global_element_temperatures onto all the neutronics procs
-      neutronics.comm_.broadcast(temperatures_);
+  char c[_POSIX_HOST_NAME_MAX];
+  gethostname(c, _POSIX_HOST_NAME_MAX);
+  std::string hostname{c};
 
-      // For each neutronics cell, volume average temperatures and set
-      for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
+  Comm world(MPI_COMM_WORLD);
 
-        // Get corresponding global elements
-        const auto& global_elems = cell_to_elems_.at(cell);
+  // Padding for fields
+  int hostw = std::max(8UL, hostname.size()) + 2;
+  int rankw = 7;
 
-        // Get volume-average temperature for this cell instance
-        double average_temp = 0.0;
-        double total_vol = 0.0;
-        for (int elem : global_elems) {
-          double T = temperatures_[elem];
-          double V = elem_volumes_[elem];
-          average_temp += T * V;
-          total_vol += V;
-        }
-
-        // Set temperature for cell instance
-        average_temp /= total_vol;
-        Ensures(average_temp > 0.0);
-        neutronics.set_temperature(cell, average_temp);
+  for (int i = 0; i < world.size; ++i) {
+    if (world.rank == i) {
+      if (i == 0) {
+        std::cout << "[ENRICO]: Communicator layout: " << std::endl;
+        std::cout << std::left << std::setw(hostw) << "Hostname" << std::right
+                  << std::setw(rankw) << "World" << std::right << std::setw(rankw)
+                  << "Coup" << std::right << std::setw(rankw) << "Neut" << std::right
+                  << std::setw(rankw) << "Heat" << std::endl;
       }
+      std::cout << std::left << std::setw(hostw) << hostname << std::right
+                << std::setw(rankw) << world.rank << std::right << std::setw(rankw)
+                << comm_.rank << std::right << std::setw(rankw)
+                << this->get_neutronics_driver().comm_.rank << std::right
+                << std::setw(rankw) << this->get_heat_driver().comm_.rank << std::endl;
     }
-  }
-}
-
-void CoupledDriver::set_density()
-{
-  if (this->get_heat_driver().active()) {
-    // Since neutronics and TH master ranks are the same, we know that
-    // elem_densities_ on neutronics master rank were updated.  Now we broadcast
-    // to the other neutronics ranks.
-    // TODO: This won't work if the communicators are disjoint
-    auto& neutronics = this->get_neutronics_driver();
-    if (neutronics.active()) {
-      neutronics.comm_.broadcast(densities_);
-
-      // For each neutronics cell in a fluid cell, volume average the densities
-      // and set in driver
-      for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
-        if (cell_fluid_mask_[cell] == 1) {
-          double average_density = 0.0;
-          double total_vol = 0.0;
-          for (int e : cell_to_elems_.at(cell)) {
-            average_density += densities_[e] * elem_volumes_[e];
-            total_vol += elem_volumes_[e];
-          }
-          double density = average_density / total_vol;
-          Ensures(density > 0.0);
-          neutronics.set_density(cell, average_density / total_vol);
-        }
-      }
-    }
+    MPI_Barrier(world.comm);
   }
 }
 

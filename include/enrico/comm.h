@@ -49,6 +49,10 @@ public:
   //! \return True if the communicator is not MPI_COMM_NULL
   bool active() const { return comm != MPI_COMM_NULL; }
 
+  //! Queries whether the calling rank is the root of this comm
+  //! \return True if the calling rank is the root of this comm
+  bool is_root() const { return rank == 0; }
+
   //! Block until all processes have reached this call
   //!
   //! \return Error value
@@ -72,17 +76,40 @@ public:
   //! Broadcast a scalar value across ranks
   //! \param value Value to broadcast (significant at rank 0)
   template<typename T>
-  std::enable_if_t<std::is_scalar<std::decay_t<T>>::value> broadcast(T& value) const;
+  std::enable_if_t<std::is_scalar<std::decay_t<T>>::value> broadcast(T& value,
+                                                                     int root = 0) const;
 
   //! Broadcast a vector across ranks, possibly resizing it
   //! \param values Values to broadcast (significant at rank 0)
   template<typename T>
-  void broadcast(std::vector<T>& values) const;
+  void broadcast(std::vector<T>& values, int root = 0) const;
 
   //! Broadcast an xtensor across ranks, possibly resizing it to match root's shape
   //! \param values Values to broadcast (significant at rank 0)
   template<typename T, size_t N>
-  void broadcast(xt::xtensor<T, N>& values) const;
+  void broadcast(xt::xtensor<T, N>& values, int root = 0) const;
+
+  //! Send a scalar from one rank to another
+  //! \param value Value to send (significant at source and destination)
+  //! \param dest Destination rank
+  //! \param source Source rank
+  template<typename T>
+  std::enable_if_t<std::is_scalar<std::decay_t<T>>::value>
+  send_and_recv(T& value, int dest, int source) const;
+
+  //! Send a vector from one rank to another, possibly resizing it at destination
+  //! \param values Values to send (significant at source and destination)
+  //! \param dest Destination rank
+  //! \param source Source rank
+  template<typename T>
+  void send_and_recv(std::vector<T>& values, int dest, int source) const;
+
+  //! Send an xtensor from one rank to another, possibly resizing it at destination
+  //! \param values Values to send (significant at source destination)
+  //! \param dest Destination rank
+  //! \param source Source rank
+  template<typename T, size_t N>
+  void send_and_recv(xt::xtensor<T, N>& values, int dest, int source) const;
 
   //! Gathers together values from the processes in this comm onto a given root.
   //!
@@ -163,7 +190,7 @@ public:
 
   //! Displays a message from rank 0
   //! \param A message to display
-  void message(const std::string& msg)
+  void message(const std::string& msg) const
   {
     if (rank == 0)
       std::cout << "[ENRICO]: " << msg << std::endl;
@@ -178,28 +205,92 @@ public:
 };
 
 template<typename T>
-std::enable_if_t<std::is_scalar<std::decay_t<T>>::value> Comm::broadcast(T& value) const
+std::enable_if_t<std::is_scalar<std::decay_t<T>>::value>
+Comm::send_and_recv(T& value, int dest, int source) const
 {
-  this->Bcast(&value, 1, get_mpi_type<T>());
-}
+  if (this->active() && dest != source) {
+    int tag = source;
+    if (rank == source) {
+      MPI_Send(&value, 1, get_mpi_type<T>(), dest, tag, comm);
+    } else if (rank == dest) {
+      MPI_Recv(&value, 1, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
+    }
+  }
+};
 
 template<typename T>
-void Comm::broadcast(std::vector<T>& values) const
+void Comm::send_and_recv(std::vector<T>& values, int dest, int source) const
 {
-  if (this->active()) {
-    // First broadcast the size of the vector
-    int n = values.size();
-    this->broadcast(n);
-
-    // Resize vector (for rank != 0) and broacast data
-    if (values.size() != n)
+  if (this->active() && dest != source) {
+    // Send the size of the vector from the source
+    auto n = values.size();
+    send_and_recv(n, dest, source);
+    // Resize the vector on dest
+    if (rank == dest && values.size() != n) {
       values.resize(n);
-    this->Bcast(values.data(), n, get_mpi_type<T>());
+    }
+
+    // Send the vector
+    int tag = source;
+    if (rank == source) {
+      MPI_Send(values.data(), n, get_mpi_type<T>(), dest, tag, comm);
+    } else if (rank == dest) {
+      MPI_Recv(values.data(), n, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
+    }
   }
 }
 
 template<typename T, size_t N>
-void Comm::broadcast(xt::xtensor<T, N>& values) const
+void Comm::send_and_recv(xt::xtensor<T, N>& values, int dest, int source) const
+{
+  if (this->active() && dest != source) {
+    // Make sure the shapes match
+    const auto& s = values.shape();
+    std::vector<size_t> my_shape(s.begin(), s.end());
+    std::vector<size_t> root_shape(my_shape);
+    send_and_recv(root_shape, dest, source);
+    if (rank == dest && my_shape != root_shape) {
+      values.resize(root_shape);
+    }
+    // Send the size
+    auto n = values.size();
+
+    // Finally, send data
+    int tag = source;
+    if (rank == source) {
+      MPI_Send(values.data(), n, get_mpi_type<T>(), dest, tag, comm);
+    } else if (rank == dest) {
+      MPI_Recv(values.data(), n, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
+    }
+  }
+}
+
+template<typename T>
+std::enable_if_t<std::is_scalar<std::decay_t<T>>::value> Comm::broadcast(T& value,
+                                                                         int root) const
+{
+  if (this->active()) {
+    Bcast(&value, 1, get_mpi_type<T>(), root);
+  }
+}
+
+template<typename T>
+void Comm::broadcast(std::vector<T>& values, int root) const
+{
+  if (this->active()) {
+    // First broadcast the size of the vector
+    int n = values.size();
+    broadcast(n, root);
+
+    // Resize vector (for rank != 0) and broacast data
+    if (values.size() != n)
+      values.resize(n);
+    Bcast(values.data(), n, get_mpi_type<T>(), root);
+  }
+}
+
+template<typename T, size_t N>
+void Comm::broadcast(xt::xtensor<T, N>& values, int root) const
 {
   if (this->active()) {
     // First, make sure shape of `values` matches root's
@@ -207,17 +298,16 @@ void Comm::broadcast(xt::xtensor<T, N>& values) const
     std::vector<size_t> my_shape(s.begin(), s.end());
     std::vector<size_t> root_shape(my_shape);
 
-    this->broadcast(root_shape);
+    broadcast(root_shape, root);
     if (my_shape != root_shape) {
       values.resize(root_shape);
     }
 
     // Next, broadcast size
     auto n = values.size();
-    this->broadcast(n);
 
     // Finally, broadcast data
-    this->Bcast(values.data(), n, get_mpi_type<T>());
+    Bcast(values.data(), n, get_mpi_type<T>(), root);
   }
 }
 
