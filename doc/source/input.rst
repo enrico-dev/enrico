@@ -107,6 +107,8 @@ The maximum number of timesteps.
 
 The maximum number of Picard iterations within a timestep.
 
+.. _epsilon:
+
 ``<epsilon>``
 -------------
 
@@ -130,7 +132,11 @@ heat source for iteration :math:`i + 1` is:
 .. math::
     q_{i+1} = (1 - \alpha) q_i + \alpha \tilde{q}_{i+1}
 
-Choosing :math:`\alpha = 1` corresponds to no underrelaxation.
+Choosing :math:`\alpha = 1` corresponds to no underrelaxation. A special value
+of "robbins-monro" indicates that Robbins-Monro relaxation is to be used:
+
+.. math::
+    q_{i+1} = \frac{1}{i} q_i + \left (1 - \frac{1}{i} \right) \tilde{q}_{i+1}
 
 *Default*: 1.0
 
@@ -145,9 +151,13 @@ the temperature for iteration :math:`i + 1` is:
 .. math::
     T_{i+1} = (1 - \alpha_T) T_i + \alpha_T \tilde{T}_{i+1}
 
-Choosing :math:`\alpha_T = 1` corresponds to no underrelaxation.
+Choosing :math:`\alpha_T = 1` corresponds to no underrelaxation. A special value
+of "robbins-monro" indicates that Robbins-Monro relaxation is to be used:
 
-*Default*: The same value chosen for ``<alpha>``
+.. math::
+    T_{i+1} = \frac{1}{i} T_i + \left (1 - \frac{1}{i} \right) \tilde{T}_{i+1}
+
+*Default*: 1.0
 
 ``<alpha_rho>``
 ---------------
@@ -160,9 +170,13 @@ density for iteration :math:`i + 1` is:
 .. math::
     \rho_{i+1} = (1 - \alpha_\rho) \rho_i + \alpha_\rho \tilde{\rho}_{i+1}
 
-Choosing :math:`\alpha_\rho = 1` corresponds to no underrelaxation.
+Choosing :math:`\alpha_\rho = 1` corresponds to no underrelaxation. A special
+value of "robbins-monro" indicates that Robbins-Monro relaxation is to be used:
 
-*Default*: The same value chosen for ``<alpha>``
+.. math::
+    \rho_{i+1} = \frac{1}{i} \rho_i + \left (1 - \frac{1}{i} \right) \tilde{\rho}_{i+1}
+
+*Default*: 1.0
 
 ``<temperature_ic>``
 --------------------
@@ -187,3 +201,12 @@ to the fluid density - the solid density is constant throughout the simulation,
 and is unchanged from the value used in the neutronics input.
 
 *Default*: neutronics
+
+``<convergence_norm>``
+----------------------
+
+This element indicates the type of norm to use for convergence checks. At each
+Picard iteration, the norm of the difference between the temperature at the
+previous and current iterations is compared to the value of :ref:`epsilon` in
+order to determine convergence. Valid values for this element are "L1", "L2",
+and "Linf".

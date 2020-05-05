@@ -21,6 +21,14 @@ namespace enrico {
 //! and thermal-hydraulics physics.
 class CoupledDriver {
 public:
+  // Types, aliases
+  enum class Norm { L1, L2, LINF }; //! Types of norms
+
+  //! Enumeration of available temperature initial condition specifications.
+  //! 'neutronics' sets temperature condition from the neutronics input files,
+  //! while 'heat' sets temperature based on a thermal-fluids input (or restart) file.
+  enum class Initial { neutronics, heat };
+
   //! Initializes coupled neutron transport and thermal-hydraulics solver with
   //! the given MPI communicator
   //!
@@ -51,13 +59,10 @@ public:
   //! Check convergence of the coupled solve for the current Picard iteration.
   bool is_converged();
 
-  enum class Norm { L1, L2, LINF }; //! Types of norms
-
   //! Compute the norm of the temperature between two successive Picard iterations
-  //! \param n enumeration of norm to compute
+  //! \param norm enumeration of norm to compute
   //! \return norm of the temperature between two iterations
-  //! \return whether norm is less than convergence tolerance
-  void compute_temperature_norm(const Norm& n, double& norm, bool& converged);
+  double temperature_norm(Norm n);
 
   //! Get reference to neutronics driver
   //! \return reference to driver
@@ -104,11 +109,6 @@ public:
   //! relaxation applied to the heat source if not set
   double alpha_rho_{alpha_};
 
-  //! Enumeration of available temperature initial condition specifications.
-  //! 'neutronics' sets temperature condition from the neutronics input files,
-  //! while 'heat' sets temperature based on a thermal-fluids input (or restart) file.
-  enum class Initial { neutronics, heat };
-
   //! Where to obtain the temperature initial condition from. Defaults to the
   //! temperatures in the neutronics input file.
   Initial temperature_ic_{Initial::neutronics};
@@ -147,6 +147,9 @@ private:
 
   //! Print report of communicator layout
   void comm_report();
+
+  //! Special alpha value indicating use of Robbins-Monro relaxation
+  constexpr static double ROBBINS_MONRO = -1.0;
 
   int i_timestep_; //!< Index pertaining to current timestep
 
@@ -216,6 +219,9 @@ private:
 
   //! Number of global elements in heat/fluids model
   int32_t n_global_elem_;
+
+  // Norm to use for convergence checks
+  Norm norm_{Norm::LINF};
 };
 
 } // namespace enrico
