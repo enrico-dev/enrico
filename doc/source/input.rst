@@ -210,3 +210,5 @@ Picard iteration, the norm of the difference between the temperature at the
 previous and current iterations is compared to the value of :ref:`epsilon` in
 order to determine convergence. Valid values for this element are "L1", "L2",
 and "Linf".
+
+*Default*: Linf
