@@ -27,6 +27,9 @@ public:
   //! One-time finalization of OpenMC
   ~OpenmcDriver();
 
+  //////////////////////////////////////////////////////////////////////////////
+  // NeutronicsDriver interface
+
   //! Find cells corresponding to a vector of positions
   //! \param positions (x,y,z) coordinates to search for
   //! \return Handles to cells
@@ -71,6 +74,11 @@ public:
   //! \return Number of cells
   xt::xtensor<double, 1> heat_source(double power) const final;
 
+  std::string cell_label(CellHandle cell) const;
+
+  //////////////////////////////////////////////////////////////////////////////
+  // Driver interface
+
   //! Initialization required in each Picard iteration
   void init_step() final;
 
@@ -85,7 +93,8 @@ public:
   //! Finalization required in each Picard iteration
   void finalize_step() final;
 
-  // Data
+private:
+  // Data members
   openmc::Tally* tally_;               //!< Fission energy deposition tally
   openmc::CellInstanceFilter* filter_; //!< Cell instance filter
   std::vector<CellInstance> cells_;    //!< Array of cell instances

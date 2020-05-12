@@ -214,7 +214,7 @@ private:
   //! operation, and do not reflect TH internal global element indexing.
   std::vector<CellHandle> elem_to_cell_;
 
-  //! Number of cell instances in neutronics model
+  //! Number of unique cells in neutronics model
   int32_t n_cells_;
 
   //! Number of global elements in heat/fluids model

@@ -336,19 +336,21 @@ void CoupledDriver::update_temperature(bool relax)
 
   if (neutronics.active()) {
     // For each neutronics cell, volume average temperatures and set
-    for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
+    for (const auto& kv : cell_to_elems_) {
       // Get volume-average temperature for this cell instance
       double average_temp = 0.0;
       double total_vol = 0.0;
-      for (int elem : cell_to_elems_.at(cell)) {
+      for (int elem : kv.second) {
         double T = temperatures_[elem];
         double V = elem_volumes_[elem];
         average_temp += T * V;
         total_vol += V;
       }
-      // Set temperature for cell instance
       average_temp /= total_vol;
       Ensures(average_temp > 0.0);
+
+      // Set temperature for cell instance
+      CellHandle cell = kv.first;
       neutronics.set_temperature(cell, average_temp);
     }
   }
@@ -389,12 +391,13 @@ void CoupledDriver::update_density(bool relax)
   if (neutronics.active()) {
     // For each neutronics cell in a fluid cell, volume average the densities
     // and set in driver
-    for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
+    for (const auto& kv : cell_to_elems_) {
+      CellHandle cell = kv.first;
       if (cell_fluid_mask_[cell] == 1) {
         // Get volume-averaged density for this cell instance
         double average_density = 0.0;
         double total_vol = 0.0;
-        for (int e : cell_to_elems_.at(cell)) {
+        for (int e : kv.second) {
           average_density += densities_[e] * elem_volumes_[e];
           total_vol += elem_volumes_[e];
         }
@@ -507,23 +510,19 @@ void CoupledDriver::init_volumes()
 
   // Volume check
   if (neutronics.comm_.is_root()) {
-    for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
+    for (const auto& kv : cell_to_elems_) {
+      CellHandle cell = kv.first;
       double v_neutronics = neutronics.get_volume(cell);
       double v_heatfluids = 0.0;
-      for (const auto& elem : cell_to_elems_.at(cell)) {
+      for (const auto& elem : kv.second) {
         v_heatfluids += elem_volumes_.at(elem);
       }
 
-      // TODO: Refactor to avoid dynamic_cast
-      const auto* openmc_driver = dynamic_cast<const OpenmcDriver*>(&neutronics);
-      if (openmc_driver) {
-        const auto& c = openmc_driver->cells_[cell];
-        std::stringstream msg;
-        msg << "Cell " << openmc::model::cells[c.index_]->id_ << " (" << c.instance_
-            << "), V = " << v_neutronics << " (Neutronics), " << v_heatfluids
-            << " (Heat/Fluids)";
-        comm_.message(msg.str());
-      }
+      // Display volumes
+      std::stringstream msg;
+      msg << "Cell " << neutronics.cell_label(cell) << ", V = " << v_neutronics
+          << " (Neutronics), " << v_heatfluids << " (Heat/Fluids)";
+      comm_.message(msg.str());
     }
   }
 }
@@ -549,8 +548,11 @@ void CoupledDriver::init_densities()
       // index in the densities_ array. This mapping assumes that each TH
       // element is fully contained within a neutronics cell, i.e., TH elements
       // are not split between multiple neutronics cells.
-      for (CellHandle cell = 0; cell < cell_to_elems_.size(); ++cell) {
-        for (int elem : cell_to_elems_.at(cell)) {
+      for (const auto& kv : cell_to_elems_) {
+        CellHandle cell = kv.first;
+        const auto& global_elems = kv.second;
+
+        for (int elem : global_elems) {
           if (cell_fluid_mask_[cell] == 1) {
             double rho = neutronics.get_density(cell);
             densities_[elem] = rho;
@@ -598,9 +600,9 @@ void CoupledDriver::init_cell_fluid_mask()
     auto n = cell_to_elems_.size();
     cell_fluid_mask_.resize({n});
 
-    for (CellHandle cell = 0; cell < n; ++cell) {
-      auto elems = cell_to_elems_.at(cell);
-      for (const auto& elem : elems) {
+    for (const auto& kv : cell_to_elems_) {
+      CellHandle cell = kv.first;
+      for (const auto& elem : kv.second) {
         if (elem_fluid_mask_[elem] == 1) {
           cell_fluid_mask_[cell] = 1;
           break;

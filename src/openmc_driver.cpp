@@ -99,7 +99,7 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
 
     // Convert heat from [J/source] to [W/cm^3]. Dividing by total_heat gives
     // the fraction of heat deposited in each material. Multiplying by power
-    // givens an absolute value in W
+    // gives an absolute value in W.
     heat(i) *= power / (total_heat * V);
   }
 
@@ -161,6 +161,17 @@ double OpenmcDriver::get_volume(CellHandle cell) const
 bool OpenmcDriver::is_fissionable(CellHandle cell) const
 {
   return cells_[cell].material()->fissionable();
+}
+
+std::string OpenmcDriver::cell_label(CellHandle cell) const
+{
+  // Get cell instance
+  const auto& c = cells_[cell];
+
+  // Build label
+  std::stringstream label;
+  label << openmc::model::cells[c.index_]->id_ << " (" << c.instance_ << ")";
+  return label.str();
 }
 
 void OpenmcDriver::init_step()
