@@ -41,17 +41,38 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   if (coup_node.child("epsilon"))
     epsilon_ = coup_node.child("epsilon").text().as_double();
 
-  if (coup_node.child("alpha"))
-    alpha_ = coup_node.child("alpha").text().as_double();
+  // Determine relaxation parameters for heat source, temperature, and density
+  auto set_alpha = [](pugi::xml_node node, double& alpha) {
+    if (node) {
+      std::string s = node.child_value();
+      if (s == "robbins-monro") {
+        alpha = ROBBINS_MONRO;
+      } else {
+        alpha = node.text().as_double();
+        Expects(alpha > 0 && alpha <= 1.0);
+      }
+    }
+  };
+  set_alpha(coup_node.child("alpha"), alpha_);
+  set_alpha(coup_node.child("alpha_T"), alpha_T_);
+  set_alpha(coup_node.child("alpha_rho"), alpha_rho_);
 
-  if (coup_node.child("alpha_T"))
-    alpha_T_ = coup_node.child("alpha_T").text().as_double();
-
-  if (coup_node.child("alpha_rho"))
-    alpha_rho_ = coup_node.child("alpha_rho").text().as_double();
+  // check for convergence norm
+  if (coup_node.child("convergence_norm")) {
+    std::string s = coup_node.child_value("convergence_norm");
+    if (s == "L1") {
+      norm_ = Norm::L1;
+    } else if (s == "L2") {
+      norm_ = Norm::L2;
+    } else if (s == "Linf") {
+      norm_ = Norm::LINF;
+    } else {
+      throw std::runtime_error{"Invalid value for <convergence_norm>"};
+    }
+  }
 
   if (coup_node.child("temperature_ic")) {
-    auto s = std::string{coup_node.child_value("temperature_ic")};
+    auto s = coup_node.child_value("temperature_ic");
 
     if (s == "neutronics") {
       temperature_ic_ = Initial::neutronics;
@@ -63,7 +84,7 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   }
 
   if (coup_node.child("density_ic")) {
-    auto s = std::string{coup_node.child_value("density_ic")};
+    auto s = coup_node.child_value("density_ic");
 
     if (s == "neutronics") {
       density_ic_ = Initial::neutronics;
@@ -78,9 +99,6 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   Expects(max_timesteps_ >= 0);
   Expects(max_picard_iter_ >= 0);
   Expects(epsilon_ > 0);
-  Expects(alpha_ > 0);
-  Expects(alpha_T_ > 0);
-  Expects(alpha_rho_ > 0);
 
   // Create communicators
   std::array<int, 2> nodes{neut_node.child("nodes").text().as_int(),
@@ -194,29 +212,19 @@ void CoupledDriver::execute()
   heat.write_step();
 }
 
-void CoupledDriver::compute_temperature_norm(const CoupledDriver::Norm& n,
-                                             double& norm,
-                                             bool& converged)
+double CoupledDriver::temperature_norm(Norm norm)
 {
-  switch (n) {
+  switch (norm) {
   case Norm::L1: {
-    auto n_expr = xt::norm_l1(temperatures_ - temperatures_prev_);
-    norm = n_expr();
-    break;
+    return xt::norm_l1(temperatures_ - temperatures_prev_)();
   }
   case Norm::L2: {
-    auto n_expr = xt::norm_l2(temperatures_ - temperatures_prev_);
-    norm = n_expr();
-    break;
+    return xt::norm_l2(temperatures_ - temperatures_prev_)();
   }
   default: {
-    auto n_expr = xt::norm_linf(temperatures_ - temperatures_prev_);
-    norm = n_expr();
-    break;
+    return xt::norm_linf(temperatures_ - temperatures_prev_)();
   }
   }
-
-  converged = norm < epsilon_;
 }
 
 bool CoupledDriver::is_converged()
@@ -226,13 +234,14 @@ bool CoupledDriver::is_converged()
 
   // The heat root has the global temperature data
   if (comm_.rank == heat_root_) {
-    this->compute_temperature_norm(Norm::LINF, norm, converged);
+    norm = this->temperature_norm(norm_);
+    converged = norm < epsilon_;
   }
 
   comm_.broadcast(converged, heat_root_);
   comm_.broadcast(norm, heat_root_);
 
-  std::string msg = "temperature norm_linf: " + std::to_string(norm);
+  std::string msg = "temperature norm: " + std::to_string(norm);
   comm_.message(msg);
   return converged;
 }
@@ -258,7 +267,12 @@ void CoupledDriver::update_heat_source(bool relax)
 
   // Compute the next iterate of the heat source
   if (relax && comm_.rank == neutronics_root_) {
-    heat_source_ = alpha_ * heat_source_ + (1.0 - alpha_) * heat_source_prev_;
+    if (alpha_ == ROBBINS_MONRO) {
+      int n = i_picard_ + 1;
+      heat_source_ = heat_source_ / n + (1. - 1. / n) * heat_source_prev_;
+    } else {
+      heat_source_ = alpha_ * heat_source_ + (1.0 - alpha_) * heat_source_prev_;
+    }
   }
 
   // ****************************************************************************
@@ -304,7 +318,12 @@ void CoupledDriver::update_temperature(bool relax)
   temperatures_ = heat.temperature();
 
   if (relax && comm_.rank == heat_root_) {
-    temperatures_ = alpha_T_ * temperatures_ + (1.0 - alpha_T_) * temperatures_prev_;
+    if (alpha_T_ == ROBBINS_MONRO) {
+      int n = i_picard_ + 1;
+      temperatures_ = temperatures_ / n + (1. - 1. / n) * temperatures_prev_;
+    } else {
+      temperatures_ = alpha_T_ * temperatures_ + (1.0 - alpha_T_) * temperatures_prev_;
+    }
   }
 
   // ****************************************************************************
@@ -352,7 +371,12 @@ void CoupledDriver::update_density(bool relax)
   densities_ = heat.density();
 
   if (relax && comm_.rank == heat_root_) {
-    densities_ = alpha_rho_ * densities_ + (1.0 - alpha_rho_) * densities_prev_;
+    if (alpha_rho_ == ROBBINS_MONRO) {
+      int n = i_picard_ + 1;
+      densities_ = densities_ / n + (1. - 1. / n) * densities_prev_;
+    } else {
+      densities_ = alpha_rho_ * densities_ + (1.0 - alpha_rho_) * densities_prev_;
+    }
   }
 
   // ************************************************************************
