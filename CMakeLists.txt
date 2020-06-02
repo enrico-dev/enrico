@@ -88,8 +88,7 @@ set(SOURCES
     src/heat_fluids_driver.cpp)
 
 if (USE_NEK)
-    list(APPEND SOURCES
-        src/nek_driver.cpp)
+    list(APPEND SOURCES src/nek_driver.cpp)
 endif()
 
 if (SCALE_FOUND)
@@ -111,29 +110,23 @@ add_library(libenrico
             ${SOURCES})
 
 set_target_properties(libenrico PROPERTIES OUTPUT_NAME enrico)
-set( LIBRARIES
-        iapws
-        libopenmc
-        xtensor
-        heat_xfer
-        pugixml
-        gsl-lite)
+set(LIBRARIES
+    iapws
+    libopenmc
+    xtensor
+    heat_xfer
+    pugixml
+    gsl-lite)
 
 target_compile_definitions(libenrico PRIVATE GSL_THROW_ON_CONTRACT_VIOLATION)
 
 if (USE_NEK)
     target_compile_definitions(libenrico PUBLIC USE_NEK)
-endif()
-
-if (USE_NEK)
-    list( APPEND LIBRARIES
-        libnek5000)
+    list(APPEND LIBRARIES libnek5000)
 endif()
 
 if (SCALE_FOUND)
-    list( APPEND LIBRARIES
-        ${SCALE_LIBRARIES}
-        ${SCALE_TPL_LIBRARIES})
+list(APPEND LIBRARIES ${SCALE_LIBRARIES} ${SCALE_TPL_LIBRARIES})
 endif ()
 
 target_link_libraries(libenrico PUBLIC ${LIBRARIES})
@@ -165,7 +158,6 @@ set_target_properties(
 if (USE_NEK)
     add_executable(test_nek5000_singlerod tests/singlerod/short/test_nek5000.cpp)
     target_link_libraries(test_nek5000_singlerod PUBLIC libenrico)
-
     set_target_properties(
         test_nek5000_singlerod
         PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
