@@ -4,7 +4,7 @@
 #include "enrico/driver.h"
 #include "enrico/error.h"
 
-#ifdef NEK_BUILD
+#ifdef USE_NEK
 #include "enrico/nek_driver.h"
 #endif
 
@@ -125,10 +125,10 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   // Instantiate heat-fluids driver
   std::string s = heat_node.child_value("driver");
   if (s == "nek5000") {
-#ifdef NEK_BUILD
+#ifdef USE_NEK
     heat_fluids_driver_ = std::make_unique<NekDriver>(heat_comm.comm, heat_node);
 #else
-    throw std::runtime_error{"nek5000 driver selected but not ON in build options"};
+    throw std::runtime_error{"nek5000 was specified as a solver, but is not enabled in this build of ENRICO"};
 #endif
   } else if (s == "surrogate") {
     heat_fluids_driver_ =

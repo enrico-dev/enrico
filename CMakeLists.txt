@@ -1,11 +1,7 @@
 cmake_minimum_required(VERSION 3.3)
 project(enrico Fortran C CXX)
 
-option(NEK_BUILD  "Determines if Nek5000 will be included" ON)
-
-if (NEK_BUILD)
-    add_definitions(-DNEK_BUILD)
-endif()
+option(USE_NEK  "Determines if Nek5000 will be included" ON)
 
 # On BG/Q, linking requires -dynamic, not -rdynamic
 if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "ppc64")
@@ -26,7 +22,7 @@ endif ()
 # =============================================================================
 # Discover name-mangling for routines in libnek5000
 # =============================================================================
-if (NEK_BUILD)
+if (USE_NEK)
     include(FortranCInterface)
     FortranCInterface_VERIFY()
     FortranCInterface_HEADER(${CMAKE_BINARY_DIR}/nek_mangling.h
@@ -57,7 +53,7 @@ endif ()
 # =============================================================================
 # Recursively build libnek5000 and libopenmc
 # =============================================================================
-if (NEK_BUILD)
+if (USE_NEK)
     add_subdirectory(vendor/nek5000)
 endif()
 add_subdirectory(vendor/openmc)
@@ -91,7 +87,7 @@ set(SOURCES
     src/vtk_viz.cpp
     src/heat_fluids_driver.cpp)
 
-if (NEK_BUILD)
+if (USE_NEK)
     list(APPEND SOURCES
         src/nek_driver.cpp)
 endif()
@@ -115,17 +111,32 @@ add_library(libenrico
             ${SOURCES})
 
 set_target_properties(libenrico PROPERTIES OUTPUT_NAME enrico)
-target_link_libraries(libenrico PUBLIC iapws libopenmc xtensor heat_xfer pugixml gsl-lite)
+set( LIBRARIES
+        iapws
+        libopenmc
+        xtensor
+        heat_xfer
+        pugixml
+        gsl-lite)
+
 target_compile_definitions(libenrico PRIVATE GSL_THROW_ON_CONTRACT_VIOLATION)
 
-if (NEK_BUILD)
-    target_link_libraries(libenrico PUBLIC libnek5000)
+if (USE_NEK)
+    target_compile_definitions(libenrico PUBLIC USE_NEK)
+endif()
+
+if (USE_NEK)
+    list( APPEND LIBRARIES
+        libnek5000)
 endif()
 
 if (SCALE_FOUND)
-  target_link_libraries(libenrico PUBLIC ${SCALE_LIBRARIES})
-  target_link_libraries(libenrico PUBLIC ${SCALE_TPL_LIBRARIES})
+    list( APPEND LIBRARIES
+        ${SCALE_LIBRARIES}
+        ${SCALE_TPL_LIBRARIES})
 endif ()
+
+target_link_libraries(libenrico PUBLIC ${LIBRARIES})
 
 # =============================================================================
 # Build enrico driver
@@ -151,7 +162,7 @@ set_target_properties(
         PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
 
 
-if (NEK_BUILD)
+if (USE_NEK)
     add_executable(test_nek5000_singlerod tests/singlerod/short/test_nek5000.cpp)
     target_link_libraries(test_nek5000_singlerod PUBLIC libenrico)
 
