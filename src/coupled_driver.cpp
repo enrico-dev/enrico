@@ -3,7 +3,11 @@
 #include "enrico/comm_split.h"
 #include "enrico/driver.h"
 #include "enrico/error.h"
+
+#ifdef USE_NEK
 #include "enrico/nek_driver.h"
+#endif
+
 #include "enrico/openmc_driver.h"
 #ifdef USE_SHIFT
 #include "enrico/shift_driver.h"
@@ -135,7 +139,11 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   // Instantiate heat-fluids driver
   std::string s = heat_node.child_value("driver");
   if (s == "nek5000") {
+#ifdef USE_NEK
     heat_fluids_driver_ = std::make_unique<NekDriver>(heat_comm.comm, heat_node);
+#else
+    throw std::runtime_error{"nek5000 was specified as a solver, but is not enabled in this build of ENRICO"};
+#endif
   } else if (s == "surrogate") {
     heat_fluids_driver_ =
       std::make_unique<SurrogateHeatDriver>(heat_comm.comm, heat_node);
