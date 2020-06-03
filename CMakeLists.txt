@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.3)
 project(enrico Fortran C CXX)
 
+option(USE_NEK  "Determines if Nek5000 will be included" ON)
+
 # On BG/Q, linking requires -dynamic, not -rdynamic
 if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "ppc64")
   set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "-dynamic")
@@ -20,15 +22,17 @@ endif ()
 # =============================================================================
 # Discover name-mangling for routines in libnek5000
 # =============================================================================
-include(FortranCInterface)
-FortranCInterface_VERIFY()
-FortranCInterface_HEADER(${CMAKE_BINARY_DIR}/nek_mangling.h
-    MACRO_NAMESPACE C2F_
-    SYMBOL_NAMESPACE C2F_
-    SYMBOLS
-    nek_init
-    nek_end
-    nek_solve)
+if (USE_NEK)
+    include(FortranCInterface)
+    FortranCInterface_VERIFY()
+    FortranCInterface_HEADER(${CMAKE_BINARY_DIR}/nek_mangling.h
+        MACRO_NAMESPACE C2F_
+        SYMBOL_NAMESPACE C2F_
+        SYMBOLS
+        nek_init
+        nek_end
+        nek_solve)
+endif()
 
 # =============================================================================
 # Headers for all targets
@@ -49,7 +53,9 @@ endif ()
 # =============================================================================
 # Recursively build libnek5000 and libopenmc
 # =============================================================================
-add_subdirectory(vendor/nek5000)
+if (USE_NEK)
+    add_subdirectory(vendor/nek5000)
+endif()
 add_subdirectory(vendor/openmc)
 
 # =============================================================================
@@ -78,9 +84,12 @@ set(SOURCES
     src/mpi_types.cpp
     src/openmc_driver.cpp
     src/cell_instance.cpp
-    src/nek_driver.cpp
     src/vtk_viz.cpp
     src/heat_fluids_driver.cpp)
+
+if (USE_NEK)
+    list(APPEND SOURCES src/nek_driver.cpp)
+endif()
 
 if (SCALE_FOUND)
     list(APPEND SOURCES
@@ -101,13 +110,26 @@ add_library(libenrico
             ${SOURCES})
 
 set_target_properties(libenrico PROPERTIES OUTPUT_NAME enrico)
-target_link_libraries(libenrico PUBLIC iapws libnek5000 libopenmc xtensor heat_xfer pugixml gsl-lite)
+set(LIBRARIES
+    iapws
+    libopenmc
+    xtensor
+    heat_xfer
+    pugixml
+    gsl-lite)
+
 target_compile_definitions(libenrico PRIVATE GSL_THROW_ON_CONTRACT_VIOLATION)
 
+if (USE_NEK)
+    target_compile_definitions(libenrico PUBLIC USE_NEK)
+    list(APPEND LIBRARIES libnek5000)
+endif()
+
 if (SCALE_FOUND)
-  target_link_libraries(libenrico PUBLIC ${SCALE_LIBRARIES})
-  target_link_libraries(libenrico PUBLIC ${SCALE_TPL_LIBRARIES})
+list(APPEND LIBRARIES ${SCALE_LIBRARIES} ${SCALE_TPL_LIBRARIES})
 endif ()
+
+target_link_libraries(libenrico PUBLIC ${LIBRARIES})
 
 # =============================================================================
 # Build enrico driver
@@ -120,9 +142,6 @@ target_link_libraries(enrico PUBLIC libenrico)
 # =============================================================================
 add_executable(comm_split_demo tests/comm_split_demo/main.cpp)
 
-add_executable(test_nek5000_singlerod tests/singlerod/short/test_nek5000.cpp)
-target_link_libraries(test_nek5000_singlerod PUBLIC libenrico)
-
 add_executable(test_openmc_singlerod tests/singlerod/short/test_openmc.cpp)
 target_link_libraries(test_openmc_singlerod PUBLIC libenrico)
 
@@ -132,9 +151,17 @@ set_target_properties(
         comm_split_demo
         heat_xfer
         iapws
-        test_nek5000_singlerod
         test_openmc_singlerod
         PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
+
+
+if (USE_NEK)
+    add_executable(test_nek5000_singlerod tests/singlerod/short/test_nek5000.cpp)
+    target_link_libraries(test_nek5000_singlerod PUBLIC libenrico)
+    set_target_properties(
+        test_nek5000_singlerod
+        PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
+endif()
 
 if (SCALE_FOUND)
   add_executable(test_shift_singlerod tests/singlerod/short/test_shift_coupled.cpp)
