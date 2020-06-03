@@ -31,7 +31,7 @@ private:
   //
 
   // Shift solver
-  std::shared_ptr<ShiftDriver> d_shift_solver;
+  std::shared_ptr<Shift_Driver> d_shift_solver;
 
   // Nek solver
   std::shared_ptr<NekDriver> d_nek_solver;

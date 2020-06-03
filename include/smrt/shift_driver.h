@@ -16,17 +16,17 @@ namespace enrico {
 
 //===========================================================================//
 /*!
- * \class ShiftDriver
+ * \class Shift_Driver
  * \brief Neutronics solver running Shift problem
  */
 /*!
  * \example shift/test/tstShift_Solver.cc
  *
- * Test of ShiftDriver.
+ * Test of Shift_Driver.
  */
 //===========================================================================//
 
-class ShiftDriver : public Neutronics_Solver {
+class Shift_Driver : public Neutronics_Solver {
 public:
   //@{
   //! Public type aliases
@@ -64,7 +64,7 @@ private:
 
 public:
   // Constructor
-  ShiftDriver(SP_Assembly_Model assembly,
+  Shift_Driver(SP_Assembly_Model assembly,
                std::string shift_input,
                const std::vector<double>& z_edges);
 

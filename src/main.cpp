@@ -31,6 +31,8 @@ int main(int argc, char* argv[])
   Transport driver_transport;
   if (neut_driver == "openmc") {
     driver_transport = Transport::OpenMC;
+  } else if (neut_driver == "shift") {
+    driver_transport = Transport::Shift;
   } else if (neut_driver == "surrogate") {
     driver_transport = Transport::Surrogate;
   } else {
@@ -39,13 +41,11 @@ int main(int argc, char* argv[])
 
   // Create driver according to selections
   switch (driver_transport) {
-  case Transport::OpenMC: {
+  case Transport::OpenMC:
+  case Transport::Shift: {
     enrico::CoupledDriver driver{MPI_COMM_WORLD, root};
     driver.execute();
   } break;
-  case Transport::Shift:
-    throw std::runtime_error{"Shift transport driver not implemented"};
-    break;
   case Transport::Surrogate:
     throw std::runtime_error{"No surrogate particle transport driver implemented"};
     break;

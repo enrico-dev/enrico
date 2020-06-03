@@ -17,7 +17,7 @@ input "singlerod_short.rtk.xml"
 
 [PHYSICS=ce ce]
 ce_lib ce_v71
-ce_pole_lib_path "/data/pole_data/pole.h5"
+ce_pole_lib_path "/opt/scale/pole_data/pole.h5"
 mode n
 dbrc true
 

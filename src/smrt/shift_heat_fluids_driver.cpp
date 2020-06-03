@@ -27,8 +27,8 @@ namespace enrico {
 // Constructor
 //---------------------------------------------------------------------------//
 ShiftHeatFluidsDriver::ShiftHeatFluidsDriver(SP_Assembly assembly,
-                                         RCP_PL params,
-                                         const Vec_Dbl& z_edges)
+                                             RCP_PL params,
+                                             const Vec_Dbl& z_edges)
   : d_assembly(assembly)
 {
   Expects(assembly != nullptr);
@@ -59,13 +59,13 @@ ShiftHeatFluidsDriver::ShiftHeatFluidsDriver(SP_Assembly assembly,
   // Build fluids-heat solver
   auto subchannel_params = Teuchos::sublist(params, "Subchannel");
   auto conduction_params = Teuchos::sublist(params, "Conduction");
-  d_heat_fluid = std::make_shared<SurrogateHeatFluidDriver>(assembly, subchannel_params,
-    conduction_params, dz);
+  d_heat_fluid = std::make_shared<SurrogateHeatFluidDriver>(
+    assembly, subchannel_params, conduction_params, dz);
 
   // Build neutronics solver (surrogate diffusion or Shift MC)
   auto neutronics_params = Teuchos::sublist(params, "Neutronics");
   auto shift_input = neutronics_params->get<std::string>("shift_input");
-  d_neutronics = std::make_shared<ShiftDriver>(assembly, shift_input, z_edges);
+  d_neutronics = std::make_shared<Shift_Driver>(assembly, shift_input, z_edges);
 }
 
 //---------------------------------------------------------------------------//

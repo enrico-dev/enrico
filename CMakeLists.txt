@@ -93,6 +93,7 @@ endif()
 
 if (SCALE_FOUND)
     list(APPEND SOURCES
+        src/shift_driver.cpp
         src/smrt/Assembly_Model.cpp
         src/smrt/shift_nek_driver.cpp
         src/smrt/surrogate_heat_fluid_driver.cpp
@@ -126,7 +127,8 @@ if (USE_NEK)
 endif()
 
 if (SCALE_FOUND)
-list(APPEND LIBRARIES ${SCALE_LIBRARIES} ${SCALE_TPL_LIBRARIES})
+  target_compile_definitions(libenrico PRIVATE USE_SHIFT)
+  list(APPEND LIBRARIES ${SCALE_LIBRARIES} ${SCALE_TPL_LIBRARIES})
 endif ()
 
 target_link_libraries(libenrico PUBLIC ${LIBRARIES})
