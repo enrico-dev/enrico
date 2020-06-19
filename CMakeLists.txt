@@ -92,18 +92,7 @@ if (USE_NEK)
 endif()
 
 if (SCALE_FOUND)
-    list(APPEND SOURCES
-        src/shift_driver.cpp
-        src/smrt/Assembly_Model.cpp
-        src/smrt/shift_nek_driver.cpp
-        src/smrt/surrogate_heat_fluid_driver.cpp
-        src/smrt/shift_heat_fluids_driver.cpp
-        src/smrt/shift_driver.cpp
-        src/smrt/smrt_coupled_driver.cpp
-        src/smrt/Single_Pin_Conduction.cpp
-        src/smrt/Single_Pin_Subchannel.cpp
-        src/smrt/Two_Group_Cross_Sections.cpp
-        src/smrt/Two_Group_Diffusion.cpp)
+    list(APPEND SOURCES src/shift_driver.cpp)
 endif ()
 
 # Build all compoments of libenrico
@@ -164,16 +153,6 @@ if (USE_NEK)
         test_nek5000_singlerod
         PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
 endif()
-
-if (SCALE_FOUND)
-  add_executable(test_shift_singlerod tests/singlerod/short/test_shift_coupled.cpp)
-  target_link_libraries(test_shift_singlerod PUBLIC libenrico)
-
-  # Ensure C++14 standard is used
-  set_target_properties(
-    test_shift_singlerod
-    PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
-endif ()
 
 # =============================================================================
 # Build unit tests
