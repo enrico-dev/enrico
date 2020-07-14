@@ -8,6 +8,7 @@ addons:
       - mpich
       - libmpich-dev
       - libhdf5-mpich-dev
+      - liblapack-dev
     config:
       retries: true
 cache:
