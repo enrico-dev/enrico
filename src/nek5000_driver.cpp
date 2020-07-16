@@ -1,4 +1,4 @@
-#include "enrico/nek_driver.h"
+#include "enrico/nek5000_driver.h"
 
 #include "enrico/error.h"
 #include "gsl/gsl"
@@ -14,7 +14,7 @@
 
 namespace enrico {
 
-NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node)
+Nek5000Driver::Nek5000Driver(MPI_Comm comm, pugi::xml_node node)
   : HeatFluidsDriver(comm, node)
 {
   if (active()) {
@@ -34,7 +34,7 @@ NekDriver::NekDriver(MPI_Comm comm, pugi::xml_node node)
   MPI_Barrier(MPI_COMM_WORLD);
 }
 
-void NekDriver::init_session_name()
+void Nek5000Driver::init_session_name()
 {
   char path_buffer[PATH_MAX];
   err_chk(getcwd(path_buffer, PATH_MAX) == path_buffer ? 0 : -1,
@@ -45,7 +45,7 @@ void NekDriver::init_session_name()
   session_name.close();
 }
 
-std::vector<double> NekDriver::temperature_local() const
+std::vector<double> Nek5000Driver::temperature_local() const
 {
   // Each Nek proc finds the temperatures of its local elements
   std::vector<double> local_elem_temperatures(nelt_);
@@ -56,7 +56,7 @@ std::vector<double> NekDriver::temperature_local() const
   return local_elem_temperatures;
 }
 
-std::vector<int> NekDriver::fluid_mask_local() const
+std::vector<int> Nek5000Driver::fluid_mask_local() const
 {
   std::vector<int> local_fluid_mask(nelt_);
   for (int32_t i = 0; i < nelt_; ++i) {
@@ -65,7 +65,7 @@ std::vector<int> NekDriver::fluid_mask_local() const
   return local_fluid_mask;
 }
 
-std::vector<double> NekDriver::density_local() const
+std::vector<double> Nek5000Driver::density_local() const
 {
   std::vector<double> local_densities(nelt_);
 
@@ -82,13 +82,13 @@ std::vector<double> NekDriver::density_local() const
   return local_densities;
 }
 
-void NekDriver::solve_step()
+void Nek5000Driver::solve_step()
 {
   nek_reset_counters();
   C2F_nek_solve();
 }
 
-Position NekDriver::centroid_at(int32_t local_elem) const
+Position Nek5000Driver::centroid_at(int32_t local_elem) const
 {
   double x, y, z;
   err_chk(nek_get_local_elem_centroid(local_elem, &x, &y, &z),
@@ -96,7 +96,7 @@ Position NekDriver::centroid_at(int32_t local_elem) const
   return {x, y, z};
 }
 
-std::vector<Position> NekDriver::centroid_local() const
+std::vector<Position> Nek5000Driver::centroid_local() const
 {
   int n_local = this->n_local_elem();
   std::vector<Position> local_element_centroids(n_local);
@@ -106,7 +106,7 @@ std::vector<Position> NekDriver::centroid_local() const
   return local_element_centroids;
 }
 
-double NekDriver::volume_at(int32_t local_elem) const
+double Nek5000Driver::volume_at(int32_t local_elem) const
 {
   double volume;
   err_chk(nek_get_local_elem_volume(local_elem, &volume),
@@ -114,7 +114,7 @@ double NekDriver::volume_at(int32_t local_elem) const
   return volume;
 }
 
-std::vector<double> NekDriver::volume_local() const
+std::vector<double> Nek5000Driver::volume_local() const
 {
   int n_local = this->n_local_elem();
   std::vector<double> local_elem_volumes(n_local);
@@ -124,7 +124,7 @@ std::vector<double> NekDriver::volume_local() const
   return local_elem_volumes;
 }
 
-double NekDriver::temperature_at(int32_t local_elem) const
+double Nek5000Driver::temperature_at(int32_t local_elem) const
 {
   double temperature;
   err_chk(nek_get_local_elem_temperature(local_elem, &temperature),
@@ -132,18 +132,18 @@ double NekDriver::temperature_at(int32_t local_elem) const
   return temperature;
 }
 
-int NekDriver::in_fluid_at(int32_t local_elem) const
+int Nek5000Driver::in_fluid_at(int32_t local_elem) const
 {
   return nek_local_elem_is_in_fluid(local_elem);
 }
 
-int NekDriver::set_heat_source_at(int32_t local_elem, double heat)
+int Nek5000Driver::set_heat_source_at(int32_t local_elem, double heat)
 {
   Expects(local_elem >= 1 && local_elem <= nelt_);
   return nek_set_heat_source(local_elem, heat);
 }
 
-NekDriver::~NekDriver()
+Nek5000Driver::~Nek5000Driver()
 {
   if (active())
     C2F_nek_end();

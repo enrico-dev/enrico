@@ -1,11 +1,31 @@
 cmake_minimum_required(VERSION 3.3)
 project(enrico Fortran C CXX)
 
-option(USE_NEK  "Determines if Nek5000 will be included" ON)
+set(NEK_DIST
+        "nek5000" CACHE STRING
+        "Distribution of Nek5000 or NekRS [nek5000|nekrs|none]")
+string(TOLOWER "${NEK_DIST}" NEK_DIST)
+if (NOT (NEK_DIST STREQUAL "nek5000" OR
+        NEK_DIST STREQUAL "nekrs" OR
+        NEK_DIST STREQUAL "none"))
+    message(FATAL_ERROR "Invalid value for NEK_DIST.  Must be 'nek5000', 'nekrs', or 'none' (case-insensitive)")
+else ()
+    set(USE_NEK5000 FALSE)
+    set(USE_NEKRS FALSE)
+    if (NEK_DIST STREQUAL "none")
+        message(STATUS "Compiling without NekRS or Nek5000")
+    elseif (NEK_DIST STREQUAL "nek5000")
+        set(USE_NEK5000 TRUE)
+        message(STATUS "Compiling with Nek5000")
+    elseif (NEK_DIST STREQUAL "nekrs")
+        set(USE_NEKRS TRUE)
+        message(STATUS "Compiling with NekRS")
+    endif ()
+endif ()
 
 # On BG/Q, linking requires -dynamic, not -rdynamic
 if (CMAKE_HOST_SYSTEM_PROCESSOR STREQUAL "ppc64")
-  set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "-dynamic")
+    set(CMAKE_SHARED_LIBRARY_LINK_CXX_FLAGS "-dynamic")
 endif ()
 
 # =============================================================================
@@ -22,17 +42,17 @@ endif ()
 # =============================================================================
 # Discover name-mangling for routines in libnek5000
 # =============================================================================
-if (USE_NEK)
+if (USE_NEK5000)
     include(FortranCInterface)
     FortranCInterface_VERIFY()
     FortranCInterface_HEADER(${CMAKE_BINARY_DIR}/nek_mangling.h
-        MACRO_NAMESPACE C2F_
-        SYMBOL_NAMESPACE C2F_
-        SYMBOLS
-        nek_init
-        nek_end
-        nek_solve)
-endif()
+            MACRO_NAMESPACE C2F_
+            SYMBOL_NAMESPACE C2F_
+            SYMBOLS
+            nek_init
+            nek_end
+            nek_solve)
+endif ()
 
 # =============================================================================
 # Headers for all targets
@@ -51,11 +71,13 @@ if (SCALE_FOUND)
 endif ()
 
 # =============================================================================
-# Recursively build libnek5000 and libopenmc
+# Recursively build libnek5000/libnekrs and libopenmc
 # =============================================================================
-if (USE_NEK)
+if (USE_NEK5000)
     add_subdirectory(vendor/nek5000)
-endif()
+elseif (USE_NEKRS)
+    add_subdirectory(vendor/nekRS)
+endif ()
 add_subdirectory(vendor/openmc)
 
 # =============================================================================
@@ -87,9 +109,11 @@ set(SOURCES
     src/vtk_viz.cpp
     src/heat_fluids_driver.cpp)
 
-if (USE_NEK)
-    list(APPEND SOURCES src/nek_driver.cpp)
-endif()
+if (USE_NEK5000)
+    list(APPEND SOURCES src/nek5000_driver.cpp)
+elseif (USE_NEKRS)
+    list(APPEND SOURCES src/nekrs_driver.cpp)
+endif ()
 
 if (SCALE_FOUND)
     list(APPEND SOURCES src/shift_driver.cpp)
@@ -110,10 +134,13 @@ set(LIBRARIES
 
 target_compile_definitions(libenrico PRIVATE GSL_THROW_ON_CONTRACT_VIOLATION)
 
-if (USE_NEK)
-    target_compile_definitions(libenrico PUBLIC USE_NEK)
+if (USE_NEK5000)
+    target_compile_definitions(libenrico PUBLIC USE_NEK5000)
     list(APPEND LIBRARIES libnek5000)
-endif()
+elseif (USE_NEKRS)
+    target_compile_definitions(libenrico PUBLIC USE_NEKRS)
+    list(APPEND LIBRARIES libnekrs)
+endif ()
 
 if (SCALE_FOUND)
   target_compile_definitions(libenrico PRIVATE USE_SHIFT)
@@ -146,13 +173,13 @@ set_target_properties(
         PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
 
 
-if (USE_NEK)
+if (USE_NEK5000)
     add_executable(test_nek5000_singlerod tests/singlerod/short/test_nek5000.cpp)
     target_link_libraries(test_nek5000_singlerod PUBLIC libenrico)
     set_target_properties(
-        test_nek5000_singlerod
-        PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
-endif()
+            test_nek5000_singlerod
+            PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
+endif ()
 
 # =============================================================================
 # Build unit tests
