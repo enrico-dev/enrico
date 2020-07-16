@@ -10,3 +10,6 @@
 	path = vendor/catch
 	url = https://github.com/catchorg/Catch2.git
 	branch = master
+[submodule "upstream"]
+	path = vendor/nekRS
+	url = https://github.com/Nek5000/nekRS.git
