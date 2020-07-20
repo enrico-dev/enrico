@@ -139,7 +139,7 @@ if (USE_NEK5000)
     list(APPEND LIBRARIES libnek5000)
 elseif (USE_NEKRS)
     target_compile_definitions(libenrico PUBLIC USE_NEKRS)
-    list(APPEND LIBRARIES libnekrs)
+    list(APPEND LIBRARIES nekrs-lib)
 endif ()
 
 if (SCALE_FOUND)

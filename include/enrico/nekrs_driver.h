@@ -1,0 +1,7 @@
+#ifndef ENRICO_SRC_NEKRS_DRIVER_H
+#define ENRICO_SRC_NEKRS_DRIVER_H
+
+class NekRSDriver {};
+
+#endif // ENRICO_SRC_NEKRS_DRIVER_H
+
