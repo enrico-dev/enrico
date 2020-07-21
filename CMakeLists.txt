@@ -179,6 +179,9 @@ if (USE_NEK5000)
     set_target_properties(
             test_nek5000_singlerod
             PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
+elseif(USE_NEKRS)
+    add_executable(test_nekrs tests/test_nekrs/test_nekrs.cpp)
+    target_link_libraries(test_nekrs PUBLIC libenrico)
 endif ()
 
 # =============================================================================
