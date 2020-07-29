@@ -37,7 +37,7 @@ OpenmcDriver::OpenmcDriver(MPI_Comm comm)
     err_chk(openmc_cell_get_fill(i, &type, &indices, &n));
 
     // only check for cells filled with type FILL_MATERIAL (evaluated to '1' enum)
-    if (type == openmc::FILL_MATERIAL) {
+    if (static_cast<openmc::Fill>(type) == openmc::Fill::MATERIAL) {
       for (gsl::index j = 0; j < n; ++j) {
         int material_index = indices[j];
 
@@ -86,8 +86,10 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
   // TODO: Change OpenMC so that it's correct on all ranks
   comm_.broadcast(m);
 
-  // Determine energy production in each material
-  auto mean_value = xt::view(tally_->results_, xt::all(), 0, openmc::RESULT_SUM);
+  // Determine energy production in each material. Note that xt::view doesn't
+  // work with enum
+  int i_sum = static_cast<int>(openmc::TallyResult::SUM);
+  auto mean_value = xt::view(tally_->results_, xt::all(), 0, i_sum);
   xt::xtensor<double, 1> heat = JOULE_PER_EV * mean_value / m;
 
   // Get total heat production [J/source]
