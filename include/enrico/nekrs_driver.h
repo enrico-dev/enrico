@@ -17,11 +17,18 @@ public:
   void solve_step() override;
   void write_step(int timestep, int iteration) override;
 
+  int n_local_elem() const override {return n_local_elem_;}
+  std::size_t n_global_elem() const override {return n_global_elem_;};
+
+  Position centroid_at(int32_t local_elem) const;
+  std::vector<Position> centroid_local() const override;
+
+  double volume_at(int32_t local_elem) const;
+  std::vector<double> volume_local() const override;
+
   // TODO: Implement these
   bool has_coupling_data() const override { return false;}
   int set_heat_source_at(int32_t local_elem, double heat) override {return -1;}
-  int n_local_elem() const override {return -1;}
-  std::size_t n_global_elem() const override {return -1;};
 
 private:
   std::string setup_file_;
@@ -29,13 +36,15 @@ private:
   std::string device_number_;
   double time_;
   int tstep_;
+  int n_local_elem_;
+  std::size_t n_global_elem_;
+  int poly_deg_;
+  int n_gll_;
 
   // TODO: Implement these
   std::vector<double> temperature_local() const override {return std::vector<double>{};}
   std::vector<double> density_local() const override {return std::vector<double>{};}
   std::vector<int> fluid_mask_local() const override {return std::vector<int>{};}
-  std::vector<Position> centroid_local() const override {return std::vector<Position>{};}
-  std::vector<double> volume_local() const override {return std::vector<double>{};}
 };
 
 }
