@@ -26,9 +26,15 @@ public:
   double volume_at(int32_t local_elem) const;
   std::vector<double> volume_local() const override;
 
+  double temperature_at(int32_t local_elem) const;
+  std::vector<double> temperature_local() const override;
+
+  std::vector<double> density_local() const override;
+
   // TODO: Implement these
   bool has_coupling_data() const override { return false;}
   int set_heat_source_at(int32_t local_elem, double heat) override {return -1;}
+  int in_fluid_at(int32_t local_elem) const {return 0;};
 
 private:
   std::string setup_file_;
@@ -41,9 +47,14 @@ private:
   int poly_deg_;
   int n_gll_;
 
+  double *x_;
+  double *y_;
+  double *z_;
+  double *mass_matrix_;
+  double *temperature_;
+  double *rho_energy_;
+
   // TODO: Implement these
-  std::vector<double> temperature_local() const override {return std::vector<double>{};}
-  std::vector<double> density_local() const override {return std::vector<double>{};}
   std::vector<int> fluid_mask_local() const override {return std::vector<int>{};}
 };
 

@@ -13,3 +13,5 @@
 [submodule "upstream"]
 	path = vendor/nekRS
 	url = https://github.com/Nek5000/nekRS.git
+[submodule "vendor/nekRS"]
+	url = https://github.com/RonRahaman/nekRS.git
