@@ -36,6 +36,7 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node) :
     y_ = nekrs::mesh::y();
     z_ = nekrs::mesh::z();
     mass_matrix_ = nekrs::mesh::massMatrix();
+    element_info_ = nekrs::mesh::elementInfo();
 
     // rho energy is field 1 of rho
     rho_energy_ = nekrs::rho()[1 * nekrs::cds::fieldOffset()];
@@ -72,7 +73,7 @@ void NekRSDriver::write_step(int timestep, int iteration) {
 }
 
 Position NekRSDriver::centroid_at(int32_t local_elem) const {
-  Expects(local_elem < n_local_elem_);
+  Expects(local_elem < n_local_elem());
   Position c{0., 0., 0.};
   double mass = 0.;
   for (gsl::index i = 0; i < n_gll_; ++i) {
@@ -89,15 +90,15 @@ Position NekRSDriver::centroid_at(int32_t local_elem) const {
 }
 
 std::vector<Position> NekRSDriver::centroid_local() const {
-  std::vector<Position> c(n_local_elem_);
-  for (int32_t i = 0; i < n_local_elem_; ++i) {
+  std::vector<Position> c(n_local_elem());
+  for (int32_t i = 0; i < n_local_elem(); ++i) {
     c[i] = this->centroid_at(i);
   }
   return c;
 }
 
 double NekRSDriver::volume_at(int32_t local_elem) const  {
-  Expects(local_elem < n_local_elem_)
+  Expects(local_elem < n_local_elem())
   double v = 0.;
   for (int32_t i = 0; i < n_gll_; ++i) {
     v += mass_matrix_[local_elem * n_gll_ + i];
@@ -106,15 +107,15 @@ double NekRSDriver::volume_at(int32_t local_elem) const  {
 }
 
 std::vector<double> NekRSDriver::volume_local() const {
-  std::vector<double> v(n_local_elem_);
-  for (int32_t i = 0; i < n_local_elem_; ++i) {
+  std::vector<double> v(n_local_elem());
+  for (int32_t i = 0; i < n_local_elem(); ++i) {
     v[i] = this->volume_at(i);
   }
   return v;
 }
 
 double NekRSDriver::temperature_at(int32_t local_elem) const {
-  Expects(local_elem < n_local_elem_);
+  Expects(local_elem < n_local_elem());
 
   double x = 0.;
   double y = 0.;
@@ -127,19 +128,18 @@ double NekRSDriver::temperature_at(int32_t local_elem) const {
 }
 
 std::vector<double> NekRSDriver::temperature_local() const {
-  std::vector<double> t(n_local_elem_);
-  for (int32_t i = 0; i < n_local_elem_; ++i) {
+  std::vector<double> t(n_local_elem());
+  for (int32_t i = 0; i < n_local_elem(); ++i) {
     t[i] = this->temperature_at(i);
   }
   return t;
 }
 
-
 std::vector<double> NekRSDriver::density_local() const
 {
-  std::vector<double> local_densities(n_local_elem_);
+  std::vector<double> local_densities(n_local_elem());
 
-  for (int32_t i = 0; i < n_local_elem_; ++i) {
+  for (int32_t i = 0; i < n_local_elem(); ++i) {
     if (this->in_fluid_at(i + 1) == 1) {
       auto T = this->temperature_at(i + 1);
       // nu1 returns specific volume in [m^3/kg]
@@ -150,6 +150,20 @@ std::vector<double> NekRSDriver::density_local() const
   }
 
   return local_densities;
+}
+
+int NekRSDriver::in_fluid_at(int32_t local_elem) const {
+  Expects(local_elem < n_local_elem());
+  // In NekRS, element_info_[i] == 1 if i is a *solid* element
+  return element_info_[local_elem] == 1 ? 0 : 1;
+}
+
+std::vector<int> NekRSDriver::fluid_mask_local() const {
+  std::vector<int> mask(n_local_elem());
+  for (int32_t i = 0; i < n_local_elem(); ++i) {
+    mask[i] = in_fluid_at(i);
+  }
+  return mask;
 }
 
 

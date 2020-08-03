@@ -21,22 +21,22 @@ public:
   std::size_t n_global_elem() const override {return n_global_elem_;};
 
   Position centroid_at(int32_t local_elem) const;
-  std::vector<Position> centroid_local() const override;
-
   double volume_at(int32_t local_elem) const;
-  std::vector<double> volume_local() const override;
-
   double temperature_at(int32_t local_elem) const;
-  std::vector<double> temperature_local() const override;
+  int in_fluid_at(int32_t local_elem) const;
 
-  std::vector<double> density_local() const override;
+  bool has_coupling_data() const final { return comm_.rank == 0; }
 
-  // TODO: Implement these
-  bool has_coupling_data() const override { return false;}
+  // TODO: Implement this
   int set_heat_source_at(int32_t local_elem, double heat) override {return -1;}
-  int in_fluid_at(int32_t local_elem) const {return 0;};
 
 private:
+  std::vector<Position> centroid_local() const override;
+  std::vector<double> volume_local() const override;
+  std::vector<double> temperature_local() const override;
+  std::vector<double> density_local() const override;
+  std::vector<int> fluid_mask_local() const override;
+
   std::string setup_file_;
   std::string thread_model_;
   std::string device_number_;
@@ -53,9 +53,7 @@ private:
   double *mass_matrix_;
   double *temperature_;
   double *rho_energy_;
-
-  // TODO: Implement these
-  std::vector<int> fluid_mask_local() const override {return std::vector<int>{};}
+  long *element_info_;
 };
 
 }
