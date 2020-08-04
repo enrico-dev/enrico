@@ -32,5 +32,17 @@ inline void err_chk(int err)
     throw std::runtime_error(openmc_err_msg);
 }
 
+inline void err_chk(bool cond, const char* msg)
+{
+  if (!cond)
+    throw std::runtime_error(msg);
+}
+
+inline void err_chk(bool cond, const std::string& msg)
+{
+  if (!cond)
+    throw std::runtime_error(msg);
+}
+
 }
 #endif // ENRICO_ERROR_H
