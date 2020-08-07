@@ -2,7 +2,7 @@
 set -e
 
 if [[ -z "$MODE" ]] || [[ "$MODE" == "openmc_nek5000" ]] ; then
-  cd tests/singlerod/short
-  patch -N rodcht.rea ci_config/rodcht_rea.diff || true
-  patch -N SIZE ci_config/SIZE.diff || true
+  cd tests/singlerod/short/nek5000
+  patch -N rodcht.rea rodcht_rea.diff || true
+  patch -N SIZE SIZE.diff || true
 fi
