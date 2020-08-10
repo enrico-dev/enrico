@@ -10,7 +10,7 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node) :
 
   if (active()) {
     // See vendor/nekRS/src/core/occaDeviceConfig.cpp for valid keys
-    setup_file_ = node.child_value("setup_file");
+    setup_file_ = node.child_value("casename");
     device_number_ = node.child_value("device_number");
     thread_model_ = node.child_value("thread_model");
 
@@ -44,7 +44,7 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node) :
     element_info_ = nekrs::elementInfo();
 
     // rho energy is field 1 (0-based) of rho
-    rho_energy_ = nekrs::rho()[1 * nekrs::cds::fieldOffset()];
+    rho_energy_ = nekrs::rho();
 
     // Temperature is field 0 of scalarFields
     // TODO: This uses the 1st stage of the time integration.  Is this correct?

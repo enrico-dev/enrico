@@ -8,6 +8,10 @@
 #include "enrico/nek5000_driver.h"
 #endif
 
+#ifdef USE_NEKRS
+#include "enrico/nekrs_driver.h"
+#endif
+
 #include "enrico/openmc_driver.h"
 #ifdef USE_SHIFT
 #include "enrico/shift_driver.h"
@@ -144,6 +148,13 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
 #else
     throw std::runtime_error{
       "nek5000 was specified as a solver, but is not enabled in this build of ENRICO"};
+#endif
+  } else if (s == "nekrs") {
+#ifdef USE_NEKRS
+    heat_fluids_driver_ = std::make_unique<NekRSDriver>(heat_comm.comm, heat_node);
+#else
+    throw std::runtime_error{
+      "nekrs was specified as a solver, but is not enabled in this build of ENRICO"};
 #endif
   } else if (s == "surrogate") {
     heat_fluids_driver_ =

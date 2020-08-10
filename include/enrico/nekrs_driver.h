@@ -47,13 +47,13 @@ private:
   int poly_deg_;
   int n_gll_;
 
-  double *x_;
-  double *y_;
-  double *z_;
-  double *mass_matrix_;
-  double *temperature_;
-  double *rho_energy_;
-  long *element_info_;
+  const double* x_;
+  const double* y_;
+  const double* z_;
+  const double* mass_matrix_;
+  const double* temperature_;
+  const double* rho_energy_;
+  const int* element_info_;
 };
 
 }
