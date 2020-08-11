@@ -1,6 +1,14 @@
 cmake_minimum_required(VERSION 3.3)
 project(enrico Fortran C CXX)
 
+# =============================================================================
+
+# NekRS must be installed (via `make install`) to have all headers/libs available.
+# For ENRICO, we'll install in the build directory by default
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR} CACHE PATH "" FORCE)
+endif ()
+
 set(NEK_DIST
         "nek5000" CACHE STRING
         "Distribution of Nek5000 or NekRS [nek5000|nekrs|none]")
