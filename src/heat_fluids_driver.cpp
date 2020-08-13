@@ -26,6 +26,19 @@ void HeatFluidsDriver::init_displs()
     for (gsl::index i = 1; i < comm_.size; ++i) {
       local_displs_.at(i) = local_displs_.at(i - 1) + local_counts_.at(i - 1);
     }
+    if (comm_.rank == 0) {
+      comm_.message("LOCAL_COUNTS");
+      for (const auto& c : local_counts_) {
+        std::cout << c << " ";
+      }
+      std::cout << std::endl;
+
+      comm_.message("LOCAL_DISPL");
+      for (const auto& d : local_displs_) {
+        std::cout << d << " ";
+      }
+      std::cout << std::endl;
+    }
   }
 }
 
@@ -33,6 +46,11 @@ std::vector<Position> HeatFluidsDriver::centroids() const
 {
   // Get local centroids on each rank
   auto local_centroids = this->centroid_local();
+  comm_.message("CENTROIDS ON HEAT LOCAL");
+  for (const auto& c : local_centroids) {
+    std::cout << "(" << std::to_string(c.x) << ", " << std::to_string(c.y) << ", "
+              << std::to_string(c.z) << ")" << std::endl;
+  }
 
   // Gather local centroids onto root process
   return this->gather(local_centroids);

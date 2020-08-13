@@ -1,8 +1,9 @@
-#include "enrico/error.h"
 #include "enrico/nekrs_driver.h"
-#include "nekrs.hpp"
+#include "enrico/error.h"
 #include "gsl.hpp"
 #include "iapws/iapws.h"
+#include "libP/include/mesh3D.h"
+#include "nekrs.hpp"
 
 namespace enrico {
 NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node) :
@@ -27,28 +28,48 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node) :
 
     // Check that we're running a CHT simulation.
     err_chk(nekrs::cht(), "NekRS simulation is not setup for conjugate-heat transfer (CHT).  "
-                          "ENRICO must be run with a CHT simulation.");
+            "ENRICO must be run with a CHT simulation.");
 
     // Local and global element counts
-    n_local_elem_ = nekrs::meshT::nElements();
+    n_local_elem_ = nekrs::mesh::nElements();
     std::size_t n = n_local_elem_;
-    MPI_Allreduce(&n, &n_global_elem_, 1, get_mpi_type<std::size_t>(), MPI_SUM, comm_.comm);
+    MPI_Allreduce(
+      &n, &n_global_elem_, 1, get_mpi_type<std::size_t>(), MPI_SUM, comm_.comm);
 
-    poly_deg_ = nekrs::meshT::polyDeg();
+    poly_deg_ = nekrs::mesh::polyDeg();
     n_gll_ = (poly_deg_ + 1) + (poly_deg_ + 1) + (poly_deg_ + 1);
 
-    x_ = nekrs::meshT::x();
-    y_ = nekrs::meshT::y();
-    z_ = nekrs::meshT::z();
-    mass_matrix_ = nekrs::meshT::massMatrix();
-    element_info_ = nekrs::elementInfo();
+    x_ = nekrs::mesh::x();
+    y_ = nekrs::mesh::y();
+    z_ = nekrs::mesh::z();
+    element_info_ = nekrs::mesh::elementInfo();
 
     // rho energy is field 1 (0-based) of rho
     rho_energy_ = nekrs::rho();
 
     // Temperature is field 0 of scalarFields
     // TODO: This uses the 1st stage of the time integration.  Is this correct?
-    temperature_ = nekrs::cds::scalarFields();
+    temperature_ = nekrs::scalarFields();
+
+    // Construct lumped mass matrix from vgeo
+    // See cdsSetup in vendor/nekRS/src/core/insSetup.cpp
+    mass_matrix_.resize(n_local_elem_ * n_gll_);
+    for (gsl::index e = 0; e < n_local_elem_; ++e) {
+      for (gsl::index n = 0; n < n_gll_; ++n) {
+        mass_matrix_[e * n_gll_ + n] =
+          nekrs::mesh::vgeo()[e * n_gll_ * nekrs::mesh::nVgeo() + JWID * n_gll_ + n];
+      }
+    }
+
+    // for (gsl::index i = 0; i < mass_matrix_.size(); ++i) {
+    //  std::cout << "Rank, elem, mass: " << comm_.rank << ", " << i << ", " <<
+    //  mass_matrix_[i] << std::endl; if (mass_matrix_[i] < 1e-16) {
+    //    std::runtime_error("Very small mass at rank, elem: " +
+    //                       std::to_string(comm_.rank) + ", " + std::to_string(i));
+    //  }
+    //}
+
+    init_displs();
   }
   comm_.Barrier();
 }
@@ -91,14 +112,19 @@ Position NekRSDriver::centroid_at(int32_t local_elem) const {
   c.x /= mass;
   c.y /= mass;
   c.z /= mass;
+  // std::cout << "Rank, elem, x, y, z, mass: "
+  //          << comm_.rank << ", " << local_elem << ", " << c.x << ", " << c.y << ", "
+  //          << c.z << ", " << mass << std::endl;
   return c;
 }
 
 std::vector<Position> NekRSDriver::centroid_local() const {
+  SHOWLINE
   std::vector<Position> c(n_local_elem());
   for (int32_t i = 0; i < n_local_elem(); ++i) {
     c[i] = this->centroid_at(i);
   }
+  SHOWLINE
   return c;
 }
 

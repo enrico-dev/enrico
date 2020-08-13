@@ -3,6 +3,8 @@
 #ifndef ENRICO_COMM_H
 #define ENRICO_COMM_H
 
+#define SHOWLINE comm_.message(std::string(__FILE__) + " : " + std::to_string(__LINE__));
+
 #include "enrico/mpi_types.h"
 #include "xtensor/xtensor.hpp"
 

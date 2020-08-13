@@ -47,13 +47,15 @@ private:
   int poly_deg_;
   int n_gll_;
 
+  // TODO: These assume the default values of dfloat, dlong, and hlong in
+  //  nekrs/src/libP/include/types.h.  Might want to typedef them
   const double* x_;
   const double* y_;
   const double* z_;
-  const double* mass_matrix_;
   const double* temperature_;
   const double* rho_energy_;
-  const int* element_info_;
+  const long long* element_info_;
+  std::vector<double> mass_matrix_;
 };
 
 }
