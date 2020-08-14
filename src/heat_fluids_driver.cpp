@@ -46,11 +46,6 @@ std::vector<Position> HeatFluidsDriver::centroids() const
 {
   // Get local centroids on each rank
   auto local_centroids = this->centroid_local();
-  comm_.message("CENTROIDS ON HEAT LOCAL");
-  for (const auto& c : local_centroids) {
-    std::cout << "(" << std::to_string(c.x) << ", " << std::to_string(c.y) << ", "
-              << std::to_string(c.z) << ")" << std::endl;
-  }
 
   // Gather local centroids onto root process
   return this->gather(local_centroids);
