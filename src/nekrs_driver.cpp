@@ -37,7 +37,7 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node) :
       &n, &n_global_elem_, 1, get_mpi_type<std::size_t>(), MPI_SUM, comm_.comm);
 
     poly_deg_ = nekrs::mesh::polyDeg();
-    n_gll_ = (poly_deg_ + 1) + (poly_deg_ + 1) + (poly_deg_ + 1);
+    n_gll_ = (poly_deg_ + 1) * (poly_deg_ + 1) * (poly_deg_ + 1);
 
     x_ = nekrs::mesh::x();
     y_ = nekrs::mesh::y();
@@ -112,9 +112,6 @@ Position NekRSDriver::centroid_at(int32_t local_elem) const {
   c.x /= mass;
   c.y /= mass;
   c.z /= mass;
-  // std::cout << "Rank, elem, x, y, z, mass: "
-  //          << comm_.rank << ", " << local_elem << ", " << c.x << ", " << c.y << ", "
-  //          << c.z << ", " << mass << std::endl;
   return c;
 }
 

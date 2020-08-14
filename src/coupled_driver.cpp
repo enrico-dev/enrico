@@ -453,13 +453,6 @@ void CoupledDriver::init_mappings()
 
   // Get centroids from heat driver and send to all neutronics procs
   auto elem_centroids = heat.centroids();
-  if (comm_.rank == neutronics_root_) {
-    comm_.message("CENTROIDS ON NEUTRON ROOT");
-    for (const auto& c : elem_centroids) {
-      std::cout << "(" << std::to_string(c.x) << ", " << std::to_string(c.y) << ", "
-                << std::to_string(c.z) << ")" << std::endl;
-    }
-  }
   comm_.send_and_recv(elem_centroids, neutronics_root_, heat_root_);
   neutronics.comm_.broadcast(elem_centroids);
 
