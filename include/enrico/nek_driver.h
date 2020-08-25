@@ -24,7 +24,7 @@ public:
   //! NekDriver.
   //!
   //! \param comm  The MPI communicator used to initialze Nek5000
-  explicit NekDriver(MPI_Comm comm, pugi::xml_node xml_root);
+  NekDriver(MPI_Comm comm, pugi::xml_node xml_root);
 
   //! Finalizes Nek5000.
   //!
