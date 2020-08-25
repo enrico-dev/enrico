@@ -2,7 +2,7 @@
 <enrico>
   <neutronics>
     <driver>shift</driver>
-    <filename>../singlerod_short.inp.xml</filename>
+    <filename>../shift/singlerod_short.inp.xml</filename>
     <procs_per_node>1</procs_per_node>
   </neutronics>
   <heat_fluids>
