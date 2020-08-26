@@ -16,7 +16,7 @@ the location of the Nek5000 input deck using the `-DUSR_LOC` flag.  Here is a sa
   ```
   2. Enter the build directory and run CMake, using `USR_LOC` to specify the location of the Nek5000 input deck:
   ``` Console
-    $ CC=mpicc CXX=mpicxx FC=mpif90 cmake -DUSR_LOC=../ ../../../../`
+    $ CC=mpicc CXX=mpicxx FC=mpif90 cmake -DUSR_LOC=../nek5000 ../../../../
   ```
   3. Make it:
   ``` Console

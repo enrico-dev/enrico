@@ -34,7 +34,7 @@ public:
   //!
   //! \param comm The MPI communicator used for the coupled driver
   //! \param node XML node containing settings
-  explicit CoupledDriver(MPI_Comm comm, pugi::xml_node node);
+  CoupledDriver(MPI_Comm comm, pugi::xml_node node);
 
   ~CoupledDriver() {}
 

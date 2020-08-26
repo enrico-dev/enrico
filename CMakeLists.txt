@@ -182,7 +182,7 @@ set_target_properties(
 
 
 if (USE_NEK5000)
-    add_executable(test_nek5000_singlerod tests/singlerod/short/test_nek5000.cpp)
+    add_executable(test_nek5000_singlerod tests/singlerod/short/nek5000/test_nek5000.cpp)
     target_link_libraries(test_nek5000_singlerod PUBLIC libenrico)
     set_target_properties(
             test_nek5000_singlerod
