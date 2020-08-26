@@ -3,6 +3,12 @@
 //
 #include "udf.hpp"
 #include <math.h>
+#include <vector>
+
+// We use std::vector (not dfloat*)
+// * Must get resized in UDF_Setup (see below)
+// * Will get automatically destroyed
+std::vector<dfloat> localq;
 
 static occa::kernel cFillKernel;
 static occa::kernel cCopyKernel;
@@ -10,11 +16,7 @@ static int updateProperties = 1;
 
 void userq(ins_t* ins, dfloat time, occa::memory o_S, occa::memory o_FS)
 {
-  cds_t* cds = ins->cds;
-  mesh_t* mesh = cds->mesh;
-  const dfloat qvolFluid = 0.0;
-  const dfloat qvolSolid = 250.0;
-  cFillKernel(mesh->Nelements, qvolFluid, qvolSolid, ins->o_elementInfo, o_FS);
+  cCopyKernel(ins->cds->mesh->Nelements, o_FS, localq.data());
 }
 
 void uservp(ins_t* ins,
@@ -82,6 +84,9 @@ void UDF_Setup(ins_t* ins)
 
   udf.sEqnSource = &userq;
   udf.properties = &uservp;
+
+  // ATTENTION: Need to explicitly resize localq
+  localq.resize(ins->cds->mesh->Nelements);
 }
 
 void UDF_ExecuteStep(ins_t* ins, dfloat time, int tstep)

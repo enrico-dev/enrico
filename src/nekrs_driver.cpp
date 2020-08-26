@@ -5,9 +5,12 @@
 #include "libP/include/mesh3D.h"
 #include "nekrs.hpp"
 
+#include <dlfcn.h>
+
 namespace enrico {
-NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node) :
-  HeatFluidsDriver(comm, node) {
+NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
+  : HeatFluidsDriver(comm, node)
+{
 
   if (active()) {
     // See vendor/nekRS/src/core/occaDeviceConfig.cpp for valid keys
@@ -22,9 +25,15 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node) :
     int debug = 0;
 
     std::string cache_dir;
-    nekrs::setup(comm, build_only, size_target, ci_mode, cache_dir,
-                 setup_file_, device_number_,
+    nekrs::setup(comm,
+                 build_only,
+                 size_target,
+                 ci_mode,
+                 cache_dir,
+                 setup_file_,
+                 device_number_,
                  thread_model_);
+    open_lib_udf();
 
     // Check that we're running a CHT simulation.
     err_chk(nekrs::cht(), "NekRS simulation is not setup for conjugate-heat transfer (CHT).  "
@@ -68,6 +77,8 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node) :
     //                       std::to_string(comm_.rank) + ", " + std::to_string(i));
     //  }
     //}
+    comm_.message("size of local_q: " + std::to_string(localq_->size()));
+    comm_.message("N local elem: " + std::to_string(n_local_elem_));
 
     init_displs();
   }
@@ -125,8 +136,9 @@ std::vector<Position> NekRSDriver::centroid_local() const {
   return c;
 }
 
-double NekRSDriver::volume_at(int32_t local_elem) const  {
-  Expects(local_elem < n_local_elem())
+double NekRSDriver::volume_at(int32_t local_elem) const
+{
+  Expects(local_elem < n_local_elem());
   double v = 0.;
   for (int32_t i = 0; i < n_gll_; ++i) {
     v += mass_matrix_[local_elem * n_gll_ + i];
@@ -186,7 +198,8 @@ int NekRSDriver::in_fluid_at(int32_t local_elem) const {
   return element_info_[local_elem] == 1 ? 0 : 1;
 }
 
-std::vector<int> NekRSDriver::fluid_mask_local() const {
+std::vector<int> NekRSDriver::fluid_mask_local() const
+{
   std::vector<int> mask(n_local_elem());
   for (int32_t i = 0; i < n_local_elem(); ++i) {
     mask[i] = in_fluid_at(i);
@@ -194,6 +207,27 @@ std::vector<int> NekRSDriver::fluid_mask_local() const {
   return mask;
 }
 
-
+void NekRSDriver::open_lib_udf()
+{
+  lib_udf_handle_ = dlopen(lib_udf_name_.c_str(), RTLD_LAZY);
+  if (lib_udf_handle_ == NULL) {
+    throw std::runtime_error(std::string{"dlopen error for localq: "} + dlerror());
+  }
+  void* localq_void = dlsym(lib_udf_handle_, "localq");
+  if (dlerror() != NULL) {
+    throw std::runtime_error("dlsym error for localq");
+  }
+  localq_ = reinterpret_cast<std::vector<double>*>(localq_void);
 }
 
+void NekRSDriver::close_lib_udf()
+{
+  dlclose(lib_udf_handle_);
+}
+
+NekRSDriver::~NekRSDriver()
+{
+  close_lib_udf();
+}
+
+}

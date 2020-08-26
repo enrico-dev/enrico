@@ -10,8 +10,7 @@ class NekRSDriver : public HeatFluidsDriver {
 public:
   NekRSDriver(MPI_Comm comm, pugi::xml_node node);
 
-  // Default destructor is used; NekRS only runs MPI_Finalize
-  //~NekRSDriver();
+  ~NekRSDriver();
 
   void init_step() override;
   void solve_step() override;
@@ -28,7 +27,7 @@ public:
   bool has_coupling_data() const final { return comm_.rank == 0; }
 
   // TODO: Implement this
-  int set_heat_source_at(int32_t local_elem, double heat) override {return -1;}
+  int set_heat_source_at(int32_t local_elem, double heat) override { return -1; }
 
 private:
   std::vector<Position> centroid_local() const override;
@@ -36,6 +35,9 @@ private:
   std::vector<double> temperature_local() const override;
   std::vector<double> density_local() const override;
   std::vector<int> fluid_mask_local() const override;
+
+  void open_lib_udf();
+  void close_lib_udf();
 
   std::string setup_file_;
   std::string thread_model_;
@@ -56,6 +58,11 @@ private:
   const double* rho_energy_;
   const long long* element_info_;
   std::vector<double> mass_matrix_;
+
+  void* lib_udf_handle_;
+  // TODO: Get cache dir from env.  See udfLoadFunction in nekrs/udf/udf.cpp
+  const std::string lib_udf_name_ = ".cache/udf/libUDF.so";
+  std::vector<double>* localq_;
 };
 
 }
