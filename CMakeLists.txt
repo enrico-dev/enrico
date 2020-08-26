@@ -133,7 +133,7 @@ target_link_libraries(enrico PUBLIC libenrico)
 # =============================================================================
 add_executable(comm_split_demo tests/comm_split_demo/main.cpp)
 
-add_executable(test_openmc_singlerod tests/singlerod/short/test_openmc.cpp)
+add_executable(test_openmc_singlerod tests/singlerod/short/openmc/test_openmc.cpp)
 target_link_libraries(test_openmc_singlerod PUBLIC libenrico)
 
 # Ensure C++14 standard is used
@@ -147,7 +147,7 @@ set_target_properties(
 
 
 if (USE_NEK)
-    add_executable(test_nek5000_singlerod tests/singlerod/short/test_nek5000.cpp)
+    add_executable(test_nek5000_singlerod tests/singlerod/short/nek5000/test_nek5000.cpp)
     target_link_libraries(test_nek5000_singlerod PUBLIC libenrico)
     set_target_properties(
         test_nek5000_singlerod
