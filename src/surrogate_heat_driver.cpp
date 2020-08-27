@@ -377,14 +377,14 @@ std::vector<double> SurrogateHeatDriver::volume_local() const
 
 int SurrogateHeatDriver::set_heat_source_at(int32_t local_elem, double heat)
 {
-  if (local_elem > n_pins_ * n_axial_ * n_rings() * n_azimuthal_)
+  if (local_elem >= n_pins_ * n_axial_ * n_rings() * n_azimuthal_)
     return 0;
 
   // Determine indices
-  gsl::index pin = (local_elem - 1) / (n_axial_ * n_rings() * n_azimuthal_);
-  gsl::index axial = ((local_elem - 1) / (n_rings() * n_azimuthal_)) % n_axial_;
-  gsl::index ring = ((local_elem - 1) / n_azimuthal_) % n_rings();
-  gsl::index azimuthal = (local_elem - 1) % n_azimuthal_;
+  gsl::index pin = local_elem / (n_axial_ * n_rings() * n_azimuthal_);
+  gsl::index axial = (local_elem / (n_rings() * n_azimuthal_)) % n_axial_;
+  gsl::index ring = (local_elem / n_azimuthal_) % n_rings();
+  gsl::index azimuthal = local_elem % n_azimuthal_;
 
   // Set heat source
   source_(pin, axial, ring, azimuthal) = heat;

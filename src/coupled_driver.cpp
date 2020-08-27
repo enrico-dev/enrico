@@ -309,8 +309,8 @@ void CoupledDriver::update_heat_source(bool relax)
     auto displacement = heat.local_displs_.at(heat.comm_.rank);
     int n_local_elem = heat.n_local_elem();
     // Set heat source in every element
-    for (int32_t local_elem = 1; local_elem <= n_local_elem; ++local_elem) {
-      int32_t global_elem = local_elem + displacement - 1;
+    for (int32_t local_elem = 0; local_elem < n_local_elem; ++local_elem) {
+      int32_t global_elem = local_elem + displacement;
       // Get heat source for this element
       CellHandle cell = elem_to_cell_.at(global_elem);
       err_chk(heat.set_heat_source_at(local_elem, heat_source_.at(cell)),
