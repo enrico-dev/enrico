@@ -127,12 +127,10 @@ Position NekRSDriver::centroid_at(int32_t local_elem) const {
 }
 
 std::vector<Position> NekRSDriver::centroid_local() const {
-  SHOWLINE
   std::vector<Position> c(n_local_elem());
   for (int32_t i = 0; i < n_local_elem(); ++i) {
     c[i] = this->centroid_at(i);
   }
-  SHOWLINE
   return c;
 }
 
@@ -205,6 +203,17 @@ std::vector<int> NekRSDriver::fluid_mask_local() const
     mask[i] = in_fluid_at(i);
   }
   return mask;
+}
+
+int NekRSDriver::set_heat_source_at(int32_t local_elem, double heat)
+{
+  try {
+    // TODO: When PR #111 is approved, we won't need this one-off adjustment
+    localq_->at(local_elem - 1) = heat;
+  } catch (std::out_of_range& e) {
+    return -1;
+  }
+  return 0;
 }
 
 void NekRSDriver::open_lib_udf()

@@ -16,7 +16,7 @@ static int updateProperties = 1;
 
 void userq(ins_t* ins, dfloat time, occa::memory o_S, occa::memory o_FS)
 {
-  cCopyKernel(ins->cds->mesh->Nelements, o_FS, localq.data());
+  o_FS.copyFrom(localq.data(), ins->cds->mesh->Nelements, 0);
 }
 
 void uservp(ins_t* ins,
