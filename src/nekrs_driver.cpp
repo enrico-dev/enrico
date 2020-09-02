@@ -90,6 +90,10 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
 }
 
 void NekRSDriver::init_step() {
+  auto min = std::min_element(localq_->cbegin(), localq_->cend());
+  auto max = std::max_element(localq_->cbegin(), localq_->cend());
+  std::cout << "[ENRICO] : Min, max localq at " << __FILE__ << ":" << __LINE__ << ": " 
+    << *min << ", " << *max << std::endl;
 }
 
 void NekRSDriver::solve_step() {
@@ -174,24 +178,16 @@ double NekRSDriver::temperature_at(int32_t local_elem) const {
 
 std::vector<double> NekRSDriver::temperature_local() const 
 {
-  {
-    // VALUES OK HERE!
-    auto min = std::min_element(temperature_, temperature_ + n_local_elem_ * n_gll_);
-    auto max = std::max_element(temperature_, temperature_ + n_local_elem_ * n_gll_);
-    std::cout << "[ENRICO] : Min, max temperature_ at " << __FILE__ << ":" << __LINE__ << ": " 
-      << *min << ", " << *max << std::endl;
-  }
   std::vector<double> t(n_local_elem());
   for (int32_t i = 0; i < n_local_elem(); ++i) {
     t[i] = this->temperature_at(i);
   }
-  {
-    // ??
-    auto min = std::min_element(t.cbegin(), t.cend());
-    auto max = std::max_element(t.cbegin(), t.cend());
-    std::cout << "[ENRICO] : Min, max t at " << __FILE__ << ":" << __LINE__ << ": " 
-      << *min << ", " << *max << std::endl;
-  }
+
+  auto min = std::min_element(t.cbegin(), t.cend());
+  auto max = std::max_element(t.cbegin(), t.cend());
+  std::cout << "[ENRICO] : Min, max t at " << __FILE__ << ":" << __LINE__ << ": " 
+    << *min << ", " << *max << std::endl;
+
   return t;
 }
 
