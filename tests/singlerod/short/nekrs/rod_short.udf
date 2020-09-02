@@ -16,7 +16,23 @@ static int updateProperties = 1;
 
 void userq(ins_t* ins, dfloat time, occa::memory o_S, occa::memory o_FS)
 {
-  o_FS.copyFrom(localq.data(), ins->cds->mesh->Nelements, 0);
+  auto mesh = ins->cds->mesh;
+  o_FS.copyFrom(localq.data(), mesh->Nelements * mesh->Np * sizeof(dfloat), 0);
+
+  //Debug:
+  //dfloat* x = (dfloat *) calloc(mesh->Nelements * mesh->Np, sizeof(dfloat));
+  //o_FS.copyTo(x, mesh->Nelements * mesh->Np * sizeof(dfloat), 0);
+  //for (int i = 0; i < mesh->Nelements * mesh->Np; ++i) {
+  //  std::cout << x[i] << std::endl;
+  //}
+  //free(x);
+
+  // Debug
+  //cds_t* cds = ins->cds;
+  //mesh_t* mesh = cds->mesh;
+  //const dfloat qvolFluid = 0.0;
+  //const dfloat qvolSolid = 250.0;
+  //cFillKernel(mesh->Nelements, qvolFluid, qvolSolid, ins->o_elementInfo, o_FS);
 }
 
 void uservp(ins_t* ins,
@@ -86,7 +102,7 @@ void UDF_Setup(ins_t* ins)
   udf.properties = &uservp;
 
   // ATTENTION: Need to explicitly resize localq
-  localq.resize(ins->cds->mesh->Nelements);
+  localq.resize(ins->cds->mesh->Nelements * ins->cds->mesh->Np);
 }
 
 void UDF_ExecuteStep(ins_t* ins, dfloat time, int tstep)

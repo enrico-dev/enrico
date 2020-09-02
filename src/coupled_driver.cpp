@@ -83,7 +83,7 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   }
 
   if (coup_node.child("temperature_ic")) {
-    auto s = coup_node.child_value("temperature_ic");
+    std::string s = coup_node.child_value("temperature_ic");
 
     if (s == "neutronics") {
       temperature_ic_ = Initial::neutronics;
@@ -95,7 +95,7 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   }
 
   if (coup_node.child("density_ic")) {
-    auto s = coup_node.child_value("density_ic");
+    std::string s = coup_node.child_value("density_ic");
 
     if (s == "neutronics") {
       density_ic_ = Initial::neutronics;
@@ -350,6 +350,12 @@ void CoupledDriver::update_temperature(bool relax)
   }
 
   temperatures_ = heat.temperature();
+
+  if (comm_.rank == heat_root_) {
+    std::cout << "[ENRICO] : Min, max T at " << __FILE__ << ":" << __LINE__ << ": " 
+      << xt::eval(xt::amin(temperatures_))[0] << ", " 
+      << xt::eval(xt::amax(temperatures_))[0] << std::endl;
+  }
 
   if (relax && comm_.rank == heat_root_) {
     if (alpha_T_ == ROBBINS_MONRO) {

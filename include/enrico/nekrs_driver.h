@@ -55,7 +55,7 @@ private:
   const double* y_;
   const double* z_;
   const double* temperature_;
-  const double* rho_energy_;
+  const double* rho_cp_;
   const long long* element_info_;
   std::vector<double> mass_matrix_;
 

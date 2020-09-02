@@ -6,6 +6,7 @@
 #include "nekrs.hpp"
 
 #include <dlfcn.h>
+#include <algorithm>
 
 namespace enrico {
 NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
@@ -54,10 +55,13 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
     element_info_ = nekrs::mesh::elementInfo();
 
     // rho energy is field 1 (0-based) of rho
-    rho_energy_ = nekrs::rho();
+    rho_cp_ = nekrs::rhoCp();
 
     // Temperature is field 0 of scalarFields
     // TODO: This uses the 1st stage of the time integration.  Is this correct?
+    // temperature_ = nekrs::scalarFields();
+
+    // Debug: last stage
     temperature_ = nekrs::scalarFields();
 
     // Construct lumped mass matrix from vgeo
@@ -102,11 +106,14 @@ void NekRSDriver::solve_step() {
     nekrs::udfExecuteStep(time_, tstep_, 0);
     ++tstep_;
   }
+  // LOOK HERE!!!
+  nekrs::copyToNek(time_, tstep_);
 }
 
 void NekRSDriver::write_step(int timestep, int iteration) {
   nekrs::copyToNek(timestep, iteration);
   nekrs::nekOutfld();
+  return; 
 }
 
 Position NekRSDriver::centroid_at(int32_t local_elem) const {
@@ -155,31 +162,47 @@ std::vector<double> NekRSDriver::volume_local() const {
 double NekRSDriver::temperature_at(int32_t local_elem) const {
   Expects(local_elem < n_local_elem());
 
-  double x = 0.;
-  double y = 0.;
+  double sum0 = 0.;
+  double sum1 = 0.;
   for (int32_t i = 0; i < n_gll_; ++i) {
     auto idx = local_elem * n_gll_ + i;
-    x += rho_energy_[idx] * mass_matrix_[idx] * temperature_[idx];
-    y += rho_energy_[idx] * mass_matrix_[idx];
+    sum0 += rho_cp_[idx] * temperature_[idx];
+    sum1 += rho_cp_[idx];
   }
-  return x / y;
+  return sum0 / sum1;
 }
 
-std::vector<double> NekRSDriver::temperature_local() const {
+std::vector<double> NekRSDriver::temperature_local() const 
+{
+  {
+    // VALUES OK HERE!
+    auto min = std::min_element(temperature_, temperature_ + n_local_elem_ * n_gll_);
+    auto max = std::max_element(temperature_, temperature_ + n_local_elem_ * n_gll_);
+    std::cout << "[ENRICO] : Min, max temperature_ at " << __FILE__ << ":" << __LINE__ << ": " 
+      << *min << ", " << *max << std::endl;
+  }
   std::vector<double> t(n_local_elem());
   for (int32_t i = 0; i < n_local_elem(); ++i) {
     t[i] = this->temperature_at(i);
+  }
+  {
+    // ??
+    auto min = std::min_element(t.cbegin(), t.cend());
+    auto max = std::max_element(t.cbegin(), t.cend());
+    std::cout << "[ENRICO] : Min, max t at " << __FILE__ << ":" << __LINE__ << ": " 
+      << *min << ", " << *max << std::endl;
   }
   return t;
 }
 
 std::vector<double> NekRSDriver::density_local() const
 {
+  nekrs::copyToNek(time_, tstep_);
   std::vector<double> local_densities(n_local_elem());
 
   for (int32_t i = 0; i < n_local_elem(); ++i) {
-    if (this->in_fluid_at(i + 1) == 1) {
-      auto T = this->temperature_at(i + 1);
+    if (this->in_fluid_at(i) == 1) {
+      auto T = this->temperature_at(i);
       // nu1 returns specific volume in [m^3/kg]
       local_densities[i] = 1.0e-3 / iapws::nu1(pressure_bc_, T);
     } else {
@@ -191,8 +214,8 @@ std::vector<double> NekRSDriver::density_local() const
 }
 
 int NekRSDriver::in_fluid_at(int32_t local_elem) const {
-  Expects(local_elem < n_local_elem());
   // In NekRS, element_info_[i] == 1 if i is a *solid* element
+  Expects(local_elem < n_local_elem());
   return element_info_[local_elem] == 1 ? 0 : 1;
 }
 
@@ -207,11 +230,10 @@ std::vector<int> NekRSDriver::fluid_mask_local() const
 
 int NekRSDriver::set_heat_source_at(int32_t local_elem, double heat)
 {
-  try {
-    // TODO: When PR #111 is approved, we won't need this one-off adjustment
-    localq_->at(local_elem - 1) = heat;
-  } catch (std::out_of_range& e) {
-    return -1;
+  // TODO: When PR #111 is approved, we won't need this one-off adjustment
+  auto e = local_elem - 1;
+  for (int i = 0; i < n_gll_; ++i) {
+    localq_->at(e * n_gll_ + i) = heat;
   }
   return 0;
 }
