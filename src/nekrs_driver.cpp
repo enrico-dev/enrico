@@ -32,8 +32,8 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
                  ci_mode,
                  cache_dir,
                  setup_file_,
-                 device_number_,
-                 thread_model_);
+                 thread_model_,
+                 device_number_);
     open_lib_udf();
 
     // Check that we're running a CHT simulation.
