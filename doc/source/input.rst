@@ -191,7 +191,7 @@ value of "robbins-monro" indicates that Robbins-Monro relaxation is to be used:
 The initial temperature distribution can be determined either from the
 neutronics solver or the heat-fluids solver. A value of "neutronics" will use
 the temperatures specified in the model for the neutronics solver whereas a
-value of "heat" will use the temperatures specified in the model for the
+value of "heat_fluids" will use the temperatures specified in the model for the
 heat-fluids solver.
 
 *Default*: neutronics
@@ -202,7 +202,7 @@ heat-fluids solver.
 The initial density distribution can be determined either from the
 neutronics solver or the heat-fluids solver. A value of "neutronics" will use
 the densities specified in the model for the neutronics solver whereas a
-value of "heat" will use the densities specified in the model for the
+value of "heat_fluids" will use the densities specified in the model for the
 heat-fluids solver. Note that this density initial condition strictly refers
 to the fluid density - the solid density is constant throughout the simulation,
 and is unchanged from the value used in the neutronics input.
