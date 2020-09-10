@@ -7,8 +7,6 @@
   <heat_fluids>
     <driver>nekrs</driver>
     <casename>rod_short</casename>
-    <thread_model>SERIAL</thread_model>
-    <device_number>LOCAL-RANK</device_number>
     <pressure_bc>12.7553</pressure_bc>
   </heat_fluids>
   <coupling>

@@ -16,24 +16,8 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
   if (active()) {
     // See vendor/nekRS/src/core/occaDeviceConfig.cpp for valid keys
     setup_file_ = node.child_value("casename");
-    device_number_ = node.child_value("device_number");
-    thread_model_ = node.child_value("thread_model");
+    nekrs::setup(comm, 0, 0, 0, "", setup_file_, "", "");
 
-    // TODO: Get these values from XML or command line
-    int build_only = 0;
-    int ci_mode = 0;
-    int size_target = 0;
-    int debug = 0;
-
-    std::string cache_dir;
-    nekrs::setup(comm,
-                 build_only,
-                 size_target,
-                 ci_mode,
-                 cache_dir,
-                 setup_file_,
-                 thread_model_,
-                 device_number_);
     open_lib_udf();
 
     // Check that we're running a CHT simulation.
@@ -57,11 +41,6 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
     // rho energy is field 1 (0-based) of rho
     rho_cp_ = nekrs::rhoCp();
 
-    // Temperature is field 0 of scalarFields
-    // TODO: This uses the 1st stage of the time integration.  Is this correct?
-    // temperature_ = nekrs::scalarFields();
-
-    // Debug: last stage
     temperature_ = nekrs::scalarFields();
 
     // Construct lumped mass matrix from vgeo
