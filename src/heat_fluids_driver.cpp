@@ -26,19 +26,6 @@ void HeatFluidsDriver::init_displs()
     for (gsl::index i = 1; i < comm_.size; ++i) {
       local_displs_.at(i) = local_displs_.at(i - 1) + local_counts_.at(i - 1);
     }
-    if (comm_.rank == 0) {
-      comm_.message("LOCAL_COUNTS");
-      for (const auto& c : local_counts_) {
-        std::cout << c << " ";
-      }
-      std::cout << std::endl;
-
-      comm_.message("LOCAL_DISPL");
-      for (const auto& d : local_displs_) {
-        std::cout << d << " ";
-      }
-      std::cout << std::endl;
-    }
   }
 }
 

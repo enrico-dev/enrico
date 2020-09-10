@@ -205,10 +205,8 @@ std::vector<int> NekRSDriver::fluid_mask_local() const
 
 int NekRSDriver::set_heat_source_at(int32_t local_elem, double heat)
 {
-  // TODO: When PR #111 is approved, we won't need this one-off adjustment
-  auto e = local_elem - 1;
   for (int i = 0; i < n_gll_; ++i) {
-    localq_->at(e * n_gll_ + i) = heat;
+    localq_->at(local_elem * n_gll_ + i) = heat;
   }
   return 0;
 }
