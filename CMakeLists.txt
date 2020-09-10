@@ -2,12 +2,8 @@ cmake_minimum_required(VERSION 3.3)
 project(enrico Fortran C CXX)
 
 # =============================================================================
-
-# NekRS must be installed (via `make install`) to have all headers/libs available.
-# For ENRICO, we'll install in the build directory by default
-if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
-    set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR} CACHE PATH "" FORCE)
-endif ()
+# Nek Options
+# =============================================================================
 
 set(NEK_DIST
         "nek5000" CACHE STRING
@@ -61,6 +57,42 @@ if (USE_NEK5000)
             nek_end
             nek_solve)
 endif ()
+
+#===============================================================================
+# RPATH and install information
+#===============================================================================
+
+# Provide install directory variables as defined by GNU coding standards
+include(GNUInstallDirs)
+
+# NekRS must be installed (via `make install`) to have all headers/libs available.
+# For ENRICO, we'll install in the build directory by default
+if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
+    set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install CACHE PATH "" FORCE)
+endif ()
+
+# This block of code ensures that dynamic libraries can be found via the RPATH
+# whether the executable is the original one from the build directory or the
+# installed one in CMAKE_INSTALL_PREFIX. Ref:
+# https://gitlab.kitware.com/cmake/community/wikis/doc/cmake/RPATH-handling
+
+# use, i.e. don't skip the full RPATH for the build tree
+set(CMAKE_SKIP_BUILD_RPATH  FALSE)
+
+# when building, don't use the install RPATH already
+# (but later on when installing)
+set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
+
+# add the automatically determined parts of the RPATH
+# which point to directories outside the build tree to the install RPATH
+set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+# the RPATH to be used when installing, but only if it's not a system directory
+list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_FULL_LIBDIR}" isSystemDir)
+if("${isSystemDir}" STREQUAL "-1")
+  set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_FULL_LIBDIR}")
+endif()
+
 
 # =============================================================================
 # Headers for all targets
@@ -203,3 +235,28 @@ add_executable(unittests
   tests/unit/test_surrogate_th.cpp)
 target_link_libraries(unittests PUBLIC Catch pugixml libenrico)
 set_target_properties(unittests PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
+
+#################################################################################
+# Install targets
+#################################################################################
+
+set(INSTALL_TARGETS 
+  enrico 
+  libenrico 
+  iapws 
+  heat_xfer 
+  Catch 
+  unittests 
+  comm_split_demo
+  test_openmc_singlerod)
+
+# NekRS has its own installation rules, so we don't need to specify libnekrs here
+if (USE_NEK5000)
+  list(APPEND INSTALL_TARGETS libnek5000 test_nek5000_singlerod)
+endif()
+
+install(TARGETS ${INSTALL_TARGETS}
+  RUNTIME DESTINATION bin
+  LIBRARY DESTINATION lib
+  ARCHIVE DESTINATION lib
+)

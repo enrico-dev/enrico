@@ -22,10 +22,11 @@ env:
 matrix:
   include:
     - env: MODE="openmc_nek5000"
+    - env: MODE="openmc_nekrs"
     - env: MODE="openmc_heat_surrogate"
 
 before_install:
-  - bash ci/patch_singlerod_rea.sh
+  - bash ci/patch_singlerod_input.sh
 
 install:
   - bash ci/cmake_singlerod.sh
