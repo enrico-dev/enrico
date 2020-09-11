@@ -5,8 +5,8 @@
 #include "libP/include/mesh3D.h"
 #include "nekrs.hpp"
 
-#include <dlfcn.h>
 #include <algorithm>
+#include <dlfcn.h>
 
 namespace enrico {
 NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
@@ -21,7 +21,8 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
     open_lib_udf();
 
     // Check that we're running a CHT simulation.
-    err_chk(nekrs::cht(), "NekRS simulation is not setup for conjugate-heat transfer (CHT).  "
+    err_chk(nekrs::cht(),
+            "NekRS simulation is not setup for conjugate-heat transfer (CHT).  "
             "ENRICO must be run with a CHT simulation.");
 
     // Local and global element counts
@@ -53,29 +54,19 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
       }
     }
 
-    // for (gsl::index i = 0; i < mass_matrix_.size(); ++i) {
-    //  std::cout << "Rank, elem, mass: " << comm_.rank << ", " << i << ", " <<
-    //  mass_matrix_[i] << std::endl; if (mass_matrix_[i] < 1e-16) {
-    //    std::runtime_error("Very small mass at rank, elem: " +
-    //                       std::to_string(comm_.rank) + ", " + std::to_string(i));
-    //  }
-    //}
-    comm_.message("size of local_q: " + std::to_string(localq_->size()));
-    comm_.message("N local elem: " + std::to_string(n_local_elem_));
-
     init_displs();
   }
   comm_.Barrier();
 }
 
-void NekRSDriver::init_step() {
+void NekRSDriver::init_step()
+{
   auto min = std::min_element(localq_->cbegin(), localq_->cend());
   auto max = std::max_element(localq_->cbegin(), localq_->cend());
-  std::cout << "[ENRICO] : Min, max localq at " << __FILE__ << ":" << __LINE__ << ": " 
-    << *min << ", " << *max << std::endl;
 }
 
-void NekRSDriver::solve_step() {
+void NekRSDriver::solve_step()
+{
   const auto start_time = nekrs::startTime();
   const auto final_time = nekrs::finalTime();
   const auto dt = nekrs::dt();
@@ -83,7 +74,7 @@ void NekRSDriver::solve_step() {
   time_ = start_time;
   tstep_ = 1;
 
-  while ((final_time - time_) / (final_time * dt) > 1e-6){
+  while ((final_time - time_) / (final_time * dt) > 1e-6) {
     nekrs::runStep(time_, dt, tstep_);
     time_ += dt;
     nekrs::udfExecuteStep(time_, tstep_, 0);
@@ -93,13 +84,15 @@ void NekRSDriver::solve_step() {
   nekrs::copyToNek(time_, tstep_);
 }
 
-void NekRSDriver::write_step(int timestep, int iteration) {
+void NekRSDriver::write_step(int timestep, int iteration)
+{
   nekrs::copyToNek(timestep, iteration);
   nekrs::nekOutfld();
-  return; 
+  return;
 }
 
-Position NekRSDriver::centroid_at(int32_t local_elem) const {
+Position NekRSDriver::centroid_at(int32_t local_elem) const
+{
   Expects(local_elem < n_local_elem());
   Position c{0., 0., 0.};
   double mass = 0.;
@@ -116,7 +109,8 @@ Position NekRSDriver::centroid_at(int32_t local_elem) const {
   return c;
 }
 
-std::vector<Position> NekRSDriver::centroid_local() const {
+std::vector<Position> NekRSDriver::centroid_local() const
+{
   std::vector<Position> c(n_local_elem());
   for (int32_t i = 0; i < n_local_elem(); ++i) {
     c[i] = this->centroid_at(i);
@@ -134,7 +128,8 @@ double NekRSDriver::volume_at(int32_t local_elem) const
   return v;
 }
 
-std::vector<double> NekRSDriver::volume_local() const {
+std::vector<double> NekRSDriver::volume_local() const
+{
   std::vector<double> v(n_local_elem());
   for (int32_t i = 0; i < n_local_elem(); ++i) {
     v[i] = this->volume_at(i);
@@ -142,7 +137,8 @@ std::vector<double> NekRSDriver::volume_local() const {
   return v;
 }
 
-double NekRSDriver::temperature_at(int32_t local_elem) const {
+double NekRSDriver::temperature_at(int32_t local_elem) const
+{
   Expects(local_elem < n_local_elem());
 
   double sum0 = 0.;
@@ -155,17 +151,12 @@ double NekRSDriver::temperature_at(int32_t local_elem) const {
   return sum0 / sum1;
 }
 
-std::vector<double> NekRSDriver::temperature_local() const 
+std::vector<double> NekRSDriver::temperature_local() const
 {
   std::vector<double> t(n_local_elem());
   for (int32_t i = 0; i < n_local_elem(); ++i) {
     t[i] = this->temperature_at(i);
   }
-
-  auto min = std::min_element(t.cbegin(), t.cend());
-  auto max = std::max_element(t.cbegin(), t.cend());
-  std::cout << "[ENRICO] : Min, max t at " << __FILE__ << ":" << __LINE__ << ": " 
-    << *min << ", " << *max << std::endl;
 
   return t;
 }
@@ -188,7 +179,8 @@ std::vector<double> NekRSDriver::density_local() const
   return local_densities;
 }
 
-int NekRSDriver::in_fluid_at(int32_t local_elem) const {
+int NekRSDriver::in_fluid_at(int32_t local_elem) const
+{
   // In NekRS, element_info_[i] == 1 if i is a *solid* element
   Expects(local_elem < n_local_elem());
   return element_info_[local_elem] == 1 ? 0 : 1;

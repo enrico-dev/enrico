@@ -1,9 +1,9 @@
 #ifndef ENRICO_SRC_NEKRS_DRIVER_H
 #define ENRICO_SRC_NEKRS_DRIVER_H
 
+#include "enrico/heat_fluids_driver.h"
 #include "mpi.h"
 #include "pugixml.hpp"
-#include "enrico/heat_fluids_driver.h"
 
 namespace enrico {
 class NekRSDriver : public HeatFluidsDriver {
@@ -16,8 +16,8 @@ public:
   void solve_step() override;
   void write_step(int timestep, int iteration) override;
 
-  int n_local_elem() const override {return n_local_elem_;}
-  std::size_t n_global_elem() const override {return n_global_elem_;};
+  int n_local_elem() const override { return n_local_elem_; }
+  std::size_t n_global_elem() const override { return n_global_elem_; };
 
   Position centroid_at(int32_t local_elem) const;
   double volume_at(int32_t local_elem) const;
@@ -67,6 +67,4 @@ private:
 
 }
 
-
 #endif // ENRICO_SRC_NEKRS_DRIVER_H
-
