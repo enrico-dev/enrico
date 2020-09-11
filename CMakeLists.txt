@@ -243,9 +243,8 @@ set(INSTALL_TARGETS
   comm_split_demo
   test_openmc_singlerod)
 
-# NekRS has its own installation rules, so we don't need to specify libnekrs here
 if (USE_NEK5000)
-  list(APPEND INSTALL_TARGETS libnek5000 test_nek5000_singlerod)
+  list(APPEND INSTALL_TARGETS test_nek5000_singlerod)
 endif()
 
 install(TARGETS ${INSTALL_TARGETS}
