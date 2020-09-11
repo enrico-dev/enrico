@@ -3,4 +3,4 @@
 set -ex
 
 cd tests/singlerod/short/build
-make -j4 unittests
+make -j4 unittests install

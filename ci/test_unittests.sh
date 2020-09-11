@@ -2,4 +2,4 @@
 set -ex
 
 cd tests/unit
-../singlerod/short/build/install/unittests
+../singlerod/short/build/install/bin/unittests
