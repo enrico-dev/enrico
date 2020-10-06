@@ -132,9 +132,9 @@ double NekDriver::temperature_at(int32_t local_elem) const
   return temperature;
 }
 
-int NekDriver::in_fluid_at(int32_t local_elem) const
+bool NekDriver::in_fluid_at(int32_t local_elem) const
 {
-  return nek_local_elem_is_in_fluid(local_elem + 1);
+  return nek_local_elem_is_in_fluid(local_elem + 1) == 1;
 }
 
 int NekDriver::set_heat_source_at(int32_t local_elem, double heat)

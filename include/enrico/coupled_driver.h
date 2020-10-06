@@ -11,8 +11,8 @@
 #include <pugixml.hpp>
 #include <xtensor/xtensor.hpp>
 
+#include <map>
 #include <memory> // for unique_ptr
-#include <unordered_map>
 #include <vector>
 
 namespace enrico {
@@ -207,15 +207,31 @@ private:
   //! Map that gives a list of TH element indices for a given neutronics cell
   //! handle. The TH element indices refer to indices defined by the MPI_Gatherv
   //! operation, and do not reflect TH internal global element indexing.
-  std::unordered_map<CellHandle, std::vector<int32_t>> cell_to_elems_;
+  // std::unordered_map<CellHandle, std::vector<int32_t>> cell_to_elems_;
 
   //! Map that gives the neutronics cell handle for a given TH element index.
   //! The TH element indices refer to indices defined by the MPI_Gatherv
   //! operation, and do not reflect TH internal global element indexing.
-  std::vector<CellHandle> elem_to_cell_;
+  // std::vector<CellHandle> elem_to_cell_;
+
+  //! Map TH local element id -> neutronics cell.
+  //! Unlike elem_to_cell_, the elem IDs are local IDs internal to the TH driver
+  //! element IDs.
+  //! Persists only on ranks where the heat driver is active.
+  std::vector<CellHandle> l_elem_to_g_cell_;
+
+  //! Map that gives a list of TH element indices for a given neutronics cell
+  //! Unlike cell_to_elems_, the elem IDs are local IDs internal to the TH driver
+  //! Persists only on ranks where the heat driver is active.
+  std::map<CellHandle, std::vector<int32_t>> g_cell_to_l_elems_;
+
+  std::vector<CellHandle> l_cell_to_g_cell_;
+
+  //! (Parital) volumes of local cells
+  std::map<CellHandle, double> l_cell_vols_;
 
   //! Number of unique cells in neutronics model
-  int32_t n_cells_;
+  int32_t n_local_cells_;
 
   //! Number of global elements in heat/fluids model
   int32_t n_global_elem_;

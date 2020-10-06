@@ -172,6 +172,8 @@ public:
   //! \return Number of global mesh elements
   std::size_t n_global_elem() const override;
 
+  bool in_fluid_at(int32_t local_elem) const override;
+
   //! Set the heat source for a given local element
   //!
   //! \param local_elem A local element ID
@@ -209,6 +211,12 @@ public:
 
   //! Returns number of pins in y-direction
   std::size_t n_pins_y() const { return n_pins_y_; }
+
+  //! Returns number of solid elements
+  std::size_t n_solid_;
+
+  //! Returns number of fluid elements
+  std::size_t n_fluid_;
 
   //! Returns pin pitch
   double pin_pitch() const { return pin_pitch_; }

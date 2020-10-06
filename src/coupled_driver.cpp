@@ -439,32 +439,40 @@ void CoupledDriver::init_mappings()
   const auto& heat = this->get_heat_driver();
   auto& neutronics = this->get_neutronics_driver();
 
-  // Get centroids from heat driver and send to all neutronics procs
-  auto elem_centroids = heat.centroids();
-  comm_.send_and_recv(elem_centroids, neutronics_root_, heat_root_);
-  neutronics.comm_.broadcast(elem_centroids);
+  for (int i = 0; i < heat.comm_.size; ++i) {
 
-  if (neutronics.active()) {
-    // Get cell handle corresponding to each element centroid
-    elem_to_cell_ = neutronics.find(elem_centroids);
-
-    // Create a vector of elements for each neutronics cell
-    for (int32_t elem = 0; elem < elem_to_cell_.size(); ++elem) {
-      auto cell = elem_to_cell_[elem];
-      cell_to_elems_[cell].push_back(elem);
+    int heat_rank = MPI_PROC_NULL;
+    std::vector<Position> loc_c;
+    if (heat.comm_.rank == i) {
+      // Get the rank ID and local centroids for one heat/fluids rank
+      heat_rank = this->comm_.rank;
+      loc_c = heat.centroid_local();
     }
 
-    // Determine number of neutronic cell instances
-    n_cells_ = cell_to_elems_.size();
+    // Send local centroids to neutron root
+    this->comm_.send_and_recv(loc_c, neutronics_root_, heat_rank);
+    // Determine mapping of local elems -> global cells and send back to heat/fluids rank.
+    if (this->comm_.rank == neutronics_root_) {
+      l_elem_to_g_cell_ = neutronics.find(loc_c);
+    }
+    this->comm_.send_and_recv(l_elem_to_g_cell_, heat_rank, neutronics_root_);
+
+    if (heat.comm_.rank == i) {
+      // Determine mapping of global cells -> local elems
+      for (int32_t e = 0; e < l_elem_to_g_cell_.size(); ++e) {
+        if (!heat.in_fluid_at(e)) {
+          auto cell = l_elem_to_g_cell_[e];
+          g_cell_to_l_elems_[cell].push_back(e);
+        }
+      }
+      // Determine mapping of local cells -> global cells.
+      for (const auto& p : g_cell_to_l_elems_) {
+        l_cell_to_g_cell_.push_back(p.first);
+      }
+      // Determine the number of local cells in this heat/fluids rank
+      n_local_cells_ = g_cell_to_l_elems_.size();
+    }
   }
-
-  // Send element -> cell instance mapping to all heat procs
-  comm_.send_and_recv(elem_to_cell_, heat_root_, neutronics_root_);
-  heat.comm_.broadcast(elem_to_cell_);
-
-  // Send number of cell instances to all heat procs
-  comm_.send_and_recv(n_cells_, heat_root_, neutronics_root_);
-  heat.comm_.broadcast(n_cells_);
 }
 
 void CoupledDriver::init_tallies()
@@ -640,8 +648,8 @@ void CoupledDriver::init_heat_source()
   comm_.message("Initializing heat source");
 
   if (comm_.rank == neutronics_root_ || this->get_heat_driver().active()) {
-    heat_source_ = xt::empty<double>({n_cells_});
-    heat_source_prev_ = xt::empty<double>({n_cells_});
+    heat_source_ = xt::empty<double>({n_local_cells_});
+    heat_source_prev_ = xt::empty<double>({n_local_cells_});
   }
 }
 

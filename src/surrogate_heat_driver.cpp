@@ -33,6 +33,8 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   n_pins_x_ = node.child("n_pins_x").text().as_int();
   n_pins_y_ = node.child("n_pins_y").text().as_int();
   n_pins_ = n_pins_x_ * n_pins_y_;
+  n_solid_ = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
+  n_fluid_ = n_pins_ * n_axial_;
   pin_pitch_ = node.child("pin_pitch").text().as_double();
 
   // Determine thermal-hydraulic parameters for fluid phase
@@ -329,6 +331,11 @@ std::vector<double> SurrogateHeatDriver::density_local() const
     }
   }
   return local_densities;
+}
+
+bool SurrogateHeatDriver::in_fluid_at(int32_t local_elem) const
+{
+  return local_elem >= n_solid_;
 }
 
 std::vector<int> SurrogateHeatDriver::fluid_mask_local() const
