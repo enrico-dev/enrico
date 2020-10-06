@@ -441,38 +441,48 @@ void CoupledDriver::init_mappings()
 
   for (int i = 0; i < heat.comm_.size; ++i) {
 
-    int heat_rank = MPI_PROC_NULL;
-    std::vector<Position> loc_c;
+    // Get the local centroids and rank ID in this->comm_ for this heat/fluids rank
+    int heat_rank = 0;
+    std::vector<Position> l_cents;
     if (heat.comm_.rank == i) {
-      // Get the rank ID and local centroids for one heat/fluids rank
       heat_rank = this->comm_.rank;
-      loc_c = heat.centroid_local();
+      l_cents = heat.centroid_local();
     }
+    MPI_Allreduce(MPI_IN_PLACE, &heat_rank, 1, get_mpi_type<int>(), MPI_MAX, comm_.comm);
 
     // Send local centroids to neutron root
-    this->comm_.send_and_recv(loc_c, neutronics_root_, heat_rank);
+    this->comm_.send_and_recv(l_cents, neutronics_root_, heat_rank);
     // Determine mapping of local elems -> global cells and send back to heat/fluids rank.
-    if (this->comm_.rank == neutronics_root_) {
-      l_elem_to_g_cell_ = neutronics.find(loc_c);
+    if (neutronics.comm_.is_root()) {
+      l_elem_to_g_cell_ = neutronics.find(l_cents);
     }
     this->comm_.send_and_recv(l_elem_to_g_cell_, heat_rank, neutronics_root_);
 
     if (heat.comm_.rank == i) {
       // Determine mapping of global cells -> local elems
-      for (int32_t e = 0; e < l_elem_to_g_cell_.size(); ++e) {
-        if (!heat.in_fluid_at(e)) {
-          auto cell = l_elem_to_g_cell_[e];
-          g_cell_to_l_elems_[cell].push_back(e);
+      for (int32_t l_elem = 0; l_elem < l_elem_to_g_cell_.size(); ++l_elem) {
+        if (!heat.in_fluid_at(l_elem)) {
+          auto g_cell = l_elem_to_g_cell_.at(l_elem);
+          g_cell_to_l_elems_[g_cell].push_back(l_elem);
         }
       }
       // Determine mapping of local cells -> global cells.
       for (const auto& p : g_cell_to_l_elems_) {
-        l_cell_to_g_cell_.push_back(p.first);
+        auto& g_cell = p.first;
+        l_cell_to_g_cell_.push_back(g_cell);
       }
       // Determine the number of local cells in this heat/fluids rank
       n_local_cells_ = g_cell_to_l_elems_.size();
     }
   }
+
+  // Determine number of global cells
+  if (heat.active()) {
+    n_global_cells_ =
+      *std::max_element(l_cell_to_g_cell_.begin(), l_cell_to_g_cell_.end());
+  }
+  MPI_Allreduce(
+    MPI_IN_PLACE, &n_global_cells_, 1, get_mpi_type<CellHandle>(), MPI_MAX, comm_.comm);
 }
 
 void CoupledDriver::init_tallies()
@@ -533,28 +543,56 @@ void CoupledDriver::init_volumes()
   const auto& heat = this->get_heat_driver();
   const auto& neutronics = this->get_neutronics_driver();
 
-  // Gather all the element volumes on heat root and send to all neutronics procs
-  elem_volumes_ = heat.volumes();
-  this->comm_.send_and_recv(elem_volumes_, neutronics_root_, heat_root_);
-  neutronics.comm_.broadcast(elem_volumes_);
-
-  // Volume check
-  if (neutronics.comm_.is_root()) {
-    for (const auto& kv : cell_to_elems_) {
-      CellHandle cell = kv.first;
-      double v_neutronics = neutronics.get_volume(cell);
-      double v_heatfluids = 0.0;
-      for (const auto& elem : kv.second) {
-        v_heatfluids += elem_volumes_.at(elem);
+  // Each heat rank: (1) Gets its local elem volumes; (2) accumulates its local cell
+  // volumes.  The local cells are ordered the same way as the keys in g_cell_to_l_elems_
+  if (heat.active()) {
+    l_elem_volumes_ = heat.volume_local();
+    for (const auto& p : g_cell_to_l_elems_) {
+      auto& l_elems = p.second;
+      double l_cell_vol = 0.;
+      for (const auto& le : l_elems) {
+        l_cell_vol += l_elem_volumes_.at(le);
       }
-
-      // Display volumes
-      std::stringstream msg;
-      msg << "Cell " << neutronics.cell_label(cell) << ", V = " << v_neutronics
-          << " (Neutronics), " << v_heatfluids << " (Heat/Fluids)";
-      comm_.message(msg.str());
+      l_cell_volumes_.push_back(l_cell_vol);
     }
   }
+
+#ifndef NDEBUG
+  // Volume check.  2020-10-06: This is pretty expensive now, so it's only in DEBUG builds
+
+  // An array of global cell volumes, which will be accumulated from local cell volumes.
+  std::vector<double> g_cell_vols;
+  if (neutronics.comm_.is_root()) {
+    g_cell_vols.resize(n_global_cells_);
+  }
+
+  // Get all local cell volumes from heat ranks and sum them into the global cell volumes.
+  for (int i = 0; i < heat.comm_.size; ++i) {
+    int heat_rank = this->comm_.rank ? heat.comm_.rank == i : 0;
+    MPI_Allreduce(MPI_IN_PLACE, &heat_rank, 1, get_mpi_type<int>(), MPI_MAX, comm_.comm);
+    comm_.send_and_recv(l_cell_to_g_cell_, neutronics_root_, heat_rank);
+    comm_.send_and_recv(l_cell_volumes_, neutronics_root_, heat_rank);
+    assert(l_cell_volumes_.size() == l_cell_to_g_cell_.size());
+
+    if (neutronics.comm_.is_root()) {
+      assert(l_cell_to_g_cell_.size() == l_cell_volumes_.size());
+      for (CellHandle l_cell = 0; l_cell < l_cell_to_g_cell_.size(); ++l_cell) {
+        auto g_cell = l_cell_to_g_cell_.at(l_cell);
+        g_cell_vols.at(g_cell) += l_cell_volumes_.at(l_cell);
+      }
+    }
+  }
+
+  // Compare volume from neutron driver to accumulated volume
+  for (CellHandle g_cell; g_cell < n_global_cells_; ++g_cell) {
+    auto v_neutronics = neutronics.get_volume(g_cell);
+    auto v_accum = g_cell_vols.at(g_cell);
+    std::stringstream msg;
+    msg << "Cell " << neutronics.cell_label(g_cell) << ", V = " << v_neutronics
+        << " (Neutronics), " << v_accum << " (Accumulated from Heat/Fluids)";
+    comm_.message(msg.str());
+  }
+#endif
 }
 
 void CoupledDriver::init_densities()

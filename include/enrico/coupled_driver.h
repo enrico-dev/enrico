@@ -202,7 +202,7 @@ private:
   //! Volumes of global elements in TH solver
   //! These are **not** ordered by TH global element indices.  Rather, these are
   //! ordered according to an MPI_Gatherv operation on TH local elements.
-  std::vector<double> elem_volumes_;
+  // std::vector<double> elem_volumes_;
 
   //! Map that gives a list of TH element indices for a given neutronics cell
   //! handle. The TH element indices refer to indices defined by the MPI_Gatherv
@@ -220,18 +220,27 @@ private:
   //! Persists only on ranks where the heat driver is active.
   std::vector<CellHandle> l_elem_to_g_cell_;
 
-  //! Map that gives a list of TH element indices for a given neutronics cell
-  //! Unlike cell_to_elems_, the elem IDs are local IDs internal to the TH driver
-  //! Persists only on ranks where the heat driver is active.
+  //! Maps global cell ID to local elem IDs
+  //! Ordering of keys (global cell IDs) is the same as ordering of l_cell_to_g_cell
+  //! and l_cell_volume.  This is because l_cell_to_g_cell and l_cell_volume are both
+  //! contructed by iterating through the keys of this map in order.
   std::map<CellHandle, std::vector<int32_t>> g_cell_to_l_elems_;
 
+  // Maps local cell ID (vector index) to global cell ID (vector value)
   std::vector<CellHandle> l_cell_to_g_cell_;
 
-  //! (Parital) volumes of local cells
-  std::map<CellHandle, double> l_cell_vols_;
+  //! Maps local cell ID (vector index) to local cell volume (vector value)
+  //! TODO: Revisit whether this needs to persist after init_volumes() is done
+  std::vector<double> l_cell_volumes_;
+
+  //! Maps local element ID (vector index) to local elem volume (vector value)
+  std::vector<double> l_elem_volumes_;
+
+  //! Number of unique neutronics cells in heat subdomain
+  CellHandle n_local_cells_;
 
   //! Number of unique cells in neutronics model
-  int32_t n_local_cells_;
+  CellHandle n_global_cells_;
 
   //! Number of global elements in heat/fluids model
   int32_t n_global_elem_;
