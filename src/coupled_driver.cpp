@@ -122,6 +122,10 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   auto neutronics_comm = driver_comms[0];
   auto heat_comm = driver_comms[1];
 
+  // Discover the ranks that are in each comm
+  neutronics_ranks_ = gather_subcomm_ranks(comm_, neutronics_comm);
+  heat_ranks_ = gather_subcomm_ranks(comm_, neutronics_comm);
+
   // Instantiate neutronics driver
   std::string neut_driver = neut_node.child_value("driver");
   if (neut_driver == "openmc") {
@@ -236,17 +240,33 @@ void CoupledDriver::execute()
 
 double CoupledDriver::temperature_norm(Norm norm)
 {
-  switch (norm) {
-  case Norm::L1: {
-    return xt::norm_l1(temperatures_ - temperatures_prev_)();
+  auto& heat = this->get_heat_driver();
+  double tnorm = 0;
+
+  // Update global temperature norm
+  if (heat.active()) {
+    switch (norm) {
+    case Norm::L1: {
+      double l_sum = xt::eval(xt::sum(xt::abs(l_cell_temps_ - l_cell_temps_prev_)))[0];
+      MPI_Reduce(&l_sum, &tnorm, 1, MPI_DOUBLE, MPI_SUM, 0, heat.comm_.comm);
+      break;
+    }
+    case Norm::L2: {
+      double l_sum = xt::eval(xt::sum(xt::square(l_cell_temps_ - l_cell_temps_prev_)))[0];
+      double g_sum;
+      MPI_Reduce(&l_sum, &g_sum, 1, MPI_DOUBLE, MPI_SUM, 0, heat.comm_.comm);
+      tnorm = sqrt(g_sum);
+      break;
+    }
+    case Norm::LINF: {
+      double l_max = xt::eval(xt::amax(xt::abs(l_cell_temps_ - l_cell_temps_prev_)))[0];
+      MPI_Reduce(&l_max, &tnorm, 1, MPI_DOUBLE, MPI_MAX, 0, heat.comm_.comm);
+      break;
+    }
+    }
   }
-  case Norm::L2: {
-    return xt::norm_l2(temperatures_ - temperatures_prev_)();
-  }
-  default: {
-    return xt::norm_linf(temperatures_ - temperatures_prev_)();
-  }
-  }
+
+  return tnorm;
 }
 
 bool CoupledDriver::is_converged()
@@ -327,55 +347,90 @@ void CoupledDriver::update_temperature(bool relax)
   auto& neutronics = this->get_neutronics_driver();
   auto& heat = this->get_heat_driver();
 
-  // *************************************************************************
-  // Gather temperature on heat root and apply underrelaxation
-  // *************************************************************************
-
-  if (relax && comm_.rank == heat_root_) {
-    // Store previous temperature solution; a previous solution will always be present
-    // because a temperature IC is set and the neutronics solver runs first
-    std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
+  // Step 1: On each heat rank, assign the current iterate of T to the previous
+  if (relax && heat.active()) {
+    std::copy(l_cell_temps_.begin(), l_cell_temps_.end(), l_cell_temps_prev_.begin());
   }
 
-  temperatures_ = heat.temperature();
-
-  if (relax && comm_.rank == heat_root_) {
-    if (alpha_T_ == ROBBINS_MONRO) {
-      int n = i_picard_ + 1;
-      temperatures_ = temperatures_ / n + (1. - 1. / n) * temperatures_prev_;
-    } else {
-      temperatures_ = alpha_T_ * temperatures_ + (1.0 - alpha_T_) * temperatures_prev_;
-    }
-  }
-
-  // ****************************************************************************
-  // Send underrelaxed temperature to all neutron ranks and set cell temperatures
-  // ****************************************************************************
-
-  // Broadcast global_element_temperatures onto all the neutronics procs
-  comm_.send_and_recv(temperatures_, neutronics_root_, heat_root_);
-  neutronics.comm_.broadcast(temperatures_);
-
-  if (neutronics.active()) {
-    // For each neutronics cell, volume average temperatures and set
-    for (const auto& kv : cell_to_elems_) {
-      // Get volume-average temperature for this cell instance
-      double average_temp = 0.0;
+  // Step 2: On each heat rank, compute the local cell T by volume-averaging the local
+  // elem T
+  if (heat.active()) {
+    auto l_elem_temps = heat.temperature_local();
+    for (const auto& kv : g_cell_to_l_elems_) {
+      double avg_temp = 0.0;
       double total_vol = 0.0;
-      for (int elem : kv.second) {
-        double T = temperatures_[elem];
-        double V = elem_volumes_[elem];
-        average_temp += T * V;
+      for (const auto& l_elem : kv.second) { // kv.second is l_elems
+        double T = l_elem_temps.at(l_elem);
+        double V = l_elem_volumes_.at(l_elem);
+        avg_temp += T * V;
         total_vol += V;
       }
-      average_temp /= total_vol;
-      Ensures(average_temp > 0.0);
-
-      // Set temperature for cell instance
-      CellHandle cell = kv.first;
-      neutronics.set_temperature(cell, average_temp);
+      avg_temp /= total_vol;
+      Ensures(avg_temp > 0.0);
+      auto l_cell = g_cell_to_l_cell_.at(kv.first); // kv.first is g_cell
+      l_cell_temps_.at(l_cell) = avg_temp;
+    }
+    // Apply relaxation to local cell temperatures
+    if (relax) {
+      if (alpha_T_ == ROBBINS_MONRO) {
+        int n = i_picard_ + 1;
+        l_cell_temps_ = l_cell_temps_ / n + (1. - 1. / n) * l_cell_temps_prev_;
+      } else {
+        l_cell_temps_ =
+          alpha_T_ * l_cell_temps_prev_ + (1.0 - alpha_T_) * l_cell_temps_prev_;
+      }
     }
   }
+
+  // Step 3: Set the global cell T to a null sentinel
+  if (neutronics.active()) {
+    for (const auto& kv : g_cell_to_l_cell_) {
+      neutronics.set_temperature(kv.first, -1.0);
+    }
+  }
+
+  // Step 4: Set the global cell T from the volume-averaged contributions the local cell T
+  for (const auto& heat_rank : heat_ranks_) {
+    comm_.send_and_recv(l_cell_temps_, neutronics_root_, heat_rank);
+    neutronics.comm_.broadcast(l_cell_temps_);
+
+    comm_.send_and_recv(l_cell_to_g_cell_, neutronics_root_, heat_rank);
+    neutronics.comm_.broadcast(l_cell_to_g_cell_);
+
+    comm_.send_and_recv(l_cell_volumes_, neutronics_root_, heat_rank);
+    neutronics.comm_.broadcast(l_cell_volumes_);
+
+    if (neutronics.active()) {
+      for (gsl::index l_cell = 0; l_cell < l_cell_to_g_cell_.size(); ++l_cell) {
+        auto g_cell = l_cell_to_g_cell_.at(l_cell);
+        auto g_cell_T = neutronics.get_temperature(g_cell);
+        auto l_cell_T = l_cell_temps_.at(l_cell);
+        // If the global cell T is the null sentinel, then set the global cell
+        // T to be the local cell T.
+        if (g_cell_T < 0.0) {
+          neutronics.set_temperature(g_cell, l_cell_T);
+        }
+        // Otherwise, add the contribution of the local cell (which was a part of the
+        // global cell) to the existing temperature of the global cell
+        else {
+          auto g_cell_V = neutronics.get_volume(g_cell);
+          auto l_cell_V = l_cell_volumes_.at(l_cell);
+          auto avg_T =
+            (g_cell_T * (g_cell_V - l_cell_V) + l_cell_T * l_cell_V) / g_cell_V;
+          neutronics.set_temperature(g_cell, avg_T);
+        }
+      }
+    }
+  }
+
+#ifndef NDEBUG
+  // Make sure none of the temperatures remain null
+  if (neutronics.active()) {
+    for (const auto& kv : g_cell_to_l_cell_) {
+      Ensures(neutronics.get_temperature(kv.first) > 0.0);
+    }
+  }
+#endif
 }
 
 void CoupledDriver::update_density(bool relax)
@@ -439,16 +494,13 @@ void CoupledDriver::init_mappings()
   const auto& heat = this->get_heat_driver();
   auto& neutronics = this->get_neutronics_driver();
 
-  for (int i = 0; i < heat.comm_.size; ++i) {
+  for (const auto& heat_rank : heat_ranks_) {
 
-    // Get the local centroids and rank ID in this->comm_ for this heat/fluids rank
-    int heat_rank = 0;
+    // Get the local centroids for this heat/fluids rank
     std::vector<Position> l_cents;
-    if (heat.comm_.rank == i) {
-      heat_rank = this->comm_.rank;
+    if (heat.comm_.rank == heat_rank) {
       l_cents = heat.centroid_local();
     }
-    MPI_Allreduce(MPI_IN_PLACE, &heat_rank, 1, get_mpi_type<int>(), MPI_MAX, comm_.comm);
 
     // Send local centroids to neutron root
     this->comm_.send_and_recv(l_cents, neutronics_root_, heat_rank);
@@ -458,8 +510,8 @@ void CoupledDriver::init_mappings()
     }
     this->comm_.send_and_recv(l_elem_to_g_cell_, heat_rank, neutronics_root_);
 
-    if (heat.comm_.rank == i) {
-      // Determine mapping of global cells -> local elems
+    if (heat.comm_.rank == heat_rank) {
+      // Determine mapping of global cells -> local elems and global cells -> local cells
       for (int32_t l_elem = 0; l_elem < l_elem_to_g_cell_.size(); ++l_elem) {
         if (!heat.in_fluid_at(l_elem)) {
           auto g_cell = l_elem_to_g_cell_.at(l_elem);
@@ -468,8 +520,11 @@ void CoupledDriver::init_mappings()
       }
       // Determine mapping of local cells -> global cells.
       for (const auto& p : g_cell_to_l_elems_) {
-        auto& g_cell = p.first;
-        l_cell_to_g_cell_.push_back(g_cell);
+        l_cell_to_g_cell_.push_back(p.first);
+      }
+      // Determine mapping of global cell -> local cell.
+      for (gsl::index l_cell = 0; l_cell < l_cell_to_g_cell_.size(); ++l_cell) {
+        g_cell_to_l_cell_.emplace(l_cell_to_g_cell_.at(l_cell), l_cell);
       }
       // Determine the number of local cells in this heat/fluids rank
       n_local_cells_ = g_cell_to_l_elems_.size();
@@ -477,12 +532,7 @@ void CoupledDriver::init_mappings()
   }
 
   // Determine number of global cells
-  if (heat.active()) {
-    n_global_cells_ =
-      *std::max_element(l_cell_to_g_cell_.begin(), l_cell_to_g_cell_.end());
-  }
-  MPI_Allreduce(
-    MPI_IN_PLACE, &n_global_cells_, 1, get_mpi_type<CellHandle>(), MPI_MAX, comm_.comm);
+  n_global_cells_ = neutronics.n_cells();
 }
 
 void CoupledDriver::init_tallies()
@@ -502,28 +552,26 @@ void CoupledDriver::init_temperatures()
   const auto& neutronics = this->get_neutronics_driver();
   const auto& heat = this->get_heat_driver();
 
-  if (comm_.rank == heat_root_) {
-    temperatures_.resize({static_cast<unsigned long>(n_global_elem_)});
-    temperatures_prev_.resize({static_cast<unsigned long>(n_global_elem_)});
-  } else if (comm_.rank == neutronics_root_) {
-    temperatures_.resize({static_cast<unsigned long>(n_global_elem_)});
+  // Every heat rank keeps track of its own local cell T
+  if (heat.active()) {
+    l_cell_temps_.resize({static_cast<unsigned long>(n_local_cells_)});
+    l_cell_temps_prev_.resize({static_cast<unsigned long>(n_local_cells_)});
   }
 
   if (temperature_ic_ == Initial::neutronics) {
-    if (comm_.rank == neutronics_root_) {
-      // Loop over heat-fluids elements and determine temperature based on
-      // corresponding neutronics cell. This mapping assumes that each
-      // heat-fluids element is fully contained within a neutronic cell, i.e.,
-      // heat-fluids elements are not split between multiple neutronics cells.
-      for (gsl::index elem = 0; elem < elem_to_cell_.size(); ++elem) {
-        auto cell = elem_to_cell_[elem];
-        double T = neutronics.get_temperature(cell);
-        temperatures_[elem] = T;
+    // The neutronics root sends cell T to each heat rank
+    for (const auto& heat_rank : heat_ranks_) {
+      comm_.send_and_recv(l_cell_to_g_cell_, neutronics_root_, heat_rank);
+      if (comm_.rank == neutronics_root_) {
+        for (gsl::index l_cell = 0; l_cell < l_cell_to_g_cell_.size(); ++l_cell) {
+          l_cell_temps_.at(l_cell) =
+            neutronics.get_temperature(l_cell_to_g_cell_.at(l_cell));
+        }
       }
+      comm_.send_and_recv(l_cell_temps_, heat_rank, neutronics_root_);
     }
-    comm_.send_and_recv(temperatures_, heat_root_, neutronics_root_);
   } else if (temperature_ic_ == Initial::heat) {
-    // * This sets temperatures_ on the the coupling_root, based on the
+    // * This sets l_cel_temps_ on the the coupling_root, based on the
     //   temperatures received from the heat solver.
     // * We do not want to apply underrelaxation here (and at this point,
     //   there is no previous iterate of temperature, anyway).
@@ -531,8 +579,8 @@ void CoupledDriver::init_temperatures()
   }
 
   // In both cases, only temperatures_ was set, so we explicitly set temperatures_prev_
-  if (comm_.rank == heat_root_) {
-    std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
+  if (heat.active()) {
+    std::copy(l_cell_temps_.begin(), l_cell_temps_.end(), l_cell_temps_prev_.begin());
   }
 }
 
@@ -546,14 +594,15 @@ void CoupledDriver::init_volumes()
   // Each heat rank: (1) Gets its local elem volumes; (2) accumulates its local cell
   // volumes.  The local cells are ordered the same way as the keys in g_cell_to_l_elems_
   if (heat.active()) {
+    l_cell_volumes_.resize(n_local_cells_);
     l_elem_volumes_ = heat.volume_local();
-    for (const auto& p : g_cell_to_l_elems_) {
-      auto& l_elems = p.second;
+    for (const auto& kv : g_cell_to_l_elems_) {
       double l_cell_vol = 0.;
-      for (const auto& le : l_elems) {
-        l_cell_vol += l_elem_volumes_.at(le);
+      for (const auto& l_elem : kv.second) { // kv.second is l_elems
+        l_cell_vol += l_elem_volumes_.at(l_elem);
       }
-      l_cell_volumes_.push_back(l_cell_vol);
+      auto& l_cell = g_cell_to_l_cell_.at(kv.first); // kv.first is g_ccell
+      l_cell_volumes_.at(l_cell) = l_cell_vol;
     }
   }
 
@@ -567,12 +616,9 @@ void CoupledDriver::init_volumes()
   }
 
   // Get all local cell volumes from heat ranks and sum them into the global cell volumes.
-  for (int i = 0; i < heat.comm_.size; ++i) {
-    int heat_rank = this->comm_.rank ? heat.comm_.rank == i : 0;
-    MPI_Allreduce(MPI_IN_PLACE, &heat_rank, 1, get_mpi_type<int>(), MPI_MAX, comm_.comm);
+  for (const auto& heat_rank : heat_ranks_) {
     comm_.send_and_recv(l_cell_to_g_cell_, neutronics_root_, heat_rank);
     comm_.send_and_recv(l_cell_volumes_, neutronics_root_, heat_rank);
-    assert(l_cell_volumes_.size() == l_cell_to_g_cell_.size());
 
     if (neutronics.comm_.is_root()) {
       assert(l_cell_to_g_cell_.size() == l_cell_volumes_.size());

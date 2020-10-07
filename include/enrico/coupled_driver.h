@@ -161,14 +161,20 @@ private:
   //! The rank in comm_ that corresponds to the root of the heat comm
   int heat_root_ = MPI_PROC_NULL;
 
-  //! Current Picard iteration temperature; this temperature is the temperature
-  //! computed by the thermal-hydraulic solver, and data mappings may result in
-  //! a different temperature actually used in the neutronics solver. For example,
-  //! the entries in this xtensor may be averaged over neutronics cells to give
-  //! the temperature used by the neutronics solver.
-  xt::xtensor<double, 1> temperatures_;
+  //! List of ranks in this->comm_ that are in the heat/fluids subcomm
+  std::vector<int> heat_ranks_;
 
-  xt::xtensor<double, 1> temperatures_prev_; //!< Previous Picard iteration temperature
+  //! List of ranks in this->comm_ that are in the neutronics subcomm
+  std::vector<int> neutronics_ranks_;
+
+  //! Current Picard iteration temperature for the local cells.
+  //! This temperature is computed by the heat/fluids solver and averaged over the
+  //! "local cells", which are the portions of the neutronics cells that are in
+  //! a given heat-fluid subdomain.
+  xt::xtensor<double, 1> l_cell_temps_;
+
+  //! Previous Picard iteration temperature for the local cells.
+  xt::xtensor<double, 1> l_cell_temps_prev_;
 
   //! Current Picard iteration density; this density is the density
   //! computed by the thermal-hydraulic solver, and data mappings may result in
@@ -226,14 +232,17 @@ private:
   //! contructed by iterating through the keys of this map in order.
   std::map<CellHandle, std::vector<int32_t>> g_cell_to_l_elems_;
 
+  std::map<CellHandle, CellHandle> g_cell_to_l_cell_;
+
   // Maps local cell ID (vector index) to global cell ID (vector value)
   std::vector<CellHandle> l_cell_to_g_cell_;
 
   //! Maps local cell ID (vector index) to local cell volume (vector value)
-  //! TODO: Revisit whether this needs to persist after init_volumes() is done
+  //! TODO: xtensor
   std::vector<double> l_cell_volumes_;
 
   //! Maps local element ID (vector index) to local elem volume (vector value)
+  //! TODO: xtensor
   std::vector<double> l_elem_volumes_;
 
   //! Number of unique neutronics cells in heat subdomain
