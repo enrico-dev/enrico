@@ -197,45 +197,17 @@ private:
   std::unique_ptr<NeutronicsDriver> neutronics_driver_;  //!< The neutronics driver
   std::unique_ptr<HeatFluidsDriver> heat_fluids_driver_; //!< The heat-fluids driver
 
-  //! States whether a global element is in the fluid region
-  //! These are **not** ordered by TH global element indices.  Rather, these are
-  //! ordered according to an MPI_Gatherv operation on TH local elements.
-  std::vector<int> elem_fluid_mask_;
+  //! States whether a local cell is in the fluid region
+  std::vector<int> l_cell_fluid_mask_;
 
-  //! States whether a neutronic cell is in the fluid region
-  xt::xtensor<int, 1> cell_fluid_mask_;
-
-  //! Volumes of global elements in TH solver
-  //! These are **not** ordered by TH global element indices.  Rather, these are
-  //! ordered according to an MPI_Gatherv operation on TH local elements.
-  // std::vector<double> elem_volumes_;
-
-  //! Map that gives a list of TH element indices for a given neutronics cell
-  //! handle. The TH element indices refer to indices defined by the MPI_Gatherv
-  //! operation, and do not reflect TH internal global element indexing.
-  // std::unordered_map<CellHandle, std::vector<int32_t>> cell_to_elems_;
-
-  //! Map that gives the neutronics cell handle for a given TH element index.
-  //! The TH element indices refer to indices defined by the MPI_Gatherv
-  //! operation, and do not reflect TH internal global element indexing.
-  // std::vector<CellHandle> elem_to_cell_;
-
-  //! Map TH local element id -> neutronics cell.
-  //! Unlike elem_to_cell_, the elem IDs are local IDs internal to the TH driver
-  //! element IDs.
-  //! Persists only on ranks where the heat driver is active.
+  //! Map TH local element id -> global cell ID.
   std::vector<CellHandle> l_elem_to_g_cell_;
 
-  //! Maps global cell ID to local elem IDs
-  //! Ordering of keys (global cell IDs) is the same as ordering of l_cell_to_g_cell
-  //! and l_cell_volume.  This is because l_cell_to_g_cell and l_cell_volume are both
-  //! contructed by iterating through the keys of this map in order.
-  std::map<CellHandle, std::vector<int32_t>> g_cell_to_l_elems_;
-
-  std::map<CellHandle, CellHandle> g_cell_to_l_cell_;
-
-  // Maps local cell ID (vector index) to global cell ID (vector value)
+  // Maps local cell ID to global cell ID
   std::vector<CellHandle> l_cell_to_g_cell_;
+
+  // Mapps local cell ID to local element IDs
+  std::vector<std::vector<int32_t>> l_cell_to_l_elems;
 
   //! Maps local cell ID (vector index) to local cell volume (vector value)
   //! TODO: xtensor
@@ -247,12 +219,6 @@ private:
 
   //! Number of unique neutronics cells in heat subdomain
   CellHandle n_local_cells_;
-
-  //! Number of unique cells in neutronics model
-  CellHandle n_global_cells_;
-
-  //! Number of global elements in heat/fluids model
-  int32_t n_global_elem_;
 
   // Norm to use for convergence checks
   Norm norm_{Norm::LINF};

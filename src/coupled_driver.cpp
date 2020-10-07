@@ -356,10 +356,10 @@ void CoupledDriver::update_temperature(bool relax)
   // elem T
   if (heat.active()) {
     auto l_elem_temps = heat.temperature_local();
-    for (const auto& kv : g_cell_to_l_elems_) {
+    for (gsl::index l_cell = 0; l_cell < n_local_cells_; ++l_cell) {
       double avg_temp = 0.0;
       double total_vol = 0.0;
-      for (const auto& l_elem : kv.second) { // kv.second is l_elems
+      for (const auto& l_elem : l_cell_to_l_elems.at(l_cell)) {
         double T = l_elem_temps.at(l_elem);
         double V = l_elem_volumes_.at(l_elem);
         avg_temp += T * V;
@@ -367,7 +367,6 @@ void CoupledDriver::update_temperature(bool relax)
       }
       avg_temp /= total_vol;
       Ensures(avg_temp > 0.0);
-      auto l_cell = g_cell_to_l_cell_.at(kv.first); // kv.first is g_cell
       l_cell_temps_.at(l_cell) = avg_temp;
     }
     // Apply relaxation to local cell temperatures
@@ -384,8 +383,8 @@ void CoupledDriver::update_temperature(bool relax)
 
   // Step 3: Set the global cell T to a null sentinel
   if (neutronics.active()) {
-    for (const auto& kv : g_cell_to_l_cell_) {
-      neutronics.set_temperature(kv.first, -1.0);
+    for (CellHandle g_cell = 0; g_cell < neutronics.n_cells(); ++g_cell) {
+      neutronics.set_temperature(g_cell, -1.0);
     }
   }
 
@@ -426,8 +425,8 @@ void CoupledDriver::update_temperature(bool relax)
 #ifndef NDEBUG
   // Make sure none of the temperatures remain null
   if (neutronics.active()) {
-    for (const auto& kv : g_cell_to_l_cell_) {
-      Ensures(neutronics.get_temperature(kv.first) > 0.0);
+    for (CellHandle g_cell; g_cell < neutronics.n_cells(); ++g_cell) {
+      Ensures(neutronics.get_temperature(g_cell) > 0.0);
     }
   }
 #endif
@@ -495,44 +494,44 @@ void CoupledDriver::init_mappings()
   auto& neutronics = this->get_neutronics_driver();
 
   for (const auto& heat_rank : heat_ranks_) {
-
     // Get the local centroids for this heat/fluids rank
     std::vector<Position> l_cents;
     if (heat.comm_.rank == heat_rank) {
       l_cents = heat.centroid_local();
     }
 
-    // Send local centroids to neutron root
+    // (1) Send local elem centroids to neutron root.
+    // (2) Determine mapping of local elems -> global cells.
+    // (3) Send mapping back heat/fluids rank.
     this->comm_.send_and_recv(l_cents, neutronics_root_, heat_rank);
-    // Determine mapping of local elems -> global cells and send back to heat/fluids rank.
     if (neutronics.comm_.is_root()) {
       l_elem_to_g_cell_ = neutronics.find(l_cents);
     }
     this->comm_.send_and_recv(l_elem_to_g_cell_, heat_rank, neutronics_root_);
-
-    if (heat.comm_.rank == heat_rank) {
-      // Determine mapping of global cells -> local elems and global cells -> local cells
-      for (int32_t l_elem = 0; l_elem < l_elem_to_g_cell_.size(); ++l_elem) {
-        if (!heat.in_fluid_at(l_elem)) {
-          auto g_cell = l_elem_to_g_cell_.at(l_elem);
-          g_cell_to_l_elems_[g_cell].push_back(l_elem);
-        }
-      }
-      // Determine mapping of local cells -> global cells.
-      for (const auto& p : g_cell_to_l_elems_) {
-        l_cell_to_g_cell_.push_back(p.first);
-      }
-      // Determine mapping of global cell -> local cell.
-      for (gsl::index l_cell = 0; l_cell < l_cell_to_g_cell_.size(); ++l_cell) {
-        g_cell_to_l_cell_.emplace(l_cell_to_g_cell_.at(l_cell), l_cell);
-      }
-      // Determine the number of local cells in this heat/fluids rank
-      n_local_cells_ = g_cell_to_l_elems_.size();
-    }
   }
 
-  // Determine number of global cells
-  n_global_cells_ = neutronics.n_cells();
+  if (heat.active()) {
+    // Establish a mapping of local cell IDs -> global cell IDs. This ends up with the
+    // unique global IDs in order.
+    l_cell_to_g_cell_.resize(l_elem_to_g_cell_.size());
+    std::sort(l_cell_to_g_cell_.begin(), l_cell_to_g_cell_.end());
+    auto new_end = std::unique(l_cell_to_g_cell_.begin(), l_cell_to_g_cell_.end());
+    l_cell_to_g_cell_.erase(new_end, l_cell_to_g_cell_.end());
+
+    n_local_cells_ = l_cell_to_g_cell_.size();
+
+    // Determine mapping of local cells -> local elems
+    l_cell_to_l_elems.resize(n_local_cells_);
+
+    for (int32_t l_elem = 0; l_elem < l_elem_to_g_cell_.size(); ++l_elem) {
+      auto g_cell = l_elem_to_g_cell_.at(l_elem);
+      auto loc =
+        std::lower_bound(l_cell_to_g_cell_.cbegin(), l_cell_to_g_cell_.cend(), g_cell);
+      auto l_cell = std::distance(l_cell_to_g_cell_.cbegin(), loc);
+
+      l_cell_to_l_elems.at(l_cell).push_back(l_elem);
+    }
+  }
 }
 
 void CoupledDriver::init_tallies()
@@ -596,13 +595,12 @@ void CoupledDriver::init_volumes()
   if (heat.active()) {
     l_cell_volumes_.resize(n_local_cells_);
     l_elem_volumes_ = heat.volume_local();
-    for (const auto& kv : g_cell_to_l_elems_) {
+    for (const auto& kv : l_cell_to_l_elems) {
       double l_cell_vol = 0.;
       for (const auto& l_elem : kv.second) { // kv.second is l_elems
         l_cell_vol += l_elem_volumes_.at(l_elem);
       }
-      auto& l_cell = g_cell_to_l_cell_.at(kv.first); // kv.first is g_ccell
-      l_cell_volumes_.at(l_cell) = l_cell_vol;
+      l_cell_volumes_.at(kv.first) = l_cell_vol;
     }
   }
 
@@ -612,7 +610,7 @@ void CoupledDriver::init_volumes()
   // An array of global cell volumes, which will be accumulated from local cell volumes.
   std::vector<double> g_cell_vols;
   if (neutronics.comm_.is_root()) {
-    g_cell_vols.resize(n_global_cells_);
+    g_cell_vols.resize(neutronics.n_cells());
   }
 
   // Get all local cell volumes from heat ranks and sum them into the global cell volumes.
@@ -630,7 +628,7 @@ void CoupledDriver::init_volumes()
   }
 
   // Compare volume from neutron driver to accumulated volume
-  for (CellHandle g_cell; g_cell < n_global_cells_; ++g_cell) {
+  for (CellHandle g_cell; g_cell < neutronics.n_cells(); ++g_cell) {
     auto v_neutronics = neutronics.get_volume(g_cell);
     auto v_accum = g_cell_vols.at(g_cell);
     std::stringstream msg;
@@ -707,6 +705,24 @@ void CoupledDriver::init_elem_fluid_mask()
 void CoupledDriver::init_cell_fluid_mask()
 {
   comm_.message("Initializing cell fluid mask");
+
+  auto& heat = this->get_heat_driver();
+
+  if (heat.active()) {
+    l_cell_fluid_mask_.resize(n_local_cells_);
+    auto l_elem_fluid_mask = heat.fluid_mask_local();
+
+    for (const auto& kv : g_cell_to_l_elems_) {
+      auto l_elem = kv.second.at(0);
+
+      auto l_cell = g_cell_to_l_cell_.at(kv.first);
+    }
+  }
+
+  for (gsl::index l_elem = 0; l_elem < l_elem_fluid_mask.size(); ++l_elem) {
+  }
+
+  // /* OLD ===================================================
 
   // Because init_elem_fluid_mask is *expected* to be called first, it's assumed that
   // all neutron procs will have the correct values for elem_fluid_mask_
