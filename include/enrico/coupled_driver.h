@@ -187,9 +187,10 @@ private:
   //! heat source actually used in the heat solver. For example, the entries in this
   //! xtensor may be averaged over thermal-hydraulics cells to give the heat source
   //! used by the thermal-hydraulics solver.
-  xt::xtensor<double, 1> heat_source_;
+  xt::xtensor<double, 1> l_cell_heat_source_;
 
-  xt::xtensor<double, 1> heat_source_prev_; //!< Previous Picard iteration heat source
+  xt::xtensor<double, 1>
+    l_cell_heat_source_prev_; //!< Previous Picard iteration heat source
 
   std::unique_ptr<NeutronicsDriver> neutronics_driver_;  //!< The neutronics driver
   std::unique_ptr<HeatFluidsDriver> heat_fluids_driver_; //!< The heat-fluids driver

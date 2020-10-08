@@ -291,45 +291,50 @@ void CoupledDriver::update_heat_source(bool relax)
   // Gather heat source on neutronics root and apply underrelaxation
   // ****************************************************************************
 
-  if (relax && comm_.rank == neutronics_root_) {
+  if (relax && heat.active()) {
     // Store previous heat source solution if more than one iteration has been performed
     // (otherwise there is not an initial condition for the heat source)
-    std::copy(heat_source_.begin(), heat_source_.end(), heat_source_prev_.begin());
+    std::copy(l_cell_heat_source_.cbegin(),
+              l_cell_heat_source_.cend(),
+              l_cell_heat_source_prev_.begin());
   }
 
-  if (neutronics.active()) {
-    heat_source_ = neutronics.heat_source(power_);
+  // Send heat source from neutron root to heat/fluids ranks
+  xt::xtensor<double, 1> g_cell_heat_source;
+  if (comm_.rank == neutronics_root_) {
+    g_cell_heat_source = neutronics.heat_source(power_);
   }
-
-  // Compute the next iterate of the heat source
-  if (relax && comm_.rank == neutronics_root_) {
-    if (alpha_ == ROBBINS_MONRO) {
-      int n = i_picard_ + 1;
-      heat_source_ = heat_source_ / n + (1. - 1. / n) * heat_source_prev_;
-    } else {
-      heat_source_ = alpha_ * heat_source_ + (1.0 - alpha_) * heat_source_prev_;
+  for (const auto& heat_rank : heat_ranks_) {
+    comm_.send_and_recv(l_elem_to_g_cell_, neutronics_root_, heat_rank);
+    comm_.send_and_recv(l_cell_heat_source_, neutronics_root_, heat_rank);
+    comm_.send_and_recv(n_local_cells_, neutronics_root_, heat_rank);
+    if (comm_.rank == neutronics_root_) {
+      for (CellHandle l_cell; l_cell < n_local_cells_; ++l_cell) {
+        auto g_cell = l_cell_to_g_cell_.at(l_cell);
+        l_cell_heat_source_.at(l_cell) = g_cell_heat_source.at(g_cell);
+      }
     }
   }
 
-  // ****************************************************************************
-  // Send underrelaxed heat source to all heat ranks and set element temperatures
-  // ****************************************************************************
+  // Relax heat source
+  if (relax && heat.active()) {
+    if (alpha_ == ROBBINS_MONRO) {
+      int n = i_picard_ + 1;
+      l_cell_heat_source_ =
+        l_cell_heat_source_ / n + (1. - 1. / n) * l_cell_heat_source_prev_;
+    } else {
+      l_cell_heat_source_ =
+        alpha_ * l_cell_heat_source_ + (1.0 - alpha_) * l_cell_heat_source_prev_;
+    }
+  }
 
-  this->comm_.send_and_recv(heat_source_, heat_root_, neutronics_root_);
-  heat.comm_.broadcast(heat_source_);
-
+  // Set heat source
   if (heat.active()) {
-    // Determine displacement for this rank
-    auto displacement = heat.local_displs_.at(heat.comm_.rank);
-    int n_local_elem = heat.n_local_elem();
-    // Set heat source in every element
-    for (int32_t local_elem = 0; local_elem < n_local_elem; ++local_elem) {
-      int32_t global_elem = local_elem + displacement;
-      // Get heat source for this element
-      CellHandle cell = elem_to_cell_.at(global_elem);
-      err_chk(heat.set_heat_source_at(local_elem, heat_source_.at(cell)),
-              "Error setting heat source for local element " +
-                std::to_string(local_elem));
+    for (CellHandle l_cell; l_cell < n_local_cells_; ++l_cell) {
+      for (const auto& l_elem : l_cell_to_l_elems.at(l_cell)) {
+        err_chk(heat.set_heat_source_at(l_elem, l_cell_heat_source_.at(l_cell)),
+                "Error setting heat source for local element " + std::to_string(l_elem));
+      }
     }
   }
 }
@@ -688,9 +693,9 @@ void CoupledDriver::init_heat_source()
 {
   comm_.message("Initializing heat source");
 
-  if (comm_.rank == neutronics_root_ || this->get_heat_driver().active()) {
-    heat_source_ = xt::empty<double>({n_local_cells_});
-    heat_source_prev_ = xt::empty<double>({n_local_cells_});
+  if (this->heat_fluids_driver_->active()) {
+    l_cell_heat_source_ = xt::empty<double>({n_local_cells_});
+    l_cell_heat_source_prev_ = xt::empty<double>({n_local_cells_});
   }
 }
 
