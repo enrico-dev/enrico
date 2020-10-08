@@ -127,9 +127,6 @@ private:
   //! Initialize global volume buffers for neutronics ranks
   void init_volumes();
 
-  //! Initialize global fluid masks on all TH ranks.
-  void init_elem_fluid_mask();
-
   //! Initialize fluid masks for neutronics cells on all neutronic ranks.
   void init_cell_fluid_mask();
 
@@ -181,9 +178,9 @@ private:
   //! a different density actually used in the neutronics solver. For example,
   //! the entries in this xtensor may be averaged over neutronics cells to give
   //! the density used by the neutronics solver.
-  xt::xtensor<double, 1> densities_;
+  xt::xtensor<double, 1> l_cell_densities_;
 
-  xt::xtensor<double, 1> densities_prev_; //!< Previous Picard iteration density
+  xt::xtensor<double, 1> l_cell_densities_prev_; //!< Previous Picard iteration density
 
   //! Current Picard iteration heat source; this heat source is the heat source
   //! computed by the neutronics solver, and data mappings may result in a different
