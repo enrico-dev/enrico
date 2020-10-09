@@ -68,7 +68,10 @@ std::vector<int> gather_subcomm_ranks(const Comm& super, const Comm& sub)
   auto new_end =
     std::remove_if(ranks.begin(), ranks.end(), [](int i) { return i == MPI_PROC_NULL; });
   ranks.erase(new_end, ranks.end());
-  assert(sub.size == ranks.size());
+
+  if (sub.active()) {
+    assert(sub.size == ranks.size());
+  }
   return ranks;
 }
 

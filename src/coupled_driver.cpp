@@ -122,10 +122,6 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   auto neutronics_comm = driver_comms[0];
   auto heat_comm = driver_comms[1];
 
-  // Discover the ranks that are in each comm
-  neutronics_ranks_ = gather_subcomm_ranks(comm_, neutronics_comm);
-  heat_ranks_ = gather_subcomm_ranks(comm_, neutronics_comm);
-
   // Instantiate neutronics driver
   std::string neut_driver = neut_node.child_value("driver");
   if (neut_driver == "openmc") {
@@ -146,7 +142,8 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
 #ifdef USE_NEK
     heat_fluids_driver_ = std::make_unique<NekDriver>(heat_comm.comm, heat_node);
 #else
-    throw std::runtime_error{"nek5000 was specified as a solver, but is not enabled in this build of ENRICO"};
+    throw std::runtime_error{
+      "nek5000 was specified as a solver, but is not enabled in this build of ENRICO"};
 #endif
   } else if (s == "surrogate") {
     heat_fluids_driver_ =
@@ -154,6 +151,10 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   } else {
     throw std::runtime_error{"Invalid value for <heat_fluids><driver>"};
   }
+
+  // Discover the ranks that are in each comm
+  neutronics_ranks_ = gather_subcomm_ranks(comm_, neutronics_comm);
+  heat_ranks_ = gather_subcomm_ranks(comm_, heat_comm);
 
   // Send rank of neutronics root to all procs
   neutronics_root_ = this->get_neutronics_driver().comm_.is_root() ? comm_.rank : -1;
@@ -512,7 +513,9 @@ void CoupledDriver::init_mappings()
   if (heat.active()) {
     // Establish a mapping of local cell IDs -> global cell IDs. This ends up with the
     // unique global IDs in order.
-    l_cell_to_g_cell_.resize(l_elem_to_g_cell_.size());
+    std::copy(l_elem_to_g_cell_.cbegin(),
+              l_elem_to_g_cell_.cend(),
+              std::back_inserter(l_cell_to_g_cell_));
     std::sort(l_cell_to_g_cell_.begin(), l_cell_to_g_cell_.end());
     auto new_end = std::unique(l_cell_to_g_cell_.begin(), l_cell_to_g_cell_.end());
     l_cell_to_g_cell_.erase(new_end, l_cell_to_g_cell_.end());
@@ -643,8 +646,9 @@ void CoupledDriver::init_densities()
   const auto& heat = this->get_heat_driver();
 
   if (heat.active()) {
-    l_cell_densities_.resize({static_cast<unsigned long>(n_local_cells_)});
-    l_cell_densities_prev_.resize(static_cast<unsigned long>(n_local_cells_));
+    auto sz = {static_cast<unsigned long>(n_local_cells_)};
+    l_cell_densities_.resize(sz);
+    l_cell_densities_prev_.resize(sz);
   }
 
   if (density_ic_ == Initial::neutronics) {
