@@ -399,7 +399,7 @@ void CoupledDriver::update_temperature(bool relax)
         auto g_cell = l_cell_to_g_cell_.at(l_cell);
         auto l_cell_t = l_cell_temps_.at(l_cell);
         auto l_cell_v = l_cell_volumes_.at(l_cell);
-        g_cell_t_dot_v.at(g_cell) += l_cell_t * l_cell_v;
+        g_cell_t_dot_v[g_cell] += l_cell_t * l_cell_v;
       }
     }
   }
@@ -422,7 +422,7 @@ void CoupledDriver::update_density(bool relax)
   // Step 1: On each heat rank, assign the current iterate of rho to the previous
   if (relax && heat.active()) {
     std::copy(
-      l_cell_densities_.cbegin(), l_cell_temps_.cend(), l_cell_temps_prev_.begin());
+      l_cell_densities_.cbegin(), l_cell_densities_.cend(), l_cell_densities_.begin());
   }
 
   // Step 2: Update and relax cell densities on each heat root
@@ -472,7 +472,7 @@ void CoupledDriver::update_density(bool relax)
           auto g_cell = l_cell_to_g_cell_.at(l_cell);
           auto l_cell_rho = l_cell_densities_.at(l_cell);
           auto l_cell_v = l_cell_volumes_.at(l_cell);
-          g_cell_rho_dot_v.at(g_cell) += l_cell_rho * l_cell_v;
+          g_cell_rho_dot_v[g_cell] += l_cell_rho * l_cell_v;
         }
       }
     }
@@ -621,7 +621,7 @@ void CoupledDriver::init_volumes()
       assert(l_cell_to_g_cell_.size() == l_cell_volumes_.size());
       for (CellHandle l_cell = 0; l_cell < l_cell_to_g_cell_.size(); ++l_cell) {
         auto g_cell = l_cell_to_g_cell_.at(l_cell);
-        g_cell_vols.at(g_cell) += l_cell_volumes_.at(l_cell);
+        g_cell_vols[g_cell] += l_cell_volumes_.at(l_cell);
       }
     }
   }
@@ -629,7 +629,7 @@ void CoupledDriver::init_volumes()
   // Compare volume from neutron driver to accumulated volume
   for (CellHandle g_cell; g_cell < neutronics.n_cells(); ++g_cell) {
     auto v_neutronics = neutronics.get_volume(g_cell);
-    auto v_accum = g_cell_vols.at(g_cell);
+    auto v_accum = g_cell_vols[g_cell];
     std::stringstream msg;
     msg << "Cell " << neutronics.cell_label(g_cell) << ", V = " << v_neutronics
         << " (Neutronics), " << v_accum << " (Accumulated from Heat/Fluids)";
