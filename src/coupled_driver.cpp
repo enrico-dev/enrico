@@ -626,14 +626,15 @@ void CoupledDriver::init_volumes()
     }
   }
 
-  // Compare volume from neutron driver to accumulated volume
-  for (CellHandle g_cell; g_cell < neutronics.n_cells(); ++g_cell) {
-    auto v_neutronics = neutronics.get_volume(g_cell);
-    auto v_accum = g_cell_vols[g_cell];
-    std::stringstream msg;
-    msg << "Cell " << neutronics.cell_label(g_cell) << ", V = " << v_neutronics
-        << " (Neutronics), " << v_accum << " (Accumulated from Heat/Fluids)";
-    comm_.message(msg.str());
+  if (neutronics.comm_.is_root()) {
+    // Compare volume from neutron driver to accumulated volume
+    for (const auto& kv : g_cell_vols) {
+      auto v_neutronics = neutronics.get_volume(kv.first);
+      std::stringstream msg;
+      msg << "Cell " << neutronics.cell_label(kv.first) << ", V = " << v_neutronics
+          << " (Neutronics), " << kv.second << " (Accumulated from Heat/Fluids)";
+      comm_.message(msg.str());
+    }
   }
 #endif
 }
