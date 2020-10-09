@@ -270,8 +270,8 @@ bool CoupledDriver::is_converged()
   double norm;
 
   // The heat root has the global temperature data
+  norm = this->temperature_norm(norm_);
   if (comm_.rank == heat_root_) {
-    norm = this->temperature_norm(norm_);
     converged = norm < epsilon_;
   }
 
@@ -375,8 +375,7 @@ void CoupledDriver::update_temperature(bool relax)
         int n = i_picard_ + 1;
         l_cell_temps_ = l_cell_temps_ / n + (1. - 1. / n) * l_cell_temps_prev_;
       } else {
-        l_cell_temps_ =
-          alpha_T_ * l_cell_temps_prev_ + (1.0 - alpha_T_) * l_cell_temps_prev_;
+        l_cell_temps_ = alpha_T_ * l_cell_temps_ + (1.0 - alpha_T_) * l_cell_temps_prev_;
       }
     }
   }
