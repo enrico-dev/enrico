@@ -278,8 +278,9 @@ bool CoupledDriver::is_converged()
   comm_.broadcast(converged, heat_root_);
   comm_.broadcast(norm, heat_root_);
 
-  std::string msg = "temperature norm: " + std::to_string(norm);
-  comm_.message(msg);
+  std::stringstream msg;
+  msg << "temperature norm: " << norm;
+  comm_.message(msg.str());
   return converged;
 }
 
