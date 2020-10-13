@@ -15,19 +15,19 @@ Base element for heat/fluids driver parameters
 ------------
 
 The physics driver for solving fluid and heat transfer equations. Valid options
-are "nek5000" and "surrogate".
+are "nek5000", "nekrs", and "surrogate".
 
 ``<pressure_bc>``
 -----------------
 
 The pressure of the outlet boundary condition in units of [MPa].
 
-Nek5000-specific Parameters
+Nek5000- and nekRS-specific Parameters
 ---------------------------
 
-Under the ``<heat_fluids>`` element, these Nek5000-specific sub-elements are available:
+Under the ``<heat_fluids>`` element, these sub-elements are required for Nek5000 and NekRS
 
-* ``<casename>``: The Nek5000 casename.
+* ``<casename>``: The casename for the problem (i.e, the basename for .par or .rea files).
 
 Surrogate-specific Parameters
 -----------------------------

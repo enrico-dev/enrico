@@ -15,7 +15,7 @@
 namespace enrico {
 
 //! Driver to initialze and run Nek5000 in stages.
-class NekDriver : public HeatFluidsDriver {
+class Nek5000Driver : public HeatFluidsDriver {
 public:
   //! Initializes Nek5000 with the given MPI communicator.
   //!
@@ -24,12 +24,12 @@ public:
   //! NekDriver.
   //!
   //! \param comm  The MPI communicator used to initialze Nek5000
-  NekDriver(MPI_Comm comm, pugi::xml_node xml_root);
+  Nek5000Driver(MPI_Comm comm, pugi::xml_node xml_root);
 
   //! Finalizes Nek5000.
   //!
   //! A wrapper for the nek_end() routine in Nek5000.
-  ~NekDriver();
+  ~Nek5000Driver();
 
   //! Initializes a trivial runtime datafile for Nek5000.
   //!

@@ -1,0 +1,97 @@
+//
+// nekRS User Defined File
+//
+#include "udf.hpp"
+#include <math.h>
+#include <vector>
+
+// We use std::vector (not dfloat*)
+// * Must get resized in UDF_Setup (see below)
+// * Will get automatically destroyed
+std::vector<dfloat> localq;
+
+static occa::kernel cFillKernel;
+static occa::kernel cCopyKernel;
+static int updateProperties = 1;
+
+void userq(ins_t* ins, dfloat time, occa::memory o_S, occa::memory o_FS)
+{
+  auto mesh = ins->cds->mesh;
+  o_FS.copyFrom(localq.data(), mesh->Nelements * mesh->Np * sizeof(dfloat), 0);
+
+}
+
+void uservp(ins_t* ins,
+            dfloat time,
+            occa::memory o_U,
+            occa::memory o_S,
+            occa::memory o_UProp,
+            occa::memory o_SProp)
+{
+  cds_t* cds = ins->cds;
+
+  if (updateProperties) {
+    const dfloat rho = 1.0;
+    const dfloat mue = 0.01;
+    const dfloat rhoCpFluid = rho * 1.0;
+    const dfloat conFluid = mue;
+    const dfloat rhoCpSolid = rhoCpFluid * 0.01;
+    const dfloat conSolid = 10 * conFluid;
+
+    // velocity
+    const occa::memory o_mue = o_UProp.slice(0 * ins->fieldOffset * sizeof(dfloat));
+    const occa::memory o_rho = o_UProp.slice(1 * ins->fieldOffset * sizeof(dfloat));
+    cFillKernel(ins->mesh->Nelements, mue, 0, ins->o_elementInfo, o_mue);
+    cFillKernel(ins->mesh->Nelements, rho, 0, ins->o_elementInfo, o_rho);
+    // temperature
+    const occa::memory o_con = o_SProp.slice(0 * cds->fieldOffset * sizeof(dfloat));
+    const occa::memory o_rhoCp = o_SProp.slice(1 * cds->fieldOffset * sizeof(dfloat));
+
+    double* nekScratch = nekData.cbscnrs;
+    o_SProp.copyFrom(nekScratch, cds->Nlocal * sizeof(dfloat), 0);
+    cFillKernel(
+      cds->mesh->Nelements, rhoCpFluid, rhoCpSolid, ins->o_elementInfo, o_rhoCp);
+    updateProperties = 0;
+  }
+}
+
+/* UDF Functions */
+
+void UDF_LoadKernels(ins_t* ins)
+{
+  cFillKernel = udfBuildKernel(ins, "cFill");
+  cCopyKernel = udfBuildKernel(ins, "cCopy");
+}
+
+void UDF_Setup(ins_t* ins)
+{
+  // get IC from nek
+  if (!ins->readRestartFile)
+    nek_copyTo(ins->startTime);
+  ins->o_usrwrk.free();
+  free(ins->usrwrk);
+  ins->usrwrk = (dfloat*)calloc(ins->mesh->Nelements * ins->mesh->Np, sizeof(dfloat));
+  ins->o_usrwrk = ins->mesh->device.malloc(
+    ins->mesh->Nelements * ins->mesh->Np * sizeof(dfloat), ins->usrwrk);
+
+  nek_userchk();
+  auto* wrk1 = nekData.cbscnrs;
+  ins->o_usrwrk.copyFrom(wrk1, ins->mesh->Nelements * ins->mesh->Np * sizeof(dfloat));
+
+  udf.sEqnSource = &userq;
+  udf.properties = &uservp;
+
+  // ATTENTION: Need to explicitly resize localq
+  localq.resize(ins->cds->mesh->Nelements * ins->cds->mesh->Np);
+}
+
+void UDF_ExecuteStep(ins_t* ins, dfloat time, int tstep)
+{
+  if (ins->isOutputStep) {
+    nek_ocopyFrom(time, tstep);
+    nek_userchk();
+    auto* wrk1 = nekData.cbscnrs;
+    ins->o_usrwrk.copyFrom(wrk1, ins->mesh->Nelements * ins->mesh->Np * sizeof(dfloat));
+    updateProperties = 1;
+  }
+}

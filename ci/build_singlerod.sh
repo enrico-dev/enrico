@@ -8,3 +8,4 @@ if [ "$MODE" = "openmc_nek5000" ]; then
   make -j -l4 test_openmc_singlerod
   make -j -l4 test_nek5000_singlerod
 fi
+make install
