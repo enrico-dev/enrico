@@ -205,19 +205,21 @@ int NekRSDriver::set_heat_source_at(int32_t local_elem, double heat)
 void NekRSDriver::open_lib_udf()
 {
   lib_udf_handle_ = dlopen(lib_udf_name_.c_str(), RTLD_LAZY);
-  if (lib_udf_handle_ == NULL) {
-    throw std::runtime_error(std::string{"dlopen error for localq: "} + dlerror());
+  if (!lib_udf_handle_) {
+    std::stringstream msg;
+    msg << "dlopen error for localq in " << lib_udf_name_ << " : " << dlerror();
+    throw std::runtime_error(msg.str());
   }
   void* localq_void = dlsym(lib_udf_handle_, "localq");
-  if (dlerror() != NULL) {
-    throw std::runtime_error("dlsym error for localq");
+  if (dlerror()) {
+    throw std::runtime_error("dlsym error for localq in " + lib_udf_name_);
   }
   localq_ = reinterpret_cast<std::vector<double>*>(localq_void);
 }
 
 void NekRSDriver::close_lib_udf()
 {
-  dlclose(lib_udf_handle_);
+  err_chk(dlclose(lib_udf_handle_), "dlclose error for " + lib_udf_name_);
 }
 
 NekRSDriver::~NekRSDriver()

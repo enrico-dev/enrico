@@ -88,14 +88,26 @@ if (USE_NEK5000)
 endif ()
 
 # =============================================================================
+# Verify libdl headers for NekRS integration
+# =============================================================================
+
+if (USE_NEKRS)
+    include(CheckIncludeFileCxx)
+    check_include_file_cxx(dlfcn.h DLOPEN_H_FOUND)
+    if (NOT ${DLOPEN_H_FOUND})
+        message(FATAL_ERROR "CMake could not find dlfcn.h, the header for libdl.")
+    endif ()
+endif ()
+
+# =============================================================================
 # Headers for all targets
 # =============================================================================
 include_directories(
-    include/
-    vendor/iapws/include
-    vendor/openmc/include
-    vendor
-    src/
+        include/
+        vendor/iapws/include
+        vendor/openmc/include
+        vendor
+        src/
     ${CMAKE_BINARY_DIR})
 
 if (SCALE_FOUND)
