@@ -92,7 +92,7 @@ endif ()
 # =============================================================================
 
 if (USE_NEKRS)
-    include(CheckIncludeFileCxx)
+    include(CheckIncludeFileCXX)
     check_include_file_cxx(dlfcn.h DLOPEN_H_FOUND)
     if (NOT ${DLOPEN_H_FOUND})
         message(FATAL_ERROR "CMake could not find dlfcn.h, the header for libdl.")
