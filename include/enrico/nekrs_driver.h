@@ -26,7 +26,6 @@ public:
 
   bool has_coupling_data() const final { return comm_.rank == 0; }
 
-  // TODO: Implement this
   int set_heat_source_at(int32_t local_elem, double heat) override;
 
 private:

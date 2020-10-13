@@ -19,20 +19,6 @@ void userq(ins_t* ins, dfloat time, occa::memory o_S, occa::memory o_FS)
   auto mesh = ins->cds->mesh;
   o_FS.copyFrom(localq.data(), mesh->Nelements * mesh->Np * sizeof(dfloat), 0);
 
-  //Debug:
-  //dfloat* x = (dfloat *) calloc(mesh->Nelements * mesh->Np, sizeof(dfloat));
-  //o_FS.copyTo(x, mesh->Nelements * mesh->Np * sizeof(dfloat), 0);
-  //for (int i = 0; i < mesh->Nelements * mesh->Np; ++i) {
-  //  std::cout << x[i] << std::endl;
-  //}
-  //free(x);
-
-  // Debug
-  //cds_t* cds = ins->cds;
-  //mesh_t* mesh = cds->mesh;
-  //const dfloat qvolFluid = 0.0;
-  //const dfloat qvolSolid = 250.0;
-  //cFillKernel(mesh->Nelements, qvolFluid, qvolSolid, ins->o_elementInfo, o_FS);
 }
 
 void uservp(ins_t* ins,
@@ -66,9 +52,6 @@ void uservp(ins_t* ins,
 
     double* nekScratch = nekData.cbscnrs;
     o_SProp.copyFrom(nekScratch, cds->Nlocal * sizeof(dfloat), 0);
-    // cCopyKernel(cds->mesh->Nelements, o_con, ins->o_usrwrk);
-
-    // cFillKernel(cds->mesh->Nelements, conFluid, conSolid, ins->o_elementInfo, o_con);
     cFillKernel(
       cds->mesh->Nelements, rhoCpFluid, rhoCpSolid, ins->o_elementInfo, o_rhoCp);
     updateProperties = 0;

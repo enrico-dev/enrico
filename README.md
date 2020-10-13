@@ -63,7 +63,7 @@ files for both physics libraries; and the ENRICO-specific `enrico.xml` input fil
 [documentation](https://enrico-docs.readthedocs.io/en/latest/input.html) for a description of the
 `enrico.xml` file.
 
-For the include short singlerod test case, you can run the simulations as follows. (These assume you
+For the included short singlerod test case, you can run the simulations as follows. (These assume you
 have added `build/install/bin` to your `PATH`; if not, you must refer to the full path to `enrico`)
 
   * For OpenMC + Nek5000:

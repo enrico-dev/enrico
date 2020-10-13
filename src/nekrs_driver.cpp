@@ -80,7 +80,6 @@ void NekRSDriver::solve_step()
     nekrs::udfExecuteStep(time_, tstep_, 0);
     ++tstep_;
   }
-  // LOOK HERE!!!
   nekrs::copyToNek(time_, tstep_);
 }
 

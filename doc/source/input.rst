@@ -22,7 +22,7 @@ are "nek5000", "nekrs", and "surrogate".
 
 The pressure of the outlet boundary condition in units of [MPa].
 
-Nek5000- and NekRS-specific Parameters
+Nek5000- and nekRS-specific Parameters
 ---------------------------
 
 Under the ``<heat_fluids>`` element, these sub-elements are required for Nek5000 and NekRS
