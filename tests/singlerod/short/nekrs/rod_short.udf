@@ -31,7 +31,6 @@ void uservp(ins_t* ins,
   cds_t* cds = ins->cds;
 
   if (updateProperties) {
-    if (ins->mesh->rank == 0)
     const dfloat rho = 1.0;
     const dfloat mue = 0.01;
     const dfloat rhoCpFluid = rho * 1.0;
