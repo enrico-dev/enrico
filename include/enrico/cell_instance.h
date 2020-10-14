@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <functional> // for hash
 
+#include "cell_handle.h"
 #include "geom.h"
 #include "openmc/cell.h"
 #include "openmc/material.h"
@@ -46,6 +47,8 @@ public:
   //! \return whether the cell contains fissionable material
   bool is_fissionable() const;
 
+  CellHandle get_handle() const;
+
   //! Check for equality
   bool operator==(const CellInstance& other) const;
 
@@ -56,21 +59,5 @@ public:
 };
 
 } // namespace enrico
-
-namespace std {
-
-template<>
-struct hash<enrico::CellInstance> {
-  // Taken from https://stackoverflow.com/a/17017281
-  std::size_t operator()(const enrico::CellInstance& k) const
-  {
-    std::size_t res = 17;
-    res = 31 * res + std::hash<int32_t>()(k.index_);
-    res = 31 * res + std::hash<int32_t>()(k.instance_);
-    return res;
-  }
-};
-
-} // namespace std
 
 #endif // ENRICO_CELL_INSTANCE_H

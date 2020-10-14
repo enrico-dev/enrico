@@ -15,7 +15,6 @@
 #include <gsl/gsl>
 
 #include <string>
-#include <unordered_map>
 
 namespace enrico {
 
@@ -60,8 +59,9 @@ void OpenmcDriver::create_tallies()
 
   // Build vector of material indices
   std::vector<openmc::CellInstance> instances;
-  for (const auto& c : cells_) {
-    instances.push_back({narrow_cast<index>(c.index_), narrow_cast<index>(c.instance_)});
+  for (const auto& kv : cells_) {
+    instances.push_back(
+      {narrow_cast<index>(kv.second.index_), narrow_cast<index>(kv.second.instance_)});
   }
 
   // Create material filter
@@ -111,23 +111,11 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
 std::vector<CellHandle> OpenmcDriver::find(const std::vector<Position>& positions)
 {
   std::vector<CellHandle> handles;
-  handles.reserve(positions.size());
-
-  std::unordered_map<CellInstance, CellHandle> cell_index;
-
   for (const auto& r : positions) {
     // Determine cell instance corresponding to global element
     CellInstance c{r};
-
-    // If this cell instance hasn't been saved yet, add it to cells_ and
-    // keep track of what index it corresponds to
-    if (cell_index.find(c) == cell_index.end()) {
-      cell_index[c] = cells_.size();
-      cells_.push_back(c);
-    }
-    auto h = cell_index.at(c);
-
-    // Set value for cell instance in array
+    auto h = c.get_handle();
+    cells_.emplace(c.get_handle(), c);
     handles.push_back(h);
   }
   return handles;
@@ -135,40 +123,40 @@ std::vector<CellHandle> OpenmcDriver::find(const std::vector<Position>& position
 
 void OpenmcDriver::set_density(CellHandle cell, double rho) const
 {
-  cells_[cell].material()->set_density(rho, "g/cm3");
+  cells_.at(cell).material()->set_density(rho, "g/cm3");
 }
 
 void OpenmcDriver::set_temperature(CellHandle cell, double T) const
 {
-  const auto& c = cells_[cell];
+  const auto& c = cells_.at(cell);
   c.cell()->set_temperature(T, c.instance_);
 }
 
 double OpenmcDriver::get_density(CellHandle cell) const
 {
-  return cells_[cell].material()->density();
+  return cells_.at(cell).material()->density();
 }
 
 double OpenmcDriver::get_temperature(CellHandle cell) const
 {
-  const auto& c = cells_[cell];
+  const auto& c = cells_.at(cell);
   return c.cell()->temperature(c.instance_);
 }
 
 double OpenmcDriver::get_volume(CellHandle cell) const
 {
-  return cells_[cell].volume_;
+  return cells_.at(cell).volume_;
 }
 
 bool OpenmcDriver::is_fissionable(CellHandle cell) const
 {
-  return cells_[cell].material()->fissionable();
+  return cells_.at(cell).material()->fissionable();
 }
 
 std::string OpenmcDriver::cell_label(CellHandle cell) const
 {
   // Get cell instance
-  const auto& c = cells_[cell];
+  const auto& c = cells_.at(cell);
 
   // Build label
   std::stringstream label;

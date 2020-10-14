@@ -21,6 +21,7 @@
 #include <algorithm> // for copy
 #include <iomanip>
 #include <memory> // for make_unique
+#include <set>
 #include <string>
 
 // For gethostname
@@ -511,20 +512,14 @@ void CoupledDriver::init_mappings()
   }
 
   if (heat.active()) {
-    // Establish a mapping of local cell IDs -> global cell IDs. This ends up with the
-    // unique global IDs in order.
-    std::copy(l_elem_to_g_cell_.cbegin(),
-              l_elem_to_g_cell_.cend(),
-              std::back_inserter(l_cell_to_g_cell_));
-    std::sort(l_cell_to_g_cell_.begin(), l_cell_to_g_cell_.end());
-    auto new_end = std::unique(l_cell_to_g_cell_.begin(), l_cell_to_g_cell_.end());
-    l_cell_to_g_cell_.erase(new_end, l_cell_to_g_cell_.end());
+    std::set<CellHandle> uniq_cells{l_elem_to_g_cell_.cbegin(), l_elem_to_g_cell_.cend()};
+    std::copy(
+      uniq_cells.cbegin(), uniq_cells.cend(), std::back_inserter(l_cell_to_g_cell_));
 
     n_local_cells_ = l_cell_to_g_cell_.size();
 
     // Determine mapping of local cells -> local elems
     l_cell_to_l_elems.resize(n_local_cells_);
-
     for (int32_t l_elem = 0; l_elem < l_elem_to_g_cell_.size(); ++l_elem) {
       auto g_cell = l_elem_to_g_cell_.at(l_elem);
       auto loc =

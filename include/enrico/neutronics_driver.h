@@ -3,6 +3,7 @@
 #ifndef NEUTRONICS_DRIVER_H
 #define NEUTRONICS_DRIVER_H
 
+#include "enrico/cell_handle.h"
 #include "enrico/driver.h"
 #include "enrico/geom.h"
 #include "enrico/mpi_types.h"
@@ -13,8 +14,6 @@
 #include <vector>
 
 namespace enrico {
-
-using CellHandle = gsl::index;
 
 //! Base class for driver that controls a neutronics solve
 class NeutronicsDriver : public Driver {

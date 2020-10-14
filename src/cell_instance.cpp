@@ -70,4 +70,13 @@ bool CellInstance::operator==(const CellInstance& other) const
   return index_ == other.index_ && instance_ == other.instance_;
 }
 
+CellHandle CellInstance::get_handle() const
+{
+  // Taken from https://stackoverflow.com/a/17017281
+  CellHandle res = 17;
+  res = 31 * res + std::hash<int32_t>()(index_);
+  res = 31 * res + std::hash<int32_t>()(instance_);
+  return res;
+}
+
 } // namespace enrico
