@@ -580,13 +580,12 @@ void CoupledDriver::init_volumes()
 
   if (heat.active()) {
     elem_volumes_ = heat.volume_local();
-    cell_volumes_.resize(cells_.size());
-    for (gsl::index i = 0; i < cells_.size(); ++i) {
-      double V = 0;
-      for (const auto& e : cell_to_elems_.at(cells_.at(i))) {
+    for (const auto& c : cells_) {
+      double V = 0.0;
+      for (const auto& e : cell_to_elems_.at(c)) {
         V += elem_volumes_.at(e);
       }
-      cell_volumes_.at(i) = V;
+      cell_volumes_.push_back(V);
     }
   }
 
@@ -607,6 +606,7 @@ void CoupledDriver::init_volumes()
       }
     }
   }
+  comm_.Barrier();
 
   if (neutronics.comm_.is_root()) {
 
