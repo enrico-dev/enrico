@@ -168,55 +168,51 @@ private:
   //! This temperature is computed by the heat/fluids solver and averaged over the
   //! "local cells", which are the portions of the neutronics cells that are in
   //! a given heat-fluid subdomain.
-  xt::xtensor<double, 1> l_cell_temps_;
+  xt::xtensor<double, 1> cell_temperatures_;
 
   //! Previous Picard iteration temperature for the local cells.
-  xt::xtensor<double, 1> l_cell_temps_prev_;
+  xt::xtensor<double, 1> cell_temperatures_prev_;
 
   //! Current Picard iteration density; this density is the density
   //! computed by the thermal-hydraulic solver, and data mappings may result in
   //! a different density actually used in the neutronics solver. For example,
   //! the entries in this xtensor may be averaged over neutronics cells to give
   //! the density used by the neutronics solver.
-  xt::xtensor<double, 1> l_cell_densities_;
+  xt::xtensor<double, 1> cell_densities_;
 
-  xt::xtensor<double, 1> l_cell_densities_prev_; //!< Previous Picard iteration density
+  xt::xtensor<double, 1> cell_densities_prev_; //!< Previous Picard iteration density
 
   //! Current Picard iteration heat source; this heat source is the heat source
   //! computed by the neutronics solver, and data mappings may result in a different
   //! heat source actually used in the heat solver. For example, the entries in this
   //! xtensor may be averaged over thermal-hydraulics cells to give the heat source
   //! used by the thermal-hydraulics solver.
-  xt::xtensor<double, 1> l_cell_heat_source_;
+  xt::xtensor<double, 1> cell_heat_;
 
-  xt::xtensor<double, 1>
-    l_cell_heat_source_prev_; //!< Previous Picard iteration heat source
+  xt::xtensor<double, 1> cell_heat_prev_; //!< Previous Picard iteration heat source
 
   std::unique_ptr<NeutronicsDriver> neutronics_driver_;  //!< The neutronics driver
   std::unique_ptr<HeatFluidsDriver> heat_fluids_driver_; //!< The heat-fluids driver
 
   //! States whether a local cell is in the fluid region
-  std::vector<int> l_cell_fluid_mask_;
+  std::vector<int> cell_fluid_mask_;
 
-  //! Map TH local element id -> global cell ID.
-  std::vector<CellHandle> l_elem_to_g_cell_;
+  //! Map TH local element id -> global cell handle
+  std::vector<CellHandle> elem_to_cell_;
 
-  // Maps local cell ID to global cell ID
-  std::vector<CellHandle> l_cell_to_g_cell_;
+  // List of global cell handles (ordered keys of cell_to_elems_
+  std::vector<CellHandle> cells_;
 
-  // Mapps local cell ID to local element IDs
-  std::vector<std::vector<int32_t>> l_cell_to_l_elems;
+  // Maps global cell handle to local elements.
+  std::map<CellHandle, std::vector<int32_t>> cell_to_elems_;
 
   //! Maps local cell ID (vector index) to local cell volume (vector value)
   //! TODO: xtensor
-  std::vector<double> l_cell_volumes_;
+  std::vector<double> cell_volumes_;
 
   //! Maps local element ID (vector index) to local elem volume (vector value)
   //! TODO: xtensor
-  std::vector<double> l_elem_volumes_;
-
-  //! Number of unique neutronics cells in heat subdomain
-  CellHandle n_local_cells_;
+  std::vector<double> elem_volumes_;
 
   // Norm to use for convergence checks
   Norm norm_{Norm::LINF};

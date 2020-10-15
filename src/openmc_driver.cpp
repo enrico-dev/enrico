@@ -15,6 +15,7 @@
 #include <gsl/gsl>
 
 #include <string>
+#include <unordered_map>
 
 namespace enrico {
 
@@ -59,9 +60,9 @@ void OpenmcDriver::create_tallies()
 
   // Build vector of material indices
   std::vector<openmc::CellInstance> instances;
-  for (const auto& kv : cells_) {
+  for (const auto& c : cells_) {
     instances.push_back(
-      {narrow_cast<index>(kv.second.index_), narrow_cast<index>(kv.second.instance_)});
+      {narrow_cast<index>(c.second.index_), narrow_cast<index>(c.second.instance_)});
   }
 
   // Create material filter
@@ -95,6 +96,7 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
   // Get total heat production [J/source]
   double total_heat = xt::sum(heat)();
 
+  // TODO:  Does this work with new mapping?
   for (gsl::index i = 0; i < heat.size(); ++i) {
     // Get volume
     double V = cells_.at(i).volume_;
@@ -111,11 +113,18 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
 std::vector<CellHandle> OpenmcDriver::find(const std::vector<Position>& positions)
 {
   std::vector<CellHandle> handles;
+  handles.reserve(positions.size());
+
   for (const auto& r : positions) {
     // Determine cell instance corresponding to global element
     CellInstance c{r};
+
+    // If this cell instance hasn't been saved yet, add it to cells_ and
+    // keep track of what index it corresponds to
     auto h = c.get_handle();
-    cells_.emplace(c.get_handle(), c);
+    cells_.insert({h, c});
+
+    // Set value for cell instance in array
     handles.push_back(h);
   }
   return handles;

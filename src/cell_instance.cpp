@@ -72,11 +72,19 @@ bool CellInstance::operator==(const CellInstance& other) const
 
 CellHandle CellInstance::get_handle() const
 {
-  // Taken from https://stackoverflow.com/a/17017281
-  CellHandle res = 17;
-  res = 31 * res + std::hash<int32_t>()(index_);
-  res = 31 * res + std::hash<int32_t>()(instance_);
-  return res;
+  // Uses a Canto pairing function:
+  // https://en.wikipedia.org/wiki/Pairing_function#Cantor_pairing_function
+  return (index_ + instance_) * (index_ + instance_ + 1) / 2 + instance_;
+}
+
+void CellInstance::invert_handle(CellHandle handle, int32_t& index, int32_t& instance)
+{
+  // Inverting Cantor pairing function from CellInstance::get_handle()
+  // https://en.wikipedia.org/wiki/Pairing_function#Inverting_the_Cantor_pairing_function
+  int32_t w = (sqrt(8 * handle + 1) - 1) / 2;
+  int32_t t = (w * w + w) / 2;
+  instance = handle - t;
+  index = w - instance;
 }
 
 } // namespace enrico
