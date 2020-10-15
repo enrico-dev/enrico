@@ -497,28 +497,26 @@ void CoupledDriver::init_mappings()
   // Set mapping of local elem --> global cell handle
   for (const auto& heat_rank : heat_ranks_) {
     std::vector<Position> centroids;
-    if (heat.comm_.rank == heat_rank) {
+    if (comm_.rank == heat_rank) {
       centroids = heat.centroid_local();
     }
     this->comm_.send_and_recv(centroids, neutronics_root_, heat_rank);
-    if (neutronics.comm_.is_root()) {
+    if (comm_.rank == neutronics_root_) {
       elem_to_cell_ = neutronics.find(centroids);
     }
     this->comm_.send_and_recv(elem_to_cell_, heat_rank, neutronics_root_);
-  }
-  comm_.Barrier();
-
-  if (heat.active()) {
-    // Set mapping of global cell handle -> local elem
-    for (gsl::index e = 0; e < elem_to_cell_.size(); ++e) {
-      auto c = elem_to_cell_[e];
-      cell_to_elems_[c].push_back(e); // Use [ ] instead of at() to insert new item
+    if (comm_.rank == heat_rank) {
+      // Set mapping of global cell handle -> local elem
+      for (gsl::index e = 0; e < elem_to_cell_.size(); ++e) {
+        auto c = elem_to_cell_[e];
+        cell_to_elems_[c].push_back(e); // Use [ ] instead of at() to insert new item
+      }
+      // Get list of all global cell handles
+      for (const auto& kv : cell_to_elems_) {
+        cells_.push_back(kv.first);
+      }
     }
-
-    // Get list of all global cell handles
-    for (const auto& kv : cell_to_elems_) {
-      cells_.push_back(kv.first);
-    }
+    comm_.Barrier();
   }
 }
 
@@ -599,8 +597,7 @@ void CoupledDriver::init_volumes()
   for (const auto& heat_rank : heat_ranks_) {
     comm_.send_and_recv(cells_, neutronics_root_, heat_rank);
     comm_.send_and_recv(cell_volumes_, neutronics_root_, heat_rank);
-
-    if (neutronics.comm_.is_root()) {
+    if (comm_.rank == neutronics_root_) {
       for (gsl::index i = 0; i < cells_.size(); ++i) {
         glob_volumes[cells_.at(i)] += cell_volumes_.at(i);
       }
@@ -608,10 +605,8 @@ void CoupledDriver::init_volumes()
   }
   comm_.Barrier();
 
-  if (neutronics.comm_.is_root()) {
-
+  if (comm_.rank == neutronics_root_) {
     // Compare volume from neutron driver to accumulated volume
-
     for (const auto& kv : glob_volumes) {
       auto v_neutronics = neutronics.get_volume(kv.first);
       std::stringstream msg;
