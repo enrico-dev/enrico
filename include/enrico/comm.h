@@ -111,6 +111,22 @@ public:
   template<typename T, size_t N>
   void send_and_recv(xt::xtensor<T, N>& values, int dest, int source) const;
 
+  template<typename T>
+  std::enable_if_t<std::is_scalar<std::decay_t<T>>::value>
+  send_and_recv(T& recvbuf, int dest, T& sendbuf, int source) const;
+
+  template<typename T>
+  void send_and_recv(std::vector<T>& recvbuf,
+                     int dest,
+                     std::vector<T>& sendbuf,
+                     int source) const;
+
+  template<typename T, size_t N>
+  void send_and_recv(xt::xtensor<T, N>& recvbuf,
+                     int dest,
+                     xt::xtensor<T, N>& sendbuf,
+                     int source) const;
+
   //! Gathers together values from the processes in this comm onto a given root.
   //!
   //! Currently, a wrapper for MPI_Gather.
@@ -247,20 +263,113 @@ void Comm::send_and_recv(xt::xtensor<T, N>& values, int dest, int source) const
     // Make sure the shapes match
     const auto& s = values.shape();
     std::vector<size_t> my_shape(s.begin(), s.end());
-    std::vector<size_t> root_shape(my_shape);
-    send_and_recv(root_shape, dest, source);
-    if (rank == dest && my_shape != root_shape) {
-      values.resize(root_shape);
+    std::vector<size_t> source_shape(my_shape);
+    send_and_recv(source_shape, dest, source);
+    if (rank == dest && my_shape != source_shape) {
+      values.resize(source_shape);
     }
-    // Send the size
-    auto n = values.size();
 
     // Finally, send data
     int tag = source;
     if (rank == source) {
-      MPI_Send(values.data(), n, get_mpi_type<T>(), dest, tag, comm);
+      MPI_Send(values.data(), values.size(), get_mpi_type<T>(), dest, tag, comm);
     } else if (rank == dest) {
-      MPI_Recv(values.data(), n, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
+      MPI_Recv(values.data(),
+               values.size(),
+               get_mpi_type<T>(),
+               source,
+               tag,
+               comm,
+               MPI_STATUS_IGNORE);
+    }
+  }
+}
+
+template<typename T>
+std::enable_if_t<std::is_scalar<std::decay_t<T>>::value>
+Comm::send_and_recv(T& recvbuf, int dest, T& sendbuf, int source) const
+{
+  if (this->active()) {
+    if (dest != source) {
+      int tag = source;
+      if (rank == source) {
+        MPI_Send(&sendbuf, 1, get_mpi_type<T>(), dest, tag, comm);
+      } else if (rank == dest) {
+        MPI_Recv(&recvbuf, 1, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
+      }
+    } else { // dest == source
+      recvbuf = sendbuf;
+      this->Barrier(); // Barrier emulates the blocking behavior of send/recv
+    }
+  }
+};
+
+template<typename T>
+void Comm::send_and_recv(std::vector<T>& recvbuf,
+                         int dest,
+                         std::vector<T>& sendbuf,
+                         int source) const
+{
+  if (this->active()) {
+    if (dest != source) {
+      // Send the size of the vector from the source
+      auto n = sendbuf.size();
+      send_and_recv(n, dest, source);
+      // Resize the vector on dest
+      if (rank == dest && recvbuf.size() != n) {
+        recvbuf.resize(n);
+      }
+
+      // Send the vector
+      int tag = source;
+      if (rank == source) {
+        MPI_Send(sendbuf.data(), n, get_mpi_type<T>(), dest, tag, comm);
+      } else if (rank == dest) {
+        MPI_Recv(
+          recvbuf.data(), n, get_mpi_type<T>(), source, tag, comm, MPI_STATUS_IGNORE);
+      }
+    } else { // dest == source
+      recvbuf.resize(sendbuf.size());
+      std::copy(sendbuf.cbegin(), sendbuf.cend(), recvbuf.begin());
+      this->Barrier(); // Barrier emulates the blocking behavior of send/recv
+    }
+  }
+}
+
+template<typename T, size_t N>
+void Comm::send_and_recv(xt::xtensor<T, N>& recvbuf,
+                         int dest,
+                         xt::xtensor<T, N>& sendbuf,
+                         int source) const
+{
+  if (this->active()) {
+    if (dest != source) {
+      // Make sure the shapes match
+      const auto& s = sendbuf.shape();
+      std::vector<size_t> my_shape(s.begin(), s.end());
+      std::vector<size_t> source_shape(my_shape);
+      send_and_recv(source_shape, dest, source);
+      if (rank == dest && my_shape != source_shape) {
+        recvbuf.resize(source_shape);
+      }
+
+      // Finally, send data
+      int tag = source;
+      if (rank == source) {
+        MPI_Send(sendbuf.data(), sendbuf.size(), get_mpi_type<T>(), dest, tag, comm);
+      } else if (rank == dest) {
+        MPI_Recv(recvbuf.data(),
+                 recvbuf.size(),
+                 get_mpi_type<T>(),
+                 source,
+                 tag,
+                 comm,
+                 MPI_STATUS_IGNORE);
+      }
+    } else { // dest == source
+      recvbuf.resize(sendbuf.shape());
+      std::copy(sendbuf.cbegin(), sendbuf.cend(), recvbuf.begin());
+      this->Barrier(); // Barrier emulates the blocking behavior of send/recv
     }
   }
 }

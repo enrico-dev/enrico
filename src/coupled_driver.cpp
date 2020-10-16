@@ -31,6 +31,9 @@
 #include <unistd.h>
 #endif
 
+#define PLINE                                                                            \
+  std::cout << comm_.rank << " : " << __FILE__ << " : " << __LINE__ << std::endl;
+
 namespace enrico {
 
 CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
@@ -351,15 +354,14 @@ void CoupledDriver::update_temperature(bool relax)
   auto& neutronics = this->get_neutronics_driver();
   auto& heat = this->get_heat_driver();
 
-  // Step 1: On each heat rank, assign the current iterate of T to the previous
+  // Step 1: On heat ranks, assign the current iterate of T to the previous
   if (relax && heat.active()) {
     std::copy(cell_temperatures_.begin(),
               cell_temperatures_.end(),
               cell_temperatures_prev_.begin());
   }
 
-  // Step 2: On each heat rank, compute the local cell T by volume-averaging the local
-  // elem T
+  // Step 2: On heat ranks, compute cell T
   if (heat.active()) {
     auto elem_temperatures = heat.temperature_local();
     for (gsl::index i = 0; i < cells_.size(); ++i) {
@@ -388,29 +390,30 @@ void CoupledDriver::update_temperature(bool relax)
     }
   }
 
-  // Step 3: Calculate t \dot v in each global cell
+  // Step 3: On neutron ranks, accumulate cell volumes from all heat ranks
   std::map<CellHandle, double> T_dot_V;
-
+  decltype(cells_) cells_recv;
+  decltype(cell_volumes_) cell_volumes_recv;
+  decltype(cell_temperatures_) cell_temperatures_recv;
   for (const auto& heat_rank : heat_ranks_) {
-    comm_.send_and_recv(cell_temperatures_, neutronics_root_, heat_rank);
-    neutronics.comm_.broadcast(cell_temperatures_);
+    comm_.send_and_recv(cells_recv, neutronics_root_, cells_, heat_rank);
+    neutronics.comm_.broadcast(cells_recv);
 
-    comm_.send_and_recv(cells_, neutronics_root_, heat_rank);
-    neutronics.comm_.broadcast(cells_);
+    comm_.send_and_recv(
+      cell_temperatures_recv, neutronics_root_, cell_temperatures_, heat_rank);
+    neutronics.comm_.broadcast(cell_temperatures_recv);
 
-    comm_.send_and_recv(cell_volumes_, neutronics_root_, heat_rank);
-    neutronics.comm_.broadcast(cell_volumes_);
+    comm_.send_and_recv(cell_volumes_recv, neutronics_root_, cell_volumes_, heat_rank);
+    neutronics.comm_.broadcast(cell_volumes_recv);
 
     if (neutronics.active()) {
-      for (gsl::index i = 0; i < cells_.size(); ++i) {
-        auto T = cell_temperatures_.at(i);
-        auto V = cell_volumes_.at(i);
-        T_dot_V[cells_.at(i)] += T * V;
+      for (gsl::index i = 0; i < cells_recv.size(); ++i) {
+        auto T = cell_temperatures_recv.at(i);
+        auto V = cell_volumes_recv.at(i);
+        T_dot_V[cells_recv.at(i)] += T * V;
       }
     }
   }
-
-  // Step 4: Set volume-averaged global cell densities
   // TODO: Here, I use the cell volumes from the neutronics model.  Instead, should
   // I sum the volumes of the local elements in step 3?
   for (const auto& kv : T_dot_V) {
@@ -424,12 +427,12 @@ void CoupledDriver::update_density(bool relax)
   auto& neutronics = this->get_neutronics_driver();
   auto& heat = this->get_heat_driver();
 
-  // Step 1: On each heat rank, assign the current iterate of rho to the previous
+  // Step 1: On heat ranks, assign the current iterate of rho to the previous
   if (relax && heat.active()) {
     std::copy(cell_densities_.cbegin(), cell_densities_.cend(), cell_densities_.begin());
   }
 
-  // Step 2: Update and relax cell densities on each heat root
+  // Step 2: On heat ranks, get cell rho
   if (heat.active()) {
     auto elem_densities = heat.density_local();
     for (gsl::index i = 0; i < cells_.size(); ++i) {
@@ -456,31 +459,37 @@ void CoupledDriver::update_density(bool relax)
     }
   }
 
-  // Step 3: Calculate \rho \cdot v in each global cell
+  // Step 3: On neutron ranks, accumulate cell rho from all heat ranks
   std::map<CellHandle, double> rho_dot_V;
+  decltype(cells_) cells_recv;
+  decltype(cell_volumes_) cell_volumes_recv;
+  decltype(cell_densities_) cell_densities_recv;
+  decltype(cell_fluid_mask_) cell_fluid_mask_recv;
 
   for (const auto& heat_rank : heat_ranks_) {
-    comm_.send_and_recv(cell_densities_, neutronics_root_, heat_rank);
-    neutronics.comm_.broadcast(cell_densities_);
+    comm_.send_and_recv(cells_recv, neutronics_root_, cells_, heat_rank);
+    neutronics.comm_.broadcast(cells_recv);
 
-    comm_.send_and_recv(cells_, neutronics_root_, heat_rank);
-    neutronics.comm_.broadcast(cells_);
+    comm_.send_and_recv(cell_volumes_recv, neutronics_root_, cell_volumes_, heat_rank);
+    neutronics.comm_.broadcast(cell_volumes_recv);
 
-    comm_.send_and_recv(cell_volumes_, neutronics_root_, heat_rank);
-    neutronics.comm_.broadcast(cell_volumes_);
+    comm_.send_and_recv(
+      cell_densities_recv, neutronics_root_, cell_densities_, heat_rank);
+    neutronics.comm_.broadcast(cell_densities_recv);
+
+    comm_.send_and_recv(
+      cell_fluid_mask_recv, neutronics_root_, cell_fluid_mask_, heat_rank);
 
     if (neutronics.active()) {
-      for (gsl::index i = 0; i < cells_.size(); ++i) {
-        if (cell_fluid_mask_.at(i) == 1) {
-          auto rho = cell_densities_.at(i);
-          auto V = cell_volumes_.at(i);
-          rho_dot_V[cells_.at(i)] += rho * V;
+      for (gsl::index i = 0; i < cells_recv.size(); ++i) {
+        if (cell_fluid_mask_recv.at(i) == 1) {
+          auto rho = cell_densities_recv.at(i);
+          auto V = cell_volumes_recv.at(i);
+          rho_dot_V[cells_recv.at(i)] += rho * V;
         }
       }
     }
   }
-
-  // Step 4: Set volume-averaged global cell densities
   // TODO: Here, I use the cell volumes from the neutronics model.  Instead, should
   // I sum the volumes of the local elements in step 3?
   for (const auto& kv : rho_dot_V) {
@@ -494,17 +503,21 @@ void CoupledDriver::init_mappings()
   const auto& heat = this->get_heat_driver();
   auto& neutronics = this->get_neutronics_driver();
 
-  // Set mapping of local elem --> global cell handle
+  // Send and recv buffers
+  std::vector<Position> centroids;
+  decltype(elem_to_cell_) elem_to_cell_send;
+
   for (const auto& heat_rank : heat_ranks_) {
-    std::vector<Position> centroids;
+    // Set mapping of local elem --> global cell handle
     if (comm_.rank == heat_rank) {
       centroids = heat.centroid_local();
     }
     this->comm_.send_and_recv(centroids, neutronics_root_, heat_rank);
     if (comm_.rank == neutronics_root_) {
-      elem_to_cell_ = neutronics.find(centroids);
+      elem_to_cell_send = neutronics.find(centroids);
     }
-    this->comm_.send_and_recv(elem_to_cell_, heat_rank, neutronics_root_);
+    this->comm_.send_and_recv(
+      elem_to_cell_, heat_rank, elem_to_cell_send, neutronics_root_);
     if (comm_.rank == heat_rank) {
       // Set mapping of global cell handle -> local elem
       for (gsl::index e = 0; e < elem_to_cell_.size(); ++e) {
@@ -515,8 +528,18 @@ void CoupledDriver::init_mappings()
       for (const auto& kv : cell_to_elems_) {
         cells_.push_back(kv.first);
       }
+      std::cout << "Rank: " << comm_.rank << std::endl;
+      std::cout << "Cells to elems: ";
+      for (const auto& kv : cell_to_elems_) {
+        std::cout << kv.first << " ";
+      }
+      std::cout << std::endl;
+      std::cout << "Cells: ";
+      for (const auto& c : cells_) {
+        std::cout << c << " ";
+      }
+      std::cout << std::endl;
     }
-    comm_.Barrier();
   }
 }
 
@@ -538,21 +561,27 @@ void CoupledDriver::init_temperatures()
 
   // Every heat rank keeps track of its own local cell T
   if (heat.active()) {
-    auto sz = {static_cast<unsigned long>(cells_.size())};
-    cell_temperatures_.resize(sz);
-    cell_temperatures_prev_.resize(sz);
+    auto sz = static_cast<unsigned long>(cells_.size());
+    cell_temperatures_.resize({sz});
+    cell_temperatures_prev_.resize({sz});
   }
 
   if (temperature_ic_ == Initial::neutronics) {
+    // Send and recv buffers
+    decltype(cells_) cells_recv;
+    decltype(cell_temperatures_) cell_temperatures_send;
     // The neutronics root sends cell T to each heat rank
     for (const auto& heat_rank : heat_ranks_) {
-      comm_.send_and_recv(cells_, neutronics_root_, heat_rank);
+      comm_.send_and_recv(cells_recv, neutronics_root_, cells_, heat_rank);
       if (comm_.rank == neutronics_root_) {
-        for (gsl::index i = 0; i < cells_.size(); ++i) {
-          cell_temperatures_.at(i) = neutronics.get_temperature(cells_.at(i));
+        const auto sz = static_cast<unsigned long>(cells_recv.size());
+        cell_temperatures_send.resize({sz});
+        for (gsl::index i = 0; i < sz; ++i) {
+          cell_temperatures_send.at(i) = neutronics.get_temperature(cells_recv.at(i));
         }
       }
-      comm_.send_and_recv(cell_temperatures_, heat_rank, neutronics_root_);
+      comm_.send_and_recv(
+        cell_temperatures_, heat_rank, cell_temperatures_send, neutronics_root_);
     }
   } else if (temperature_ic_ == Initial::heat) {
     // * This sets l_cel_temps_ on the the coupling_root, based on the
@@ -595,11 +624,13 @@ void CoupledDriver::init_volumes()
 
   // Get all local cell volumes from heat ranks and sum them into the global cell volumes.
   for (const auto& heat_rank : heat_ranks_) {
-    comm_.send_and_recv(cells_, neutronics_root_, heat_rank);
-    comm_.send_and_recv(cell_volumes_, neutronics_root_, heat_rank);
+    decltype(cells_) cells_recv;
+    decltype(cell_volumes_) cell_volumes_recv;
+    comm_.send_and_recv(cells_recv, neutronics_root_, cells_, heat_rank);
+    comm_.send_and_recv(cell_volumes_recv, neutronics_root_, cell_volumes_, heat_rank);
     if (comm_.rank == neutronics_root_) {
-      for (gsl::index i = 0; i < cells_.size(); ++i) {
-        glob_volumes[cells_.at(i)] += cell_volumes_.at(i);
+      for (gsl::index i = 0; i < cells_recv.size(); ++i) {
+        glob_volumes[cells_recv.at(i)] += cell_volumes_recv.at(i);
       }
     }
   }
@@ -615,6 +646,7 @@ void CoupledDriver::init_volumes()
       comm_.message(msg.str());
     }
   }
+  comm_.Barrier();
 #endif
 }
 
@@ -625,20 +657,25 @@ void CoupledDriver::init_densities()
   const auto& heat = this->get_heat_driver();
 
   if (heat.active()) {
-    auto sz = {static_cast<unsigned long>(cells_.size())};
-    cell_densities_.resize(sz);
-    cell_densities_prev_.resize(sz);
+    auto sz = static_cast<unsigned long>(cells_.size());
+    cell_densities_.resize({sz});
+    cell_densities_prev_.resize({sz});
   }
 
   if (density_ic_ == Initial::neutronics) {
+    decltype(cells_) cells_recv;
+    decltype(cell_densities_) cell_densities_send;
     for (const auto& heat_rank : heat_ranks_) {
-      comm_.send_and_recv(cells_, neutronics_root_, heat_rank);
+      comm_.send_and_recv(cells_recv, neutronics_root_, cells_, heat_rank);
       if (comm_.rank == neutronics_root_) {
-        for (gsl::index i = 0; i < cells_.size(); ++i) {
-          cell_densities_.at(i) = neutronics.get_density(cells_.at(i));
+        const auto sz = static_cast<unsigned long>(cells_recv.size());
+        cell_densities_send.resize({sz});
+        for (gsl::index i = 0; i < sz; ++i) {
+          cell_densities_send.at(i) = neutronics.get_density(cells_recv.at(i));
         }
       }
-      comm_.send_and_recv(cell_densities_, heat_rank, neutronics_root_);
+      comm_.send_and_recv(
+        cell_densities_, heat_rank, cell_densities_send, neutronics_root_);
     }
   } else if (density_ic_ == Initial::heat) {
     // * We do not want to apply underrelaxation here (and at this point,
@@ -658,15 +695,30 @@ void CoupledDriver::init_cell_fluid_mask()
   comm_.message("Initializing cell fluid mask");
   auto& heat = this->get_heat_driver();
 
-  if (heat.active()) {
-    auto elem_fluid_mask = heat.fluid_mask_local();
-    cell_fluid_mask_.resize(cells_.size());
-    for (gsl::index i = 0; i < cells_.size(); ++i) {
-      // We just check if the first element in the cell is in fluid.  We assume that all
-      // elements are in fluid; or all elements are not.
-      auto e = cell_to_elems_.at(cells_.at(i))[0];
-      cell_fluid_mask_.at(i) = elem_fluid_mask.at(e);
+  for (const auto& heat_rank : heat_ranks_) {
+    if (comm_.rank == heat_rank) {
+      std::cout << "Rank: " << comm_.rank << std::endl;
+      std::cout << "Cells to elems: ";
+      for (const auto& kv : cell_to_elems_) {
+        std::cout << kv.first << " ";
+      }
+      std::cout << std::endl;
+      std::cout << "Cells: ";
+      for (const auto& c : cells_) {
+        std::cout << c << " ";
+      }
+      std::cout << std::endl;
+
+      auto elem_fluid_mask = heat.fluid_mask_local();
+      for (const auto& c : cells_) {
+        bool in_fluid;
+        for (const auto& e : cell_to_elems_.at(c)) {
+          in_fluid = in_fluid || elem_fluid_mask.at(e);
+        }
+        cell_fluid_mask_.push_back(in_fluid);
+      }
     }
+    comm_.Barrier();
   }
 }
 
