@@ -96,17 +96,16 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
   // Get total heat production [J/source]
   double total_heat = xt::sum(heat)();
 
-  // TODO:  Does this work with new mapping?
-  for (gsl::index i = 0; i < heat.size(); ++i) {
-    // Get volume
-    double V = cells_.at(i).volume_;
-
-    // Convert heat from [J/source] to [W/cm^3]. Dividing by total_heat gives
-    // the fraction of heat deposited in each material. Multiplying by power
-    // gives an absolute value in W.
-    heat(i) *= power / (total_heat * V);
+  // This depends on the fact that cell_map_ has the same ordering as the cell instances
+  // in tally_. This is ensured since:
+  //   * cell_map_ is an ordered map that is initialized prior to calling create_tallies()
+  //   * In create_tallies(), the cell instances for tally_ are a vector that is built
+  //     by iterating through cell_map_ in order
+  gsl::index i = 0;
+  for (const auto& kv : cells_) {
+    double V = kv.second.volume_;
+    heat.at(i++) *= power / (total_heat * V);
   }
-
   return heat;
 }
 
@@ -122,11 +121,12 @@ std::vector<CellHandle> OpenmcDriver::find(const std::vector<Position>& position
     // If this cell instance hasn't been saved yet, add it to cells_ and
     // keep track of what index it corresponds to
     auto h = c.get_handle();
-    cells_.insert({h, c});
+    cells_.emplace(h, c);
 
     // Set value for cell instance in array
     handles.push_back(h);
   }
+
   return handles;
 }
 
@@ -171,6 +171,13 @@ std::string OpenmcDriver::cell_label(CellHandle cell) const
   std::stringstream label;
   label << openmc::model::cells[c.index_]->id_ << " (" << c.instance_ << ")";
   return label.str();
+}
+
+gsl::index OpenmcDriver::cell_index(CellHandle cell) const
+{
+  auto iter = cells_.find(cell);
+  Ensures(iter != cells_.cend());
+  return std::distance(cells_.cbegin(), iter);
 }
 
 void OpenmcDriver::init_step()

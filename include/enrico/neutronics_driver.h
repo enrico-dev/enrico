@@ -75,6 +75,8 @@ public:
   //! \param cell Handle to a clel
   //! \return Label for the cell
   virtual std::string cell_label(CellHandle cell) const = 0;
+
+  virtual gsl::index cell_index(CellHandle cell) const = 0;
 };
 
 } // namespace enrico

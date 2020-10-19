@@ -76,6 +76,8 @@ public:
 
   std::string cell_label(CellHandle cell) const;
 
+  gsl::index cell_index(CellHandle cell) const override;
+
   //////////////////////////////////////////////////////////////////////////////
   // Driver interface
 
@@ -97,7 +99,7 @@ private:
   // Data members
   openmc::Tally* tally_;                     //!< Fission energy deposition tally
   openmc::CellInstanceFilter* filter_;       //!< Cell instance filter
-  std::map<CellHandle, CellInstance> cells_; //!< Array of cell instances
+  std::map<CellHandle, CellInstance> cells_; //!< Array of cell instances. MUST BE ORDERED
   int n_fissionable_cells_;                  //!< Number of fissionable cells in model
 };
 

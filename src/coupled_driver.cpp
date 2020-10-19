@@ -293,6 +293,7 @@ bool CoupledDriver::is_converged()
 
 void CoupledDriver::update_heat_source(bool relax)
 {
+  comm_.message("Updating heat source");
   auto& neutronics = this->get_neutronics_driver();
   auto& heat = this->get_heat_driver();
 
@@ -301,48 +302,42 @@ void CoupledDriver::update_heat_source(bool relax)
   // ****************************************************************************
 
   if (relax && heat.active()) {
-    // Store previous heat source solution if more than one iteration has been performed
-    // (otherwise there is not an initial condition for the heat source)
     std::copy(cell_heat_.cbegin(), cell_heat_.cend(), cell_heat_prev_.begin());
   }
 
-  // Send heat source from neutron root to heat/fluids ranks
-  xt::xtensor<double, 1> global_cell_heat_;
+  decltype(cells_) cells_recv;
+  decltype(cell_heat_) cell_heat_send;
+  xt::xtensor<double, 1> all_cell_heat;
+
+  // The neutronics root sends each heat root the cell-averaged heat sources that it needs
   if (comm_.rank == neutronics_root_) {
-    global_cell_heat_ = neutronics.heat_source(power_);
+    all_cell_heat = neutronics.heat_source(power_);
   }
   for (const auto& heat_rank : heat_ranks_) {
-    // TODO:  Fix all this...
-    // comm_.send_and_recv(cell_heat_, neutronics_root_, heat_rank);
-    // comm_.send_and_recv(cells_, neutronics_root_, heat_rank);
-    // if (comm_.rank == neutronics_root_) {
-    //   for (gsl::index i = 0; i < cells_.size(); ++i) {
-    //     // TODO:  What do I do here?
-    //     cell_heat_.at(cells_.at(i)) = global_cell_heat_.at()
-    //   }
-    //   for (CellHandle l_cell; l_cell < n_local_cells_; ++l_cell) {
-    //     auto g_cell = cells_.at(l_cell);
-    //     cell_heat_.at(l_cell) = global_cell_heat_.at(g_cell);
-    //   }
-    // }
-  }
-
-  // Relax heat source
-  if (relax && heat.active()) {
-    if (alpha_ == ROBBINS_MONRO) {
-      int n = i_picard_ + 1;
-      cell_heat_ = cell_heat_ / n + (1. - 1. / n) * cell_heat_prev_;
-    } else {
-      cell_heat_ = alpha_ * cell_heat_ + (1.0 - alpha_) * cell_heat_prev_;
+    comm_.send_and_recv(cells_recv, neutronics_root_, cells_, heat_rank);
+    cell_heat_send.resize({cells_recv.size()});
+    if (comm_.rank == neutronics_root_) {
+      for (gsl::index i = 0; i < cells_recv.size(); ++i) {
+        auto j = neutronics.cell_index(cells_recv.at(i));
+        cell_heat_send.at(i) = all_cell_heat.at(j);
+      }
     }
+    comm_.send_and_recv(cell_heat_, heat_rank, cell_heat_send, neutronics_root_);
   }
 
-  // Set heat source
+  // On heat rank, update the element heat sources
   if (heat.active()) {
-    for (gsl::index i; i < cells_.size(); ++i) {
+    if (relax) {
+      if (alpha_ == ROBBINS_MONRO) {
+        int n = i_picard_ + 1;
+        cell_heat_ = cell_heat_ / n + (1. - 1. / n) * cell_heat_prev_;
+      } else {
+        cell_heat_ = alpha_ * cell_heat_ + (1.0 - alpha_) * cell_heat_prev_;
+      }
+    }
+    for (gsl::index i = 0; i < cells_.size(); ++i) {
       for (const auto& e : cell_to_elems_.at(cells_.at(i))) {
-        err_chk(heat.set_heat_source_at(e, cell_heat_.at(i)),
-                "Error setting heat source for local element " + std::to_string(e));
+        heat.set_heat_source_at(e, cell_heat_.at(i));
       }
     }
   }

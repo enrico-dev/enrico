@@ -195,6 +195,11 @@ std::string ShiftDriver::cell_label(CellHandle cell) const
   return std::to_string(cells_.at(cell));
 }
 
+gsl::index ShiftDriver::cell_index(CellHandle cell) const
+{
+  return static_cast<gsl::index>(cell);
+}
+
 ////////////////////////////////////////////////////////////////////////////////
 // Driver interface
 
