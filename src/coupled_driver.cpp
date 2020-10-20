@@ -176,6 +176,20 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
 
   init_cell_fluid_mask();
 
+  // Debug:
+  decltype(cell_fluid_mask_) fluid_mask_recv;
+  decltype(cells_) cells_recv;
+  for (const auto& heat_rank : heat_ranks_) {
+    comm_.send_and_recv(cells_recv, neutronics_root_, cells_, heat_rank);
+    comm_.send_and_recv(fluid_mask_recv, neutronics_root_, cell_fluid_mask_, heat_rank);
+    if (comm_.rank == neutronics_root_) {
+      for (gsl::index i = 0; i < cells_recv.size(); ++i) {
+        std::cout << "    " << get_neutronics_driver().cell_label(cells_recv.at(i))
+                  << " : " << fluid_mask_recv.at(i) << std::endl;
+      }
+    }
+  }
+
   init_temperatures();
   init_densities();
   init_heat_source();
@@ -430,6 +444,12 @@ void CoupledDriver::update_density(bool relax)
   // Step 2: On heat ranks, get cell rho
   if (heat.active()) {
     auto elem_densities = heat.density_local();
+    std::cout << "Rank, min dens, max dens: " << comm_.rank << ", "
+              << *std::min_element(elem_densities.cbegin(), elem_densities.cend()) << ", "
+              << *std::max_element(elem_densities.cbegin(), elem_densities.cend())
+              << std::endl;
+    heat.comm_.Barrier();
+
     for (gsl::index i = 0; i < cells_.size(); ++i) {
       if (cell_fluid_mask_.at(i) == 1) {
         double avg_rho = 0.0;
@@ -499,30 +519,37 @@ void CoupledDriver::init_mappings()
   auto& neutronics = this->get_neutronics_driver();
 
   // Send and recv buffers
-  std::vector<Position> centroids;
+  std::vector<Position> centroids_send, centroids_recv;
   decltype(elem_to_cell_) elem_to_cell_send;
 
   for (const auto& heat_rank : heat_ranks_) {
     // Set mapping of local elem --> global cell handle
     if (comm_.rank == heat_rank) {
-      centroids = heat.centroid_local();
+      centroids_send = heat.centroid_local();
     }
-    this->comm_.send_and_recv(centroids, neutronics_root_, heat_rank);
+    this->comm_.send_and_recv(
+      centroids_recv, neutronics_root_, centroids_send, heat_rank);
     if (comm_.rank == neutronics_root_) {
-      elem_to_cell_send = neutronics.find(centroids);
+      elem_to_cell_send = neutronics.find(centroids_recv);
     }
     this->comm_.send_and_recv(
       elem_to_cell_, heat_rank, elem_to_cell_send, neutronics_root_);
-    if (comm_.rank == heat_rank) {
-      // Set mapping of global cell handle -> local elem
-      for (gsl::index e = 0; e < elem_to_cell_.size(); ++e) {
-        auto c = elem_to_cell_[e];
-        cell_to_elems_[c].push_back(e); // Use [ ] instead of at() to insert new item
-      }
-      // Get list of all global cell handles
-      for (const auto& kv : cell_to_elems_) {
-        cells_.push_back(kv.first);
-      }
+    comm_.Barrier();
+  }
+  if (heat.active()) {
+    // Set mapping of global cell handle -> local elem
+    for (gsl::index e = 0; e < elem_to_cell_.size(); ++e) {
+      auto c = elem_to_cell_[e];
+      cell_to_elems_[c].push_back(e); // Use [ ] instead of at() to insert new item
+    }
+    // Get list of all global cell handles
+    for (const auto& kv : cell_to_elems_) {
+      cells_.push_back(kv.first);
+    }
+  }
+  // Debug
+  for (const auto& rank : heat_ranks_) {
+    if (comm_.rank == rank) {
       std::cout << "Rank: " << comm_.rank << std::endl;
       std::cout << "Cells to elems: ";
       for (const auto& kv : cell_to_elems_) {
@@ -535,6 +562,7 @@ void CoupledDriver::init_mappings()
       }
       std::cout << std::endl;
     }
+    comm_.Barrier();
   }
 }
 
@@ -690,30 +718,20 @@ void CoupledDriver::init_cell_fluid_mask()
   comm_.message("Initializing cell fluid mask");
   auto& heat = this->get_heat_driver();
 
-  for (const auto& heat_rank : heat_ranks_) {
-    if (comm_.rank == heat_rank) {
-      std::cout << "Rank: " << comm_.rank << std::endl;
-      std::cout << "Cells to elems: ";
-      for (const auto& kv : cell_to_elems_) {
-        std::cout << kv.first << " ";
-      }
-      std::cout << std::endl;
-      std::cout << "Cells: ";
-      for (const auto& c : cells_) {
-        std::cout << c << " ";
-      }
-      std::cout << std::endl;
+  if (heat.active()) {
+    auto elem_fluid_mask = heat.fluid_mask_local();
+    for (const auto& kv : cell_to_elems_) {
 
-      auto elem_fluid_mask = heat.fluid_mask_local();
-      for (const auto& c : cells_) {
-        bool in_fluid;
-        for (const auto& e : cell_to_elems_.at(c)) {
-          in_fluid = in_fluid || elem_fluid_mask.at(e);
+      auto& elems = kv.second;
+      auto in_fluid = elem_fluid_mask.at(elems.at(0));
+      for (gsl::index i = 1; i < elems.size(); ++i) {
+        if (in_fluid != elem_fluid_mask.at(elems.at(i))) {
+          throw std::runtime_error("ENRICO detected a neutronics cell contains both "
+                                   "fluid and solid T/H elements.");
         }
-        cell_fluid_mask_.push_back(in_fluid);
       }
+      cell_fluid_mask_.push_back(in_fluid);
     }
-    comm_.Barrier();
   }
 }
 
