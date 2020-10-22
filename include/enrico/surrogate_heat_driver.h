@@ -172,7 +172,7 @@ public:
   //! \return Number of global mesh elements
   std::size_t n_global_elem() const override;
 
-  bool in_fluid_at(int32_t local_elem) const override;
+  int in_fluid_at(int32_t local_elem) const override;
 
   //! Set the heat source for a given local element
   //!

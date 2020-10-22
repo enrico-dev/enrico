@@ -174,21 +174,9 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   init_tallies();
   init_volumes();
 
-  init_cell_fluid_mask();
+  check_volumes();
 
-  // Debug:
-  decltype(cell_fluid_mask_) fluid_mask_recv;
-  decltype(cells_) cells_recv;
-  for (const auto& heat_rank : heat_ranks_) {
-    comm_.send_and_recv(cells_recv, neutronics_root_, cells_, heat_rank);
-    comm_.send_and_recv(fluid_mask_recv, neutronics_root_, cell_fluid_mask_, heat_rank);
-    if (comm_.rank == neutronics_root_) {
-      for (gsl::index i = 0; i < cells_recv.size(); ++i) {
-        std::cout << "    " << get_neutronics_driver().cell_label(cells_recv.at(i))
-                  << " : " << fluid_mask_recv.at(i) << std::endl;
-      }
-    }
-  }
+  init_fluid_mask();
 
   init_temperatures();
   init_densities();
@@ -311,10 +299,6 @@ void CoupledDriver::update_heat_source(bool relax)
   auto& neutronics = this->get_neutronics_driver();
   auto& heat = this->get_heat_driver();
 
-  // ****************************************************************************
-  // Gather heat source on neutronics root and apply underrelaxation
-  // ****************************************************************************
-
   if (relax && heat.active()) {
     std::copy(cell_heat_.cbegin(), cell_heat_.cend(), cell_heat_prev_.begin());
   }
@@ -374,17 +358,17 @@ void CoupledDriver::update_temperature(bool relax)
   if (heat.active()) {
     auto elem_temperatures = heat.temperature_local();
     for (gsl::index i = 0; i < cells_.size(); ++i) {
-      double avg_temp = 0.0;
-      double total_vol = 0.0;
+      double T_avg = 0.0;
+      double V_tot = 0.0;
       for (const auto& e : cell_to_elems_.at(cells_.at(i))) {
         double T = elem_temperatures.at(e);
         double V = elem_volumes_.at(e);
-        avg_temp += T * V;
-        total_vol += V;
+        T_avg += T * V;
+        V_tot += V;
       }
-      avg_temp /= total_vol;
-      Ensures(avg_temp > 0.0);
-      cell_temperatures_.at(i) = avg_temp;
+      T_avg /= V_tot;
+      Ensures(T_avg > 0.0);
+      cell_temperatures_.at(i) = T_avg;
     }
     // Apply relaxation to local cell temperatures
     if (relax) {
@@ -444,23 +428,18 @@ void CoupledDriver::update_density(bool relax)
   // Step 2: On heat ranks, get cell rho
   if (heat.active()) {
     auto elem_densities = heat.density_local();
-    std::cout << "Rank, min dens, max dens: " << comm_.rank << ", "
-              << *std::min_element(elem_densities.cbegin(), elem_densities.cend()) << ", "
-              << *std::max_element(elem_densities.cbegin(), elem_densities.cend())
-              << std::endl;
-    heat.comm_.Barrier();
 
     for (gsl::index i = 0; i < cells_.size(); ++i) {
       if (cell_fluid_mask_.at(i) == 1) {
-        double avg_rho = 0.0;
-        double total_V = 0.0;
+        double rho_avg = 0.0;
+        double V_tot = 0.0;
         for (const auto& e : cell_to_elems_.at(cells_.at(i))) {
-          avg_rho += elem_densities.at(e) * elem_volumes_.at(e);
-          total_V += elem_volumes_.at(e);
+          rho_avg += elem_densities.at(e) * elem_volumes_.at(e);
+          V_tot += elem_volumes_.at(e);
         }
-        avg_rho /= total_V;
-        Ensures(avg_rho > 0.0);
-        cell_densities_.at(i) = avg_rho;
+        rho_avg /= V_tot;
+        Ensures(rho_avg > 0.0);
+        cell_densities_.at(i) = rho_avg;
       }
     }
     if (relax) {
@@ -547,23 +526,6 @@ void CoupledDriver::init_mappings()
       cells_.push_back(kv.first);
     }
   }
-  // Debug
-  for (const auto& rank : heat_ranks_) {
-    if (comm_.rank == rank) {
-      std::cout << "Rank: " << comm_.rank << std::endl;
-      std::cout << "Cells to elems: ";
-      for (const auto& kv : cell_to_elems_) {
-        std::cout << kv.first << " ";
-      }
-      std::cout << std::endl;
-      std::cout << "Cells: ";
-      for (const auto& c : cells_) {
-        std::cout << c << " ";
-      }
-      std::cout << std::endl;
-    }
-    comm_.Barrier();
-  }
 }
 
 void CoupledDriver::init_tallies()
@@ -638,9 +600,12 @@ void CoupledDriver::init_volumes()
       cell_volumes_.push_back(V);
     }
   }
+}
 
-#ifndef NDEBUG
-  // Volume check.  2020-10-06: This is pretty expensive now, so it's only in DEBUG builds
+void CoupledDriver::check_volumes()
+{
+  comm_.message("Initializing volumes");
+  const auto& neutronics = this->get_neutronics_driver();
 
   // An array of global cell volumes, which will be accumulated from local cell volumes.
   std::map<CellHandle, double> glob_volumes;
@@ -670,7 +635,6 @@ void CoupledDriver::init_volumes()
     }
   }
   comm_.Barrier();
-#endif
 }
 
 void CoupledDriver::init_densities()
@@ -713,7 +677,7 @@ void CoupledDriver::init_densities()
   }
 }
 
-void CoupledDriver::init_cell_fluid_mask()
+void CoupledDriver::init_fluid_mask()
 {
   comm_.message("Initializing cell fluid mask");
   auto& heat = this->get_heat_driver();

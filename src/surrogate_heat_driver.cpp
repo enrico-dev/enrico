@@ -333,7 +333,7 @@ std::vector<double> SurrogateHeatDriver::density_local() const
   return local_densities;
 }
 
-bool SurrogateHeatDriver::in_fluid_at(int32_t local_elem) const
+int SurrogateHeatDriver::in_fluid_at(int32_t local_elem) const
 {
   return local_elem >= n_solid_;
 }

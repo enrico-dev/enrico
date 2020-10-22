@@ -44,7 +44,7 @@ public:
   //! Return true if a local element is in the fluid region
   //! \param local_elem  A local element ID
   //! \return 1 if the local element is in fluid; 0 otherwise
-  virtual bool in_fluid_at(int32_t local_elem) const = 0;
+  virtual int in_fluid_at(int32_t local_elem) const = 0;
 
   //! Get the number of local mesh elements
   //! \return Number of local mesh elements
