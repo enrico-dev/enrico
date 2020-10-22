@@ -401,6 +401,7 @@ void CoupledDriver::update_temperature(bool relax)
 
   // Step 3: On neutron ranks, accumulate cell volumes from all heat ranks
   std::map<CellHandle, double> T_dot_V;
+  std::map<CellHandle, double> cell_V;
   decltype(cells_) cells_recv;
   decltype(cell_volumes_) cell_volumes_recv;
   decltype(cell_temperatures_) cell_temperatures_recv;
@@ -419,6 +420,7 @@ void CoupledDriver::update_temperature(bool relax)
       for (gsl::index i = 0; i < cells_recv.size(); ++i) {
         auto T = cell_temperatures_recv.at(i);
         auto V = cell_volumes_recv.at(i);
+        cell_V[cells_recv.at(i)] += V;
         T_dot_V[cells_recv.at(i)] += T * V;
       }
     }
@@ -426,7 +428,7 @@ void CoupledDriver::update_temperature(bool relax)
   // TODO: Here, I use the cell volumes from the neutronics model.  Instead, should
   // I sum the volumes of the local elements in step 3?
   for (const auto& kv : T_dot_V) {
-    neutronics.set_temperature(kv.first, kv.second / neutronics.get_volume(kv.first));
+    neutronics.set_temperature(kv.first, kv.second / cell_V.at(kv.first));
   }
 }
 
