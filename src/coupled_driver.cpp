@@ -425,8 +425,6 @@ void CoupledDriver::update_temperature(bool relax)
       }
     }
   }
-  // TODO: Here, I use the cell volumes from the neutronics model.  Instead, should
-  // I sum the volumes of the local elements in step 3?
   for (const auto& kv : T_dot_V) {
     neutronics.set_temperature(kv.first, kv.second / cell_V.at(kv.first));
   }
@@ -478,6 +476,7 @@ void CoupledDriver::update_density(bool relax)
 
   // Step 3: On neutron ranks, accumulate cell rho from all heat ranks
   std::map<CellHandle, double> rho_dot_V;
+  std::map<CellHandle, double> cell_V;
   decltype(cells_) cells_recv;
   decltype(cell_volumes_) cell_volumes_recv;
   decltype(cell_densities_) cell_densities_recv;
@@ -502,15 +501,14 @@ void CoupledDriver::update_density(bool relax)
         if (cell_fluid_mask_recv.at(i) == 1) {
           auto rho = cell_densities_recv.at(i);
           auto V = cell_volumes_recv.at(i);
+          cell_V[cells_recv.at(i)] += V;
           rho_dot_V[cells_recv.at(i)] += rho * V;
         }
       }
     }
   }
-  // TODO: Here, I use the cell volumes from the neutronics model.  Instead, should
-  // I sum the volumes of the local elements in step 3?
   for (const auto& kv : rho_dot_V) {
-    neutronics.set_density(kv.first, kv.second / neutronics.get_volume(kv.first));
+    neutronics.set_density(kv.first, kv.second / cell_V.at(kv.first));
   }
 }
 
