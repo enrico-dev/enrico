@@ -1,11 +1,13 @@
 # ENRICO: Exascale Nuclear Reactor Investigative COde
 
+ENRICO is an application that automates the workflow for solving a coupled particle transport, heat transfer, and fluid dynamics problem. Individual-physics solvers for particle transport and thermal-fluids are chosen at runtime. Currently supported solvers include the [OpenMC](https://docs.openmc.org/en/stable/) and [Shift](https://www.casl.gov/sites/default/files/docs/CASL-U-2015-0170-000.pdf) Monte Carlo particle transport codes and the [Nek5000](https://nek5000.mcs.anl.gov/) and [nekRS](https://github.com/Nek5000/nekRS) computational fluid dynamics codes. A simple surrogate thermal-fluids solver is also available for testing purposes.
+
 [![License](https://img.shields.io/github/license/enrico-dev/enrico.svg)](http://enrico-docs.readthedocs.io/en/latest/license.html)
 [![Travis CI build status (Linux)](https://travis-ci.org/enrico-dev/enrico.svg?branch=master)](https://travis-ci.org/enrico-dev/enrico)
 
 ## Configuring
 
-ENRICO can be compiled to use Nek5000, NekRS, or neither.  This is controlled by the `-DNEK_DIST`
+For the thermal-fluids solver, ENRICO can be compiled to use Nek5000, nekRS, or neither. This is controlled by the `-DNEK_DIST`
 CMake option.  The following values are allowed:
 
   * `-DNEK_DIST=nek5000`: (Default) If compiling with Nek5000, you must also specify the location of the input
@@ -13,16 +15,22 @@ CMake option.  The following values are allowed:
   * `-DNEK_DIST=nekrs`
   * `-DNEK_DIST=none`
 
-With any of the these options, the heat surrogate with still be available.  
+With any of the these options, the heat surrogate will still be available.
 
 ## Building and Installing
 
-To be usable, NekRS **must** be installed (e.g., via `make install`) in addition to being compiled.
-While this is not necessary for other builds, `make install` is still fully supported.  The default
-installation directory is the `install/` subdirectory under the build directory.  It can be changed
-using the usual `-DCMAKE_INSTALL_PREFIX` option.
+To obtain the necessary source files for building, first clone the repository:
+``` Console
+$ git clone git@github.com:enrico-dev/enrico.git
+```
+Next, fetch and checkout the submodules containing the various single-physics
+applications:
+``` Console
+$ cd enrico
+$ git submodule update --init --recursive
+```
 
-The general workflow is:
+Next, the general workflow is for building and installing is:
 
   1. Create a build directory in an arbitrary location and enter it:
   ``` Console
@@ -34,20 +42,20 @@ The general workflow is:
      ``` Console
        $ CC=mpicc CXX=mpicxx FC=mpifort cmake -DNEK_DIST=nek5000 -DUSR_LOC=../tests/singlerod/short/nek5000 ..
      ```
-     * For NekRS:
+     * For nekRS:
      ``` Console
        $ CC=mpicc CXX=mpicxx FC=mpifort cmake -DNEK_DIST=nekrs ..
      ```
-     * Without Nek:
+     * Without Nek5000 or nekRS:
      ``` Console
-       $ CC=mpicc CXX=mpicxx FC=mpifort cmake ..
+       $ CC=mpicc CXX=mpicxx FC=mpifort cmake -DNEK_DIST=none ..
      ```
   3. Run make and install:
      ``` Console
        $ make -j4 enrico install
      ```
   4. Set environment variables
-     * **Required for NekRS:** Set `NEKRS_HOME` to the absolute path of the installation directory:
+     * **Required for nekRS:** Set `NEKRS_HOME` to the absolute path of the installation directory:
      ``` Console
        $ export NEKRS_HOME=$(realpath install)
      ```
@@ -56,10 +64,26 @@ The general workflow is:
        $ export PATH=$(realpath install/bin):$PATH
      ```
 
+### Important Information
+
+To be usable, nekRS **must** be installed (e.g., via `make install`) in addition to being compiled.
+While this is not necessary for other builds, `make install` is still fully supported.  The default
+installation directory is the `install/` subdirectory under the build directory.  It can be changed
+using the usual `-DCMAKE_INSTALL_PREFIX` option.
+
+
+## Other Dependencies
+
+* For OpenMC:
+
+You must supply a nuclear data library to run OpenMC. See the
+[OpenMC documentation](https://docs.openmc.org/en/stable/usersguide/cross_sections.html)
+for instructions.
+
 ## Running a Case
 
 ENRICO must be run from the directory containing the case's input files.  This includes the input
-files for both physics libraries; and the ENRICO-specific `enrico.xml` input file.  See the
+files for the physics applications; and the ENRICO-specific `enrico.xml` input file.  See the
 [documentation](https://enrico-docs.readthedocs.io/en/latest/input.html) for a description of the
 `enrico.xml` file.
 
@@ -69,9 +93,11 @@ have added `build/install/bin` to your `PATH`; if not, you must refer to the ful
   * For OpenMC + Nek5000:
   ``` Console
   $ cd tests/singlerod/short/openmc_nek5000
+  $ gunzip -f ../nek5000/rodcht.run01.gz
   $ mpirun -np 32 enrico
+  (This particular example requires a restart file, `rodcht.run01`.)
   ```
-  * For OpenMC + NekRS
+  * For OpenMC + nekRS
   ``` Console
   $ cd tests/singlerod/short/openmc_nekrs
   $ mpirun -np 32 enrico
