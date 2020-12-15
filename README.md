@@ -7,6 +7,8 @@ ENRICO is an application that automates the workflow for solving a coupled parti
 
 ## Configuring
 
+### On General Compute Environments
+
 For the thermal-fluids solver, ENRICO can be compiled to use Nek5000, nekRS, or neither. This is controlled by the `-DNEK_DIST`
 CMake option.  The following values are allowed:
 
@@ -50,6 +52,11 @@ Next, the general workflow is for building and installing is:
      ``` Console
        $ CC=mpicc CXX=mpicxx FC=mpifort cmake -DNEK_DIST=none ..
      ```
+     * With NekRS on OLCF Summit:
+     ``` Console
+       $ CC=mpicc CXX=mpicxx FC=mpifort cmake -DNEK_DIST=nekrs -DCMAKE_INSTALL_LIBDIR=lib -DOCCA_CXX="g++" -DOCCA_CXXFLAGS="-O2 -ftree-vectorize -funrool-loops -mcpu=native -mtune=native" ..
+     ```
+
   3. Run make and install:
      ``` Console
        $ make -j4 enrico install
@@ -82,6 +89,8 @@ for instructions.
 
 ## Running a Case
 
+### General Compute Environments
+
 ENRICO must be run from the directory containing the case's input files.  This includes the input
 files for the physics applications; and the ENRICO-specific `enrico.xml` input file.  See the
 [documentation](https://enrico-docs.readthedocs.io/en/latest/input.html) for a description of the
@@ -107,3 +116,35 @@ have added `build/install/bin` to your `PATH`; if not, you must refer to the ful
   $ cd tests/singlerod/short/openmc_heat_surrogate
   $ mpirun -np 32 enrico
   ```
+
+### OLCF Summmit with NekRS
+
+To run ENRICO with optimal runtime parameters on OLCF Summit, use the script
+`scripts/bsub_enrico_summit.py`.  This is based on the script
+`vendor/nekRS/scripts/nrsqsub_summit`, but `bsub_enrico_summit.py` handles
+input parameters slightly differently.  In particular, the ENRICO script writes
+parameters to the NekRS .par file, rather than passing it on the command line
+as in the NekRS script.  Because of the way that ENRICO initializes NekRS, it
+is more robust to rely on the .par file with ENRICO runs.  
+
+The script has the following command-line options:
+
+```
+usage: bsub_enrico_summit.py [-h] -n NODES -t TIME [-b {CUDA,SERIAL}]
+                             [--no-precompile]
+
+optional arguments:
+  -h, --help            show this help message and exit
+  -n NODES, --nodes NODES
+                        Specify the number of NODES (not processes) to use
+  -t TIME, --time TIME  Sets the runtime limit of the job
+  -b {CUDA,SERIAL}, --backend {CUDA,SERIAL}
+                        Sets the OCCA kernel backend [default: CUDA]
+  --no-precompile       Skips pre-compile step for NekRS kernels
+```
+
+It should be run from the directory containing ENRICO's and the physics
+drivers' setup files.  It infers the NekRS casename from the `<casename>`
+specified in `enrico.xml`.  It requires the `NEKRS_HOME` environment variable
+to be set, as described above.  
+
