@@ -1,43 +1,81 @@
 Quick Start Guide
 =================
 
-How to Compile
+Configuring
+-----------
+
+ENRICO can be compiled to use Nek5000, NekRS, or neither.  This is controlled by the ``-DNEK_DIST``
+CMake option.  The following values are allowed:
+
+- ``-DNEK_DIST=nek5000``: (Default) If compiling with Nek5000, you must also specify the location of the input deck using the ``-DUSR_LOC`` option at configure time
+- ``-DNEK_DIST=nekrs``
+- ``-DNEK_DIST=none``
+
+With any of the these options, the heat surrogate with also be available.
+
+Building and Installing
+-----------------------
+
+To be usable, NekRS **must** be installed (e.g., via ``make install``) in addition to being compiled.
+While this is not necessary for other builds, ``make install`` is still fully supported.  The default
+installation directory is the ``install/``  subdirectory under the build directory.  It can be changed
+using the usual ``-DCMAKE_INSTALL_PREFIX`` option.
+
+The general workflow is:
+
+1. Create a build directory in an arbitrary location and enter it::
+
+    $ mkdir build
+    $ cd build
+
+2. Run CMake using the desired Nek distribution
+
+  - For Nek5000::
+
+    $ CC=mpicc CXX=mpicxx FC=mpifort cmake -DNEK_DIST=nek5000 -DUSR_LOC=../tests/singlerod/short/nek5000 ..
+
+  - For NekRS::
+
+    $ CC=mpicc CXX=mpicxx FC=mpifort cmake -DNEK_DIST=nekrs ..
+
+  - Without Nek:
+
+    $ CC=mpicc CXX=mpicxx FC=mpifort cmake ..
+
+3. Run make and install::
+
+    $ make -j4 enrico install
+
+4. Set environment variables
+
+  - **Required for NekRS:** Set ``NEKRS_HOME`` to the absolute path of the installation directory::
+
+    $ export NEKRS_HOME=$(realpath install)
+
+  - Optional for all builds: Add the installation directory to the current path::
+
+    $ export PATH=$(realpath install/bin):$PATH
+
+Running a Case
 --------------
 
-ENRICO can be configured and compiled in an arbitrary build directory.  However,
-at configure time, you must point to the location of the Nek5000 input deck
-using the ``-DUSR_LOC`` flag.  Here is a sample workflow, for the compiling the
-``tests/singlerod/short/`` case:
+ENRICO must be run from the directory containing the case's input files.  This includes the input
+files for both physics libraries; and the ENRICO-specific ``enrico.xml`` input file.
 
-1. Create and enter a build directory anywhere.  For example::
+For the include short singlerod test case, you can run the simulations as follows. (These assume you
+have added ``build/install/bin`` to your ``PATH``; if not, you must refer to the full path to ``enrico``)
 
-     $ mkdir tests/singlerod/short/build
-     $ cd tests/singlerod/short/build
+- For OpenMC + Nek5000::
 
-2. Enter the build directory and run CMake, using ``USR_LOC`` to specify the
-   location of the Nek5000 input deck::
+    $ cd tests/singlerod/short/openmc_nek5000
+    $ mpirun -np 32 enrico
 
-     $ CC=mpicc CXX=mpicxx FC=mpif90 cmake -DUSR_LOC=../nek5000 ../../../../`
+- For OpenMC + NekRS::
 
-3. Make it::
+    $ cd tests/singlerod/short/openmc_nekrs
+    $ mpirun -np 32 enrico
 
-     $ make -j4 enrico
+- For OpenMC + heat surrogate::
 
-Library Targets
----------------
-
-In a given case directory, you may also compile coupled and single-physics
-libraries without a driver.  The available targets are:
-
-- ``enrico``: The ENRICO executable
-- ``libopenmc``: The OpenMC library
-- ``libnek5000``: The Nek5000 library
-
-Nek5000 Utilities
------------------
-
-Nek5000 provides several utilities for working with mesh data.  These may be
-compiled using the following targets:
-
-* ``genmap``: The Nek5000 tool for mesh partitioning (generates a .map file)
-* ``genbox``: The Nek5000 tool for generating a simple box mesh (generates a .box file)
+    $ cd tests/singlerod/short/openmc_heat_surrogate
+    $ mpirun -np 32 enrico

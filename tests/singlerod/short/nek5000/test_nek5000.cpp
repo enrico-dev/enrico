@@ -1,4 +1,4 @@
-#include "enrico/nek_driver.h"
+#include "enrico/nek5000_driver.h"
 #include <mpi.h>
 
 int main(int argc, char* argv[])
@@ -16,9 +16,7 @@ int main(int argc, char* argv[])
   auto root = doc.document_element();
 
   {
-    enrico::NekDriver test_driver(
-      MPI_COMM_WORLD,
-      root.child("heat_fluids"));
+    enrico::Nek5000Driver test_driver(MPI_COMM_WORLD, root.child("heat_fluids"));
     test_driver.init_step();
     test_driver.solve_step();
     test_driver.finalize_step();
