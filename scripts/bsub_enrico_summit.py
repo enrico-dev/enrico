@@ -69,16 +69,17 @@ class BsubSummitDriver:
 
         os.makedirs(self.occa_cache_dir, exist_ok=True)
 
-        # Write correct info in parfile
-        par = ConfigParser()
+        # Write correct info in parfile.  par.optionxform = str is for case-sensitivity
+        par = ConfigParser(inline_comment_prefixes=('#',';'))
+        par.optionxform = str
         parfile = self.casename + ".par"
         par.read(parfile)
         rewrite = False
         if par.get('OCCA', 'backend', fallback='') != self.backend:
             par.set('OCCA', 'backend', self.backend)
             rewrite = True
-        if par.get('OCCA', 'devicenumber', fallback='') != self.device_number:
-            par.set('OCCA', 'devicenumber', self.device_number)
+        if par.get('OCCA', 'deviceNumber', fallback='') != self.device_number:
+            par.set('OCCA', 'deviceNumber', self.device_number)
             rewrite = True
         if rewrite:
             backup_file = "{}.{}.bk".format(parfile, datetime.datetime.now().isoformat().replace(':', '.'))
