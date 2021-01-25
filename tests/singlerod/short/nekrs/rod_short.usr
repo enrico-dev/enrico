@@ -92,25 +92,6 @@ c-----------------------------------------------------------------------
       return
       end
 c-----------------------------------------------------------------------
-      subroutine userbc (ix,iy,iz,iside,ieg)
-      include 'SIZE'
-      include 'TOTAL'
-      include 'NEKUSE'
-
-      integer e,ieg
-      real ucx, ucy, ucz, ucy_e, yy
-
-      e=gllel(ieg)
-
-      ux = 0.0
-      uy = 0.0
-      uz = 25.0
-      temp = 523.15
-      flux = 0.25 !flux_recon(ix,iy,iz,e) !flux_moose
-
-      return
-      end
-c-----------------------------------------------------------------------
       subroutine useric (ix,iy,iz,ieg)
       include 'SIZE'
       include 'TOTAL'
@@ -123,7 +104,7 @@ c-----------------------------------------------------------------------
       if (idum.eq.0) idum = 99 + nid
       eps = .35
 
-      uz=25.0
+      uz=50.0
       uy=0.0
       ux=0.0
       temp=523.15
