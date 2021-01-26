@@ -105,41 +105,47 @@ void ShiftDriver::create_tallies()
   power_pl->set("union_lengths", counts);
 }
 
-void ShiftDriver::set_density(CellHandle cell, double rho) const
+void ShiftDriver::set_density(CellHandle handle, double rho) const
 {
   Expects(rho > 0);
+  auto cell = cells_.at(handle);
   Expects(cell >= 0 && cell < this->n_cells());
   int matid = geometry_->matid(cell);
   driver_->compositions()[matid]->set_density(rho);
 }
 
-void ShiftDriver::set_temperature(CellHandle cell, double T) const
+void ShiftDriver::set_temperature(CellHandle handle, double T) const
 {
   Expects(T > 0);
+  auto cell = cells_.at(handle);
   Expects(cell >= 0 && cell < this->n_cells());
   int matid = geometry_->matid(cell);
   driver_->compositions()[matid]->set_temperature(T);
 }
 
-double ShiftDriver::get_density(CellHandle cell) const
+double ShiftDriver::get_density(CellHandle handle) const
 {
+  auto cell = cells_.at(handle);
   int matid = geometry_->matid(cell);
   return driver_->compositions()[matid]->density();
 }
 
-double ShiftDriver::get_temperature(CellHandle cell) const
+double ShiftDriver::get_temperature(CellHandle handle) const
 {
+  auto cell = cells_.at(handle);
   int matid = geometry_->matid(cell);
   return driver_->compositions()[matid]->temperature();
 }
 
-double ShiftDriver::get_volume(CellHandle cell) const
+double ShiftDriver::get_volume(CellHandle handle) const
 {
+  auto cell = cells_.at(handle);
   return geometry_->cell_volume(cell);
 }
 
-bool ShiftDriver::is_fissionable(CellHandle cell) const
+bool ShiftDriver::is_fissionable(CellHandle handle) const
 {
+  auto cell = cells_.at(handle);
   int matid = geometry_->matid(cell);
   return driver_->compositions()[matid]->is_fissionable();
 }
@@ -190,9 +196,9 @@ xt::xtensor<double, 1> ShiftDriver::heat_source(double power) const
   return heat;
 }
 
-std::string ShiftDriver::cell_label(CellHandle cell) const
+std::string ShiftDriver::cell_label(CellHandle handle) const
 {
-  return std::to_string(cells_.at(cell));
+  return std::to_string(cells_.at(handle));
 }
 
 ////////////////////////////////////////////////////////////////////////////////
