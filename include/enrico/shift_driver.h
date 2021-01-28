@@ -38,41 +38,41 @@ public:
   std::vector<CellHandle> find(const std::vector<Position>& positions) override;
 
   //! Set the density of the material in a cell
-  //! \param cell Handle to a cell
+  //! \param handle Handle to a cell
   //! \param rho Density in [g/cm^3]
-  void set_density(CellHandle cell, double rho) const override;
+  void set_density(CellHandle handle, double rho) const override;
 
   //! Set the temperature of a cell
-  //! \param cell Handle to a cell
+  //! \param handle Handle to a cell
   //! \param T Temperature in [K]
-  void set_temperature(CellHandle cell, double T) const override;
+  void set_temperature(CellHandle handle, double T) const override;
 
   //! Get the density of a cell
-  //! \param cell Handle to a cell
+  //! \param handle Handle to a cell
   //! \return Cell density in [g/cm^3]
-  double get_density(CellHandle cell) const override;
+  double get_density(CellHandle handle) const override;
 
   //! Get the temperature of a cell
-  //! \param cell Handle to a cell
+  //! \param handle Handle to a cell
   //! \return Temperature in [K]
-  double get_temperature(CellHandle cell) const override;
+  double get_temperature(CellHandle handle) const override;
 
   //! Get the volume of a cell
-  //! \param cell Handle to a cell
+  //! \param handle Handle to a cell
   //! \return Volume in [cm^3]
-  double get_volume(CellHandle cell) const override;
+  double get_volume(CellHandle handle) const override;
 
   //! Detemrine whether a cell contains fissionable nuclides
-  //! \param cell Handle to a cell
+  //! \param handle Handle to a cell
   //! \return Whether the cell contains fissionable nuclides
-  bool is_fissionable(CellHandle cell) const override;
+  bool is_fissionable(CellHandle handle) const override;
 
   std::size_t n_cells() const override { return num_cells_; }
 
   //! Create energy production tallies
   void create_tallies() override;
 
-  std::string cell_label(CellHandle cell) const override;
+  std::string cell_label(CellHandle handle) const override;
 
   //////////////////////////////////////////////////////////////////////////////
   // Driver interface
