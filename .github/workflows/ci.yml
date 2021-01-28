@@ -1,0 +1,70 @@
+name: CI
+
+on:
+  # allows us to run workflows manually
+  workflow_dispatch:
+
+  pull_request:
+    branches:
+      - master
+  push:
+    branches:
+      - master
+
+env:
+  MPI_DIR: /usr
+  OMP_NUM_THREADS: 2
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        mode: [openmc_nek5000, openmc_nekrs, openmc_heat_surrogate]
+
+    name: "${{ matrix.mode }}"
+
+    env:
+      MODE: ${{ matrix.mode }}
+
+    steps:
+      - uses: actions/checkout@v2
+        with:
+          submodules: recursive
+
+      - name: Environment Variables
+        run: |
+          echo "OPENMC_CROSS_SECTIONS=$HOME/endfb71_hdf5/cross_sections.xml" >> $GITHUB_ENV
+
+      - name: Apt dependencies
+        shell: bash
+        run: |
+          sudo apt -y update
+          sudo apt install -y gfortran \
+                              mpich \
+                              libmpich-dev \
+                              libhdf5-mpich-dev \
+                              liblapack-dev
+      - name: before_install
+        shell: bash
+        run: $GITHUB_WORKSPACE/ci/patch_singlerod_input.sh
+
+      - name: install
+        shell: bash
+        run: |
+          $GITHUB_WORKSPACE/ci/cmake_singlerod.sh
+          $GITHUB_WORKSPACE/ci/build_singlerod.sh
+          $GITHUB_WORKSPACE/ci/build_unittests.sh
+
+      - name: before_script
+        shell: bash
+        run: |
+          $GITHUB_WORKSPACE/ci/download_xs.sh
+          $GITHUB_WORKSPACE/ci/unzip_singlerod_statefile.sh
+
+      - name: test
+        shell: bash
+        run: |
+          $GITHUB_WORKSPACE/ci/singlerod_matrix.sh
+          $GITHUB_WORKSPACE/ci/test_unittests.sh
