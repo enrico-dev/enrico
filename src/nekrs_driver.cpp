@@ -2,7 +2,6 @@
 #include "enrico/error.h"
 #include "gsl.hpp"
 #include "iapws/iapws.h"
-#include "libP/include/mesh3D.h"
 #include "nekrs.hpp"
 
 #include <algorithm>
@@ -17,40 +16,43 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
     // See vendor/nekRS/src/core/occaDeviceConfig.cpp for valid keys
     setup_file_ = node.child_value("casename");
     nekrs::setup(comm, 0, 0, 0, "", setup_file_, "", "");
+    nrs_ptr_ = reinterpret_cast<nrs_t *>(nekrs::nrsPtr());
 
     open_lib_udf();
 
     // Check that we're running a CHT simulation.
-    err_chk(nekrs::cht(),
+    err_chk(nrs_ptr_->cht == 1,
             "NekRS simulation is not setup for conjugate-heat transfer (CHT).  "
             "ENRICO must be run with a CHT simulation.");
 
     // Local and global element counts
-    n_local_elem_ = nekrs::mesh::nElements();
+    n_local_elem_ = nrs_ptr_->cds->mesh->Nelements;
     std::size_t n = n_local_elem_;
     MPI_Allreduce(
       &n, &n_global_elem_, 1, get_mpi_type<std::size_t>(), MPI_SUM, comm_.comm);
 
-    poly_deg_ = nekrs::mesh::polyDeg();
+    poly_deg_ = nrs_ptr_->cds->mesh->N;
     n_gll_ = (poly_deg_ + 1) * (poly_deg_ + 1) * (poly_deg_ + 1);
 
-    x_ = nekrs::mesh::x();
-    y_ = nekrs::mesh::y();
-    z_ = nekrs::mesh::z();
-    element_info_ = nekrs::mesh::elementInfo();
+    x_ = nrs_ptr_->cds->mesh->x;
+    y_ = nrs_ptr_->cds->mesh->y;
+    z_ = nrs_ptr_->cds->mesh->z;
+    element_info_ = nrs_ptr_->cds->mesh->elementInfo;
 
     // rho energy is field 1 (0-based) of rho
-    rho_cp_ = nekrs::rhoCp();
+    rho_cp_ = &nrs_ptr_->cds->prop[nrs_ptr_->cds->fieldOffset];
 
-    temperature_ = nekrs::scalarFields();
+    temperature_ = nrs_ptr_->cds->S;
 
     // Construct lumped mass matrix from vgeo
     // See cdsSetup in vendor/nekRS/src/core/insSetup.cpp
     mass_matrix_.resize(n_local_elem_ * n_gll_);
+    auto vgeo = nrs_ptr_->cds->mesh->vgeo;
+    auto n_vgeo = nrs_ptr_->cds->mesh->Nvgeo;
     for (gsl::index e = 0; e < n_local_elem_; ++e) {
       for (gsl::index n = 0; n < n_gll_; ++n) {
         mass_matrix_[e * n_gll_ + n] =
-          nekrs::mesh::vgeo()[e * n_gll_ * nekrs::mesh::nVgeo() + JWID * n_gll_ + n];
+          vgeo[e * n_gll_ * n_vgeo + JWID * n_gll_ + n];
       }
     }
 
@@ -68,7 +70,7 @@ void NekRSDriver::init_step()
 void NekRSDriver::solve_step()
 {
   const auto start_time = nekrs::startTime();
-  const auto final_time = nekrs::finalTime();
+  const auto final_time = nekrs::endTime();
   const auto dt = nekrs::dt();
 
   time_ = start_time;
@@ -85,8 +87,8 @@ void NekRSDriver::solve_step()
 
 void NekRSDriver::write_step(int timestep, int iteration)
 {
-  nekrs::copyToNek(timestep, iteration);
-  nekrs::nekOutfld();
+  // The time argument isn't used for anything in NekRS right now
+  nekrs::outfld(-1.0);
   return;
 }
 
