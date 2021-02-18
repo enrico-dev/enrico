@@ -17,7 +17,6 @@ static int updateProperties = 1;
 void userq(nrs_t* nrs, dfloat time, occa::memory o_S, occa::memory o_FS)
 {
   auto mesh = nrs->cds->mesh;
-// ?????
   o_FS.copyFrom(localq.data(), mesh->Nelements * mesh->Np * sizeof(dfloat), 0);
 
 }
@@ -48,10 +47,10 @@ void uservp(nrs_t* nrs,
     const occa::memory o_con = o_SProp.slice(0 * cds->fieldOffset * sizeof(dfloat));
     const occa::memory o_rhoCp = o_SProp.slice(1 * cds->fieldOffset * sizeof(dfloat));
 
-// ?????
     double* nekScratch = nekData.cbscnrs;
     o_SProp.copyFrom(nekScratch, cds->Nlocal * sizeof(dfloat), 0);
 
+    cFillKernel(cds->mesh->Nelements, conFluid, conSolid, nrs->mesh->o_elementInfo, o_con);
     cFillKernel(
       cds->mesh->Nelements, rhoCpFluid, rhoCpSolid, nrs->mesh->o_elementInfo, o_rhoCp);
     updateProperties = 0;
@@ -68,11 +67,6 @@ void UDF_LoadKernels(nrs_t* nrs)
 
 void UDF_Setup(nrs_t* nrs)
 {
-  // ?????
-  //// get IC from nek
-  //if (!nrs->readRestartFile)
-  //  nek_copyTo(nrs->startTime);
-
   nrs->o_usrwrk.free();
   free(nrs->usrwrk);
   nrs->usrwrk = (dfloat*)calloc(nrs->mesh->Nelements * nrs->mesh->Np, sizeof(dfloat));
@@ -80,6 +74,7 @@ void UDF_Setup(nrs_t* nrs)
     nrs->mesh->Nelements * nrs->mesh->Np * sizeof(dfloat), nrs->usrwrk);
 
   nek_userchk();
+
   auto* wrk1 = nekData.cbscnrs;
   nrs->o_usrwrk.copyFrom(wrk1, nrs->mesh->Nelements * nrs->mesh->Np * sizeof(dfloat));
 
