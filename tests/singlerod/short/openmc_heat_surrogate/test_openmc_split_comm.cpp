@@ -474,10 +474,18 @@ public:
   void execute()
   {
     auto& neutronics = get_neutronics_driver();
-    neutronics.init_step();
-    neutronics.solve_step();
-    // neutronics.write_step(i_timestep_, i_picard_);
-    neutronics.finalize_step();
+    MPI_Barrier(MPI_COMM_WORLD);
+    comm_.message("Begin init_step");
+    if (neutronics.active()) neutronics.init_step();
+    MPI_Barrier(MPI_COMM_WORLD);
+    comm_.message("Begin solve_step");
+    if (neutronics.active()) neutronics.solve_step();
+    MPI_Barrier(MPI_COMM_WORLD);
+    comm_.message("Begin write_step");
+    if (neutronics.active()) neutronics.write_step(i_timestep_, i_picard_);
+    MPI_Barrier(MPI_COMM_WORLD);
+    comm_.message("Begin finalize_step");
+    if (neutronics.active()) neutronics.finalize_step();
   }
 
   NeutronicsDriver& get_neutronics_driver() const { return *neutronics_driver_; }
