@@ -58,19 +58,32 @@ void OpenmcDriver::create_tallies()
   using gsl::index;
   using gsl::narrow_cast;
 
-  // Build vector of material indices
-  std::vector<openmc::CellInstance> instances;
-  for (const auto& c : cells_) {
-    instances.push_back(
-      {narrow_cast<index>(c.second.index_), narrow_cast<index>(c.second.instance_)});
+  // Build vector of material indices on each rank
+  // After CoupledDriver::init_mappings, the cells_ array is up-to-date on the root,
+  // so we need to send that info to all the other ranks
+  std::vector<int32_t> indices;
+  std::vector<int32_t> instances;
+  if (comm_.is_root()) {
+    for (const auto& c : cells_) {
+      indices.push_back(c.second.index_);
+      instances.push_back(c.second.instance_);
+    }
   }
+  comm_.broadcast(indices);
+  comm_.broadcast(instances);
+  Ensures(indices.size() == instances.size());
 
+  std::vector<openmc::CellInstance> openmc_instances;
+  for (index i = 0; i < indices.size(); ++i) {
+    openmc_instances.push_back(
+      {narrow_cast<index>(indices[i]), narrow_cast<index>(instances[i])});
+  }
   // Create material filter
   auto f = openmc::Filter::create("cellinstance");
   filter_ = dynamic_cast<openmc::CellInstanceFilter*>(f);
 
   // Set bins for filter
-  filter_->set_cell_instances(instances);
+  filter_->set_cell_instances(openmc_instances);
 
   // Create tally and assign scores/filters
   tally_ = openmc::Tally::create();
