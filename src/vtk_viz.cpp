@@ -374,13 +374,17 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
     vtk_file << "SCALARS SOURCE double 1\n";
     vtk_file << "LOOKUP_TABLE default\n";
 
+    // Average over the azimuthal sectors for each radial ring.
+    // This is consistent with how the source term is used by the surrogate solver.
+    xt::xtensor<double, 3> q = xt::mean(surrogate_.source_, 3);
+
     for (size_t pin = 0; pin < surrogate_.n_pins_; pin++) {
       // write all fuel data first
       if (output_includes_solid_) {
         for (size_t i = 0; i < n_axial_sections_; i++) {
           for (size_t j = 0; j < n_radial_fuel_sections_; j++) {
             for (size_t k = 0; k < azimuthal_res_; k++) {
-              vtk_file << surrogate_.source_(pin, i, j) << "\n";
+              vtk_file << q(pin, i, j) << "\n";
             }
           }
         }
@@ -389,7 +393,7 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
         for (size_t i = 0; i < n_axial_sections_; i++) {
           for (size_t j = 0; j < n_radial_clad_sections_; j++) {
             for (size_t k = 0; k < azimuthal_res_; k++) {
-              vtk_file << surrogate_.source_(pin, i, j + n_radial_fuel_sections_) << "\n";
+              vtk_file << q(pin, i, j + n_radial_fuel_sections_) << "\n";
             }
           }
         }

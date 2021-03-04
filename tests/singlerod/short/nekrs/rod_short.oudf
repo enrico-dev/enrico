@@ -3,7 +3,7 @@ void insVelocityDirichletConditions3D(bcData* bc)
 {
   bc->uP = 0.0;
   bc->vP = 0.0;
-  bc->wP = 25.0;
+  bc->wP = 50.0;
 }
 
 void cdsDirichletConditions3D(bcData* bc)
