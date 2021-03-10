@@ -345,13 +345,14 @@ void Comm::send_and_recv(xt::xtensor<T, N>& recvbuf,
   if (this->active()) {
     if (dest != source) {
       // Make sure the shapes match
-      const auto& s = sendbuf.shape();
-      std::vector<size_t> my_shape(s.begin(), s.end());
-      std::vector<size_t> source_shape(my_shape);
-      send_and_recv(source_shape, dest, source);
-      if (rank == dest && my_shape != source_shape) {
-        recvbuf.resize(source_shape);
-      }
+      std::vector<size_t> my_sendbuf_shape(sendbuf.shape().begin(), sendbuf.shape().end());
+      std::vector<size_t> my_recvbuf_shape(recvbuf.shape().begin(), recvbuf.shape().end());
+
+      std::vector<size_t> source_sendbuf_shape(my_sendbuf_shape);
+      send_and_recv(source_sendbuf_shape, dest, source);
+
+      if (rank == dest && my_recvbuf_shape != source_sendbuf_shape)
+          recvbuf.resize(source_sendbuf_shape);
 
       // Finally, send data
       int tag = source;
