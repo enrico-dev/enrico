@@ -514,14 +514,20 @@ void CoupledDriver::init_mappings()
 
   for (const auto& heat_rank : heat_ranks_) {
     // Set mapping of local elem --> global cell handle
+    // IMPORTANT: neutronics.find initializes cells_ on the calling rank
+    // Because every neutronics rank needs cells_, we need to broadcast the centroids
+    // and
     if (comm_.rank == heat_rank) {
       centroids_send = heat.centroid_local();
     }
     this->comm_.send_and_recv(
       centroids_recv, neutronics_root_, centroids_send, heat_rank);
-    if (comm_.rank == neutronics_root_) {
+    neutronics.comm_.broadcast(centroids_recv);
+    if (neutronics.comm_.active()) {
       elem_to_cell_send = neutronics.find(centroids_recv);
     }
+
+    // Send back mapping
     this->comm_.send_and_recv(
       elem_to_cell_, heat_rank, elem_to_cell_send, neutronics_root_);
     comm_.Barrier();
