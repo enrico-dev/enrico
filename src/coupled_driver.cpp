@@ -318,10 +318,14 @@ void CoupledDriver::update_heat_source(bool relax)
   decltype(cell_heat_) cell_heat_send;
   xt::xtensor<double, 1> all_cell_heat;
 
-  // The neutronics root sends each heat root the cell-averaged heat sources that it needs
-  if (comm_.rank == neutronics_root_) {
+  // Even though only the neutronics root needs the heat source (see next step),
+  // OpenmcDriver::heat_source needs to do a collective operation on the neutronics
+  // comm.  Hence, we must call OpenmcDriver::heat_source on all neutron ranks
+  if (neutronics.active()) {
     all_cell_heat = neutronics.heat_source(power_);
   }
+
+  // The neutronics root sends each heat root the cell-averaged heat sources that it needs
   for (const auto& heat_rank : heat_ranks_) {
     comm_.send_and_recv(cells_recv, neutronics_root_, cells_, heat_rank);
     cell_heat_send.resize({cells_recv.size()});
