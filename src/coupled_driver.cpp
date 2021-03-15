@@ -485,6 +485,7 @@ void CoupledDriver::update_density(bool relax)
 
     comm_.send_and_recv(
       cell_fluid_mask_recv, neutronics_root_, cell_fluid_mask_, heat_rank);
+    neutronics.comm_.broadcast(cell_fluid_mask_recv);
 
     if (neutronics.active()) {
       for (gsl::index i = 0; i < cells_recv.size(); ++i) {
