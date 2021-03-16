@@ -64,7 +64,8 @@ void get_driver_comms(Comm super_comm,
 std::vector<int> gather_subcomm_ranks(const Comm& super, const Comm& sub)
 {
   std::vector<int> ranks(super.size);
-  super.Allgather(&sub.rank, 1, MPI_INT, ranks.data(), 1, MPI_INT);
+  int r = sub.rank != MPI_PROC_NULL ? super.rank : MPI_PROC_NULL;
+  super.Allgather(&r, 1, MPI_INT, ranks.data(), 1, MPI_INT);
   auto new_end =
     std::remove_if(ranks.begin(), ranks.end(), [](int i) { return i == MPI_PROC_NULL; });
   ranks.erase(new_end, ranks.end());
