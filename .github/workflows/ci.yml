@@ -15,6 +15,7 @@ env:
   MPI_DIR: /usr
   OMP_NUM_THREADS: 2
   GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  MPICH_FC: gfortran
 
 jobs:
   main:
