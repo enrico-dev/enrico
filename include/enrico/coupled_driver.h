@@ -190,19 +190,23 @@ private:
   std::unique_ptr<HeatFluidsDriver> heat_fluids_driver_; //!< The heat-fluids driver
 
   //! States whether a local cell is in the fluid region. Set only on heat/fluids ranks.
+  //! Ordered the same way as cells_, cell_fluid_mask_, and cell_to_elems_
   std::vector<int> cell_fluid_mask_;
 
   //! Maps heat/fluids element to global cell ID.  Set only on heat/fluids ranks.
   std::vector<CellHandle> elem_to_cell_;
 
   //! Lists the global cell IDs of all local cells in a the heat/fluids rank.
-  //! Set only on heat/fluids ranks.
+  //! Set only on heat/fluids ranks.  Ordered the same way as cell_volumes_,
+  //! cells_fluid_mask_, and cell_to_elems_
   std::vector<CellHandle> cells_;
 
   //! Maps global cell handle to local elements.  Set only on heat/fluids ranks.
+  //! Ordered the same way as cells_, cell_volumes_, and cell_fluid_mask_
   std::map<CellHandle, std::vector<int32_t>> cell_to_elems_;
 
-  //! Volumes of local cells.  Set only on heat/fluids ranks.
+  //! Volumes of local cells.  Set only on heat/fluids ranks. Ordered the same way
+  //! as cells_, cell_fluid_mask_, and cell_to_elems_
   std::vector<double> cell_volumes_;
 
   //! Volumes of local elements.  Set only on heat/fluids ranks.

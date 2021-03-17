@@ -167,15 +167,15 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
     throw std::runtime_error{"Invalid value for <heat_fluids><driver>"};
   }
 
-  // Discover the ranks that are in each comm
+  // Discover the rank IDs (relative to comm_) that are in each single-physics subcomm
   neutronics_ranks_ = gather_subcomm_ranks(comm_, neutronics_comm);
   heat_ranks_ = gather_subcomm_ranks(comm_, heat_comm);
 
-  // Send rank of neutronics root to all procs
+  // Send rank ID of neutronics subcomm root (relative to comm_) to all procs
   neutronics_root_ = this->get_neutronics_driver().comm_.is_root() ? comm_.rank : -1;
   MPI_Allreduce(MPI_IN_PLACE, &neutronics_root_, 1, MPI_INT, MPI_MAX, comm_.comm);
 
-  // Send rank of heat root to all procs
+  // Send rank ID of heat subcomm root (relative to comm_) to all procs
   heat_root_ = this->get_heat_driver().comm_.is_root() ? comm_.rank : -1;
   MPI_Allreduce(MPI_IN_PLACE, &heat_root_, 1, MPI_INT, MPI_MAX, comm_.comm);
 
@@ -318,14 +318,16 @@ void CoupledDriver::update_heat_source(bool relax)
   decltype(cell_heat_) cell_heat_send;
   xt::xtensor<double, 1> all_cell_heat;
 
-  // Even though only the neutronics root needs the heat source (see next step),
-  // OpenmcDriver::heat_source needs to do a collective operation on the neutronics
-  // comm.  Hence, we must call OpenmcDriver::heat_source on all neutron ranks
+  // For the coupling scheme, only the neutronics root needs the heat source.
+  // However, to compute the heat source, OpenmcDriver::heat_source must
+  // do a collective operation on all the ranks in the neutronics sub comm.
+  // Hence, all neutronics ranks must call OpenmcDriver::heat_source
   if (neutronics.active()) {
     all_cell_heat = neutronics.heat_source(power_);
   }
 
-  // The neutronics root sends each heat root the cell-averaged heat sources that it needs
+  // The neutronics root sends the cell-averaged heat sources to the heat ranks.
+  // Each heat rank gets only the heat sources for its local cells.
   for (const auto& heat_rank : heat_ranks_) {
     comm_.send_and_recv(cells_recv, neutronics_root_, cells_, heat_rank);
     cell_heat_send.resize({cells_recv.size()});
@@ -338,7 +340,7 @@ void CoupledDriver::update_heat_source(bool relax)
     comm_.send_and_recv(cell_heat_, heat_rank, cell_heat_send, neutronics_root_);
   }
 
-  // On heat rank, update the element heat sources
+  // On heat rank, update the elements' heat sources based on the cell-avged heat sources
   if (heat.active()) {
     if (relax) {
       if (alpha_ == ROBBINS_MONRO) {
@@ -362,14 +364,15 @@ void CoupledDriver::update_temperature(bool relax)
   auto& neutronics = this->get_neutronics_driver();
   auto& heat = this->get_heat_driver();
 
-  // Step 1: On heat ranks, assign the current iterate of T to the previous
+  // Step 1: On each heat rank, assign the current iterate of local cell-avged T
+  // to the previous iterate
   if (relax && heat.active()) {
     std::copy(cell_temperatures_.begin(),
               cell_temperatures_.end(),
               cell_temperatures_prev_.begin());
   }
 
-  // Step 2: On heat ranks, compute cell T
+  // Step 2: On each heat, compute cell-avged T
   if (heat.active()) {
     auto elem_temperatures = heat.temperature_local();
     for (gsl::index i = 0; i < cells_.size(); ++i) {
@@ -385,7 +388,7 @@ void CoupledDriver::update_temperature(bool relax)
       Ensures(T_avg > 0.0);
       cell_temperatures_.at(i) = T_avg;
     }
-    // Apply relaxation to local cell temperatures
+    // Apply relaxation to local cell-avged T
     if (relax) {
       if (alpha_T_ == ROBBINS_MONRO) {
         int n = i_picard_ + 1;
@@ -398,7 +401,7 @@ void CoupledDriver::update_temperature(bool relax)
     }
   }
 
-  // Step 3: On neutron ranks, accumulate cell volumes from all heat ranks
+  // Step 3: On each neutron rank, accumulate cell-avged volumes from all heat ranks
   std::map<CellHandle, double> T_dot_V;
   std::map<CellHandle, double> cell_V;
   decltype(cells_) cells_recv;
@@ -435,12 +438,13 @@ void CoupledDriver::update_density(bool relax)
   auto& neutronics = this->get_neutronics_driver();
   auto& heat = this->get_heat_driver();
 
-  // Step 1: On heat ranks, assign the current iterate of rho to the previous
+  // Step 1: On each heat rank, assign the current iterate of local cell-avged rho
+  // to the previous iterate
   if (relax && heat.active()) {
     std::copy(cell_densities_.cbegin(), cell_densities_.cend(), cell_densities_.begin());
   }
 
-  // Step 2: On heat ranks, get cell rho
+  // Step 2: On each heat, compute cell-avged rho
   if (heat.active()) {
     auto elem_densities = heat.density_local();
 
@@ -468,7 +472,7 @@ void CoupledDriver::update_density(bool relax)
     }
   }
 
-  // Step 3: On neutron ranks, accumulate cell rho from all heat ranks
+  // Step 3: On each neutron rank, accumulate cell-avged volumes from all heat ranks
   std::map<CellHandle, double> rho_dot_V;
   std::map<CellHandle, double> cell_V;
   decltype(cells_) cells_recv;
@@ -518,10 +522,13 @@ void CoupledDriver::init_mappings()
   decltype(elem_to_cell_) elem_to_cell_send;
 
   for (const auto& heat_rank : heat_ranks_) {
-    // Set mapping of local elem --> global cell handle
-    // IMPORTANT: neutronics.find initializes cells_ on the calling rank
-    // Because every neutronics rank needs cells_, we need to broadcast the centroids
-    // and
+    // For the given heat rank, the neutronics root discovers the mapping of
+    // local elem ID --> global cell handle.
+    // * IMPORTANT: OpenmcDriver::find adds the cell instances it discovers to
+    //   the OpenmcDriver::cells_ array of the calling rank only.  However, every
+    //   neutronics rank needs the full array of cells_ for Openmc::create_tallies.
+    //   Hence, we broadcast the centroids to all neutronics ranks and then
+    //   call neutronics.find on each neutronics rank.
     if (comm_.rank == heat_rank) {
       centroids_send = heat.centroid_local();
     }
@@ -532,18 +539,21 @@ void CoupledDriver::init_mappings()
       elem_to_cell_send = neutronics.find(centroids_recv);
     }
 
-    // Send back mapping
+    // The neutronics root send the mapping of local elem ID --> global cell handle
+    // back to the given heat rank.
     this->comm_.send_and_recv(
       elem_to_cell_, heat_rank, elem_to_cell_send, neutronics_root_);
     comm_.Barrier();
   }
   if (heat.active()) {
-    // Set mapping of global cell handle -> local elem
+    // The heat rank sets the inverse mapping of global cell handle -> local element ID
+    // This is only for its local cells.
     for (gsl::index e = 0; e < elem_to_cell_.size(); ++e) {
       auto c = elem_to_cell_[e];
       cell_to_elems_[c].push_back(e); // Use [ ] instead of at() to insert new item
     }
-    // Get list of all global cell handles
+    // The heat rank creates an array global cell handles for its local cells.
+    // This is useful in the coupling.
     for (const auto& kv : cell_to_elems_) {
       cells_.push_back(kv.first);
     }
