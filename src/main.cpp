@@ -45,6 +45,8 @@ int main(int argc, char* argv[])
   case Transport::Shift: {
     enrico::CoupledDriver driver{MPI_COMM_WORLD, root};
     driver.execute();
+    driver.comm_.message("CoupledDriver times (seconds)");
+    driver.timer_report();
   } break;
   case Transport::Surrogate:
     throw std::runtime_error{"No surrogate particle transport driver implemented"};

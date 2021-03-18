@@ -152,7 +152,8 @@ set(SOURCES
     src/openmc_driver.cpp
     src/cell_instance.cpp
     src/vtk_viz.cpp
-    src/heat_fluids_driver.cpp)
+        src/timer.cpp
+        src/heat_fluids_driver.cpp)
 
 if (USE_NEK5000)
     list(APPEND SOURCES src/nek5000_driver.cpp)

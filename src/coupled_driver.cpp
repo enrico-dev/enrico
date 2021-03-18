@@ -38,6 +38,18 @@ namespace enrico {
 
 CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   : comm_(comm)
+  , timer_execute(comm_)
+  , timer_init_mappings(comm_)
+  , timer_init_tallies(comm_)
+  , timer_init_volumes(comm_)
+  , timer_init_elem_fluid_mask(comm_)
+  , timer_init_cell_fluid_mask(comm_)
+  , timer_init_temperatures(comm_)
+  , timer_init_densities(comm_)
+  , timer_init_heat_source(comm_)
+  , timer_update_density(comm_)
+  , timer_update_heat_source(comm_)
+  , timer_update_temperature(comm_)
 {
   auto neut_node = node.child("neutronics");
   auto heat_node = node.child("heat_fluids");
@@ -192,6 +204,8 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
 
 void CoupledDriver::execute()
 {
+  timer_execute.start();
+
   auto& neutronics = get_neutronics_driver();
   auto& heat = get_heat_driver();
 
@@ -244,6 +258,8 @@ void CoupledDriver::execute()
     comm_.Barrier();
   }
   heat.write_step();
+
+  timer_execute.stop();
 }
 
 double CoupledDriver::temperature_norm(Norm norm)
@@ -282,6 +298,9 @@ bool CoupledDriver::is_converged()
 
 void CoupledDriver::update_heat_source(bool relax)
 {
+  comm_.message("Updating heat source");
+  timer_update_heat_source.start();
+
   auto& neutronics = this->get_neutronics_driver();
   auto& heat = this->get_heat_driver();
 
@@ -330,11 +349,13 @@ void CoupledDriver::update_heat_source(bool relax)
                 std::to_string(local_elem));
     }
   }
+  timer_update_heat_source.stop();
 }
 
 void CoupledDriver::update_temperature(bool relax)
 {
   comm_.message("Updating temperature");
+  timer_update_temperature.start();
 
   auto& neutronics = this->get_neutronics_driver();
   auto& heat = this->get_heat_driver();
@@ -388,10 +409,13 @@ void CoupledDriver::update_temperature(bool relax)
       neutronics.set_temperature(cell, average_temp);
     }
   }
+  timer_update_temperature.stop();
 }
 
 void CoupledDriver::update_density(bool relax)
 {
+  comm_.message("Updating density");
+  timer_update_density.start();
 
   auto& neutronics = this->get_neutronics_driver();
   auto& heat = this->get_heat_driver();
@@ -442,11 +466,13 @@ void CoupledDriver::update_density(bool relax)
       }
     }
   }
+  timer_update_density.stop();
 }
 
 void CoupledDriver::init_mappings()
 {
   comm_.message("Initializing mappings");
+  timer_init_mappings.start();
 
   const auto& heat = this->get_heat_driver();
   auto& neutronics = this->get_neutronics_driver();
@@ -477,21 +503,27 @@ void CoupledDriver::init_mappings()
   // Send number of cell instances to all heat procs
   comm_.send_and_recv(n_cells_, heat_root_, neutronics_root_);
   heat.comm_.broadcast(n_cells_);
+
+  timer_init_mappings.stop();
 }
 
 void CoupledDriver::init_tallies()
 {
   comm_.message("Initializing tallies");
+  timer_init_tallies.start();
 
   auto& neutronics = this->get_neutronics_driver();
   if (neutronics.active()) {
     neutronics.create_tallies();
   }
+
+  timer_init_tallies.stop();
 }
 
 void CoupledDriver::init_temperatures()
 {
   comm_.message("Initializing temperatures");
+  timer_init_temperatures.start();
 
   const auto& neutronics = this->get_neutronics_driver();
   const auto& heat = this->get_heat_driver();
@@ -528,11 +560,13 @@ void CoupledDriver::init_temperatures()
   if (comm_.rank == heat_root_) {
     std::copy(temperatures_.begin(), temperatures_.end(), temperatures_prev_.begin());
   }
+  timer_init_temperatures.stop();
 }
 
 void CoupledDriver::init_volumes()
 {
   comm_.message("Initializing volumes");
+  timer_init_volumes.start();
 
   const auto& heat = this->get_heat_driver();
   const auto& neutronics = this->get_neutronics_driver();
@@ -559,11 +593,13 @@ void CoupledDriver::init_volumes()
       comm_.message(msg.str());
     }
   }
+  timer_init_volumes.stop();
 }
 
 void CoupledDriver::init_densities()
 {
   comm_.message("Initializing densities");
+  timer_init_densities.start();
 
   const auto& neutronics = this->get_neutronics_driver();
   const auto& heat = this->get_heat_driver();
@@ -609,11 +645,13 @@ void CoupledDriver::init_densities()
   if (comm_.rank == heat_root_) {
     std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
   }
+  timer_init_densities.stop();
 }
 
 void CoupledDriver::init_elem_fluid_mask()
 {
   comm_.message("Initializing element fluid mask");
+  timer_init_elem_fluid_mask.start();
 
   const auto& heat = this->get_heat_driver();
   const auto& neutronics = this->get_neutronics_driver();
@@ -622,11 +660,13 @@ void CoupledDriver::init_elem_fluid_mask()
   elem_fluid_mask_ = heat.fluid_mask();
   comm_.send_and_recv(elem_fluid_mask_, neutronics_root_, heat_root_);
   neutronics.comm_.broadcast(elem_fluid_mask_);
+  timer_init_elem_fluid_mask.stop();
 }
 
 void CoupledDriver::init_cell_fluid_mask()
 {
   comm_.message("Initializing cell fluid mask");
+  timer_init_cell_fluid_mask.start();
 
   // Because init_elem_fluid_mask is *expected* to be called first, it's assumed that
   // all neutron procs will have the correct values for elem_fluid_mask_
@@ -645,16 +685,19 @@ void CoupledDriver::init_cell_fluid_mask()
       }
     }
   }
+  timer_init_cell_fluid_mask.stop();
 }
 
 void CoupledDriver::init_heat_source()
 {
   comm_.message("Initializing heat source");
+  timer_init_heat_source.start();
 
   if (comm_.rank == neutronics_root_ || this->get_heat_driver().active()) {
     heat_source_ = xt::empty<double>({n_cells_});
     heat_source_prev_ = xt::empty<double>({n_cells_});
   }
+  timer_init_heat_source.stop();
 }
 
 void CoupledDriver::comm_report()
@@ -685,6 +728,31 @@ void CoupledDriver::comm_report()
                 << std::setw(rankw) << this->get_heat_driver().comm_.rank << std::endl;
     }
     MPI_Barrier(world.comm);
+  }
+}
+
+void CoupledDriver::timer_report()
+{
+
+  std::map<std::string, double> times{
+    {"execute", timer_execute.elapsed()},
+    {"init_cell_fluid_mask", timer_init_cell_fluid_mask.elapsed()},
+    {"init_densities", timer_init_densities.elapsed()},
+    {"init_elem_fluid_mask", timer_init_elem_fluid_mask.elapsed()},
+    {"init_heat_source", timer_init_heat_source.elapsed()},
+    {"init_mappings", timer_init_mappings.elapsed()},
+    {"init_tallies", timer_init_tallies.elapsed()},
+    {"init_temperatures", timer_init_temperatures.elapsed()},
+    {"init_volumes", timer_init_volumes.elapsed()},
+    {"update_density", timer_update_density.elapsed()},
+    {"update_heat_source", timer_update_heat_source.elapsed()},
+    {"update_temperature", timer_update_temperature.elapsed()}};
+
+  for (const auto& t : times) {
+    std::stringstream msg;
+    msg << "    " << std::setw(24) << std::left << t.first << std::right
+        << std::scientific << t.second;
+    comm_.message(msg.str());
   }
 }
 
