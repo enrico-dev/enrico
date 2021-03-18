@@ -5,6 +5,7 @@
 
 #include "enrico/comm.h"
 #include "enrico/mpi_types.h"
+#include "enrico/timer.h"
 
 #include <mpi.h>
 
@@ -19,6 +20,10 @@ public:
   //! \param comm An existing MPI communicator used to initialize the solver
   explicit Driver(MPI_Comm comm)
     : comm_(comm)
+    , timer_init_step(comm_)
+    , timer_solve_step(comm_)
+    , timer_write_step(comm_)
+    , timer_finalize_step(comm_)
   {}
 
   //! Performs the necessary initialization for this solver in one Picard iteration
@@ -43,6 +48,13 @@ public:
   bool active() const;
 
   Comm comm_; //!< The MPI communicator used to run the solver
+
+  Timer timer_init_step;
+  Timer timer_solve_step;
+  Timer timer_write_step;
+  Timer timer_finalize_step;
+
+  void timer_report();
 };
 
 } // namespace enrico

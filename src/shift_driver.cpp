@@ -206,13 +206,17 @@ std::string ShiftDriver::cell_label(CellHandle handle) const
 
 void ShiftDriver::init_step()
 {
+  timer_init_step.start();
   // Rebuild problem (loading any new data needed and run transport
   driver_->rebuild();
+  timer_init_step.stop();
 }
 
 void ShiftDriver::solve_step()
 {
+  timer_solve_step.start();
   driver_->run();
+  timer_solve_step.stop();
 }
 
 } // end namespace enrico

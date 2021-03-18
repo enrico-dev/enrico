@@ -61,12 +61,15 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
 
 void NekRSDriver::init_step()
 {
+  timer_init_step.start();
   auto min = std::min_element(localq_->cbegin(), localq_->cend());
   auto max = std::max_element(localq_->cbegin(), localq_->cend());
+  timer_init_step.stop();
 }
 
 void NekRSDriver::solve_step()
 {
+  timer_solve_step.start();
   const auto start_time = nekrs::startTime();
   const auto final_time = nekrs::finalTime();
   const auto dt = nekrs::dt();
@@ -81,12 +84,15 @@ void NekRSDriver::solve_step()
     ++tstep_;
   }
   nekrs::copyToNek(time_, tstep_);
+  timer_solve_step.stop();
 }
 
 void NekRSDriver::write_step(int timestep, int iteration)
 {
+  timer_write_step.start();
   nekrs::copyToNek(timestep, iteration);
   nekrs::nekOutfld();
+  timer_write_step.stop();
   return;
 }
 

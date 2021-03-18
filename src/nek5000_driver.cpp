@@ -84,8 +84,10 @@ std::vector<double> Nek5000Driver::density_local() const
 
 void Nek5000Driver::solve_step()
 {
+  timer_solve_step.start();
   nek_reset_counters();
   C2F_nek_solve();
+  timer_solve_step.stop();
 }
 
 Position Nek5000Driver::centroid_at(int32_t local_elem) const
