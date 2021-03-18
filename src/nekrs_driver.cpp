@@ -69,6 +69,8 @@ void NekRSDriver::solve_step()
 {
   const auto start_time = nekrs::startTime();
   const auto final_time = nekrs::finalTime();
+  const int output_step = nekrs::outputStep();
+  const double n_timesteps = nekrs::NtimeSteps();
   const auto dt = nekrs::dt();
 
   time_ = start_time;
@@ -77,18 +79,23 @@ void NekRSDriver::solve_step()
   while ((final_time - time_) / (final_time * dt) > 1e-6) {
     nekrs::runStep(time_, dt, tstep_);
     time_ += dt;
-    nekrs::udfExecuteStep(time_, tstep_, 0);
+
+    int is_output_step = 0;
+    if (output_step > 0 && (tstep_ % output_step == 0 || tstep_ == n_timesteps))
+      is_output_step = 1;
+
+    nekrs::udfExecuteStep(time_, tstep_, is_output_step);
+
+    if (is_output_step) {
+      nekrs::copyToNek(time_, tstep_);
+      nekrs::nekOutfld();
+    }
     ++tstep_;
   }
   nekrs::copyToNek(time_, tstep_);
 }
 
-void NekRSDriver::write_step(int timestep, int iteration)
-{
-  nekrs::copyToNek(timestep, iteration);
-  nekrs::nekOutfld();
-  return;
-}
+void NekRSDriver::write_step(int timestep, int iteration) { return; }
 
 Position NekRSDriver::centroid_at(int32_t local_elem) const
 {
