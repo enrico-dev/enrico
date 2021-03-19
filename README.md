@@ -50,18 +50,16 @@ Next, the general workflow is for building and installing is:
      ``` Console
        $ CC=mpicc CXX=mpicxx FC=mpifort cmake -DNEK_DIST=none ..
      ```
-  3. Run make and install:
+  3. Run make and install.  By default, this will install ENRICO in the `install` subdirectory of
+     the current build dir.  You can specify another install location with the usual `CMAKE_INSTALL_PREFIX`
+     variable.
      ``` Console
        $ make -j4 enrico install
      ```
-
-### Important Information
-
-To be usable, nekRS **must** be installed (e.g., via `make install`) in addition to being compiled.
-While this is not necessary for other builds, `make install` is still fully supported.  The default
-installation directory is the `install/` subdirectory under the build directory.  It can be changed
-using the usual `-DCMAKE_INSTALL_PREFIX` option.
-
+   4. Optional: Add installation to $PATH
+      ```
+        $ export PATH=$(realpath install/bin):$PATH
+      ```
 
 ## Other Dependencies
 
@@ -79,7 +77,8 @@ files for the physics applications; and the ENRICO-specific `enrico.xml` input f
 `enrico.xml` file.
 
 For the included short singlerod test case, you can run the simulations as follows. (These assume you
-have added `build/` to your `PATH`; if not, you must refer to the full path to `enrico`)
+have added `build/install` to your `PATH` as described above; if not, you must use the full path 
+to `enrico`)
 
   * For OpenMC + Nek5000:
   ``` Console
