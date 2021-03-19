@@ -88,7 +88,7 @@ if (USE_NEK5000)
 endif ()
 
 # =============================================================================
-# Verify libdl headers for NekRS integration
+# Verify and create headers for NekRS integration
 # =============================================================================
 
 if (USE_NEKRS)
@@ -97,6 +97,9 @@ if (USE_NEKRS)
     if (NOT ${DLOPEN_H_FOUND})
         message(FATAL_ERROR "CMake could not find dlfcn.h, the header for libdl.")
     endif ()
+
+    set(NEKRS_HOME ${CMAKE_INSTALL_PREFIX})
+    configure_file(config/nekrs_home.h.in ${CMAKE_BINARY_DIR}/include/nekrs_home.h @ONLY)
 endif ()
 
 # =============================================================================
@@ -108,7 +111,8 @@ include_directories(
         vendor/openmc/include
         vendor
         src/
-    ${CMAKE_BINARY_DIR})
+        ${CMAKE_BINARY_DIR}
+        ${CMAKE_BINARY_DIR}/include)
 
 if (SCALE_FOUND)
     include_directories(${SCALE_INCLUDE_DIRS})

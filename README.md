@@ -54,15 +54,6 @@ Next, the general workflow is for building and installing is:
      ``` Console
        $ make -j4 enrico install
      ```
-  4. Set environment variables
-     * **Required for nekRS:** Set `NEKRS_HOME` to the absolute path of the installation directory:
-     ``` Console
-       $ export NEKRS_HOME=$(realpath install)
-     ```
-     * Optional for all builds: Add the installation directory to the current path
-     ``` Console
-       $ export PATH=$(realpath install/bin):$PATH
-     ```
 
 ### Important Information
 
@@ -88,7 +79,7 @@ files for the physics applications; and the ENRICO-specific `enrico.xml` input f
 `enrico.xml` file.
 
 For the included short singlerod test case, you can run the simulations as follows. (These assume you
-have added `build/install/bin` to your `PATH`; if not, you must refer to the full path to `enrico`)
+have added `build/` to your `PATH`; if not, you must refer to the full path to `enrico`)
 
   * For OpenMC + Nek5000:
   ``` Console
