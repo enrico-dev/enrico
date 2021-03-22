@@ -79,27 +79,26 @@ void NekRSDriver::init_step()
 void NekRSDriver::solve_step()
 {
   const auto start_time = nekrs::startTime();
-  const auto final_time = nekrs::finalTime();
-  const int output_step = nekrs::outputStep();
-  const double n_timesteps = nekrs::NtimeSteps();
+  const auto end_time = nekrs::endTime();
+  const double n_timesteps = nekrs::numSteps();
   const auto dt = nekrs::dt();
 
   time_ = start_time;
   tstep_ = 1;
 
-  while ((final_time - time_) / (final_time * dt) > 1e-6) {
+  while ((end_time - time_) / (end_time * dt) > 1e-6) {
     nekrs::runStep(time_, dt, tstep_);
     time_ += dt;
 
-    int is_output_step = 0;
-    if (output_step > 0 && (tstep_ % output_step == 0 || tstep_ == n_timesteps))
-      is_output_step = 1;
+    int is_output_step = nekrs::isOutputStep(time_, tstep_);
+    if (nekrs::writeInterval() <= 0) 
+      is_output_step = 0;
 
     nekrs::udfExecuteStep(time_, tstep_, is_output_step);
 
     if (is_output_step) {
       nekrs::copyToNek(time_, tstep_);
-      nekrs::nekOutfld();
+      nekrs::outfld(time_);
     }
     ++tstep_;
   }
