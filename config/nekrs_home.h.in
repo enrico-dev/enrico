@@ -1,0 +1,4 @@
+#ifndef ENRICO_NEKRS_HOME_H
+#define ENRICO_NEKRS_HOME_H
+#cmakedefine NEKRS_HOME "@NEKRS_HOME@"
+#endif

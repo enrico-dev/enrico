@@ -144,7 +144,7 @@ c-----------------------------------------------------------------------
       endif
       if (cbc(ifc,iel,1) .eq. 'W  ') boundaryID(ifc,iel) = 3
       if (cbc(ifc,iel,1) .eq. 'SYM') then
-      if ((abs(xx-xx1).lt.1e-4).or.(abs(xx-xx1).lt.1e-4)) then   
+      if ((abs(xx-xx1).lt.1e-4).or.(abs(xx-xx2).lt.1e-4)) then   
                 boundaryID(ifc,iel) = 4
       endif
       if ((abs(yy-yy1).lt.1e-4).or.(abs(yy-yy2).lt.1e-4)) then         
