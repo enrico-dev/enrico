@@ -24,7 +24,16 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
 
     // See vendor/nekRS/src/core/occaDeviceConfig.cpp for valid keys
     setup_file_ = node.child_value("casename");
-    nekrs::setup(comm, 0, 0, 0, "", setup_file_, "", "");
+    nekrs::setup(
+        comm /* comm_in */,
+        0 /* buildOnly */, 
+        0 /* sizeTarget */, 
+        0 /* ciMode */, 
+        "" /* cacheDir */, 
+        setup_file_ /* _setupFile */, 
+        "" /* backend_ */, 
+        "" /* _deviceId */);
+
     nrs_ptr_ = reinterpret_cast<nrs_t *>(nekrs::nrsPtr());
 
     open_lib_udf();
@@ -78,30 +87,56 @@ void NekRSDriver::init_step()
 
 void NekRSDriver::solve_step()
 {
-  const auto start_time = nekrs::startTime();
-  const auto end_time = nekrs::endTime();
-  const double n_timesteps = nekrs::numSteps();
-  const auto dt = nekrs::dt();
+  const int runtime_stat_freq = 500;
+  auto elapsed_time = MPI_Wtime();
+  tstep_ = 0;
+  time_ = nekrs::startTime();
+  auto last_step = nekrs::lastStep(time_, tstep_, elapsed_time);
 
-  time_ = start_time;
-  tstep_ = 1;
+  if (!last_step) {
+    std::stringstream msg;
+    if (nekrs::endTime() > nekrs::startTime()) {
+      msg << "timestepping to time " << nekrs::endTime() << " ...";
+    }
+    else {
+      msg << "timestepping for " << nekrs::numSteps() << " steps ...";
+    }
+    comm_.message(msg.str());
+  }
 
-  while ((end_time - time_) / (end_time * dt) > 1e-6) {
+  while (!last_step) {
+    if (comm_.active()) 
+      comm_.Barrier();
+    elapsed_time += (MPI_Wtime() - elapsed_time);
+    ++tstep_;
+    last_step = nekrs::lastStep(time_, tstep_, elapsed_time);
+
+    double dt; 
+    if (last_step && nekrs::endTime() > 0) 
+      dt = nekrs::endTime() - time_;
+    else
+      dt = nekrs::dt();
+
     nekrs::runStep(time_, dt, tstep_);
     time_ += dt;
 
-    int is_output_step = nekrs::isOutputStep(time_, tstep_);
-    if (nekrs::writeInterval() <= 0) 
-      is_output_step = 0;
+    auto output_step = nekrs::isOutputStep(time_, tstep_);
+    if (nekrs::writeInterval() == 0) 
+      output_step = 0;
+    if (last_step) 
+      output_step = 1;
+    if (nekrs::writeInterval() < 0) 
+      output_step = 0;
 
-    nekrs::udfExecuteStep(time_, tstep_, is_output_step);
+    nekrs::udfExecuteStep(time_, tstep_, output_step);
 
-    if (is_output_step) {
-      nekrs::copyToNek(time_, tstep_);
-      nekrs::outfld(time_);
-    }
-    ++tstep_;
+    if (output_step) 
+      nekrs::outfld(time_); 
+
+    if (tstep_ % runtime_stat_freq == 0 || last_step) 
+      nekrs::printRuntimeStatistics();
   }
+
   nekrs::copyToNek(time_, tstep_);
 }
 

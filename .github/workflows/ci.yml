@@ -64,10 +64,6 @@ jobs:
           $GITHUB_WORKSPACE/ci/download_xs.sh
           $GITHUB_WORKSPACE/ci/unzip_singlerod_statefile.sh
 
-      - name: debug_ci
-        shell: bash
-        run: |
-          cat $GITHUB_WORKSPACE/tests/singlerod/short/nekrs/rod_short.par
       - name: test
         shell: bash
         run: |
