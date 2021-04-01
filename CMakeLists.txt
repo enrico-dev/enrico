@@ -130,6 +130,8 @@ if (USE_NEK5000)
     add_subdirectory(vendor/nek5000)
 elseif (USE_NEKRS)
     add_subdirectory(vendor/nekRS)
+    # TODO: An upstream fix to the NekRS CMakeLists should let us to omit this
+    include_directories(vendor/nekRS/src/lib)
 endif ()
 add_subdirectory(vendor/openmc)
 

@@ -1,14 +1,14 @@
 // Boundary conditions
-void insVelocityDirichletConditions3D(bcData* bc)
+void velocityDirichletConditions(bcData* bc)
 {
-  bc->uP = 0.0;
-  bc->vP = 0.0;
-  bc->wP = 50.0;
+  bc->u = 0.0;
+  bc->v = 0.0;
+  bc->w = 50.0;
 }
 
-void cdsDirichletConditions3D(bcData* bc)
+void scalarDirichletConditions(bcData* bc)
 {
-  bc->sP = 523.15;
+  bc->s = 523.15;
 }
 
 @kernel void cFill(const dlong Nelements,
