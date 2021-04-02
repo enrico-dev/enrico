@@ -13,7 +13,7 @@
     <communication>overlapping</communication>
     <power>16.4e3</power>
     <max_timesteps>1</max_timesteps>
-    <max_picard_iter>4</max_picard_iter>
+    <max_picard_iter>5</max_picard_iter>
     <epsilon>0.5</epsilon>
   </coupling>
 </enrico>

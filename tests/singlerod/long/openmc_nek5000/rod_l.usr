@@ -1,0 +1,187 @@
+c-----------------------------------------------------------------------
+C
+C  USER SPECIFIED ROUTINES:
+C
+C     - boundary conditions
+C     - initial conditions
+C     - variable properties
+C     - local acceleration for fluid (a)
+C     - forcing function for passive scalar (q)
+C     - general purpose routine for checking errors etc.
+c-----------------------------------------------------------------------
+      subroutine uservp (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,f,eg
+      real t_
+
+      udiff  = 0.1  ! Artifically increased viscosity to simplify problem
+      utrans = 1.0
+
+      if (ifield.eq.2) then
+         udiff  = 0.39*2.0 ! Pr~1
+         utrans = 3.9  ! Estimated Volumetric Heat capacity at a temperature of 280 C and 110 bar
+      endif
+
+      e  = gllel(eg)
+      xx = xm1(ix,iy,iz,e)
+      yy = ym1(ix,iy,iz,e)
+      rr = sqrt(xx**2+yy**2)
+
+      ! temperature in K
+      t_ = t(ix,iy,iz,e,1)
+
+      if (ifield.eq.2) then
+      if (rr.lt.0.406) then
+          ! fuel conductivity in W/cm-K
+          udiff = 1.0/(4.52 + 2.46e-2*t_) + 3.5e7/(t_*t_) *
+     $            exp(-16361.0/t_)
+          utrans = 1.0    ! fuel rho-cp
+      else if (rr.lt.0.414) then
+          udiff  = 0.0001  ! gap conductivity in W/cm-K
+          utrans = 0.1     ! gap rho-cp
+      else if (rr.lt.0.475) then
+          udiff  = 0.13  ! clad conductivity in W/cm-K
+          utrans = 1.0   ! clad rho-cp
+      endif
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userf  (ix,iy,iz,eg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+      integer e,f,eg
+      ffx=0.0
+      ffy=0.0
+      ffz=0.0
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userchk
+      include 'SIZE'
+      include 'TOTAL'
+
+      integer e,f,i,j,k,n
+      real mpow, mdot
+      real tbulk(lx1,ly1,lz1,lelv)
+
+      n=lx1*ly1*lz1*nelt
+      nv=lx1*ly1*lz1*nelv
+
+      tmin=glmin(t,n)
+      tmax=glmax(t,n)
+      tmin1=glmin(t,nv)
+      tmax1=glmax(t,nv)
+
+      vmin=glmin(vz,n)
+      vmax=glmax(vz,n)
+      pmin=glmin(pr,n)
+      pmax=glmax(pr,n)
+
+      vol1   = glsum(bm1,nv)
+      area1  = vol1/200.0
+      vz_avg = glsc2(vz,bm1,nv)/vol1
+      mdot   = vz_avg*area1
+
+      do i=1,nv
+       tbulk(i,1,1,1)=t(i,1,1,1,1)*vz(i,1,1,1)
+      enddo
+
+      sarea=0.0
+      sint=0.0
+      sum_area=0.0
+      sum_int=0.0
+      do e=1,nelv
+         do f=1,6
+            if (cbc(f,e,1).eq.'O  ') then
+             call surface_int(sint,sarea,tbulk,e,f)
+             sum_area=sum_area+sarea
+             sum_int=sum_int+sint
+            endif
+          enddo
+      enddo
+      sum_int=glsum(sum_int,1)
+      sum_area=glsum(sum_area,1)
+      T_out=sum_int/(sum_area*vz_avg)
+
+      if (nid.eq.0) then
+       write(6,*)" > Temperature (t): ",tmin," - ",tmax
+       write(6,*)" > Temperature (v): ",tmin1," - ",tmax1
+       write(6,*)" > Velocity:    ",vmin," - ",vmax
+       write(6,*)" > Pressure:    ",pmin," - ",pmax
+      endif
+
+      ifflow=.false.
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,ieg
+      real ucx, ucy, ucz, ucy_e, yy
+
+      e=gllel(ieg)
+
+      ux = 0.0
+      uy = 0.0
+      uz = 100.0 !50.0
+      temp = 523.15
+      flux = 0.25 !flux_recon(ix,iy,iz,e) !flux_moose
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine useric (ix,iy,iz,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer idum, e
+      save    idum
+      data    idum / 0 /
+
+      if (idum.eq.0) idum = 99 + nid
+      eps = .35
+
+      uz=100.0 !50.0
+      uy=0.0
+      ux=0.0
+      temp=523.15
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat
+      include 'SIZE'
+      include 'TOTAL'
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat2
+      include 'SIZE'
+      include 'TOTAL'
+
+      if (nid.eq.0) print *, "Test ***"
+
+c      param(66) = 4.   ! These give the std nek binary i/o and are
+c      param(67) = 4.   ! good default values
+      ifuservp=.true.
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine usrdat3
+      include 'SIZE'
+      include 'TOTAL'
+c
+      return
+      end
