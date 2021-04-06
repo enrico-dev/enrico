@@ -1,0 +1,25 @@
+[OCCA]
+backend = SERIAL
+deviceNumber = LOCAL-RANK
+
+[GENERAL] 
+polynomialOrder = 5
+numSteps = 50000 
+dt = 1.5e-04
+startFrom = rod_l.run03
+timeStepper = tombo2
+writeInterval = 10000
+
+[PROBLEMTYPE]
+variableProperties = yes
+
+[PRESSURE]
+residualTol = 1e-05
+
+[VELOCITY]
+boundaryTypeMap = v, O, W, symx, symy
+residualTol = 1e-06
+
+[TEMPERATURE]
+boundaryTypeMap = t, I, I, I, I
+residualTol = 1e-04
