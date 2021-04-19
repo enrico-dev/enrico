@@ -3,6 +3,7 @@
 #include "enrico/comm_split.h"
 #include "enrico/driver.h"
 #include "enrico/error.h"
+#include "iapws/iapws.h"
 
 #ifdef USE_NEK5000
 #include "enrico/nek5000_driver.h"
@@ -94,18 +95,6 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
     }
   }
 
-  if (coup_node.child("density_ic")) {
-    std::string s = coup_node.child_value("density_ic");
-
-    if (s == "neutronics") {
-      density_ic_ = Initial::neutronics;
-    } else if (s == "heat_fluids") {
-      density_ic_ = Initial::heat;
-    } else {
-      throw std::runtime_error{"Invalid value for <density_ic>"};
-    }
-  }
-
   Expects(power_ > 0);
   Expects(max_timesteps_ >= 0);
   Expects(max_picard_iter_ >= 0);
@@ -186,7 +175,6 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   init_cell_fluid_mask();
 
   init_temperatures();
-  init_densities();
   init_heat_source();
 }
 
@@ -232,8 +220,7 @@ void CoupledDriver::execute()
       // At this point, there is always a previous iterate of temperature and density
       // (as assured by the initial conditions set in init_temperature and init_density)
       // so we always apply underrelaxation here.
-      update_temperature(true);
-      update_density(true);
+      update_temperature_and_density(true);
 
       if (is_converged()) {
         std::string msg = "converged at i_picard = " + std::to_string(i_picard_);
@@ -332,9 +319,9 @@ void CoupledDriver::update_heat_source(bool relax)
   }
 }
 
-void CoupledDriver::update_temperature(bool relax)
+void CoupledDriver::update_temperature_and_density(bool relax)
 {
-  comm_.message("Updating temperature");
+  comm_.message("Updating temperature and density");
 
   auto& neutronics = this->get_neutronics_driver();
   auto& heat = this->get_heat_driver();
@@ -386,59 +373,11 @@ void CoupledDriver::update_temperature(bool relax)
       // Set temperature for cell instance
       CellHandle cell = kv.first;
       neutronics.set_temperature(cell, average_temp);
-    }
-  }
-}
 
-void CoupledDriver::update_density(bool relax)
-{
-
-  auto& neutronics = this->get_neutronics_driver();
-  auto& heat = this->get_heat_driver();
-
-  // *********************************************************************
-  // Gather densities on heat root and apply underrelaxation
-  // *********************************************************************
-
-  if (relax && comm_.rank == heat_root_) {
-    std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
-  }
-
-  densities_ = heat.density();
-
-  if (relax && comm_.rank == heat_root_) {
-    if (alpha_rho_ == ROBBINS_MONRO) {
-      int n = i_picard_ + 1;
-      densities_ = densities_ / n + (1. - 1. / n) * densities_prev_;
-    } else {
-      densities_ = alpha_rho_ * densities_ + (1.0 - alpha_rho_) * densities_prev_;
-    }
-  }
-
-  // ************************************************************************
-  // Send underrelaxed density to all neutron ranks and set cell temperatures
-  // ************************************************************************
-
-  comm_.send_and_recv(densities_, neutronics_root_, heat_root_);
-  neutronics.comm_.broadcast(densities_);
-
-  if (neutronics.active()) {
-    // For each neutronics cell in a fluid cell, volume average the densities
-    // and set in driver
-    for (const auto& kv : cell_to_elems_) {
-      CellHandle cell = kv.first;
+      // If cell is in fluid, set density for cell instance
       if (cell_fluid_mask_[cell] == 1) {
-        // Get volume-averaged density for this cell instance
-        double average_density = 0.0;
-        double total_vol = 0.0;
-        for (int e : kv.second) {
-          average_density += densities_[e] * elem_volumes_[e];
-          total_vol += elem_volumes_[e];
-        }
-        // Set density for cell instance
-        average_density /= total_vol;
-        Ensures(average_density > 0.0);
-        neutronics.set_density(cell, average_density);
+        double density = 1e-3 / iapws::nu1(heat.pressure_bc_, average_temp);
+        neutronics.set_density(cell, density);
       }
     }
   }
@@ -521,7 +460,7 @@ void CoupledDriver::init_temperatures()
     //   temperatures received from the heat solver.
     // * We do not want to apply underrelaxation here (and at this point,
     //   there is no previous iterate of temperature, anyway).
-    update_temperature(false);
+    update_temperature_and_density(false);
   }
 
   // In both cases, only temperatures_ was set, so we explicitly set temperatures_prev_
@@ -558,56 +497,6 @@ void CoupledDriver::init_volumes()
           << " (Neutronics), " << v_heatfluids << " (Heat/Fluids)";
       comm_.message(msg.str());
     }
-  }
-}
-
-void CoupledDriver::init_densities()
-{
-  comm_.message("Initializing densities");
-
-  const auto& neutronics = this->get_neutronics_driver();
-  const auto& heat = this->get_heat_driver();
-
-  if (comm_.rank == heat_root_) {
-    densities_.resize({static_cast<unsigned long>(n_global_elem_)});
-    densities_prev_.resize({static_cast<unsigned long>(n_global_elem_)});
-  } else if (comm_.rank == neutronics_root_) {
-    densities_.resize({static_cast<unsigned long>(n_global_elem_)});
-  }
-
-  if (density_ic_ == Initial::neutronics) {
-    if (comm_.rank == neutronics_root_) {
-      // Loop over the neutronics cells, then loop over the TH elements
-      // corresponding to that cell and assign the cell density to the correct
-      // index in the densities_ array. This mapping assumes that each TH
-      // element is fully contained within a neutronics cell, i.e., TH elements
-      // are not split between multiple neutronics cells.
-      for (const auto& kv : cell_to_elems_) {
-        CellHandle cell = kv.first;
-        const auto& global_elems = kv.second;
-
-        for (int elem : global_elems) {
-          if (cell_fluid_mask_[cell] == 1) {
-            double rho = neutronics.get_density(cell);
-            densities_[elem] = rho;
-          } else {
-            densities_[elem] = 0.0;
-          }
-        }
-      }
-    }
-    comm_.send_and_recv(densities_, heat_root_, neutronics_root_);
-  } else if (density_ic_ == Initial::heat) {
-    // * This sets densities_ on the the coupling_root, based on the
-    //   densities received from the heat solver.
-    // * We do not want to apply underrelaxation here (and at this point,
-    //   there is no previous iterate of density, anyway).
-    update_density(false);
-  }
-
-  // In both cases, we need to explicitly set densities_prev_
-  if (comm_.rank == heat_root_) {
-    std::copy(densities_.begin(), densities_.end(), densities_prev_.begin());
   }
 }
 

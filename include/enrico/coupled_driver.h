@@ -49,12 +49,7 @@ public:
   //! Update the temperature for the neutronics solver
   //!
   //! \param relax Apply relaxation to temperature before updating neutronics solver
-  void update_temperature(bool relax);
-
-  //! Update the density for the neutronics solver
-  //!
-  //! \param relax Apply relaxation to density before updating neutronics solver
-  void update_density(bool relax);
+  void update_temperature_and_density(bool relax);
 
   //! Check convergence of the coupled solve for the current Picard iteration.
   bool is_converged();
@@ -169,15 +164,6 @@ private:
   xt::xtensor<double, 1> temperatures_;
 
   xt::xtensor<double, 1> temperatures_prev_; //!< Previous Picard iteration temperature
-
-  //! Current Picard iteration density; this density is the density
-  //! computed by the thermal-hydraulic solver, and data mappings may result in
-  //! a different density actually used in the neutronics solver. For example,
-  //! the entries in this xtensor may be averaged over neutronics cells to give
-  //! the density used by the neutronics solver.
-  xt::xtensor<double, 1> densities_;
-
-  xt::xtensor<double, 1> densities_prev_; //!< Previous Picard iteration density
 
   //! Current Picard iteration heat source; this heat source is the heat source
   //! computed by the neutronics solver, and data mappings may result in a different
