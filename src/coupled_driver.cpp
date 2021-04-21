@@ -35,9 +35,6 @@
 #include <unistd.h>
 #endif
 
-#define PLINE                                                                            \
-  std::cout << comm_.rank << " : " << __FILE__ << " : " << __LINE__ << std::endl;
-
 namespace enrico {
 
 CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
@@ -253,35 +250,31 @@ void CoupledDriver::execute()
 double CoupledDriver::temperature_norm(Norm norm)
 {
   auto& heat = this->get_heat_driver();
-  double tnorm = 0;
+  double global_norm = 0;
 
   // Update global temperature norm
   if (heat.active()) {
     switch (norm) {
     case Norm::L1: {
-      double l_sum =
-        xt::eval(xt::sum(xt::abs(cell_temperatures_ - cell_temperatures_prev_)))[0];
-      MPI_Reduce(&l_sum, &tnorm, 1, MPI_DOUBLE, MPI_SUM, 0, heat.comm_.comm);
+      double local_norm = xt::norm_l1(cell_temperatures_ - cell_temperatures_prev_)();
+      MPI_Reduce(&local_norm, &global_norm, 1, MPI_DOUBLE, MPI_SUM, 0, heat.comm_.comm);
       break;
     }
     case Norm::L2: {
-      double l_sum =
-        xt::eval(xt::sum(xt::square(cell_temperatures_ - cell_temperatures_prev_)))[0];
-      double g_sum;
-      MPI_Reduce(&l_sum, &g_sum, 1, MPI_DOUBLE, MPI_SUM, 0, heat.comm_.comm);
-      tnorm = sqrt(g_sum);
+      double local_norm = xt::norm_sq(cell_temperatures_ - cell_temperatures_prev_)();
+      MPI_Reduce(&local_norm, &global_norm, 1, MPI_DOUBLE, MPI_SUM, 0, heat.comm_.comm);
+      global_norm = std::sqrt(global_norm);
       break;
     }
     case Norm::LINF: {
-      double l_max =
-        xt::eval(xt::amax(xt::abs(cell_temperatures_ - cell_temperatures_prev_)))[0];
-      MPI_Reduce(&l_max, &tnorm, 1, MPI_DOUBLE, MPI_MAX, 0, heat.comm_.comm);
+      double local_norm = xt::norm_linf(cell_temperatures_ - cell_temperatures_prev_)();
+      MPI_Reduce(&local_norm, &global_norm, 1, MPI_DOUBLE, MPI_MAX, 0, heat.comm_.comm);
       break;
     }
     }
   }
 
-  return tnorm;
+  return global_norm;
 }
 
 bool CoupledDriver::is_converged()
@@ -402,8 +395,8 @@ void CoupledDriver::update_temperature(bool relax)
   }
 
   // Step 3: On each neutron rank, accumulate cell-avged volumes from all heat ranks
-  std::map<CellHandle, double> T_dot_V;
-  std::map<CellHandle, double> cell_V;
+  std::unordered_map<CellHandle, double> T_dot_V;
+  std::unordered_map<CellHandle, double> cell_V;
   decltype(cells_) cells_recv;
   decltype(cell_volumes_) cell_volumes_recv;
   decltype(cell_temperatures_) cell_temperatures_recv;
@@ -428,7 +421,9 @@ void CoupledDriver::update_temperature(bool relax)
     }
   }
   for (const auto& kv : T_dot_V) {
-    neutronics.set_temperature(kv.first, kv.second / cell_V.at(kv.first));
+    auto cell = kv.first;
+    auto tv = kv.second;
+    neutronics.set_temperature(cell, tv / cell_V.at(cell));
   }
 }
 
@@ -518,7 +513,8 @@ void CoupledDriver::init_mappings()
   auto& neutronics = this->get_neutronics_driver();
 
   // Send and recv buffers
-  std::vector<Position> centroids_send, centroids_recv;
+  std::vector<Position> centroids_send;
+  std::vector<Position> centroids_recv;
   decltype(elem_to_cell_) elem_to_cell_send;
 
   for (const auto& heat_rank : heat_ranks_) {
@@ -601,10 +597,8 @@ void CoupledDriver::init_temperatures()
         cell_temperatures_, heat_rank, cell_temperatures_send, neutronics_root_);
     }
   } else if (temperature_ic_ == Initial::heat) {
-    // * This sets l_cel_temps_ on the the coupling_root, based on the
-    //   temperatures received from the heat solver.
-    // * We do not want to apply underrelaxation here (and at this point,
-    //   there is no previous iterate of temperature, anyway).
+    //  We do not want to apply underrelaxation here since, at this point, there is no
+    //  previous iterate of temperature.
     update_temperature(false);
   }
 

@@ -299,7 +299,6 @@ Comm::send_and_recv(T& recvbuf, int dest, T& sendbuf, int source) const
       }
     } else { // dest == source
       recvbuf = sendbuf;
-      this->Barrier(); // Barrier emulates the blocking behavior of send/recv
     }
   }
 };
@@ -331,7 +330,6 @@ void Comm::send_and_recv(std::vector<T>& recvbuf,
     } else { // dest == source
       recvbuf.resize(sendbuf.size());
       std::copy(sendbuf.cbegin(), sendbuf.cend(), recvbuf.begin());
-      this->Barrier(); // Barrier emulates the blocking behavior of send/recv
     }
   }
 }
@@ -370,7 +368,6 @@ void Comm::send_and_recv(xt::xtensor<T, N>& recvbuf,
     } else { // dest == source
       recvbuf.resize(sendbuf.shape());
       std::copy(sendbuf.cbegin(), sendbuf.cend(), recvbuf.begin());
-      this->Barrier(); // Barrier emulates the blocking behavior of send/recv
     }
   }
 }

@@ -1,4 +1,5 @@
 #include "enrico/comm_split.h"
+#include <gsl/gsl>
 
 namespace enrico {
 
@@ -66,12 +67,11 @@ std::vector<int> gather_subcomm_ranks(const Comm& super, const Comm& sub)
   std::vector<int> ranks(super.size);
   int r = sub.rank != MPI_PROC_NULL ? super.rank : MPI_PROC_NULL;
   super.Allgather(&r, 1, MPI_INT, ranks.data(), 1, MPI_INT);
-  auto new_end =
-    std::remove_if(ranks.begin(), ranks.end(), [](int i) { return i == MPI_PROC_NULL; });
+  auto new_end = std::remove(ranks.begin(), ranks.end(), MPI_PROC_NULL);
   ranks.erase(new_end, ranks.end());
 
   if (sub.active()) {
-    assert(sub.size == ranks.size());
+    Ensures(sub.size == ranks.size());
   }
   return ranks;
 }

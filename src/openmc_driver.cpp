@@ -109,11 +109,7 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
   // Get total heat production [J/source]
   double total_heat = xt::sum(heat)();
 
-  // This depends on the fact that cell_map_ has the same ordering as the cell instances
-  // in tally_. This is ensured since:
-  //   * cell_map_ is an ordered map that is initialized prior to calling create_tallies()
-  //   * In create_tallies(), the cell instances for tally_ are a vector that is built
-  //     by iterating through cell_map_ in order
+  // Convert heat from [J/source] to [W/cm^3]
   gsl::index i = 0;
   for (const auto& kv : cells_) {
     double V = kv.second.volume_;
