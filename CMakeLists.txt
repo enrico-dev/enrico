@@ -5,6 +5,8 @@ project(enrico Fortran C CXX)
 # RPATH and install information
 #===============================================================================
 
+include(GNUInstallDirs)
+
 # NekRS must be installed (via `make install`) to have all headers/libs available.
 # For ENRICO, we'll install in the build directory by default
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
@@ -23,11 +25,13 @@ set(CMAKE_SKIP_BUILD_RPATH  FALSE)
 # (but later on when installing)
 set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
 
-set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
 
 # add the automatically determined parts of the RPATH
 # which point to directories outside the build tree to the install RPATH
 set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
+
+set(CMAKE_INSTALL_RPATH
+  "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}:${CMAKE_INSTALL_PREFIX}/lib")
 
 
 # =============================================================================
@@ -88,7 +92,7 @@ if (USE_NEK5000)
 endif ()
 
 # =============================================================================
-# Verify libdl headers for NekRS integration
+# Verify and create headers for NekRS integration
 # =============================================================================
 
 if (USE_NEKRS)
@@ -97,6 +101,9 @@ if (USE_NEKRS)
     if (NOT ${DLOPEN_H_FOUND})
         message(FATAL_ERROR "CMake could not find dlfcn.h, the header for libdl.")
     endif ()
+
+    set(NEKRS_HOME ${CMAKE_INSTALL_PREFIX})
+    configure_file(config/nekrs_home.h.in ${CMAKE_BINARY_DIR}/include/nekrs_home.h @ONLY)
 endif ()
 
 # =============================================================================
@@ -108,7 +115,8 @@ include_directories(
         vendor/openmc/include
         vendor
         src/
-    ${CMAKE_BINARY_DIR})
+        ${CMAKE_BINARY_DIR}
+        ${CMAKE_BINARY_DIR}/include)
 
 if (SCALE_FOUND)
     include_directories(${SCALE_INCLUDE_DIRS})
@@ -122,6 +130,8 @@ if (USE_NEK5000)
     add_subdirectory(vendor/nek5000)
 elseif (USE_NEKRS)
     add_subdirectory(vendor/nekRS)
+    # TODO: An upstream fix to the NekRS CMakeLists should let us to omit this
+    include_directories(vendor/nekRS/src/lib)
 endif ()
 add_subdirectory(vendor/openmc)
 
@@ -260,7 +270,7 @@ if (USE_NEK5000)
 endif()
 
 install(TARGETS ${INSTALL_TARGETS}
-  RUNTIME DESTINATION bin
-  LIBRARY DESTINATION lib
-  ARCHIVE DESTINATION lib
+  RUNTIME DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_BINDIR}
+  LIBRARY DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
+  ARCHIVE DESTINATION ${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}
 )

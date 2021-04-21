@@ -1,0 +1,42 @@
+// Boundary conditions
+void velocityDirichletConditions(bcData* bc)
+{
+  bc->u = 0.0;
+  bc->v = 0.0;
+  bc->w = 100.0;
+}
+
+void scalarDirichletConditions(bcData* bc)
+{
+  bc->s = 523.15;
+}
+
+@kernel void cFill(const dlong Nelements,
+                   const dfloat CONST1,
+                   const dfloat CONST2,
+                   @restrict const dlong* eInfo,
+                   @restrict dfloat* QVOL)
+{
+  for (dlong e = 0; e < Nelements; ++e; @outer(0)) {
+    const dlong solid = eInfo[e];
+    for (int n = 0; n < p_Np; ++n; @inner(0)) {
+      const int id = e * p_Np + n;
+      QVOL[id] = CONST1;
+      if (solid) {
+        QVOL[id] = CONST2;
+      }
+    }
+  }
+}
+
+@kernel void cCopy(const dlong Nelements,
+                   @restrict dfloat* QVOL1,
+                   @restrict dfloat* QVOL2)
+{
+  for (dlong e = 0; e < Nelements; ++e; @outer(0)) {
+    for (int n = 0; n < p_Np; ++n; @inner(0)) {
+      const int id = e * p_Np + n;
+      QVOL1[id] = QVOL2[id];
+    }
+  }
+}

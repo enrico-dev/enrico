@@ -4,6 +4,7 @@
 #include "enrico/heat_fluids_driver.h"
 #include "mpi.h"
 #include "pugixml.hpp"
+#include "nrs.hpp"
 
 namespace enrico {
 class NekRSDriver : public HeatFluidsDriver {
@@ -55,8 +56,10 @@ private:
   const double* z_;
   const double* temperature_;
   const double* rho_cp_;
-  const long long* element_info_;
+  const int* element_info_;
   std::vector<double> mass_matrix_;
+
+  nrs_t* nrs_ptr_;
 
   void* lib_udf_handle_;
   // TODO: Get cache dir from env.  See udfLoadFunction in nekrs/udf/udf.cpp
