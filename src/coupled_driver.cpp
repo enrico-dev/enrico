@@ -375,9 +375,8 @@ void CoupledDriver::update_temperature(bool relax)
         double T = elem_temperatures.at(e);
         double V = elem_volumes_.at(e);
         T_avg += T * V;
-        V_tot += V;
       }
-      T_avg /= V_tot;
+      T_avg /= cell_volumes_.at(i);
       Ensures(T_avg > 0.0);
       cell_temperatures_.at(i) = T_avg;
     }
@@ -449,9 +448,8 @@ void CoupledDriver::update_density(bool relax)
         double V_tot = 0.0;
         for (const auto& e : cell_to_elems_.at(cells_.at(i))) {
           rho_avg += elem_densities.at(e) * elem_volumes_.at(e);
-          V_tot += elem_volumes_.at(e);
         }
-        rho_avg /= V_tot;
+        rho_avg /= cell_volumes_[i];
         Ensures(rho_avg > 0.0);
         cell_densities_.at(i) = rho_avg;
       }
