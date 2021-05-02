@@ -76,6 +76,13 @@ public:
   //! \return Label for the cell
   virtual std::string cell_label(CellHandle cell) const = 0;
 
+  //! Get the index of the given handle in the cells_ ordered mapping.
+  //!
+  //! Currently, this is used to infer the index in the heat source array that corresponds
+  //! to a given cell handle.
+  //!
+  //! \param cell An existing cell handle
+  //! \return The index of the handle in the cells_ ordered mapping
   virtual gsl::index cell_index(CellHandle cell) const = 0;
 };
 
