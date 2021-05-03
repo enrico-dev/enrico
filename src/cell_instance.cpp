@@ -70,4 +70,21 @@ bool CellInstance::operator==(const CellInstance& other) const
   return index_ == other.index_ && instance_ == other.instance_;
 }
 
+CellHandle CellInstance::get_handle() const
+{
+  // Uses a Canto pairing function:
+  // https://en.wikipedia.org/wiki/Pairing_function#Cantor_pairing_function
+  return (index_ + instance_) * (index_ + instance_ + 1) / 2 + instance_;
+}
+
+void CellInstance::invert_handle(CellHandle handle, int32_t& index, int32_t& instance)
+{
+  // Inverting Cantor pairing function from CellInstance::get_handle()
+  // https://en.wikipedia.org/wiki/Pairing_function#Inverting_the_Cantor_pairing_function
+  int32_t w = (sqrt(8 * handle + 1) - 1) / 2;
+  int32_t t = (w * w + w) / 2;
+  instance = handle - t;
+  index = w - instance;
+}
+
 } // namespace enrico

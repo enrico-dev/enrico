@@ -11,8 +11,8 @@
 #include <pugixml.hpp>
 #include <xtensor/xtensor.hpp>
 
+#include <map>
 #include <memory> // for unique_ptr
-#include <unordered_map>
 #include <vector>
 
 namespace enrico {
@@ -124,14 +124,15 @@ private:
   //! Initialize the Monte Carlo tallies for all cells
   void init_tallies();
 
-  //! Initialize global volume buffers for neutronics ranks
+  //! Calculate and store local cell volumes in each heat/fluids rank
   void init_volumes();
 
-  //! Initialize global fluid masks on all TH ranks.
-  void init_elem_fluid_mask();
+  //! Report how closely the neutron driver's volumes and the calculated local cell
+  //! volumes (from init_volumes()) match.  Raises no errors or warnings.
+  void check_volumes();
 
-  //! Initialize fluid masks for neutronics cells on all neutronic ranks.
-  void init_cell_fluid_mask();
+  //! Initialize fluid masks for local cells on each heat/fluids rank
+  void init_fluid_mask();
 
   //! Initialize current and previous Picard temperature fields
   void init_temperatures();
@@ -161,64 +162,55 @@ private:
   //! The rank in comm_ that corresponds to the root of the heat comm
   int heat_root_ = MPI_PROC_NULL;
 
-  //! Current Picard iteration temperature; this temperature is the temperature
-  //! computed by the thermal-hydraulic solver, and data mappings may result in
-  //! a different temperature actually used in the neutronics solver. For example,
-  //! the entries in this xtensor may be averaged over neutronics cells to give
-  //! the temperature used by the neutronics solver.
-  xt::xtensor<double, 1> temperatures_;
+  //! List of ranks in this->comm_ that are in the heat/fluids subcomm
+  std::vector<int> heat_ranks_;
 
-  xt::xtensor<double, 1> temperatures_prev_; //!< Previous Picard iteration temperature
+  //! List of ranks in this->comm_ that are in the neutronics subcomm
+  std::vector<int> neutronics_ranks_;
 
-  //! Current Picard iteration density; this density is the density
-  //! computed by the thermal-hydraulic solver, and data mappings may result in
-  //! a different density actually used in the neutronics solver. For example,
-  //! the entries in this xtensor may be averaged over neutronics cells to give
-  //! the density used by the neutronics solver.
-  xt::xtensor<double, 1> densities_;
+  //! Current Picard iteration temperature for the local cells in each heat rank
+  xt::xtensor<double, 1> cell_temperatures_;
 
-  xt::xtensor<double, 1> densities_prev_; //!< Previous Picard iteration density
+  //! Previous Picard iteration temperature for the local cells in each heat/fluids rank.
+  xt::xtensor<double, 1> cell_temperatures_prev_;
 
-  //! Current Picard iteration heat source; this heat source is the heat source
-  //! computed by the neutronics solver, and data mappings may result in a different
-  //! heat source actually used in the heat solver. For example, the entries in this
-  //! xtensor may be averaged over thermal-hydraulics cells to give the heat source
-  //! used by the thermal-hydraulics solver.
-  xt::xtensor<double, 1> heat_source_;
+  //! Current Picard iteration density for the local cells in each heat/fluids rank
+  xt::xtensor<double, 1> cell_densities_;
 
-  xt::xtensor<double, 1> heat_source_prev_; //!< Previous Picard iteration heat source
+  //! Previous Picard iteration density for the local cells in each heat/fluids rank
+  xt::xtensor<double, 1> cell_densities_prev_;
+
+  //! Current Picard iteration heat source for the local cells in each heat/fluids rank
+  xt::xtensor<double, 1> cell_heat_;
+
+  //! Previous Picard iteration heat source for the local cells in each heat/fluids rank
+  xt::xtensor<double, 1> cell_heat_prev_;
 
   std::unique_ptr<NeutronicsDriver> neutronics_driver_;  //!< The neutronics driver
   std::unique_ptr<HeatFluidsDriver> heat_fluids_driver_; //!< The heat-fluids driver
 
-  //! States whether a global element is in the fluid region
-  //! These are **not** ordered by TH global element indices.  Rather, these are
-  //! ordered according to an MPI_Gatherv operation on TH local elements.
-  std::vector<int> elem_fluid_mask_;
+  //! States whether a local cell is in the fluid region. Set only on heat/fluids ranks.
+  //! Ordered the same way as cells_, cell_fluid_mask_, and cell_to_elems_
+  std::vector<int> cell_fluid_mask_;
 
-  //! States whether a neutronic cell is in the fluid region
-  xt::xtensor<int, 1> cell_fluid_mask_;
-
-  //! Volumes of global elements in TH solver
-  //! These are **not** ordered by TH global element indices.  Rather, these are
-  //! ordered according to an MPI_Gatherv operation on TH local elements.
-  std::vector<double> elem_volumes_;
-
-  //! Map that gives a list of TH element indices for a given neutronics cell
-  //! handle. The TH element indices refer to indices defined by the MPI_Gatherv
-  //! operation, and do not reflect TH internal global element indexing.
-  std::unordered_map<CellHandle, std::vector<int32_t>> cell_to_elems_;
-
-  //! Map that gives the neutronics cell handle for a given TH element index.
-  //! The TH element indices refer to indices defined by the MPI_Gatherv
-  //! operation, and do not reflect TH internal global element indexing.
+  //! Maps heat/fluids element to global cell ID.  Set only on heat/fluids ranks.
   std::vector<CellHandle> elem_to_cell_;
 
-  //! Number of unique cells in neutronics model
-  int32_t n_cells_;
+  //! Lists the global cell IDs of all local cells in a the heat/fluids rank.
+  //! Set only on heat/fluids ranks.  Ordered the same way as cell_volumes_,
+  //! cells_fluid_mask_, and cell_to_elems_
+  std::vector<CellHandle> cells_;
 
-  //! Number of global elements in heat/fluids model
-  int32_t n_global_elem_;
+  //! Maps global cell handle to local elements.  Set only on heat/fluids ranks.
+  //! Ordered the same way as cells_, cell_volumes_, and cell_fluid_mask_
+  std::map<CellHandle, std::vector<int32_t>> cell_to_elems_;
+
+  //! Volumes of local cells.  Set only on heat/fluids ranks. Ordered the same way
+  //! as cells_, cell_fluid_mask_, and cell_to_elems_
+  std::vector<double> cell_volumes_;
+
+  //! Volumes of local elements.  Set only on heat/fluids ranks.
+  std::vector<double> elem_volumes_;
 
   // Norm to use for convergence checks
   Norm norm_{Norm::LINF};

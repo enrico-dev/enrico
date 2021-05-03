@@ -79,7 +79,7 @@ public:
   //! Return true if a local element is in the fluid region
   //! \param local_elem  A local element ID
   //! \return 1 if the local element is in fluid; 0 otherwise
-  int in_fluid_at(int32_t local_elem) const;
+  int in_fluid_at(int32_t local_elem) const override;
 
   //! Set the heat source for a given local element
   //!

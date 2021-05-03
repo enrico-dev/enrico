@@ -29,6 +29,8 @@ void get_driver_comms(Comm super_comm,
                       Comm& intranode_comm,
                       Comm& coupling_comm);
 
+//! Gathers the ranks (wrt super) that are also in sub
+std::vector<int> gather_subcomm_ranks(const Comm& super, const Comm& sub);
 }
 
 #endif // ENRICO_COMM_SPLIT_H

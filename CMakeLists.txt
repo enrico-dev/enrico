@@ -218,6 +218,9 @@ add_executable(comm_split_demo tests/comm_split_demo/main.cpp)
 add_executable(test_openmc_singlerod tests/singlerod/short/openmc/test_openmc.cpp)
 target_link_libraries(test_openmc_singlerod PUBLIC libenrico)
 
+add_executable(test_openmc_split_comm tests/singlerod/short/openmc_heat_surrogate/test_openmc_split_comm.cpp)
+target_link_libraries(test_openmc_split_comm PUBLIC libenrico)
+
 # Ensure C++14 standard is used
 set_target_properties(
         enrico libenrico
