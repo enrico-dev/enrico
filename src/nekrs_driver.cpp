@@ -76,7 +76,6 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
 
     init_displs();
   }
-  comm_.Barrier();
 }
 
 void NekRSDriver::init_step()
