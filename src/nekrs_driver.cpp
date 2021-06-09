@@ -119,27 +119,20 @@ void NekRSDriver::solve_step()
     nekrs::runStep(time_, dt, tstep_);
     time_ += dt;
 
-    auto output_step = nekrs::isOutputStep(time_, tstep_);
-    if (nekrs::writeInterval() == 0) 
-      output_step = 0;
-    if (last_step) 
-      output_step = 1;
-    if (nekrs::writeInterval() < 0) 
-      output_step = 0;
+    nekrs::udfExecuteStep(time_, tstep_, 0);
 
-    nekrs::udfExecuteStep(time_, tstep_, output_step);
-
-    if (output_step) 
-      nekrs::outfld(time_); 
-
-    if (tstep_ % runtime_stat_freq == 0 || last_step) 
+    if (tstep_ % runtime_stat_freq == 0 || last_step)
       nekrs::printRuntimeStatistics();
   }
 
+  // TODO:  Do we need this in v20.0 of nekRS?
   nekrs::copyToNek(time_, tstep_);
 }
 
-void NekRSDriver::write_step(int timestep, int iteration) { return; }
+void NekRSDriver::write_step(int timestep, int iteration)
+{
+  nekrs::outfld(time_);
+}
 
 Position NekRSDriver::centroid_at(int32_t local_elem) const
 {
