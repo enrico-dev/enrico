@@ -59,8 +59,10 @@ private:
   const int* element_info_;
   std::vector<double> mass_matrix_;
 
-  // TODO: Get this from enrico.xml
+  //! Output power profile to separate .fld file
   bool output_power_ = true;
+
+  //! Handle to host when needed for occa::memory.
   occa::device host_;
 
   nrs_t* nrs_ptr_;
