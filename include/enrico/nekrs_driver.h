@@ -59,8 +59,8 @@ private:
   const int* element_info_;
   std::vector<double> mass_matrix_;
 
-  //! Output power profile to separate .fld file
-  bool output_power_ = true;
+  //! Output heat source to separate .fld file
+  bool output_heat_source_ = true;
 
   //! Handle to host when needed for occa::memory.
   occa::device host_;

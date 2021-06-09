@@ -23,8 +23,8 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
     err_chk(setenv("NEKRS_HOME", NEKRS_HOME, 1) == 0,
             "Could not set env variable NEKRS_HOME");
 
-    if (node.child("output_power")) {
-      output_power_ = node.child("output_power").text().as_bool();
+    if (node.child("output_heat_source")) {
+      output_heat_source_ = node.child("output_heat_source").text().as_bool();
     }
 
     host_.setup("mode: 'Serial'");
@@ -138,11 +138,11 @@ void NekRSDriver::solve_step()
 void NekRSDriver::write_step(int timestep, int iteration)
 {
   nekrs::outfld(time_);
-  if (output_power_) {
-    comm_.message("Writing power profile to .fld file");
+  if (output_heat_source_) {
+    comm_.message("Writing heat source to .fld file");
     occa::memory o_localq =
       occa::cpu::wrapMemory(host_, localq_->data(), localq_->size() * sizeof(double));
-    writeFld("pwr", time_, 1, 0, &nrs_ptr_->o_U, &nrs_ptr_->o_P, &o_localq, 1);
+    writeFld("qsc", time_, 1, 0, &nrs_ptr_->o_U, &nrs_ptr_->o_P, &o_localq, 1);
   }
 }
 
