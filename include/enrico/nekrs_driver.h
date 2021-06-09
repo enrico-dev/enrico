@@ -59,6 +59,10 @@ private:
   const int* element_info_;
   std::vector<double> mass_matrix_;
 
+  // TODO: Get this from enrico.xml
+  bool output_power_ = true;
+  occa::device host_;
+
   nrs_t* nrs_ptr_;
 
   void* lib_udf_handle_;
