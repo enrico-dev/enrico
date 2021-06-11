@@ -117,7 +117,7 @@ c-----------------------------------------------------------------------
 
       if (nid.eq.0) print *, "Test ***"
 
-      param(66) = 4.   ! These give the std nek binary i/o and are
+      param(66) = 6.   ! These give the std nek binary i/o and are
       param(67) = 4.   ! good default values
       ifuservp=.true.
 
