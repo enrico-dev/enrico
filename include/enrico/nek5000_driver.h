@@ -143,6 +143,8 @@ private:
   //! For ENRICO we want `npascal_ < ldimt_`, since we want to store localq
   //! as the last unsolved scalar.
   int32_t npscal_;
+
+  bool output_heat_source_ = false; //!< If true, output heat source to field file
 };
 
 } // namespace enrico

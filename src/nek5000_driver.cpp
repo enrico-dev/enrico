@@ -19,6 +19,10 @@ Nek5000Driver::Nek5000Driver(MPI_Comm comm, pugi::xml_node node)
 {
   if (active()) {
     casename_ = node.child_value("casename");
+    if (node.child("output_heat_source")) {
+      output_heat_source_ = node.child("output_heat_source").text().as_bool();
+    }
+
     if (comm_.rank == 0) {
       init_session_name();
     }
@@ -156,7 +160,7 @@ int Nek5000Driver::set_heat_source_at(int32_t local_elem, double heat)
 }
 
 void Nek5000Driver::write_step(int timestep, int iteration) {
-  nek_write_step();
+  nek_write_step(int(output_heat_source_));
 }
 
 Nek5000Driver::~Nek5000Driver()
