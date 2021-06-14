@@ -1,8 +1,8 @@
-diff --git a/tests/singlerod/short/rodcht.rea b/tests/singlerod/short/rodcht.rea
-index 9c88901e..9bbcf045 100644
---- a/tests/singlerod/short/rodcht.rea
-+++ b/tests/singlerod/short/rodcht.rea
-@@ -11,12 +11,12 @@
+diff --git a/tests/singlerod/short/nek5000/rodcht.rea b/tests/singlerod/short/nek5000/rodcht.rea
+index c88d461..8f5d6bd 100644
+--- a/tests/singlerod/short/nek5000/rodcht.rea
++++ b/tests/singlerod/short/nek5000/rodcht.rea
+@@ -11,8 +11,8 @@
     1.00000     p007 RHOCP
     0.01000     p008 CONDUCT
     0.00000     p009 
@@ -12,9 +12,4 @@ index 9c88901e..9bbcf045 100644
 +   10.00000    p011 NSTEPS
   -0.250000E-03 p012 DT
     0.00000     p013 IOCOMM
-    0.00000     p014 IOTIME
--  100.000      p015 IOSTEP
-+   10.000      p015 IOSTEP
-    0.00000     p016 PSSOLVER: 0=default
-    0.00000     p017 
-   0.250000E-01 p018 GRID < 0 --> # cells on screen
+    -1.00000    p014 IOTIME
