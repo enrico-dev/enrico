@@ -60,7 +60,7 @@ private:
   std::vector<double> mass_matrix_;
 
   //! Output heat source to separate .fld file
-  bool output_heat_source_ = true;
+  bool output_heat_source_ = false;
 
   //! Handle to host when needed for occa::memory.
   occa::device host_;
