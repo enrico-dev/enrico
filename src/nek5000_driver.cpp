@@ -19,6 +19,10 @@ Nek5000Driver::Nek5000Driver(MPI_Comm comm, pugi::xml_node node)
 {
   if (active()) {
     casename_ = node.child_value("casename");
+    if (node.child("output_heat_source")) {
+      output_heat_source_ = node.child("output_heat_source").text().as_bool();
+    }
+
     if (comm_.rank == 0) {
       init_session_name();
     }
@@ -28,6 +32,18 @@ Nek5000Driver::Nek5000Driver(MPI_Comm comm, pugi::xml_node node)
 
     nelgt_ = nek_get_nelgt();
     nelt_ = nek_get_nelt();
+    ldimt_ = nek_get_ldimt();
+    npscal_ = nek_get_npscal();
+
+    // Check that we have enough storage space for localq.  We store
+    // localq as the last passive scalar (hence ldimt >= 2) but we must
+    // ensure that it is not used in the solver (hence npascl < ldimt - 1)
+    if (ldimt_ < 2 || npscal_ >= ldimt_ - 1) {
+      std::stringstream msg;
+      msg << "User specified ldimt=" << ldimt_ << " and npscal=" << npscal_ <<
+        ".  For coupling, ENRICO requires ldimt >= 2 and npscal < ldimt - 1";
+      std::runtime_error(msg.str());
+    }
 
     init_displs();
   }
@@ -141,6 +157,10 @@ int Nek5000Driver::set_heat_source_at(int32_t local_elem, double heat)
 {
   Expects(local_elem >= 0 && local_elem < nelt_);
   return nek_set_heat_source(local_elem + 1, heat);
+}
+
+void Nek5000Driver::write_step(int timestep, int iteration) {
+  nek_write_step(int(output_heat_source_));
 }
 
 Nek5000Driver::~Nek5000Driver()
