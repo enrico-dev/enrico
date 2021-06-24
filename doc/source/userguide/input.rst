@@ -27,9 +27,15 @@ The pressure of the outlet boundary condition in units of [MPa].
 Nek5000- and nekRS-specific Parameters
 --------------------------------------
 
-Under the ``<heat_fluids>`` element, these sub-elements are required for Nek5000 and NekRS
+Under the ``<heat_fluids>`` element, these sub-elements are available Nek5000 and nekRS
 
-* ``<casename>``: The casename for the problem (i.e, the basename for .par or .rea files).
+* ``<casename>``: Required. The casename for the problem (i.e, the basename for .par or .rea files).
+* ``<output_heat_source>``: Optional. Can be ``true`` or ``false`` (default ``false``).  If true, output the heat
+  source to a Nek field file in units of [W/cm^3].  In an ENRICO simulation, the field file ``<casename>#.f#####`` always
+  contains temperature. The heat source is additionally output as follows:
+  - For Nek5000 runs, the heat source is output as the first passive scalar in ``<casename>#.f######``.
+  - For nekRS runs, the heat source is output as the temperature field in a second field file, ``qsc<casename>#.f#####``.
+
 
 Surrogate-specific Parameters
 -----------------------------
