@@ -1,3 +1,6 @@
+.. _devguide_cppapi:
+
+=======
 C++ API
 =======
 

@@ -1,5 +1,7 @@
-Coupled Driver Input -- enrico.xml
-==================================
+.. _userguide_input:
+
+ENRICO Runtime Settings 
+=======================
 
 Parameters and settings for each individual physics code are set normally in
 their respective input files. Parameters related to the coupled simulation are
@@ -23,7 +25,7 @@ are "nek5000", "nekrs", and "surrogate".
 The pressure of the outlet boundary condition in units of [MPa].
 
 Nek5000- and nekRS-specific Parameters
----------------------------
+--------------------------------------
 
 Under the ``<heat_fluids>`` element, these sub-elements are required for Nek5000 and NekRS
 
