@@ -124,8 +124,7 @@ public:
   Timer timer_init_mappings;
   Timer timer_init_tallies;
   Timer timer_init_volumes;
-  Timer timer_init_elem_fluid_mask;
-  Timer timer_init_cell_fluid_mask;
+  Timer timer_init_fluid_mask;
   Timer timer_init_temperatures;
   Timer timer_init_densities;
   Timer timer_init_heat_source;

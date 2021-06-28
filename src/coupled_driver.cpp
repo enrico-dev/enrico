@@ -43,8 +43,7 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   , timer_init_mappings(comm_)
   , timer_init_tallies(comm_)
   , timer_init_volumes(comm_)
-  , timer_init_elem_fluid_mask(comm_)
-  , timer_init_cell_fluid_mask(comm_)
+  , timer_init_fluid_mask(comm_)
   , timer_init_temperatures(comm_)
   , timer_init_densities(comm_)
   , timer_init_heat_source(comm_)
@@ -445,7 +444,6 @@ void CoupledDriver::update_temperature(bool relax)
     auto tv = kv.second;
     neutronics.set_temperature(cell, tv / cell_V.at(cell));
   }
-
   timer_update_temperature.stop();
 }
 
@@ -528,7 +526,6 @@ void CoupledDriver::update_density(bool relax)
   for (const auto& kv : rho_dot_V) {
     neutronics.set_density(kv.first, kv.second / cell_V.at(kv.first));
   }
-
   timer_update_density.stop();
 }
 
@@ -582,7 +579,6 @@ void CoupledDriver::init_mappings()
       cells_.push_back(kv.first);
     }
   }
-
   timer_init_mappings.stop();
 }
 
@@ -595,7 +591,6 @@ void CoupledDriver::init_tallies()
   if (neutronics.active()) {
     neutronics.create_tallies();
   }
-
   timer_init_tallies.stop();
 }
 
@@ -664,7 +659,7 @@ void CoupledDriver::init_volumes()
       cell_volumes_.push_back(V);
     }
   }
-  timer_init_volumes.stop()
+  timer_init_volumes.stop();
 }
 
 void CoupledDriver::check_volumes()
@@ -748,7 +743,7 @@ void CoupledDriver::init_densities()
 void CoupledDriver::init_fluid_mask()
 {
   comm_.message("Initializing cell fluid mask");
-  timer_init_cell_fluid_mask.start();
+  timer_init_fluid_mask.start();
 
   auto& heat = this->get_heat_driver();
 
@@ -767,7 +762,7 @@ void CoupledDriver::init_fluid_mask()
       cell_fluid_mask_.push_back(in_fluid);
     }
   }
-  timer_init_cell_fluid_mask.stop();
+  timer_init_fluid_mask.stop();
 }
 
 void CoupledDriver::init_heat_source()
@@ -819,9 +814,8 @@ void CoupledDriver::timer_report()
 
   std::map<std::string, double> times{
     {"execute", timer_execute.elapsed()},
-    {"init_cell_fluid_mask", timer_init_cell_fluid_mask.elapsed()},
+    {"init_fluid_mask", timer_init_fluid_mask.elapsed()},
     {"init_densities", timer_init_densities.elapsed()},
-    {"init_elem_fluid_mask", timer_init_elem_fluid_mask.elapsed()},
     {"init_heat_source", timer_init_heat_source.elapsed()},
     {"init_mappings", timer_init_mappings.elapsed()},
     {"init_tallies", timer_init_tallies.elapsed()},
