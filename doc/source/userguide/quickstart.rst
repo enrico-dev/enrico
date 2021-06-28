@@ -46,7 +46,7 @@ The general workflow is:
 
   - With heat surrogate solver only::
 
-    $ CC=mpicc CXX=mpicxx FC=mpifort cmake ..
+    $ CC=mpicc CXX=mpicxx FC=mpifort cmake -DNEK_DIST=none ..
     
   Note that ENRICO always installs OpenMC and the heat surrogate solver; and that SHIFT is installed if 
   the SHIFT source is available in the source tree.  Any installed solver can be selected at
