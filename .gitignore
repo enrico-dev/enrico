@@ -14,5 +14,8 @@ SESSION.NAME
 .idea
 compile_commands.json
 *.fld*
+*0.f0*
 doc/build/
 *.rej
+*.bk*
+.cache/

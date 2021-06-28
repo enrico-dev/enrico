@@ -6,6 +6,7 @@
 #include <cstdint>
 #include <functional> // for hash
 
+#include "cell_handle.h"
 #include "geom.h"
 #include "openmc/cell.h"
 #include "openmc/material.h"
@@ -45,6 +46,25 @@ public:
   //! Check if the cell is fissionable
   //! \return whether the cell contains fissionable material
   bool is_fissionable() const;
+
+  //! Get the globally-unique cell ID for this instance
+  //!
+  //! This ID is not used internally by the neutronics solver.  Instead, it is generated
+  //! from index_ and instance_ using the Cantor pairing function
+  //! (https://en.wikipedia.org/wiki/Pairing_function#Cantor_pairing_function)
+  //!
+  //! \return The globally-unique cell ID
+  CellHandle get_handle() const;
+
+  //! Retrieve the index and instance from a given global cell ID
+  //!
+  //! This is the inversion of the Cantor pairing function, which was used to generate
+  //! the ID in get_handle().
+  //! (https://en.wikipedia.org/wiki/Pairing_function#Inverting_the_Cantor_pairing_function)
+  //! \param[in] handle The globally-unique cell ID
+  //! \param[out] index The associated cell index
+  //! \param[out] instance The associated cell instance
+  static void invert_handle(CellHandle handle, int32_t& index, int32_t& instance);
 
   //! Check for equality
   bool operator==(const CellInstance& other) const;

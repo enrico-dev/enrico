@@ -41,6 +41,11 @@ public:
 
   virtual int set_heat_source_at(int32_t local_elem, double heat) = 0;
 
+  //! Return true if a local element is in the fluid region
+  //! \param local_elem  A local element ID
+  //! \return 1 if the local element is in fluid; 0 otherwise
+  virtual int in_fluid_at(int32_t local_elem) const = 0;
+
   //! Get the number of local mesh elements
   //! \return Number of local mesh elements
   virtual int n_local_elem() const = 0;
@@ -68,16 +73,6 @@ public:
   // TODO: Move to private
   std::vector<int32_t> local_counts_;
 
-protected:
-  //! Initialize the counts and displacements of local elements for each MPI Rank.
-  void init_displs();
-
-private:
-  //! Gather local distributed field into global field (on rank 0)
-  //! \return Global field collected from all ranks
-  template<typename T>
-  std::vector<T> gather(const std::vector<T>& local_field) const;
-
   //! Get temperature of local mesh elements
   //! \return Temperature of local mesh elements in [K]
   virtual std::vector<double> temperature_local() const = 0;
@@ -97,6 +92,16 @@ private:
   //! Get volumes of local mesh elements
   //! \return Volumes of local mesh elements
   virtual std::vector<double> volume_local() const = 0;
+
+protected:
+  //! Initialize the counts and displacements of local elements for each MPI Rank.
+  void init_displs();
+
+private:
+  //! Gather local distributed field into global field (on rank 0)
+  //! \return Global field collected from all ranks
+  template<typename T>
+  std::vector<T> gather(const std::vector<T>& local_field) const;
 };
 
 template<typename T>

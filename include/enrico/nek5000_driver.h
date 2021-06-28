@@ -79,7 +79,7 @@ public:
   //! Return true if a local element is in the fluid region
   //! \param local_elem  A local element ID
   //! \return 1 if the local element is in fluid; 0 otherwise
-  int in_fluid_at(int32_t local_elem) const;
+  int in_fluid_at(int32_t local_elem) const override;
 
   //! Set the heat source for a given local element
   //!
@@ -95,16 +95,17 @@ public:
   //! \return Number of local mesh elements
   int n_local_elem() const override { return active() ? nelt_ : 0; }
 
+  //! Writes .fld file.  Includes local heat as the last passive scalar
+  //! \param timestep timestep index
+  //! \param iteration iteration index
+  void write_step(int timestep, int iteration) override;
+
   //! Get the number of global mesh elements
   //! \return Number of global mesh elements
   std::size_t n_global_elem() const override { return active() ? nelgt_ : 0; }
 
   std::string casename_; //!< Nek5000 casename (name of .rea file)
 
-  // Intended to be the local-to-global element ordering, as ensured by a Gatherv
-  // operation. It is currently unused, as the coupling does not need to know the
-  // local-global ordering.
-  // std::vector<int> local_ordering_;
 private:
   //! Get temperature of local mesh elements
   //! \return Temperature of local mesh elements in [K]
@@ -128,6 +129,22 @@ private:
 
   int32_t nelgt_; //!< total number of mesh elements
   int32_t nelt_;  //!< number of local mesh elements
+
+  //! The outer dimension of Nek5000's `t` array.
+  //!
+  //! This specifies allocated storage for t and any extra passive
+  //! scalars.  For ENRICO, we want `ldimt_` >= 2, since we want space for
+  //! for temperature and space for an unsolved scalar that is used
+  //! for local heat source.
+  int32_t ldimt_;
+
+  //! The number of non-temperature passive scalars solved by Nek5000 at runtime
+  //!
+  //! For ENRICO we want `npascal_ < ldimt_`, since we want to store localq
+  //! as the last unsolved scalar.
+  int32_t npscal_;
+
+  bool output_heat_source_ = false; //!< If true, output heat source to field file
 };
 
 } // namespace enrico

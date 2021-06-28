@@ -74,6 +74,8 @@ public:
 
   std::string cell_label(CellHandle handle) const override;
 
+  gsl::index cell_index(CellHandle cell) const override;
+
   //////////////////////////////////////////////////////////////////////////////
   // Driver interface
 

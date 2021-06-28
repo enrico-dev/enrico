@@ -58,18 +58,32 @@ void OpenmcDriver::create_tallies()
   using gsl::index;
   using gsl::narrow_cast;
 
-  // Build vector of material indices
-  std::vector<openmc::CellInstance> instances;
-  for (const auto& c : cells_) {
-    instances.push_back({narrow_cast<index>(c.index_), narrow_cast<index>(c.instance_)});
+  // Build vector of material indices on each rank
+  // After CoupledDriver::init_mappings, the cells_ array is up-to-date on the root,
+  // so we need to send that info to all the other ranks
+  std::vector<int32_t> indices;
+  std::vector<int32_t> instances;
+  if (comm_.is_root()) {
+    for (const auto& c : cells_) {
+      indices.push_back(c.second.index_);
+      instances.push_back(c.second.instance_);
+    }
   }
+  comm_.broadcast(indices);
+  comm_.broadcast(instances);
+  Ensures(indices.size() == instances.size());
 
+  std::vector<openmc::CellInstance> openmc_instances;
+  for (index i = 0; i < indices.size(); ++i) {
+    openmc_instances.push_back(
+      {narrow_cast<index>(indices[i]), narrow_cast<index>(instances[i])});
+  }
   // Create material filter
   auto f = openmc::Filter::create("cellinstance");
   filter_ = dynamic_cast<openmc::CellInstanceFilter*>(f);
 
   // Set bins for filter
-  filter_->set_cell_instances(instances);
+  filter_->set_cell_instances(openmc_instances);
 
   // Create tally and assign scores/filters
   tally_ = openmc::Tally::create();
@@ -95,16 +109,12 @@ xt::xtensor<double, 1> OpenmcDriver::heat_source(double power) const
   // Get total heat production [J/source]
   double total_heat = xt::sum(heat)();
 
-  for (gsl::index i = 0; i < heat.size(); ++i) {
-    // Get volume
-    double V = cells_.at(i).volume_;
-
-    // Convert heat from [J/source] to [W/cm^3]. Dividing by total_heat gives
-    // the fraction of heat deposited in each material. Multiplying by power
-    // gives an absolute value in W.
-    heat(i) *= power / (total_heat * V);
+  // Convert heat from [J/source] to [W/cm^3]
+  gsl::index i = 0;
+  for (const auto& kv : cells_) {
+    double V = kv.second.volume_;
+    heat.at(i++) *= power / (total_heat * V);
   }
-
   return heat;
 }
 
@@ -113,67 +123,70 @@ std::vector<CellHandle> OpenmcDriver::find(const std::vector<Position>& position
   std::vector<CellHandle> handles;
   handles.reserve(positions.size());
 
-  std::unordered_map<CellInstance, CellHandle> cell_index;
-
   for (const auto& r : positions) {
     // Determine cell instance corresponding to global element
     CellInstance c{r};
 
     // If this cell instance hasn't been saved yet, add it to cells_ and
     // keep track of what index it corresponds to
-    if (cell_index.find(c) == cell_index.end()) {
-      cell_index[c] = cells_.size();
-      cells_.push_back(c);
-    }
-    auto h = cell_index.at(c);
+    auto h = c.get_handle();
+    cells_.emplace(h, c);
 
     // Set value for cell instance in array
     handles.push_back(h);
   }
+
   return handles;
 }
 
 void OpenmcDriver::set_density(CellHandle cell, double rho) const
 {
-  cells_[cell].material()->set_density(rho, "g/cm3");
+  cells_.at(cell).material()->set_density(rho, "g/cm3");
 }
 
 void OpenmcDriver::set_temperature(CellHandle cell, double T) const
 {
-  const auto& c = cells_[cell];
+  const auto& c = cells_.at(cell);
   c.cell()->set_temperature(T, c.instance_);
 }
 
 double OpenmcDriver::get_density(CellHandle cell) const
 {
-  return cells_[cell].material()->density();
+  return cells_.at(cell).material()->density();
 }
 
 double OpenmcDriver::get_temperature(CellHandle cell) const
 {
-  const auto& c = cells_[cell];
+  const auto& c = cells_.at(cell);
   return c.cell()->temperature(c.instance_);
 }
 
 double OpenmcDriver::get_volume(CellHandle cell) const
 {
-  return cells_[cell].volume_;
+  return cells_.at(cell).volume_;
 }
 
 bool OpenmcDriver::is_fissionable(CellHandle cell) const
 {
-  return cells_[cell].material()->fissionable();
+  return cells_.at(cell).material()->fissionable();
 }
 
 std::string OpenmcDriver::cell_label(CellHandle cell) const
 {
   // Get cell instance
-  const auto& c = cells_[cell];
+  const auto& c = cells_.at(cell);
 
   // Build label
   std::stringstream label;
   label << openmc::model::cells[c.index_]->id_ << " (" << c.instance_ << ")";
   return label.str();
+}
+
+gsl::index OpenmcDriver::cell_index(CellHandle cell) const
+{
+  auto iter = cells_.find(cell);
+  Ensures(iter != cells_.cend());
+  return std::distance(cells_.cbegin(), iter);
 }
 
 void OpenmcDriver::init_step()

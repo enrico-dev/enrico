@@ -3,6 +3,7 @@
 #ifndef NEUTRONICS_DRIVER_H
 #define NEUTRONICS_DRIVER_H
 
+#include "enrico/cell_handle.h"
 #include "enrico/driver.h"
 #include "enrico/geom.h"
 #include "enrico/mpi_types.h"
@@ -13,8 +14,6 @@
 #include <vector>
 
 namespace enrico {
-
-using CellHandle = gsl::index;
 
 //! Base class for driver that controls a neutronics solve
 class NeutronicsDriver : public Driver {
@@ -76,6 +75,15 @@ public:
   //! \param cell Handle to a clel
   //! \return Label for the cell
   virtual std::string cell_label(CellHandle cell) const = 0;
+
+  //! Get the index of the given handle in the cells_ ordered mapping.
+  //!
+  //! Currently, this is used to infer the index in the heat source array that corresponds
+  //! to a given cell handle.
+  //!
+  //! \param cell An existing cell handle
+  //! \return The index of the handle in the cells_ ordered mapping
+  virtual gsl::index cell_index(CellHandle cell) const = 0;
 };
 
 } // namespace enrico
