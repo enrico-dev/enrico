@@ -18,7 +18,7 @@ ENRICO itself requires the following:
 
 ENRICO's component solvers have additional dependencies:
 
-* OpenMC: Requires HDF5 v1.8, v1.10, or v1.12
+* OpenMC: Requires HDF5 v1.8 or higher
 * nekRS: Requires GNU compilers
 * SHIFT: See SHIFT docs for full requirements
 
