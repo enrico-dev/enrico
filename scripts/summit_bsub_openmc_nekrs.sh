@@ -27,15 +27,6 @@ export OGS_MPI_SUPPORT=1
 export OCCA_CXX="$XL_HOME/bin/xlc" 
 export OCCA_CXXFLAGS="-O3 -qarch=pwr9 -qhot -DUSE_OCCA_MEM_BYTE_ALIGN=64" 
 export OCCA_LDFLAGS="$XL_HOME/lib/libibmc++.a"
-
-#export OCCA_VERBOSE=1
-#export OMPI_LD_PRELOAD_POSTPEND=$OLCF_SPECTRUM_MPI_ROOT/lib/libmpitrace.so
-
-#export PAMI_ENABLE_STRIPING=1
-#export PAMI_IBV_ADAPTER_AFFINITY=1
-#export PAMI_IBV_DEVICE_NAME="mlx5_0:1,mlx5_3:1"
-#export PAMI_IBV_DEVICE_NAME_1="mlx5_3:1,mlx5_0:1"
-
 export OMPI_MCA_io=romio321
 export ROMIO_HINTS="$(pwd)/.romio_hint"
 if [ ! -f "$ROMIO_HINTS" ]; then
@@ -49,22 +40,17 @@ if [ ! -f "$ROMIO_HINTS" ]; then
 fi
 
 module unload darshan-runtime
-module load gcc cmake cuda hdf5 python/3.7.0-anaconda3-5.3.0 vim openblas
+module load gcc cmake cuda hdf5 openblas
 
-bin=$NEKRS_HOME/bin/nekrs
 case=$1
 nodes=$2
+time=$3
+
 gpu_per_node=6
-cores_per_socket=21
+cpu_per_rs=7
 let nn=$nodes*$gpu_per_node
 let ntasks=nn
-time=$3
 backend=CUDA
-
-if [ ! -f $bin ]; then
-  echo "Cannot find" $bin
-  exit 1
-fi
 
 if [ ! -f $case.par ]; then
   echo "Cannot find" $case.par
@@ -108,7 +94,7 @@ while true; do
   esac
 done
 
-jsrun="jsrun -X 1 -n$nodes -r1 -a1 -c1 -g0 -b packed:1 -d packed cp -a $OCCA_CACHE_DIR/* $NVME_HOME; export OCCA_CACHE_DIR=$NVME_HOME; jsrun --smpiargs='-gpu' -X 1 -n$nn -r$gpu_per_node -a1 -c7 -g1 -b rs -d packed $NEKRS_HOME/bin/enrico --setup $case --backend $backend --device-id 0" 
+jsrun="jsrun -X 1 -n$nodes -r1 -a1 -c1 -g0 -b packed:1 -d packed cp -a $OCCA_CACHE_DIR/* $NVME_HOME; export OCCA_CACHE_DIR=$NVME_HOME; jsrun --smpiargs='-gpu' -X 1 -n$nn -r$gpu_per_node -a1 -c$cpu_per_rs -g1 -b rs -d packed $NEKRS_HOME/bin/enrico --setup $case --backend $backend --device-id 0" 
 
 cmd="bsub -nnodes $nodes -alloc_flags NVME -W $time -P $PROJ_ID -J nekRS_$case \"${jsrun}\""
 
