@@ -46,4 +46,23 @@ double Timer::elapsed()
   }
 }
 
+double sum_times(const std::vector<TimeAmt>& times) {
+  double tot = 0.0;
+  for (const auto& t : times) {
+    tot += t.time;
+  }
+  return tot;
+}
+
+void print_times(const std::string &header_name, const std::vector<TimeAmt>& times, const Comm& comm) {
+  comm.message(header_name + " times (seconds, percent)");
+  for (const auto& t : times) {
+    std::stringstream msg;
+    msg << "    " << std::setw(22) << std::left << t.name << std::right
+        << std::scientific << std::setprecision(4) << t.time
+         << "    " << std::setw(7) << std::fixed << std::left << std::right << t.percent * 100.0;
+    comm.message(msg.str());
+  }
+}
+
 }

@@ -46,17 +46,7 @@ int main(int argc, char* argv[])
     enrico::CoupledDriver driver{MPI_COMM_WORLD, root};
     driver.execute();
 
-    driver.comm_.message("CoupledDriver times (seconds)");
     driver.timer_report();
-
-    driver.comm_.Barrier();
-    driver.comm_.message("NeutronicsDriver times (seconds)");
-    driver.get_neutronics_driver().timer_report();
-
-    driver.comm_.Barrier();
-    driver.comm_.message("HeatFluidsDriver times (seconds)");
-    driver.get_heat_driver().timer_report();
-
   } break;
   case Transport::Surrogate:
     throw std::runtime_error{"No surrogate particle transport driver implemented"};
