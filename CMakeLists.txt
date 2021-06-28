@@ -276,8 +276,5 @@ install(TARGETS ${INSTALL_TARGETS}
 )
 
 if (USE_NEKRS)
-  install(FILES scripts/summit_bsub_openmc_nekrs.sh 
-    TYPE BIN 
-    PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
-  )
+  install(PROGRAMS scripts/summit_bsub_openmc_nekrs.sh TYPE BIN)
 endif()
