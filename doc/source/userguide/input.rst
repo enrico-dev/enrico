@@ -1,5 +1,7 @@
-Coupled Driver Input -- enrico.xml
-==================================
+.. _userguide_input:
+
+ENRICO Runtime Settings 
+=======================
 
 Parameters and settings for each individual physics code are set normally in
 their respective input files. Parameters related to the coupled simulation are

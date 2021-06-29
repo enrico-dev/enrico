@@ -4,8 +4,9 @@ ENRICO: Exascale Nuclear Reactor Investigative COde
 ENRICO is an application that automates the workflow for solving a coupled
 particle transport, heat transfer, and fluid dynamics problem. Currently
 supported solvers include the `OpenMC <https://docs.openmc.org>`_ and Shift
-Monte Carlo codes, the `Nek5000 <https://nek5000.mcs.anl.gov>`_ computational
-fluid dynamics code, and a subchannel/heat diffusion surrogate solver.
+Monte Carlo codes, the `Nek5000 <https://nek5000.mcs.anl.gov>`_ and `nekRS
+<https://github.com/Nek5000/nekRS>`_ computational
+fluid dynamics codes, and a subchannel/heat diffusion surrogate solver.
 
 The code establishes a mapping between the geometry representation in the Monte
 Carlo transport solver and the spectral element mesh used by Nek5000 so that the
@@ -18,13 +19,10 @@ Documentation
 -------------
 
 .. toctree::
-   :maxdepth: 1
+   :maxdepth: 2
 
-   quickstart
-   input
-   methodology
-   devguide
-   cppapi
+   userguide/index
+   devguide/index
    license
 
 Acknowledgment
