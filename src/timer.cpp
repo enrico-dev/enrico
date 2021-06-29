@@ -46,7 +46,8 @@ double Timer::elapsed()
   }
 }
 
-double TimeAmt::sum_times(const std::vector<TimeAmt>& times) {
+double TimeAmt::sum_times(const std::vector<TimeAmt>& times)
+{
   double tot = 0.0;
   for (const auto& t : times) {
     tot += t.time;
@@ -54,7 +55,8 @@ double TimeAmt::sum_times(const std::vector<TimeAmt>& times) {
   return tot;
 }
 
-double TimeAmt::sum_percent(const std::vector<TimeAmt>& times) {
+double TimeAmt::sum_percent(const std::vector<TimeAmt>& times)
+{
   double tot = 0.0;
   for (const auto& t : times) {
     tot += t.percent;
@@ -62,15 +64,18 @@ double TimeAmt::sum_percent(const std::vector<TimeAmt>& times) {
   return tot;
 }
 
-void TimeAmt::print_times(const std::string &header_name, const std::vector<TimeAmt>& times, const Comm& comm) {
+void TimeAmt::print_times(const std::string& header_name,
+                          const std::vector<TimeAmt>& times,
+                          const Comm& comm)
+{
   std::stringstream msg;
-  msg << "  " << header_name <<  " time (seconds, percent)";
+  msg << "  " << header_name << " time (seconds, percent)";
   comm.message(msg.str());
   for (const auto& t : times) {
     std::stringstream msg;
-    msg << "    " << std::setw(22) << std::left << t.name << std::right
-        << std::scientific << std::setprecision(4) << t.time
-         << "    " << std::setw(8) << std::fixed << std::left << std::right << t.percent * 100.0;
+    msg << "    " << std::setw(22) << std::left << t.name << std::right << std::scientific
+        << std::setprecision(4) << t.time << "    " << std::setw(8) << std::fixed
+        << std::left << std::right << t.percent * 100.0;
     comm.message(msg.str());
   }
 }

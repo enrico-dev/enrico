@@ -39,9 +39,9 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
                  "" /* cacheDir */,
                  setup_file_ /* _setupFile */,
                  "" /* backend_ */,
-        "" /* _deviceId */);
+                 "" /* _deviceId */);
 
-    nrs_ptr_ = reinterpret_cast<nrs_t *>(nekrs::nrsPtr());
+    nrs_ptr_ = reinterpret_cast<nrs_t*>(nekrs::nrsPtr());
 
     open_lib_udf();
 
@@ -76,8 +76,7 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
     auto n_vgeo = nrs_ptr_->cds->mesh->Nvgeo;
     for (gsl::index e = 0; e < n_local_elem_; ++e) {
       for (gsl::index n = 0; n < n_gll_; ++n) {
-        mass_matrix_[e * n_gll_ + n] =
-          vgeo[e * n_gll_ * n_vgeo + JWID * n_gll_ + n];
+        mass_matrix_[e * n_gll_ + n] = vgeo[e * n_gll_ * n_vgeo + JWID * n_gll_ + n];
       }
     }
 
@@ -107,22 +106,21 @@ void NekRSDriver::solve_step()
     std::stringstream msg;
     if (nekrs::endTime() > nekrs::startTime()) {
       msg << "timestepping to time " << nekrs::endTime() << " ...";
-    }
-    else {
+    } else {
       msg << "timestepping for " << nekrs::numSteps() << " steps ...";
     }
     comm_.message(msg.str());
   }
 
   while (!last_step) {
-    if (comm_.active()) 
+    if (comm_.active())
       comm_.Barrier();
     elapsed_time += (MPI_Wtime() - elapsed_time);
     ++tstep_;
     last_step = nekrs::lastStep(time_, tstep_, elapsed_time);
 
-    double dt; 
-    if (last_step && nekrs::endTime() > 0) 
+    double dt;
+    if (last_step && nekrs::endTime() > 0)
       dt = nekrs::endTime() - time_;
     else
       dt = nekrs::dt();

@@ -3,8 +3,8 @@
 
 #include "enrico/heat_fluids_driver.h"
 #include "mpi.h"
-#include "pugixml.hpp"
 #include "nrs.hpp"
+#include "pugixml.hpp"
 
 namespace enrico {
 class NekRSDriver : public HeatFluidsDriver {

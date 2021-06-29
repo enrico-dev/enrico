@@ -2,8 +2,8 @@
 #define ENRICO_INCLUDE_ENRICO_TIMER_H
 
 #include "comm.h"
-#include <string>
 #include <iomanip>
+#include <string>
 
 namespace enrico {
 
@@ -16,15 +16,15 @@ public:
     : comm_(comm)
   {}
 
-  //! Begin accumulating elapsed time.  
+  //! Begin accumulating elapsed time.
   //!
-  //! If the timer has been previously stopped, then restarting it will 
-  //! not reset elapsed time at 0.  
+  //! If the timer has been previously stopped, then restarting it will
+  //! not reset elapsed time at 0.
   void start();
 
   //! Stop accumulating elapsed time.
-  //! 
-  //! This does not reset elapsed time to 0.  
+  //!
+  //! This does not reset elapsed time to 0.
   void stop();
 
   //! Accumulated time between all consecutive calls to start() and stop()
@@ -33,12 +33,12 @@ public:
   //! at the time of the function call.
   //!
   //! If the timer is not currently running (i.e., has been stopped), then this returns
-  //! the accumulated elapsed time from the time it was stopped.  
+  //! the accumulated elapsed time from the time it was stopped.
   //!
   //! \return Elapsed time in seconds.
   double elapsed();
 
-  //! Reset the elapsed time to 0.  
+  //! Reset the elapsed time to 0.
   void reset();
 
 private:
@@ -50,29 +50,36 @@ private:
 
 //! Class for storing times associated with an arbitrary label
 class TimeAmt {
-  public:
-    explicit TimeAmt(const std::string& name) : name(name) {};
-    TimeAmt(const std::string& name, double time) : name(name), time(time) {};
-    TimeAmt(const std::string& name, double time, double percent) : name(name), time(time), percent(percent) {};
+public:
+  explicit TimeAmt(const std::string& name)
+    : name(name){};
+  TimeAmt(const std::string& name, double time)
+    : name(name)
+    , time(time){};
+  TimeAmt(const std::string& name, double time, double percent)
+    : name(name)
+    , time(time)
+    , percent(percent){};
 
-    //! Get the total time for a vector of TimeAmt
-    static double sum_times(const std::vector<TimeAmt>& times);
+  //! Get the total time for a vector of TimeAmt
+  static double sum_times(const std::vector<TimeAmt>& times);
 
-    //! Get the total percent for a vector of TimeAmt
-    static double sum_percent(const std::vector<TimeAmt>& times);
+  //! Get the total percent for a vector of TimeAmt
+  static double sum_percent(const std::vector<TimeAmt>& times);
 
-    //! Print the times for a vector TimeAmt in a nicely-formatted way
-    //! 
-    //! \param header_name An arbitrary header that is printed
-    //! \param times Each TimeAmt is printed on a separate line
-    //! \param comm The root process of this Comm will print the output
-    static void print_times(const std::string &header_name, const std::vector<TimeAmt>& times, const Comm& comm);
+  //! Print the times for a vector TimeAmt in a nicely-formatted way
+  //!
+  //! \param header_name An arbitrary header that is printed
+  //! \param times Each TimeAmt is printed on a separate line
+  //! \param comm The root process of this Comm will print the output
+  static void print_times(const std::string& header_name,
+                          const std::vector<TimeAmt>& times,
+                          const Comm& comm);
 
-    const std::string name;  //!< Arbitrary label
-    double time;             //!< The time in arbitrary units
-    double percent;          //!< The percent wrt. a total time
+  const std::string name; //!< Arbitrary label
+  double time;            //!< The time in arbitrary units
+  double percent;         //!< The percent wrt. a total time
 };
-
 
 }
 

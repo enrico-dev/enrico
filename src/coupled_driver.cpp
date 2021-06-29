@@ -823,7 +823,7 @@ void CoupledDriver::timer_report()
   auto& heat = this->get_heat_driver();
   auto& neut = this->get_neutronics_driver();
 
-  std::vector<TimeAmt> coup_times {
+  std::vector<TimeAmt> coup_times{
     {"init_comms", timer_init_comms.elapsed()},
     {"init_fluid_mask", timer_init_fluid_mask.elapsed()},
     {"init_densities", timer_init_densities.elapsed()},
@@ -836,22 +836,21 @@ void CoupledDriver::timer_report()
     {"update_heat_source", timer_update_heat_source.elapsed()},
     {"update_temperature", timer_update_temperature.elapsed()}};
 
-  std::vector<TimeAmt> heat_times{
-    {"driver_setup", heat.timer_driver_setup.elapsed()},
-    {"init_step", heat.timer_init_step.elapsed()},
-    {"solve_step", heat.timer_solve_step.elapsed()},
-    {"write_step", heat.timer_write_step.elapsed()},
-    {"finalize_step", heat.timer_finalize_step.elapsed()}};
+  std::vector<TimeAmt> heat_times{{"driver_setup", heat.timer_driver_setup.elapsed()},
+                                  {"init_step", heat.timer_init_step.elapsed()},
+                                  {"solve_step", heat.timer_solve_step.elapsed()},
+                                  {"write_step", heat.timer_write_step.elapsed()},
+                                  {"finalize_step", heat.timer_finalize_step.elapsed()}};
 
-  std::vector<TimeAmt> neut_times{
-    {"driver_setup", neut.timer_driver_setup.elapsed()},
-    {"init_step", neut.timer_init_step.elapsed()},
-    {"solve_step", neut.timer_solve_step.elapsed()},
-    {"write_step", neut.timer_write_step.elapsed()},
-    {"finalize_step", neut.timer_finalize_step.elapsed()}};
+  std::vector<TimeAmt> neut_times{{"driver_setup", neut.timer_driver_setup.elapsed()},
+                                  {"init_step", neut.timer_init_step.elapsed()},
+                                  {"solve_step", neut.timer_solve_step.elapsed()},
+                                  {"write_step", neut.timer_write_step.elapsed()},
+                                  {"finalize_step", neut.timer_finalize_step.elapsed()}};
 
-  auto tot_time = TimeAmt::sum_times(coup_times) + TimeAmt::sum_times(heat_times) + TimeAmt::sum_times(neut_times);
-  auto nrm = [tot_time](TimeAmt& t){t.percent = t.time / tot_time;};
+  auto tot_time = TimeAmt::sum_times(coup_times) + TimeAmt::sum_times(heat_times) +
+                  TimeAmt::sum_times(neut_times);
+  auto nrm = [tot_time](TimeAmt& t) { t.percent = t.time / tot_time; };
   std::for_each(coup_times.begin(), coup_times.end(), nrm);
   std::for_each(heat_times.begin(), heat_times.end(), nrm);
   std::for_each(neut_times.begin(), neut_times.end(), nrm);
@@ -864,7 +863,8 @@ void CoupledDriver::timer_report()
   TimeAmt::print_times("NeutronicsDriver", neut_times, comm_);
   TimeAmt::print_times("HeatFluidsDriver", heat_times, comm_);
 
-  auto tot_pct = TimeAmt::sum_percent(coup_times) + TimeAmt::sum_percent(heat_times) + TimeAmt::sum_percent(neut_times);
+  auto tot_pct = TimeAmt::sum_percent(coup_times) + TimeAmt::sum_percent(heat_times) +
+                 TimeAmt::sum_percent(neut_times);
   std::vector<TimeAmt> total_time{{"total", tot_time, tot_pct}};
   TimeAmt::print_times("Total", total_time, comm_);
 }
