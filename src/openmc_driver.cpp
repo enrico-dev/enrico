@@ -22,6 +22,7 @@ namespace enrico {
 OpenmcDriver::OpenmcDriver(MPI_Comm comm)
   : NeutronicsDriver(comm)
 {
+  timer_driver_setup.start();
   if (active()) {
     err_chk(openmc_init(0, nullptr, &comm));
   }
@@ -51,6 +52,7 @@ OpenmcDriver::OpenmcDriver(MPI_Comm comm)
       }
     }
   }
+  timer_driver_setup.stop();
 }
 
 void OpenmcDriver::create_tallies()

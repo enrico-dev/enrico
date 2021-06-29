@@ -39,7 +39,7 @@ namespace enrico {
 
 CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   : comm_(comm)
-  , timer_execute(comm_)
+  , timer_init_comms(comm_)
   , timer_init_mappings(comm_)
   , timer_init_tallies(comm_)
   , timer_init_volumes(comm_)
@@ -123,6 +123,8 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   Expects(max_picard_iter_ >= 0);
   Expects(epsilon_ > 0);
 
+  timer_init_comms.start();
+
   // Create communicators
   std::array<int, 2> nodes{neut_node.child("nodes").text().as_int(),
                            heat_node.child("nodes").text().as_int()};
@@ -137,6 +139,8 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
 
   auto neutronics_comm = driver_comms[0];
   auto heat_comm = driver_comms[1];
+
+  timer_init_comms.stop();
 
   // Instantiate neutronics driver
   std::string neut_driver = neut_node.child_value("driver");
@@ -175,6 +179,8 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
     throw std::runtime_error{"Invalid value for <heat_fluids><driver>"};
   }
 
+  timer_init_comms.start();
+
   // Discover the rank IDs (relative to comm_) that are in each single-physics subcomm
   neutronics_ranks_ = gather_subcomm_ranks(comm_, neutronics_comm);
   heat_ranks_ = gather_subcomm_ranks(comm_, heat_comm);
@@ -186,6 +192,8 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   // Send rank ID of heat subcomm root (relative to comm_) to all procs
   heat_root_ = this->get_heat_driver().comm_.is_root() ? comm_.rank : -1;
   MPI_Allreduce(MPI_IN_PLACE, &heat_root_, 1, MPI_INT, MPI_MAX, comm_.comm);
+
+  timer_init_comms.stop();
 
   comm_report();
 
@@ -204,7 +212,6 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
 
 void CoupledDriver::execute()
 {
-  timer_execute.start();
 
   auto& neutronics = get_neutronics_driver();
   auto& heat = get_heat_driver();
@@ -249,6 +256,8 @@ void CoupledDriver::execute()
       update_temperature(true);
       update_density(true);
 
+      timer_report();
+
       if (is_converged()) {
         std::string msg = "converged at i_picard = " + std::to_string(i_picard_);
         comm_.message(msg);
@@ -257,9 +266,8 @@ void CoupledDriver::execute()
     }
     comm_.Barrier();
   }
+  // TODO: Is this final heat.write_step still needed?
   heat.write_step();
-
-  timer_execute.stop();
 }
 
 double CoupledDriver::temperature_norm(Norm norm)
@@ -816,6 +824,7 @@ void CoupledDriver::timer_report()
   auto& neut = this->get_neutronics_driver();
 
   std::vector<TimeAmt> coup_times {
+    {"init_comms", timer_init_comms.elapsed()},
     {"init_fluid_mask", timer_init_fluid_mask.elapsed()},
     {"init_densities", timer_init_densities.elapsed()},
     {"init_heat_source", timer_init_heat_source.elapsed()},
@@ -828,28 +837,36 @@ void CoupledDriver::timer_report()
     {"update_temperature", timer_update_temperature.elapsed()}};
 
   std::vector<TimeAmt> heat_times{
+    {"driver_setup", heat.timer_driver_setup.elapsed()},
     {"init_step", heat.timer_init_step.elapsed()},
     {"solve_step", heat.timer_solve_step.elapsed()},
     {"write_step", heat.timer_write_step.elapsed()},
     {"finalize_step", heat.timer_finalize_step.elapsed()}};
 
   std::vector<TimeAmt> neut_times{
+    {"driver_setup", neut.timer_driver_setup.elapsed()},
     {"init_step", neut.timer_init_step.elapsed()},
     {"solve_step", neut.timer_solve_step.elapsed()},
     {"write_step", neut.timer_write_step.elapsed()},
     {"finalize_step", neut.timer_finalize_step.elapsed()}};
 
-  // Get total time
-  double tot = sum_times(coup_times) + sum_times(heat_times) + sum_times(neut_times);
-
-  auto nrm = [tot](TimeAmt& t){t.percent = t.time / tot;};
+  auto tot_time = TimeAmt::sum_times(coup_times) + TimeAmt::sum_times(heat_times) + TimeAmt::sum_times(neut_times);
+  auto nrm = [tot_time](TimeAmt& t){t.percent = t.time / tot_time;};
   std::for_each(coup_times.begin(), coup_times.end(), nrm);
   std::for_each(heat_times.begin(), heat_times.end(), nrm);
   std::for_each(neut_times.begin(), neut_times.end(), nrm);
 
-  print_times("CoupledDriver", coup_times, comm_);
-  print_times("NeutronicsDriver", neut_times, comm_);
-  print_times("HeatFluidsDriver", heat_times, comm_);
+  std::stringstream msg;
+  msg << "Timer report at i_timestep = " << i_timestep_ << " , i_picard = " << i_picard_;
+  comm_.message(msg.str());
+
+  TimeAmt::print_times("CoupledDriver", coup_times, comm_);
+  TimeAmt::print_times("NeutronicsDriver", neut_times, comm_);
+  TimeAmt::print_times("HeatFluidsDriver", heat_times, comm_);
+
+  auto tot_pct = TimeAmt::sum_percent(coup_times) + TimeAmt::sum_percent(heat_times) + TimeAmt::sum_percent(neut_times);
+  std::vector<TimeAmt> total_time{{"total", tot_time, tot_pct}};
+  TimeAmt::print_times("Total", total_time, comm_);
 }
 
 } // namespace enrico

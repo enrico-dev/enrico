@@ -14,6 +14,7 @@ namespace enrico {
 ShiftDriver::ShiftDriver(MPI_Comm comm, pugi::xml_node node)
   : NeutronicsDriver{comm}
 {
+  timer_driver_setup.start();
   if (this->active()) {
     // Get Shift filename
     if (!node.child("filename")) {
@@ -52,6 +53,7 @@ ShiftDriver::ShiftDriver(MPI_Comm comm, pugi::xml_node node)
     num_cells_ = geometry_->num_cells();
   }
   MPI_Barrier(MPI_COMM_WORLD);
+  timer_driver_setup.stop();
 }
 
 ////////////////////////////////////////////////////////////////////////////////

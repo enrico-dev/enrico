@@ -120,17 +120,21 @@ public:
 
   void timer_report();
 
-  Timer timer_execute;
-  Timer timer_init_mappings;
-  Timer timer_init_tallies;
-  Timer timer_init_volumes;
-  Timer timer_init_fluid_mask;
-  Timer timer_init_temperatures;
-  Timer timer_init_densities;
-  Timer timer_init_heat_source;
-  Timer timer_update_density;
-  Timer timer_update_heat_source;
-  Timer timer_update_temperature;
+  //! For the code that initialzes the subcommunicators, discovers subcomm ranks, etc.
+  //!
+  //! Unlike the other timers, this does not just time a single member function
+  Timer timer_init_comms; 
+
+  Timer timer_init_mappings;  //!< For the init_mappings() member function
+  Timer timer_init_tallies;  //!< For the init_tallies() member function
+  Timer timer_init_volumes;  //!< For the init_volumes() member function
+  Timer timer_init_fluid_mask;  //!< For the init_fluid_mask() member function
+  Timer timer_init_temperatures;  //!< For the init_temperatures() member function
+  Timer timer_init_densities;  //!< For the init_densities() member function
+  Timer timer_init_heat_source;  //!< For the init_heat_source() member function
+  Timer timer_update_density;  //!< For the update_density() member function
+  Timer timer_update_heat_source;  //!< For the update_heat_source() member function
+  Timer timer_update_temperature;  //!< For the update_temperature() member function
 
 private:
   //! Create bidirectional mappings from neutronics cell instances to/from TH elements

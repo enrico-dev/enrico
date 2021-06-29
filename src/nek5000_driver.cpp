@@ -17,6 +17,7 @@ namespace enrico {
 Nek5000Driver::Nek5000Driver(MPI_Comm comm, pugi::xml_node node)
   : HeatFluidsDriver(comm, node)
 {
+  timer_driver_setup.start();
   if (active()) {
     casename_ = node.child_value("casename");
     if (node.child("output_heat_source")) {
@@ -48,6 +49,7 @@ Nek5000Driver::Nek5000Driver(MPI_Comm comm, pugi::xml_node node)
     init_displs();
   }
   MPI_Barrier(MPI_COMM_WORLD);
+  timer_driver_setup.stop();
 }
 
 void Nek5000Driver::init_session_name()

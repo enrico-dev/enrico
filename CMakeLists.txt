@@ -154,7 +154,6 @@ target_link_libraries(heat_xfer PUBLIC iapws)
 # =============================================================================
 
 set(SOURCES
-    src/driver.cpp
     src/coupled_driver.cpp
     src/comm_split.cpp
     src/surrogate_heat_driver.cpp

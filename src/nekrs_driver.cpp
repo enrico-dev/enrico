@@ -15,6 +15,7 @@ namespace enrico {
 NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
   : HeatFluidsDriver(comm, node)
 {
+  timer_driver_setup.start();
   if (active()) {
     // Force NEKRS_HOME
     std::stringstream msg;
@@ -82,6 +83,7 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
 
     init_displs();
   }
+  timer_driver_setup.stop();
 }
 
 void NekRSDriver::init_step()

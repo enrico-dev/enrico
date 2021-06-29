@@ -20,6 +20,7 @@ public:
   //! \param comm An existing MPI communicator used to initialize the solver
   explicit Driver(MPI_Comm comm)
     : comm_(comm)
+    , timer_driver_setup(comm_)
     , timer_init_step(comm_)
     , timer_solve_step(comm_)
     , timer_write_step(comm_)
@@ -45,16 +46,15 @@ public:
 
   //! Queries whether the comm for this solver is active
   //! \return True if this comm's solver is not MPI_COMM_NULL
-  bool active() const;
+  bool active() const { return comm_.active(); }
 
   Comm comm_; //!< The MPI communicator used to run the solver
 
-  Timer timer_init_step;
-  Timer timer_solve_step;
-  Timer timer_write_step;
-  Timer timer_finalize_step;
-
-  void timer_report();
+  Timer timer_driver_setup;  //!< For the setup function(s) of the external solver
+  Timer timer_init_step;     //!< For the init_step() member function
+  Timer timer_solve_step;    //!< For the solve_step() member function
+  Timer timer_write_step;    //!< For the write_step() member function
+  Timer timer_finalize_step; //!< For the finalize_step() member function
 };
 
 } // namespace enrico
