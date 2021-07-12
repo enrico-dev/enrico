@@ -206,9 +206,9 @@ public:
 
   //! Displays a message from rank 0
   //! \param A message to display
-  void message(const std::string& msg) const
+  void message(const std::string& msg, int rank = 0) const
   {
-    if (rank == 0)
+    if (this->rank == rank)
       std::cout << "[ENRICO]: " << msg << std::endl;
   }
 

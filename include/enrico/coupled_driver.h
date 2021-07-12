@@ -214,6 +214,9 @@ private:
 
   // Norm to use for convergence checks
   Norm norm_{Norm::LINF};
+
+  // Print verbose output
+  bool verbose_ = false;
 };
 
 } // namespace enrico

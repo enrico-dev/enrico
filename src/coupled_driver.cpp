@@ -48,6 +48,7 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   power_ = coup_node.child("power").text().as_double();
   max_timesteps_ = coup_node.child("max_timesteps").text().as_int();
   max_picard_iter_ = coup_node.child("max_picard_iter").text().as_int();
+  verbose_ = coup_node.child("verbose").text().as_bool();
 
   // get optional coupling parameters, using defaults if not provided
   if (coup_node.child("epsilon"))
@@ -628,7 +629,7 @@ void CoupledDriver::init_volumes()
 
 void CoupledDriver::check_volumes()
 {
-  comm_.message("Initializing volumes");
+  comm_.message("Volume check");
   const auto& neutronics = this->get_neutronics_driver();
 
   // An array of global cell volumes, which will be accumulated from local cell volumes.
@@ -649,14 +650,47 @@ void CoupledDriver::check_volumes()
   comm_.Barrier();
 
   if (comm_.rank == neutronics_root_) {
+    double v_rel_diff_min = std::numeric_limits<double>::max();
+    double v_rel_diff_max = -1;
+    double v_rel_diff_sum = 0;
+    double v_rel_diff_count = 0;
+
     // Compare volume from neutron driver to accumulated volume
     for (const auto& kv : glob_volumes) {
-      auto v_neutronics = neutronics.get_volume(kv.first);
-      std::stringstream msg;
-      msg << "Cell " << neutronics.cell_label(kv.first) << ", V = " << v_neutronics
-          << " (Neutronics), " << kv.second << " (Accumulated from Heat/Fluids)";
-      comm_.message(msg.str());
+      auto cell = kv.first;
+      auto v_accum = kv.second;
+      auto v_neutronics = neutronics.get_volume(cell);
+
+      // In neutronics model, volume = 1.0 is a dummy value
+      if (v_neutronics != 1.0) {
+        auto v_diff = std::abs(v_neutronics - v_accum);
+        auto v_rel_diff = v_diff / v_neutronics;
+
+        v_rel_diff_min = std::min(v_rel_diff_min, v_rel_diff);
+        v_rel_diff_max = std::max(v_rel_diff_max, v_rel_diff);
+        v_rel_diff_sum += v_rel_diff;
+        v_rel_diff_count += 1;
+
+        if (verbose_) {
+          std::stringstream msg;
+          msg << "  Cell " << neutronics.cell_label(cell) << ", V = " << v_neutronics
+              << " (Neutronics), " << v_accum << " (Accumulated from Heat/Fluids)";
+          comm_.message(msg.str(), neutronics_root_);
+        }
+      }
     }
+
+    std::stringstream msg;
+    msg << "  Min relative volume diff:  " << v_rel_diff_min;
+    comm_.message(msg.str(), neutronics_root_);
+
+    msg.str("");
+    msg << "  Max relative volume diff:  " << v_rel_diff_max;
+    comm_.message(msg.str(), neutronics_root_);
+
+    msg.str("");
+    msg << "  Mean relative volume diff: " << v_rel_diff_sum / v_rel_diff_count;
+    comm_.message(msg.str(), neutronics_root_);
   }
   comm_.Barrier();
 }
@@ -736,6 +770,9 @@ void CoupledDriver::init_heat_source()
 
 void CoupledDriver::comm_report()
 {
+  if (!verbose_)
+    return;
+
   char c[_POSIX_HOST_NAME_MAX];
   gethostname(c, _POSIX_HOST_NAME_MAX);
   std::string hostname{c};
