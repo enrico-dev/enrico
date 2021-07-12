@@ -110,7 +110,7 @@ Base node for coupling parameters
 ``<verbose>``
 -----------
 
-A boolean ("true" or "false", default "false).  If true, print detailed info, including
+A boolean ("true" or "false", default "false").  If true, print detailed info, including
 MPI communicator layouts for each rank and volume comparisons for each cell (summarized
 volume statistics are always printed).
 
