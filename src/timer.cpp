@@ -68,6 +68,7 @@ void TimeAmt::print_times(const std::string& header_name,
                           const std::vector<TimeAmt>& times,
                           const Comm& comm)
 {
+  std::ios_base::fmtflags old_flags(std::cout.flags());
   std::stringstream msg;
   msg << "  " << header_name << " time (seconds, percent)";
   comm.message(msg.str());
@@ -78,6 +79,7 @@ void TimeAmt::print_times(const std::string& header_name,
         << std::left << std::right << t.percent * 100.0;
     comm.message(msg.str());
   }
+  std::cout.flags(old_flags);
 }
 
 }
