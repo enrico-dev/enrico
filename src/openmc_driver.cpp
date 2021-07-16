@@ -6,6 +6,7 @@
 #include "openmc/capi.h"
 #include "openmc/cell.h"
 #include "openmc/constants.h"
+#include "openmc/summary.h"
 #include "openmc/tallies/filter.h"
 #include "openmc/tallies/filter_material.h"
 #include "openmc/tallies/tally.h"
@@ -208,9 +209,13 @@ void OpenmcDriver::solve_step()
 void OpenmcDriver::write_step(int timestep, int iteration)
 {
   timer_write_step.start();
-  std::string filename{"openmc_t" + std::to_string(timestep) + "_i" +
-                       std::to_string(iteration) + ".h5"};
+  std::string suffix{"_t" + std::to_string(timestep) + "_i" + std::to_string(iteration) +
+                     ".h5"};
+  std::string filename{"openmc" + suffix};
   err_chk(openmc_statepoint_write(filename.c_str(), nullptr));
+
+  std::string prop_file{"properties" + suffix};
+  err_chk(openmc_properties_export(prop_file.c_str()));
   timer_write_step.stop();
 }
 

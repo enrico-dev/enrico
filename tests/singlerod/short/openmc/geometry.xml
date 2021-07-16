@@ -38,23 +38,23 @@
     <dimension>1 1 10</dimension>
     <lower_left>-0.63 -0.63 0.0</lower_left>
     <universes>
-1 
+1
 
-1 
+1
 
-1 
+1
 
-1 
+1
 
-1 
+1
 
-1 
+1
 
-1 
+1
 
-1 
+1
 
-1 
+1
 
 1 </universes>
   </lattice>
@@ -67,10 +67,10 @@
   <surface coeffs="0.0 0.0 0.475" id="7" type="z-cylinder" />
   <surface coeffs="0.0" id="8" type="x-plane" />
   <surface coeffs="0.0" id="9" type="y-plane" />
-  <surface boundary="periodic" coeffs="-0.63" id="10" type="x-plane" />
-  <surface boundary="periodic" coeffs="0.63" id="11" type="x-plane" />
-  <surface boundary="periodic" coeffs="-0.63" id="12" type="y-plane" />
-  <surface boundary="periodic" coeffs="0.63" id="13" type="y-plane" />
+  <surface boundary="periodic" coeffs="-0.63" id="10" periodic_surface_id="11" type="x-plane" />
+  <surface boundary="periodic" coeffs="0.63" id="11" periodic_surface_id="10" type="x-plane" />
+  <surface boundary="periodic" coeffs="-0.63" id="12" periodic_surface_id="13" type="y-plane" />
+  <surface boundary="periodic" coeffs="0.63" id="13" periodic_surface_id="12" type="y-plane" />
   <surface boundary="reflective" coeffs="0.0" id="14" type="z-plane" />
   <surface boundary="reflective" coeffs="10.0" id="15" type="z-plane" />
 </geometry>
