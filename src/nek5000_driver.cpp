@@ -17,6 +17,7 @@ namespace enrico {
 Nek5000Driver::Nek5000Driver(MPI_Comm comm, pugi::xml_node node)
   : HeatFluidsDriver(comm, node)
 {
+  timer_driver_setup.start();
   if (active()) {
     casename_ = node.child_value("casename");
     if (node.child("output_heat_source")) {
@@ -40,14 +41,15 @@ Nek5000Driver::Nek5000Driver(MPI_Comm comm, pugi::xml_node node)
     // ensure that it is not used in the solver (hence npascl < ldimt - 1)
     if (ldimt_ < 2 || npscal_ >= ldimt_ - 1) {
       std::stringstream msg;
-      msg << "User specified ldimt=" << ldimt_ << " and npscal=" << npscal_ <<
-        ".  For coupling, ENRICO requires ldimt >= 2 and npscal < ldimt - 1";
+      msg << "User specified ldimt=" << ldimt_ << " and npscal=" << npscal_
+          << ".  For coupling, ENRICO requires ldimt >= 2 and npscal < ldimt - 1";
       std::runtime_error(msg.str());
     }
 
     init_displs();
   }
   MPI_Barrier(MPI_COMM_WORLD);
+  timer_driver_setup.stop();
 }
 
 void Nek5000Driver::init_session_name()
@@ -100,8 +102,10 @@ std::vector<double> Nek5000Driver::density_local() const
 
 void Nek5000Driver::solve_step()
 {
+  timer_solve_step.start();
   nek_reset_counters();
   C2F_nek_solve();
+  timer_solve_step.stop();
 }
 
 Position Nek5000Driver::centroid_at(int32_t local_elem) const
@@ -159,7 +163,8 @@ int Nek5000Driver::set_heat_source_at(int32_t local_elem, double heat)
   return nek_set_heat_source(local_elem + 1, heat);
 }
 
-void Nek5000Driver::write_step(int timestep, int iteration) {
+void Nek5000Driver::write_step(int timestep, int iteration)
+{
   nek_write_step(int(output_heat_source_));
 }
 

@@ -7,6 +7,7 @@
 #include "enrico/driver.h"
 #include "enrico/heat_fluids_driver.h"
 #include "enrico/neutronics_driver.h"
+#include "enrico/timer.h"
 
 #include <pugixml.hpp>
 #include <xtensor/xtensor.hpp>
@@ -116,6 +117,24 @@ public:
   //! Where to obtain the density initial condition from. Defaults to the densities
   //! in the neutronics input file.
   Initial density_ic_{Initial::neutronics};
+
+  void timer_report();
+
+  //! For the code that initialzes the subcommunicators, discovers subcomm ranks, etc.
+  //!
+  //! Unlike the other timers, this does not just time a single member function
+  Timer timer_init_comms;
+
+  Timer timer_init_mappings;      //!< For the init_mappings() member function
+  Timer timer_init_tallies;       //!< For the init_tallies() member function
+  Timer timer_init_volumes;       //!< For the init_volumes() member function
+  Timer timer_init_fluid_mask;    //!< For the init_fluid_mask() member function
+  Timer timer_init_temperatures;  //!< For the init_temperatures() member function
+  Timer timer_init_densities;     //!< For the init_densities() member function
+  Timer timer_init_heat_source;   //!< For the init_heat_source() member function
+  Timer timer_update_density;     //!< For the update_density() member function
+  Timer timer_update_heat_source; //!< For the update_heat_source() member function
+  Timer timer_update_temperature; //!< For the update_temperature() member function
 
 private:
   //! Create bidirectional mappings from neutronics cell instances to/from TH elements

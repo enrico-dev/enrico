@@ -416,10 +416,12 @@ double SurrogateHeatDriver::rod_axial_node_power(const int pin, const int axial)
 
 void SurrogateHeatDriver::solve_step()
 {
+  timer_solve_step.start();
   if (has_coupling_data()) {
     solve_fluid();
     solve_heat();
   }
+  timer_solve_step.stop();
 }
 
 void SurrogateHeatDriver::solve_fluid()
@@ -659,6 +661,8 @@ double SurrogateHeatDriver::fluid_temperature(std::size_t pin, std::size_t axial
 
 void SurrogateHeatDriver::write_step(int timestep, int iteration)
 {
+  // TODO: Timers deadlock here...
+  // timer_write_step.start();
   if (!has_coupling_data())
     return;
 
@@ -681,6 +685,7 @@ void SurrogateHeatDriver::write_step(int timestep, int iteration)
 
   comm_.message("Writing VTK file: " + filename.str());
   vtk_writer.write(filename.str());
+  // timer_write_step.stop();
   return;
 }
 

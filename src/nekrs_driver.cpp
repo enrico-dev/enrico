@@ -15,6 +15,7 @@ namespace enrico {
 NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
   : HeatFluidsDriver(comm, node)
 {
+  timer_driver_setup.start();
   if (active()) {
     // Force NEKRS_HOME
     std::stringstream msg;
@@ -38,9 +39,9 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
                  "" /* cacheDir */,
                  setup_file_ /* _setupFile */,
                  "" /* backend_ */,
-        "" /* _deviceId */);
+                 "" /* _deviceId */);
 
-    nrs_ptr_ = reinterpret_cast<nrs_t *>(nekrs::nrsPtr());
+    nrs_ptr_ = reinterpret_cast<nrs_t*>(nekrs::nrsPtr());
 
     open_lib_udf();
 
@@ -75,23 +76,26 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
     auto n_vgeo = nrs_ptr_->cds->mesh->Nvgeo;
     for (gsl::index e = 0; e < n_local_elem_; ++e) {
       for (gsl::index n = 0; n < n_gll_; ++n) {
-        mass_matrix_[e * n_gll_ + n] =
-          vgeo[e * n_gll_ * n_vgeo + JWID * n_gll_ + n];
+        mass_matrix_[e * n_gll_ + n] = vgeo[e * n_gll_ * n_vgeo + JWID * n_gll_ + n];
       }
     }
 
     init_displs();
   }
+  timer_driver_setup.stop();
 }
 
 void NekRSDriver::init_step()
 {
+  timer_init_step.start();
   auto min = std::min_element(localq_->cbegin(), localq_->cend());
   auto max = std::max_element(localq_->cbegin(), localq_->cend());
+  timer_init_step.stop();
 }
 
 void NekRSDriver::solve_step()
 {
+  timer_solve_step.start();
   const int runtime_stat_freq = 500;
   auto elapsed_time = MPI_Wtime();
   tstep_ = 0;
@@ -102,22 +106,21 @@ void NekRSDriver::solve_step()
     std::stringstream msg;
     if (nekrs::endTime() > nekrs::startTime()) {
       msg << "timestepping to time " << nekrs::endTime() << " ...";
-    }
-    else {
+    } else {
       msg << "timestepping for " << nekrs::numSteps() << " steps ...";
     }
     comm_.message(msg.str());
   }
 
   while (!last_step) {
-    if (comm_.active()) 
+    if (comm_.active())
       comm_.Barrier();
     elapsed_time += (MPI_Wtime() - elapsed_time);
     ++tstep_;
     last_step = nekrs::lastStep(time_, tstep_, elapsed_time);
 
-    double dt; 
-    if (last_step && nekrs::endTime() > 0) 
+    double dt;
+    if (last_step && nekrs::endTime() > 0)
       dt = nekrs::endTime() - time_;
     else
       dt = nekrs::dt();
@@ -133,10 +136,12 @@ void NekRSDriver::solve_step()
 
   // TODO:  Do we need this in v20.0 of nekRS?
   nekrs::copyToNek(time_, tstep_);
+  timer_solve_step.stop();
 }
 
 void NekRSDriver::write_step(int timestep, int iteration)
 {
+  timer_write_step.start();
   nekrs::outfld(time_);
   if (output_heat_source_) {
     comm_.message("Writing heat source to .fld file");
@@ -144,6 +149,7 @@ void NekRSDriver::write_step(int timestep, int iteration)
       occa::cpu::wrapMemory(host_, localq_->data(), localq_->size() * sizeof(double));
     writeFld("qsc", time_, 1, 0, &nrs_ptr_->o_U, &nrs_ptr_->o_P, &o_localq, 1);
   }
+  timer_write_step.stop();
 }
 
 Position NekRSDriver::centroid_at(int32_t local_elem) const

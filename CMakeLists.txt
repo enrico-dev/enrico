@@ -154,7 +154,6 @@ target_link_libraries(heat_xfer PUBLIC iapws)
 # =============================================================================
 
 set(SOURCES
-    src/driver.cpp
     src/coupled_driver.cpp
     src/comm_split.cpp
     src/surrogate_heat_driver.cpp
@@ -162,6 +161,7 @@ set(SOURCES
     src/openmc_driver.cpp
     src/cell_instance.cpp
     src/vtk_viz.cpp
+    src/timer.cpp
     src/heat_fluids_driver.cpp)
 
 if (USE_NEK5000)
