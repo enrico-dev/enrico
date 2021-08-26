@@ -18,7 +18,7 @@ Building ENRICO on Summit with OpenMC and nekRS requires these modules::
 
 We recommend running CMake with these variables defined::
 
-  $ CC=mpicc CXX=mpicxx FC=mpifort cmake -DNEK_DIST=nekrs -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_LIBDIR=lib -DOCCA_CXX="g++" -DOCCA_CXXFLAGS="-O2 -ftree-vectorize -funrool-loops -mcpu=native -mtune=native" ..
+  $ CC=mpicc CXX=mpicxx FC=mpifort cmake -DNEK_DIST=nekrs -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_LIBDIR=lib -DOCCA_CXX="g++" -DOCCA_CXXFLAGS="-O2 -ftree-vectorize -funroll-loops -mcpu=native -mtune=native" ..
 
 Then compile and set the environment variables, as described in ":ref:`userguide_quickstart`"::
 

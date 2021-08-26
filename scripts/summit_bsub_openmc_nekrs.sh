@@ -18,15 +18,25 @@ fi
 
 : ${OCCA_CACHE_DIR:="$PWD/.cache/occa"}
 NVME_HOME="/mnt/bb/$USER/"
-XL_HOME="/sw/summit/xl/16.1.1-3/xlC/16.1.1"
+
+# temporary load xl modules for OLCF_XLC_ROOT
+module load xl
+XL_HOME="$OLCF_XLC_ROOT"
+
+# reload previously used module
+module load gcc
 
 export NEKRS_HOME
 export OCCA_CACHE_DIR
 export NEKRS_HYPRE_NUM_THREADS=1
-export OGS_MPI_SUPPORT=1
-export OCCA_CXX="$XL_HOME/bin/xlc" 
-export OCCA_CXXFLAGS="-O3 -qarch=pwr9 -qhot -DUSE_OCCA_MEM_BYTE_ALIGN=64" 
-export OCCA_LDFLAGS="$XL_HOME/lib/libibmc++.a"
+export NEKRS_GPU_MPI=1
+
+# optimize for BW
+export PAMI_ENABLE_STRIPING=1
+export PAMI_IBV_ADAPTER_AFFINITY=1
+export PAMI_IBV_DEVICE_NAME="mlx5_0:1,mlx5_3:1"
+export PAMI_IBV_DEVICE_NAME_1="mlx5_3:1,mlx5_0:1"
+
 export OMPI_MCA_io=romio321
 export ROMIO_HINTS="$(pwd)/.romio_hint"
 if [ ! -f "$ROMIO_HINTS" ]; then
@@ -40,7 +50,7 @@ if [ ! -f "$ROMIO_HINTS" ]; then
 fi
 
 module unload darshan-runtime
-module load gcc cmake cuda hdf5 openblas
+module load gcc hdf5
 
 case=$1
 nodes=$2
@@ -84,7 +94,7 @@ while true; do
   case $yn in
     [Yy]* )
       echo $NEKRS_HOME
-      mpirun -pami_noib -np 1 $NEKRS_HOME/bin/nekrs --setup $case --build-only $ntasks --backend $backend;
+      OCCA_VERBOSE=1 mpirun -pami_noib -np 1 $NEKRS_HOME/bin/nekrs --setup $case --build-only $ntasks --backend $backend;
       if [ $? -ne 0 ]; then
         exit 1
       fi
@@ -96,7 +106,7 @@ done
 
 jsrun="jsrun -X 1 -n$nodes -r1 -a1 -c1 -g0 -b packed:1 -d packed cp -a $OCCA_CACHE_DIR/* $NVME_HOME; export OCCA_CACHE_DIR=$NVME_HOME; jsrun --smpiargs='-gpu' -X 1 -n$nn -r$gpu_per_node -a1 -c$cpu_per_rs -g1 -b rs -d packed $NEKRS_HOME/bin/enrico --setup $case --backend $backend --device-id 0" 
 
-cmd="bsub -nnodes $nodes -alloc_flags NVME -W $time -P $PROJ_ID -J nekRS_$case \"${jsrun}\""
+cmd="bsub -nnodes $nodes -alloc_flags NVME -W $time -P $PROJ_ID -J enrico_$case \"${jsrun}\""
 
 echo $cmd
 $cmd
