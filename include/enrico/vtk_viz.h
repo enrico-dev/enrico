@@ -21,7 +21,7 @@ public:
 
   //! Region of space to output data for. Valid options are none, solid
   //! (the fuel and cladding), fluid, and all of the above.
-  enum class VizRegionType { none = 0, solid = 1, fluid = 2, all = 3};
+  enum class VizRegionType { solid = 1, fluid = 2, all = 3 };
 
 public:
   //! Write the surrogate model to VTK
