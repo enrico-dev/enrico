@@ -8,6 +8,7 @@
 #include "xtensor/xview.hpp"
 
 #include "openmc/constants.h"
+#include "openmc/error.h"
 
 // some constant values
 const int WEDGE_TYPE_ = 13;
@@ -426,20 +427,24 @@ xtensor<double, 1> SurrogateVtkWriter::points_for_pin(double x, double y)
 
 xtensor<double, 1> SurrogateVtkWriter::points()
 {
-  if (VizRegionType::all == regions_out_) {
+  switch (regions_out_) {
+  case VizRegionType::all: {
     xtensor<double, 3> fuel_pnts = fuel_points();
     xtensor<double, 3> clad_pnts = clad_points();
     xtensor<double, 3> fluid_pnts = fluid_points();
     auto solid_pnts =
       xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts), xt::flatten(clad_pnts)));
     return xt::concatenate(xt::xtuple(solid_pnts, xt::flatten(fluid_pnts)));
-  } else if (VizRegionType::solid == regions_out_) {
+  }
+  case VizRegionType::solid: {
     xtensor<double, 3> fuel_pnts = fuel_points();
     xtensor<double, 3> clad_pnts = clad_points();
     return xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts), xt::flatten(clad_pnts)));
-  } else if (VizRegionType::fluid == regions_out_) {
+  }
+  case VizRegionType::fluid:
     return xt::flatten(fluid_points());
   }
+  UNREACHABLE();
 }
 
 xtensor<double, 3> SurrogateVtkWriter::fuel_points()
@@ -558,7 +563,8 @@ xtensor<double, 3> SurrogateVtkWriter::fluid_points()
 
 xtensor<int, 1> SurrogateVtkWriter::conn()
 {
-  if (VizRegionType::all == regions_out_) {
+  switch (regions_out_) {
+  case VizRegionType::all: {
     // get both sets of points
     xtensor<int, 4> f_conn = fuel_conn();
     xtensor<int, 4> c_conn = clad_conn();
@@ -578,8 +584,8 @@ xtensor<int, 1> SurrogateVtkWriter::conn()
     auto solid_conn =
       xt::concatenate(xt::xtuple(xt::flatten(f_conn), xt::flatten(c_conn)));
     return xt::concatenate(xt::xtuple(solid_conn, xt::flatten(fl_conn)));
-
-  } else if (VizRegionType::solid == regions_out_) {
+  }
+  case VizRegionType::solid: {
     // get both sets of points
     xtensor<int, 4> f_conn = fuel_conn();
     xtensor<int, 4> c_conn = clad_conn();
@@ -589,9 +595,11 @@ xtensor<int, 1> SurrogateVtkWriter::conn()
       fuel_points_per_plane_ * n_axial_points_;
 
     return xt::concatenate(xt::xtuple(xt::flatten(f_conn), xt::flatten(c_conn)));
-  } else if (VizRegionType::fluid == regions_out_) {
+  }
+  case VizRegionType::fluid:
     return xt::flatten(fluid_conn());
   }
+  UNREACHABLE();
 }
 
 xtensor<int, 1> SurrogateVtkWriter::conn_for_pin(size_t offset)
@@ -773,21 +781,25 @@ xtensor<int, 3> SurrogateVtkWriter::fluid_conn()
 
 xtensor<int, 1> SurrogateVtkWriter::types()
 {
-  if (VizRegionType::all == regions_out_) {
+  switch (regions_out_) {
+  case VizRegionType::all: {
     xt::xtensor<int, 1> ftypes = xt::flatten(fuel_types());
     xt::xtensor<int, 1> ctypes = xt::flatten(clad_types());
     xt::xtensor<int, 1> fltypes = xt::flatten(fluid_types());
 
     auto solid_types = xt::concatenate(xt::xtuple(ftypes, ctypes));
     return xt::concatenate(xt::xtuple(solid_types, fltypes));
-  } else if (VizRegionType::solid == regions_out_) {
+  }
+  case VizRegionType::solid: {
     xtensor<int, 3> ftypes = fuel_types();
     xtensor<int, 3> ctypes = clad_types();
 
     return xt::concatenate(xt::xtuple(xt::flatten(ftypes), xt::flatten(ctypes)));
-  } else if (VizRegionType::fluid == regions_out_) {
+  }
+  case VizRegionType::fluid:
     return xt::flatten(fluid_types());
   }
+  UNREACHABLE();
 }
 
 xtensor<int, 3> SurrogateVtkWriter::fuel_types()

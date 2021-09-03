@@ -203,6 +203,7 @@ void OpenmcDriver::solve_step()
 {
   timer_solve_step.start();
   err_chk(openmc_run());
+  err_chk(openmc_reset_timers());
   timer_solve_step.stop();
 }
 

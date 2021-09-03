@@ -104,8 +104,8 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   // Initialize the channels
   ChannelFactory channel_factory(pin_pitch_, clad_outer_radius_);
 
-  for (gsl::index row = 0; row < n_pins_y_ + 1; ++row) {
-    for (gsl::index col = 0; col < n_pins_x_ + 1; ++col) {
+  for (std::size_t row = 0; row < n_pins_y_ + 1; ++row) {
+    for (std::size_t col = 0; col < n_pins_x_ + 1; ++col) {
       std::size_t a = col / n_pins_x_;
       std::size_t b = row / n_pins_y_;
 
