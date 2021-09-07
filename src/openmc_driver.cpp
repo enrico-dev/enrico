@@ -18,6 +18,10 @@
 #include <string>
 #include <unordered_map>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace enrico {
 
 OpenmcDriver::OpenmcDriver(MPI_Comm comm)
@@ -53,6 +57,13 @@ OpenmcDriver::OpenmcDriver(MPI_Comm comm)
       }
     }
   }
+
+#ifdef _OPENMP
+#pragma omp parallel default(none) shared(num_threads)
+#pragma omp single
+  num_threads = omp_get_num_threads();
+#endif
+
   timer_driver_setup.stop();
 }
 

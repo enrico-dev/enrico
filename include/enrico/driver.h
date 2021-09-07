@@ -55,6 +55,9 @@ public:
   Timer timer_solve_step;    //!< For the solve_step() member function
   Timer timer_write_step;    //!< For the write_step() member function
   Timer timer_finalize_step; //!< For the finalize_step() member function
+
+  //! Number of OpenMP threads. Initialized if OpenMP is used.
+  int num_threads = -1;
 };
 
 } // namespace enrico

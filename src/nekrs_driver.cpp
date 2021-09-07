@@ -12,6 +12,10 @@
 #include <algorithm>
 #include <dlfcn.h>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace enrico {
 NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
   : HeatFluidsDriver(comm, node)
@@ -83,6 +87,13 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
 
     init_displs();
   }
+
+#ifdef _OPENMP
+#pragma omp parallel default(none) shared(num_threads)
+#pragma omp single
+  num_threads = omp_get_num_threads();
+#endif
+
   timer_driver_setup.stop();
 }
 

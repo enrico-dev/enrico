@@ -198,8 +198,14 @@ elseif (USE_NEKRS)
 endif ()
 
 if (SCALE_FOUND)
-  target_compile_definitions(libenrico PRIVATE USE_SHIFT)
-  list(APPEND LIBRARIES ${SCALE_LIBRARIES} ${SCALE_TPL_LIBRARIES})
+    target_compile_definitions(libenrico PRIVATE USE_SHIFT)
+    list(APPEND LIBRARIES ${SCALE_LIBRARIES} ${SCALE_TPL_LIBRARIES})
+endif ()
+
+# Discover OpenMP.  Needed for CoupledDriver to discover number of threads
+find_package(OpenMP)
+if (OPENMP_CXX_FOUND)
+    list(APPEND LIBRARIES OpenMP::OpenMP_CXX)
 endif ()
 
 target_link_libraries(libenrico PUBLIC ${LIBRARIES})

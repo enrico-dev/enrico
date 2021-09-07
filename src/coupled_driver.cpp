@@ -35,6 +35,10 @@
 #include <unistd.h>
 #endif
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace enrico {
 
 CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
@@ -228,6 +232,15 @@ void CoupledDriver::execute()
       comm_.message(msg);
 
       if (neutronics.active()) {
+#ifdef _OPENMP
+        omp_set_num_threads(neutronics.num_threads);
+#pragma omp parallel default(none) shared(neutronics)
+#pragma omp single
+        {
+          std::string msg = "OpenMP threads: " + std::to_string(omp_get_num_threads());
+          neutronics.comm_.message(msg);
+        }
+#endif
         neutronics.init_step();
         neutronics.solve_step();
         neutronics.write_step(i_timestep_, i_picard_);
@@ -242,6 +255,15 @@ void CoupledDriver::execute()
       update_heat_source(i_timestep_ > 0 || i_picard_ > 0);
 
       if (heat.active()) {
+#ifdef _OPENMP
+        omp_set_num_threads(heat.num_threads);
+#pragma omp parallel default(none) shared(heat)
+#pragma omp single
+        {
+          std::string msg = "OpenMP threads: " + std::to_string(omp_get_num_threads());
+          heat.comm_.message(msg);
+        }
+#endif
         heat.init_step();
         heat.solve_step();
         heat.write_step(i_timestep_, i_picard_);
