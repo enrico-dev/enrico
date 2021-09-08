@@ -35,10 +35,6 @@
 #include <unistd.h>
 #endif
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 namespace enrico {
 
 CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)

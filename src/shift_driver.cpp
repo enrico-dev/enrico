@@ -9,10 +9,6 @@
 
 #include <unordered_map>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 namespace enrico {
 
 ShiftDriver::ShiftDriver(MPI_Comm comm, pugi::xml_node node)

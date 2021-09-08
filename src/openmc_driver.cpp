@@ -18,10 +18,6 @@
 #include <string>
 #include <unordered_map>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 namespace enrico {
 
 OpenmcDriver::OpenmcDriver(MPI_Comm comm)

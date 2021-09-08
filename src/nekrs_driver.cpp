@@ -12,10 +12,6 @@
 #include <algorithm>
 #include <dlfcn.h>
 
-#ifdef _OPENMP
-#include <omp.h>
-#endif
-
 namespace enrico {
 NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
   : HeatFluidsDriver(comm, node)
