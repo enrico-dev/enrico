@@ -11,6 +11,10 @@
 
 #include <vector>
 
+#ifdef _OPENMP
+#include <omp.h>
+#endif
+
 namespace enrico {
 
 //! Base class for driver that controls a physics solve
@@ -25,7 +29,13 @@ public:
     , timer_solve_step(comm_)
     , timer_write_step(comm_)
     , timer_finalize_step(comm_)
-  {}
+  {
+#ifdef _OPENMP
+#pragma omp parallel default(none) shared(num_threads)
+#pragma omp single
+    num_threads = omp_get_num_threads();
+#endif
+  }
 
   //! Performs the necessary initialization for this solver in one Picard iteration
   virtual void init_step() {}
@@ -55,6 +65,9 @@ public:
   Timer timer_solve_step;    //!< For the solve_step() member function
   Timer timer_write_step;    //!< For the write_step() member function
   Timer timer_finalize_step; //!< For the finalize_step() member function
+
+  //! Number of OpenMP threads
+  int num_threads;
 };
 
 } // namespace enrico

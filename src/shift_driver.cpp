@@ -53,6 +53,13 @@ ShiftDriver::ShiftDriver(MPI_Comm comm, pugi::xml_node node)
     num_cells_ = geometry_->num_cells();
   }
   MPI_Barrier(MPI_COMM_WORLD);
+
+#ifdef _OPENMP
+#pragma omp parallel default(none) shared(num_threads)
+#pragma omp single
+  num_threads = omp_get_num_threads();
+#endif
+
   timer_driver_setup.stop();
 }
 
