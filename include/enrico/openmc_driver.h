@@ -13,6 +13,7 @@
 #include <gsl/gsl>
 #include <mpi.h>
 
+#include <unordered_map>
 #include <vector>
 
 namespace enrico {
@@ -96,11 +97,16 @@ public:
   void finalize_step() final;
 
 private:
+  CellInstance& cell_instance(CellHandle cell);
+  const CellInstance& cell_instance(CellHandle cell) const;
+
   // Data members
-  openmc::Tally* tally_;                     //!< Fission energy deposition tally
-  openmc::CellInstanceFilter* filter_;       //!< Cell instance filter
-  std::map<CellHandle, CellInstance> cells_; //!< Array of cell instances
-  int n_fissionable_cells_;                  //!< Number of fissionable cells in model
+  openmc::Tally* tally_;               //!< Fission energy deposition tally
+  openmc::CellInstanceFilter* filter_; //!< Cell instance filter
+  std::vector<CellInstance> cells_;    //!< Array of cell instances
+  std::unordered_map<CellHandle, gsl::index>
+    cell_index_;            //!< Map handles to index in cells_
+  int n_fissionable_cells_; //!< Number of fissionable cells in model
 };
 
 } // namespace enrico
