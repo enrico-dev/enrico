@@ -74,8 +74,8 @@ def build_doxygen(app):
 
     # XML goes in Sphinx source dir, and HTML goes in Sphinx output dir
 
-    doxygen_xmldir = path.abspath(path.join(app.srcdir, 'doxygen', 'xml'))
-    doxygen_htmldir = path.abspath(path.join(app.outdir, 'doxygen', 'html'))
+    doxygen_xmldir = path.abspath(path.join(app.srcdir, 'devguide', 'doxygen', 'xml'))
+    doxygen_htmldir = path.abspath(path.join(app.outdir, 'devguide', 'doxygen', 'html'))
 
     # Doxygen won't create *nested* output dirs, so we do it ourselves.
 
