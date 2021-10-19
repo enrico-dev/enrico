@@ -1,11 +1,11 @@
-Methodology
-===========
+.. _methodology_comm_split:
 
-OpenMC and Nek5000 Coupling
----------------------------
+======================
+Communicator Splitting
+======================
 
-MPI Communicators
-~~~~~~~~~~~~~~~~~
+Constructing Split Comms
+~~~~~~~~~~~~~~~~~~~~~~~~
 
 The coupled Nek5000/OpenMC driver must account for the fact that the two single physics codes have
 different parallelization schemes:
@@ -29,7 +29,7 @@ represent MPI rank IDs; for our implementation, the actual numbering can be arbi
 
 .. _openmc-nek-comms:
 
-.. figure:: img/mpi_comm_scheme/openmc_nek_comms.png
+.. figure:: img/comm_schemes_openmc_nek.png
     :height: 350px
     :align: center
     :figclass: align-center
@@ -65,7 +65,7 @@ This allows ENRICO to gather local buffers of various sizes [#f2]_.
 
 .. _data_exchange_01:
 
-.. figure:: img/mpi_coupling_scheme/01.png
+.. figure:: img/coupling_scheme_01.png
     :height: 450px
     :align: center
     :figclass: align-center
