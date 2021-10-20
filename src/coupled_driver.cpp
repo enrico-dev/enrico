@@ -51,8 +51,19 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   , timer_update_heat_source(comm_)
   , timer_update_temperature(comm_)
 {
-  auto neut_node = node.child("neutronics");
-  auto heat_node = node.child("heat_fluids");
+  parse_xml_params(node);
+  init_comms(node);
+  init_mapping();
+  init_tallies();
+  init_volume();
+  init_fluid_mask();
+  init_temperature();
+  init_density();
+  init_heat_source();
+}
+
+void CoupledDriver::parse_xml_params(const pugi::xml_node& node)
+{
   auto coup_node = node.child("coupling");
 
   power_ = coup_node.child("power").text().as_double();
@@ -121,8 +132,14 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   Expects(max_timesteps_ >= 0);
   Expects(max_picard_iter_ >= 0);
   Expects(epsilon_ > 0);
+}
 
+void CoupledDriver::init_comms(const pugi::xml_node& node)
+{
   timer_init_comms.start();
+
+  auto neut_node = node.child("neutronics");
+  auto heat_node = node.child("heat_fluids");
 
   // Create communicators
   std::array<int, 2> nodes{neut_node.child("nodes").text().as_int(),
@@ -195,18 +212,6 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   timer_init_comms.stop();
 
   comm_report();
-
-  init_mapping();
-  init_tallies();
-  init_volume();
-
-  check_volumes();
-
-  init_fluid_mask();
-
-  init_temperature();
-  init_density();
-  init_heat_source();
 }
 
 void CoupledDriver::execute()
@@ -685,6 +690,8 @@ void CoupledDriver::init_volume()
     }
   }
   timer_init_volume.stop();
+
+  check_volumes();
 }
 
 void CoupledDriver::check_volumes()

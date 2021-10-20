@@ -121,23 +121,23 @@ public:
   //! Report cumulative times for CoupledDriver member functions
   void timer_report();
 
-  //! For the code that initialzes the subcommunicators, discovers subcomm ranks, etc.
-  //!
-  //! Unlike the other timers, this does not just time a single member function
-  Timer timer_init_comms;
-
-  Timer timer_init_mapping;      //!< For the init_mapping() member function
+  Timer timer_init_comms;         //!< For initialzing subcommunicators, etc.
+  Timer timer_init_mapping;       //!< For the init_mapping() member function
   Timer timer_init_tallies;       //!< For the init_tallies() member function
-  Timer timer_init_volume;       //!< For the init_volume() member function
+  Timer timer_init_volume;        //!< For the init_volume() member function
   Timer timer_init_fluid_mask;    //!< For the init_fluid_mask() member function
-  Timer timer_init_temperature;  //!< For the init_temperature() member function
-  Timer timer_init_density;     //!< For the init_density() member function
+  Timer timer_init_temperature;   //!< For the init_temperature() member function
+  Timer timer_init_density;       //!< For the init_density() member function
   Timer timer_init_heat_source;   //!< For the init_heat_source() member function
   Timer timer_update_density;     //!< For the update_density() member function
   Timer timer_update_heat_source; //!< For the update_heat_source() member function
   Timer timer_update_temperature; //!< For the update_temperature() member function
 
 private:
+  void parse_xml_params(const pugi::xml_node& node);
+
+  void init_comms(const pugi::xml_node& node);
+
   //! Create mappings between neutronics cell instances and heat/fluids elements
   void init_mapping();
 
@@ -167,7 +167,7 @@ private:
   //! this member function does not set any initial values.
   void init_heat_source();
 
-  //! Print report of communicator layout
+  //! Print report of communicator layout if high verbosity is set
   void comm_report();
 
   //! Special alpha value indicating use of Robbins-Monro relaxation
