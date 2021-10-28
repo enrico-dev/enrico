@@ -63,7 +63,7 @@ Option 2
 Option 2 is a more desirable implementation for many reasons.  It resembles a commonly-implemented optimization of global
 reduction, which involves a two-stage local and global reduction.  The local reduction (averaging over local cells
 on each T/H rank) increases the amount of computation that is done in parallel.  Furthermore, the local reduction reduces
-the message sizes in the final(accumulating local cells into global cells).  The pattern
+the message sizes in the final global reduction (accumulating local cells into global cells).  The pattern
 is shown :numref:`geom_conform_03`
 
 .. _geom_conform_03:
