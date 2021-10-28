@@ -13,8 +13,8 @@ A T/H element should be contained by only one neutronics cell.  On the other han
 are non-conformal, but it does report quantitative errors in volume mappings to help the user assess conformity.
 
 The full-fidelity T/H solvers (Nek5000 and NekRS) are domain-decomposed, and for maximum performance of the T/H solvers,
-ENRICO allows any domain decomposition.  On the other hand, the neutronics solvers (OpenMC and SHIFT) are not domain
-decomposed.  Hence, a neutronics cell can -- and often does -- span multiple T/H subdomains.  Accounting for this
+ENRICO allows any domain decomposition.  On the other hand, the neutronics solvers (OpenMC and Shift) are not domain
+decomposed.  Hence, a neutronics cell can --- and often does --- span multiple T/H subdomains.  Accounting for this
 is an important requirement of the cell-averaged solution transfer scheme.
 
 :numref:`geom_conform_01` depicts neutronics and T/H geometries that meet the above-mentioned requirements.
