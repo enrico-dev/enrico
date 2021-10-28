@@ -134,8 +134,10 @@ public:
   Timer timer_update_temperature; //!< For the update_temperature() member function
 
 private:
+  //! Parse coupled driver's runtime parameters from enrico.xml
   void parse_xml_params(const pugi::xml_node& node);
 
+  //! Create subcommunicators for single-physics drivers
   void init_comms(const pugi::xml_node& node);
 
   //! Create mappings between neutronics cell instances and heat/fluids elements
