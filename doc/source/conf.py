@@ -21,7 +21,7 @@ import re
 # -- Project information -----------------------------------------------------
 
 project = 'ENRICO'
-copyright = '2019, UChicago Argonne, LLC'
+copyright = '2019-2021, UChicago Argonne, LLC'
 author = 'ENRICO Development Team'
 
 # The full version, including alpha/beta/rc tags

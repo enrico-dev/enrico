@@ -3,7 +3,7 @@
 ENRICO is an application that automates the workflow for solving a coupled particle transport, heat transfer, and fluid dynamics problem. Individual-physics solvers for particle transport and thermal-fluids are chosen at runtime. Currently supported solvers include the [OpenMC](https://docs.openmc.org/en/stable/) and [Shift](https://www.casl.gov/sites/default/files/docs/CASL-U-2015-0170-000.pdf) Monte Carlo particle transport codes and the [Nek5000](https://nek5000.mcs.anl.gov/) and [nekRS](https://github.com/Nek5000/nekRS) computational fluid dynamics codes. A simple surrogate thermal-fluids solver is also available for testing purposes.
 
 [![License](https://img.shields.io/github/license/enrico-dev/enrico.svg)](http://enrico-docs.readthedocs.io/en/latest/license.html)
-[![Travis CI build status (Linux)](https://travis-ci.org/enrico-dev/enrico.svg?branch=master)](https://travis-ci.org/enrico-dev/enrico)
+[![GitHub Actions build status (Linux)](https://github.com/enrico-dev/enrico/workflows/CI/badge.svg)](https://github.com/enrico-dev/enrico/actions)
 
 ## Configuring
 
@@ -77,7 +77,7 @@ files for the physics applications; and the ENRICO-specific `enrico.xml` input f
 `enrico.xml` file.
 
 For the included short singlerod test case, you can run the simulations as follows. (These assume you
-have added `build/install` to your `PATH` as described above; if not, you must use the full path 
+have added `build/install` to your `PATH` as described above; if not, you must use the full path
 to `enrico`)
 
   * For OpenMC + Nek5000:
