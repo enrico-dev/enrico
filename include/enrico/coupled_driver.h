@@ -37,7 +37,7 @@ public:
   //! \param node XML node containing settings
   CoupledDriver(MPI_Comm comm, pugi::xml_node node);
 
-  ~CoupledDriver() {}
+  ~CoupledDriver() = default;
 
   //! Execute the coupled driver
   virtual void execute();
@@ -118,54 +118,58 @@ public:
   //! in the neutronics input file.
   Initial density_ic_{Initial::neutronics};
 
+  //! Report cumulative times for CoupledDriver member functions
   void timer_report();
 
-  //! For the code that initialzes the subcommunicators, discovers subcomm ranks, etc.
-  //!
-  //! Unlike the other timers, this does not just time a single member function
-  Timer timer_init_comms;
-
-  Timer timer_init_mappings;      //!< For the init_mappings() member function
+  Timer timer_init_comms;         //!< For initialzing subcommunicators, etc.
+  Timer timer_init_mapping;       //!< For the init_mapping() member function
   Timer timer_init_tallies;       //!< For the init_tallies() member function
-  Timer timer_init_volumes;       //!< For the init_volumes() member function
+  Timer timer_init_volume;        //!< For the init_volume() member function
   Timer timer_init_fluid_mask;    //!< For the init_fluid_mask() member function
-  Timer timer_init_temperatures;  //!< For the init_temperatures() member function
-  Timer timer_init_densities;     //!< For the init_densities() member function
+  Timer timer_init_temperature;   //!< For the init_temperature() member function
+  Timer timer_init_density;       //!< For the init_density() member function
   Timer timer_init_heat_source;   //!< For the init_heat_source() member function
   Timer timer_update_density;     //!< For the update_density() member function
   Timer timer_update_heat_source; //!< For the update_heat_source() member function
   Timer timer_update_temperature; //!< For the update_temperature() member function
 
 private:
-  //! Create bidirectional mappings from neutronics cell instances to/from TH elements
-  void init_mappings();
+  //! Parse coupled driver's runtime parameters from enrico.xml
+  void parse_xml_params(const pugi::xml_node& node);
+
+  //! Create subcommunicators for single-physics drivers
+  void init_comms(const pugi::xml_node& node);
+
+  //! Create mappings between neutronics cell instances and heat/fluids elements
+  void init_mapping();
 
   //! Initialize the Monte Carlo tallies for all cells
   void init_tallies();
 
   //! Calculate and store local cell volumes in each heat/fluids rank
-  void init_volumes();
+  void init_volume();
 
   //! Report how closely the neutron driver's volumes and the calculated local cell
-  //! volumes (from init_volumes()) match.  Raises no errors or warnings.
+  //! volumes (from init_volume()) match.  Raises no errors or warnings.
   void check_volumes();
 
-  //! Initialize fluid masks for local cells on each heat/fluids rank
+  //! Initialize fluid mask for local cells on each heat/fluids rank
   void init_fluid_mask();
 
   //! Initialize current and previous Picard temperature fields
-  void init_temperatures();
+  void init_temperature();
 
   //! Initialize current and previous Picard density fields
-  void init_densities();
+  void init_density();
 
-  //! Initialize current and previous Picard heat source fields. Note that
-  //! because the neutronics solver is assumed to run first, that no initial
-  //! condition is required for the heat source. So, unlike init_temperatures(),
-  //! this method does not set any initial values.
+  //! Initialize current and previous Picard heat source fields.
+  //!
+  //! Because the neutronics solver is assumed to run first, no initial
+  //! condition is required for the heat source. Thus, unlike init_temperature(),
+  //! this member function does not set any initial values.
   void init_heat_source();
 
-  //! Print report of communicator layout
+  //! Print report of communicator layout if high verbosity is set
   void comm_report();
 
   //! Special alpha value indicating use of Robbins-Monro relaxation
@@ -187,49 +191,44 @@ private:
   //! List of ranks in this->comm_ that are in the neutronics subcomm
   std::vector<int> neutronics_ranks_;
 
-  //! Current Picard iteration temperature for the local cells in each heat rank
-  xt::xtensor<double, 1> cell_temperatures_;
+  //! Local cell temperature at current Picard iteration. Set only on heat/fluids ranks.
+  xt::xtensor<double, 1> cell_temperature_;
 
-  //! Previous Picard iteration temperature for the local cells in each heat/fluids rank.
-  xt::xtensor<double, 1> cell_temperatures_prev_;
+  //! Local cell temperature at previous Picard iteration. Set only on heat/fluids ranks.
+  xt::xtensor<double, 1> cell_temperature_prev_;
 
-  //! Current Picard iteration density for the local cells in each heat/fluids rank
-  xt::xtensor<double, 1> cell_densities_;
+  //! Local cell density at current Picard iteration. Set only on heat/fluids ranks.
+  xt::xtensor<double, 1> cell_density_;
 
-  //! Previous Picard iteration density for the local cells in each heat/fluids rank
-  xt::xtensor<double, 1> cell_densities_prev_;
+  //! Local cell density at previous Picard iteration. Set only on heat/fluids ranks.
+  xt::xtensor<double, 1> cell_density_prev_;
 
-  //! Current Picard iteration heat source for the local cells in each heat/fluids rank
-  xt::xtensor<double, 1> cell_heat_;
+  //! Local cell heat source at current Picard iteration. Set only on heat/fluids ranks.
+  xt::xtensor<double, 1> cell_heat_source_;
 
-  //! Previous Picard iteration heat source for the local cells in each heat/fluids rank
-  xt::xtensor<double, 1> cell_heat_prev_;
+  //! Local cell heat source at previous Picard iteration. Set only on heat/fluids ranks.
+  xt::xtensor<double, 1> cell_heat_source_prev_;
 
   std::unique_ptr<NeutronicsDriver> neutronics_driver_;  //!< The neutronics driver
   std::unique_ptr<HeatFluidsDriver> heat_fluids_driver_; //!< The heat-fluids driver
 
-  //! States whether a local cell is in the fluid region. Set only on heat/fluids ranks.
-  //! Ordered the same way as cells_, cell_fluid_mask_, and cell_to_elems_
+  //! 1 if local cell is in fluid, 0 if in solid. Set only on heat/fluids ranks.
   std::vector<int> cell_fluid_mask_;
 
-  //! Maps heat/fluids element to global cell ID.  Set only on heat/fluids ranks.
-  std::vector<CellHandle> elem_to_cell_;
+  //! Maps heat/fluids element index to global cell handle.  Set only on heat/fluids ranks.
+  std::vector<CellHandle> elem_to_glob_cell_;
 
-  //! Lists the global cell IDs of all local cells in a the heat/fluids rank.
-  //! Set only on heat/fluids ranks.  Ordered the same way as cell_volumes_,
-  //! cells_fluid_mask_, and cell_to_elems_
-  std::vector<CellHandle> cells_;
+  //! Maps local cell index to global cell handle.  Set only on heat/fluid ranks.
+  std::vector<CellHandle> cell_to_glob_cell_;
 
-  //! Maps global cell handle to local elements.  Set only on heat/fluids ranks.
-  //! Ordered the same way as cells_, cell_volumes_, and cell_fluid_mask_
-  std::map<CellHandle, std::vector<int32_t>> cell_to_elems_;
+  //! Maps global cell handle to local element index.  Set only on heat/fluids ranks.
+  std::map<CellHandle, std::vector<int32_t>> glob_cell_to_elem_;
 
-  //! Volumes of local cells.  Set only on heat/fluids ranks. Ordered the same way
-  //! as cells_, cell_fluid_mask_, and cell_to_elems_
-  std::vector<double> cell_volumes_;
+  //! Local cell volumes.  Set only on heat/fluids ranks.
+  std::vector<double> cell_volume_;
 
-  //! Volumes of local elements.  Set only on heat/fluids ranks.
-  std::vector<double> elem_volumes_;
+  //! Local element volumes.  Set only on heat/fluids ranks.
+  std::vector<double> elem_volume_;
 
   // Norm to use for convergence checks
   Norm norm_{Norm::LINF};
