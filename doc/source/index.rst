@@ -23,6 +23,7 @@ Documentation
 
    userguide/index
    devguide/index
+   methodology/index
    license
 
 Acknowledgment
