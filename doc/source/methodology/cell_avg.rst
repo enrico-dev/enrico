@@ -30,8 +30,11 @@ is an important requirement of the cell-averaged solution transfer scheme.
     orange lines represent subdomains.  Note that the T/H geometry is domain decomposed and the neutronics geometry
     is not.
 
-Solution Transfer from Cells Spanning Multiple T/H Domains
-----------------------------------------------------------
+Communication Patterns for Solution Transfer
+--------------------------------------------
+
+Global and Local Cells
+~~~~~~~~~~~~~~~~~~~~~~
 
 When transferring cell-averaged and element-averaged field data, ENRICO must account for the general situataiton of one
 neutronics cell spanning arbitrarily many T/H subdomains.  For illustrative purposes, :numref:`geom_conform_02` depicts
@@ -79,6 +82,39 @@ is shown :numref:`geom_conform_03`
     neutronics rank (whose domain is represented by the blue circle).  In the real implementation, each T/H rank
     sends all its local cell data in a single message.  Finally, the neutronics rank averages the local
     cell data into its corresponding global cell (the green overlay).
+
+Temperature and Density Updates
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Updating the temperature and density involves sending data from the T/H communicator to the neutronics communicator.  The
+communication pattern is illustrated :numref:`temp_density_update`
+
+Step 1 (pink arrows)
+    Each T/H rank averages its local element data into its local cells.  This is done in parallel without
+    any MPI communication.
+
+Step 2 (orange arrow)
+    One T/H rank sends its local-cell field to the neutronics root.  This currently a blocking, point-to-point send/receive.
+
+Step 3 (purple arrows)
+    The neutronics root broadcasts the local-cell field to the other neutronics ranks.  This is also blocking.
+
+Step 4 (red arrows)
+    Each neutronics rank collects begins accumulating its local-cell fields into the global-cell fields.  This is done
+    in parallel without any MPI communication.
+
+Step 5
+    Repeat steps 2 through 4 for each remaining heat rank.
+
+.. _temp_density_update:
+
+.. figure:: img/comm_pattern_temp_density.png
+    :scale: 20%
+    :align: center
+    :figclass: align-center
+
+    Communication pattern for temperature and density updates
+
 
 
 
