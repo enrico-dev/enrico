@@ -298,23 +298,23 @@ public:
 private:
   //! Get temperature of local mesh elements
   //! \return Temperature of local mesh elements in [K]
-  std::vector<double> temperature_local() const override;
+  std::vector<double> temperature() const override;
 
   //! Get density of local mesh elements
   //! \return Density of local mesh elements in [g/cm^3]
-  std::vector<double> density_local() const override;
+  std::vector<double> density() const override;
 
   //! States whether each local region is in fluid
   //! \return For each local region, 1 if region is in fluid and 0 otherwise
-  std::vector<int> fluid_mask_local() const override;
+  std::vector<int> fluid_mask() const override;
 
   //! Get centroids of local mesh elements
   //! \return Centroids of local mesh elements
-  std::vector<Position> centroid_local() const override;
+  std::vector<Position> centroid() const override;
 
   //! Get volumes of local mesh elements
   //! \return Volumes of local mesh elements
-  std::vector<double> volume_local() const override;
+  std::vector<double> volume() const override;
 
   //! Create internal arrays used for heat equation solver
   void generate_arrays();

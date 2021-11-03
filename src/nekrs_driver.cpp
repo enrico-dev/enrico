@@ -80,8 +80,6 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
         mass_matrix_[e * n_gll_ + n] = vgeo[e * n_gll_ * n_vgeo + JWID * n_gll_ + n];
       }
     }
-
-    init_displs();
   }
 
 #ifdef _OPENMP
@@ -178,7 +176,7 @@ Position NekRSDriver::centroid_at(int32_t local_elem) const
   return c;
 }
 
-std::vector<Position> NekRSDriver::centroid_local() const
+std::vector<Position> NekRSDriver::centroid() const
 {
   std::vector<Position> c(n_local_elem());
   for (int32_t i = 0; i < n_local_elem(); ++i) {
@@ -197,7 +195,7 @@ double NekRSDriver::volume_at(int32_t local_elem) const
   return v;
 }
 
-std::vector<double> NekRSDriver::volume_local() const
+std::vector<double> NekRSDriver::volume() const
 {
   std::vector<double> v(n_local_elem());
   for (int32_t i = 0; i < n_local_elem(); ++i) {
@@ -220,7 +218,7 @@ double NekRSDriver::temperature_at(int32_t local_elem) const
   return sum0 / sum1;
 }
 
-std::vector<double> NekRSDriver::temperature_local() const
+std::vector<double> NekRSDriver::temperature() const
 {
   std::vector<double> t(n_local_elem());
   for (int32_t i = 0; i < n_local_elem(); ++i) {
@@ -230,7 +228,7 @@ std::vector<double> NekRSDriver::temperature_local() const
   return t;
 }
 
-std::vector<double> NekRSDriver::density_local() const
+std::vector<double> NekRSDriver::density() const
 {
   nekrs::copyToNek(time_, tstep_);
   std::vector<double> local_densities(n_local_elem());
@@ -255,7 +253,7 @@ int NekRSDriver::in_fluid_at(int32_t local_elem) const
   return element_info_[local_elem] == 1 ? 0 : 1;
 }
 
-std::vector<int> NekRSDriver::fluid_mask_local() const
+std::vector<int> NekRSDriver::fluid_mask() const
 {
   std::vector<int> mask(n_local_elem());
   for (int32_t i = 0; i < n_local_elem(); ++i) {
