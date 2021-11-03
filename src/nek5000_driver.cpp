@@ -45,8 +45,6 @@ Nek5000Driver::Nek5000Driver(MPI_Comm comm, pugi::xml_node node)
           << ".  For coupling, ENRICO requires ldimt >= 2 and npscal < ldimt - 1";
       std::runtime_error(msg.str());
     }
-
-    init_displs();
   }
   MPI_Barrier(MPI_COMM_WORLD);
   timer_driver_setup.stop();
