@@ -30,8 +30,11 @@ is an important requirement of the cell-averaged solution transfer scheme.
     orange lines represent subdomains.  Note that the T/H geometry is domain decomposed and the neutronics geometry
     is not.
 
-Solution Transfer from Cells Spanning Multiple T/H Domains
-----------------------------------------------------------
+Communication Patterns for Solution Transfer
+--------------------------------------------
+
+Global and Local Cells
+~~~~~~~~~~~~~~~~~~~~~~
 
 When transferring cell-averaged and element-averaged field data, ENRICO must account for the general situataiton of one
 neutronics cell spanning arbitrarily many T/H subdomains.  For illustrative purposes, :numref:`geom_conform_02` depicts
@@ -79,6 +82,70 @@ is shown :numref:`geom_conform_03`
     neutronics rank (whose domain is represented by the blue circle).  In the real implementation, each T/H rank
     sends all its local cell data in a single message.  Finally, the neutronics rank averages the local
     cell data into its corresponding global cell (the green overlay).
+
+Temperature and Density Updates
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Updating the temperature and density involves sending data from the T/H communicator to the neutronics communicator.  The
+communication pattern is illustrated :numref:`temp_density_update`
+
+Step 1 (pink arrows)
+    Each T/H rank averages its local-element data into its local cells.  This is done in parallel without
+    any MPI communication.
+
+Step 2 (orange arrow)
+    One T/H rank sends its local-cell field to the neutronics root.  This currently a blocking, point-to-point send/receive.
+
+Step 3 (purple arrows)
+    The neutronics root broadcasts the local-cell field to the other neutronics ranks.  This is also blocking.
+
+Step 4 (red arrows)
+    Each neutronics rank begins accumulating the updated local-cell field into its global-cell field.  This is done
+    in parallel without any MPI communication.
+
+Step 5
+    Repeat steps 2 through 4 for each remaining heat rank.
+
+.. _temp_density_update:
+
+.. figure:: img/comm_pattern_temp_density.png
+    :scale: 20%
+    :align: center
+    :figclass: align-center
+
+    Communication pattern for temperature and density updates
+
+Heat Source Update
+~~~~~~~~~~~~~~~~~~
+
+Updating the heat source involves sending data from the neutronics communicator to the T/H communicator.  The communication
+pattern is illustrated in :numref:`heat_update`.
+
+Step 1 (pink arrow)
+    The neutronics root sets the local-cell field for one heat rank.
+
+Step 2 (orange arrow)
+    The neutronics root sends the local-cell field to the respective heat rank.  This is currently a blocking send/receive.
+
+Step 3 (red arrow)
+    The heat rank sets its local-element data from the updated local-cell field.  This requires no MPI communication.
+
+Step  4
+    Repeat steps 1 through 3 for each heat rank.
+
+The neutronics root begins step 1 for T/H rank :math:`n+1` immediately
+after it completes step 2 for T/H rank :math:`n`.  This means that steps 1 and 2 for T/H rank :math:`n+1` can begin
+before step 3 is completed for T/H ranks :math:`\le n`.  This increases the amount of parallel computation.
+
+.. _heat_update:
+
+.. figure:: img/comm_pattern_heat.png
+    :scale: 20%
+    :align: center
+    :figclass: align-center
+
+    Communication pattern for heat source update
+
 
 
 
