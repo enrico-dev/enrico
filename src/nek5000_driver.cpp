@@ -45,8 +45,6 @@ Nek5000Driver::Nek5000Driver(MPI_Comm comm, pugi::xml_node node)
           << ".  For coupling, ENRICO requires ldimt >= 2 and npscal < ldimt - 1";
       std::runtime_error(msg.str());
     }
-
-    init_displs();
   }
   MPI_Barrier(MPI_COMM_WORLD);
   timer_driver_setup.stop();
@@ -63,7 +61,7 @@ void Nek5000Driver::init_session_name()
   session_name.close();
 }
 
-std::vector<double> Nek5000Driver::temperature_local() const
+std::vector<double> Nek5000Driver::temperature() const
 {
   // Each Nek proc finds the temperatures of its local elements
   std::vector<double> local_elem_temperatures(nelt_);
@@ -74,7 +72,7 @@ std::vector<double> Nek5000Driver::temperature_local() const
   return local_elem_temperatures;
 }
 
-std::vector<int> Nek5000Driver::fluid_mask_local() const
+std::vector<int> Nek5000Driver::fluid_mask() const
 {
   std::vector<int> local_fluid_mask(nelt_);
   for (int32_t i = 0; i < nelt_; ++i) {
@@ -83,7 +81,7 @@ std::vector<int> Nek5000Driver::fluid_mask_local() const
   return local_fluid_mask;
 }
 
-std::vector<double> Nek5000Driver::density_local() const
+std::vector<double> Nek5000Driver::density() const
 {
   std::vector<double> local_densities(nelt_);
 
@@ -116,7 +114,7 @@ Position Nek5000Driver::centroid_at(int32_t local_elem) const
   return {x, y, z};
 }
 
-std::vector<Position> Nek5000Driver::centroid_local() const
+std::vector<Position> Nek5000Driver::centroid() const
 {
   int n_local = this->n_local_elem();
   std::vector<Position> local_element_centroids(n_local);
@@ -134,7 +132,7 @@ double Nek5000Driver::volume_at(int32_t local_elem) const
   return volume;
 }
 
-std::vector<double> Nek5000Driver::volume_local() const
+std::vector<double> Nek5000Driver::volume() const
 {
   int n_local = this->n_local_elem();
   std::vector<double> local_elem_volumes(n_local);

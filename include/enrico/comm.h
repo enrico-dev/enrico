@@ -151,37 +151,6 @@ public:
       sendbuf, sendcount, sendtype, recvbuf, recvcount, recvtype, root, comm);
   }
 
-  //! Gathers into specified locations from all processes onto a given root
-  //!
-  //! Currently, a wrapper for MPI_Gatherv.
-  //!
-  //! \param[in] sendbuf Starting address of send buffer
-  //! \param[in] sendcount Number of elements in send buffer
-  //! \param[in] sendtype Data type of send buffer elements
-  //! \param[out] recvbuf Address of receive buffer
-  //! \param[in] recvcounts Integer array (of length group size) containing the number of
-  //! elements
-  //!                       that are received from each process
-  //! \param[in] displs Integer array (of length group size). Entry i specifies the
-  //! displacement
-  //!                   relative to recvbuf at which to place the incoming data from
-  //!                   process i.
-  //! \param[in] recvtype Data type of recv buffer elements
-  //! \param[in] root Rank of receiving process
-  //! \return Error value
-  int Gatherv(const void* sendbuf,
-              int sendcount,
-              MPI_Datatype sendtype,
-              void* recvbuf,
-              const int recvcounts[],
-              const int displs[],
-              MPI_Datatype recvtype,
-              int root = 0) const
-  {
-    return MPI_Gatherv(
-      sendbuf, sendcount, sendtype, recvbuf, recvcounts, displs, recvtype, root, comm);
-  }
-
   //! Gathers data from all tasks and distribute the combined data to all tasks.
   //!
   //! Currently, a wrapper for MPI_Allgather

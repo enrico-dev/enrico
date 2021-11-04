@@ -179,10 +179,6 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
 
   // Initialize heat transfer solver
   generate_arrays();
-
-  if (active()) {
-    init_displs();
-  }
 };
 
 void SurrogateHeatDriver::generate_arrays()
@@ -230,7 +226,7 @@ std::size_t SurrogateHeatDriver::n_global_elem() const
   return n_solid + n_fluid;
 }
 
-std::vector<Position> SurrogateHeatDriver::centroid_local() const
+std::vector<Position> SurrogateHeatDriver::centroid() const
 {
   if (!this->has_coupling_data())
     return {};
@@ -293,7 +289,7 @@ std::vector<Position> SurrogateHeatDriver::centroid_local() const
   return centroids;
 }
 
-std::vector<double> SurrogateHeatDriver::temperature_local() const
+std::vector<double> SurrogateHeatDriver::temperature() const
 {
   std::vector<double> local_temperatures;
 
@@ -316,7 +312,7 @@ std::vector<double> SurrogateHeatDriver::temperature_local() const
   return local_temperatures;
 }
 
-std::vector<double> SurrogateHeatDriver::density_local() const
+std::vector<double> SurrogateHeatDriver::density() const
 {
   std::vector<double> local_densities;
 
@@ -338,7 +334,7 @@ int SurrogateHeatDriver::in_fluid_at(int32_t local_elem) const
   return local_elem >= n_solid_;
 }
 
-std::vector<int> SurrogateHeatDriver::fluid_mask_local() const
+std::vector<int> SurrogateHeatDriver::fluid_mask() const
 {
   std::vector<int> fluid_mask;
 
@@ -351,7 +347,7 @@ std::vector<int> SurrogateHeatDriver::fluid_mask_local() const
   return fluid_mask;
 }
 
-std::vector<double> SurrogateHeatDriver::volume_local() const
+std::vector<double> SurrogateHeatDriver::volume() const
 {
   std::vector<double> volumes;
 

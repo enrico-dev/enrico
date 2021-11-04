@@ -30,11 +30,11 @@ public:
   int set_heat_source_at(int32_t local_elem, double heat) override;
 
 private:
-  std::vector<Position> centroid_local() const override;
-  std::vector<double> volume_local() const override;
-  std::vector<double> temperature_local() const override;
-  std::vector<double> density_local() const override;
-  std::vector<int> fluid_mask_local() const override;
+  std::vector<Position> centroid() const override;
+  std::vector<double> volume() const override;
+  std::vector<double> temperature() const override;
+  std::vector<double> density() const override;
+  std::vector<int> fluid_mask() const override;
 
   void open_lib_udf();
   void close_lib_udf();

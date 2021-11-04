@@ -418,7 +418,7 @@ void CoupledDriver::update_temperature(bool relax)
 
   // Step 2: On each heat, compute cell-avged T
   if (heat.active()) {
-    auto elem_temperatures = heat.temperature_local();
+    auto elem_temperatures = heat.temperature();
     for (gsl::index i = 0; i < cell_to_glob_cell_.size(); ++i) {
       double T_avg = 0.0;
       double V_tot = 0.0;
@@ -494,7 +494,7 @@ void CoupledDriver::update_density(bool relax)
 
   // Step 2: On each heat, compute cell-avged rho
   if (heat.active()) {
-    auto elem_densities = heat.density_local();
+    auto elem_densities = heat.density();
 
     for (gsl::index i = 0; i < cell_to_glob_cell_.size(); ++i) {
       if (cell_fluid_mask_.at(i) == 1) {
@@ -582,7 +582,7 @@ void CoupledDriver::init_mapping()
     //   Hence, we broadcast the centroids to all neutronics ranks and then
     //   call neutronics.find on each neutronics rank.
     if (comm_.rank == heat_rank) {
-      centroids_send = heat.centroid_local();
+      centroids_send = heat.centroid();
     }
     this->comm_.send_and_recv(
       centroids_recv, neutronics_root_, centroids_send, heat_rank);
@@ -680,7 +680,7 @@ void CoupledDriver::init_volume()
   const auto& neutronics = this->get_neutronics_driver();
 
   if (heat.active()) {
-    elem_volume_ = heat.volume_local();
+    elem_volume_ = heat.volume();
     for (const auto& c : cell_to_glob_cell_) {
       double V = 0.0;
       for (const auto& e : glob_cell_to_elem_.at(c)) {
@@ -812,7 +812,7 @@ void CoupledDriver::init_fluid_mask()
   auto& heat = this->get_heat_driver();
 
   if (heat.active()) {
-    auto elem_fluid_mask = heat.fluid_mask_local();
+    auto elem_fluid_mask = heat.fluid_mask();
     for (const auto& kv : glob_cell_to_elem_) {
 
       auto& elems = kv.second;
