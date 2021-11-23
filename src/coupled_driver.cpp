@@ -3,6 +3,7 @@
 #include "enrico/comm_split.h"
 #include "enrico/driver.h"
 #include "enrico/error.h"
+#include "enrico/neutronics_driver.h"
 
 #ifdef USE_NEK5000
 #include "enrico/nek5000_driver.h"
@@ -172,6 +173,14 @@ void CoupledDriver::init_comms(const pugi::xml_node& node)
     throw std::runtime_error{"Invalid value for <neutronics><driver>"};
   }
 
+  // Instantiate the boron driver as needed
+  if (neut_node.child("boron")) {
+    boron_search = neut_node.child("boron").text().as_bool();
+    boron_driver_ = std::make_unique<BoronDriver>(comm);
+  } else {
+    boron_search = false;
+  }
+
   // Instantiate heat-fluids driver
   std::string s = heat_node.child_value("driver");
   if (s == "nek5000") {
@@ -219,6 +228,7 @@ void CoupledDriver::execute()
 
   auto& neutronics = get_neutronics_driver();
   auto& heat = get_heat_driver();
+  auto& boron = get_boron_driver();
 
   // loop over time steps
   for (i_timestep_ = 0; i_timestep_ < max_timesteps_; ++i_timestep_) {
@@ -247,6 +257,20 @@ void CoupledDriver::execute()
       }
 
       comm_.Barrier();
+
+      if (boron_search) {
+          update_k_effective();
+          //Boron criticality search
+          if (boron.active()) {
+              if (i_picard_ == 0) {
+                  k_eff_prev_ = keff_;
+                  boron.set_k_effective(k_eff_, k_eff_prev_);
+              }
+              boron_ppm_ = boron.solveppm(i_picard_)
+          }
+          update_boron();
+          comm_.Barrier();
+      }
 
       // Update heat source.
       // On the first iteration, there is no previous iterate of heat source,
@@ -341,6 +365,43 @@ bool CoupledDriver::is_converged()
   comm_.message(msg.str());
   return converged;
 }
+
+void CoupledDriver::update_k_effective()
+{
+  comm_.message("Updating k effective");
+  auto& neutronics = this->get_neutronics_driver();
+  auto& boron = this->get_boron_driver();
+
+  k_eff_prev_ = k_eff_;
+
+  if (neutronics.active()) {
+    k_eff_ = neutronics.get_k_effective();
+    Boron_ppm_ = neutronics.get_boron_ppm();
+    H2Odens_ = neutronics.get_H2O_dens();
+  }
+
+  if (boron.active()) {
+    boron.set_k_effective(k_eff_, k_eff_prev_);
+    boron.set_H2O_density(H2Odens_);
+    boron.set_ppm(Boron_ppm_);
+  }
+};
+
+void CoupledDriver::update_boron()
+{
+  comm_.message("Updating Boron");
+  auto& neutronics = this->get_neutronics_driver();
+  auto& boron = this->get_boron_driver();
+
+  if (boron.active()) {
+    Boron_ppm_prev_ = neutronics.get_boron_ppm();
+    boron.set_ppm_prev(Boron_ppm_prev_);
+    boron.print_boron();
+  }
+  if (neutronics.active()) {
+    neutronics.set_boron_ppm(Boron_ppm_, H2Odens_);
+  }
+};
 
 void CoupledDriver::update_heat_source(bool relax)
 {

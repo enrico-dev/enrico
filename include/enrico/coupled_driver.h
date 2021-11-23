@@ -4,6 +4,7 @@
 #ifndef ENRICO_COUPLED_DRIVER_H
 #define ENRICO_COUPLED_DRIVER_H
 
+#include "enrico/boron_driver.h"
 #include "enrico/driver.h"
 #include "enrico/heat_fluids_driver.h"
 #include "enrico/neutronics_driver.h"
@@ -42,6 +43,12 @@ public:
   //! Execute the coupled driver
   virtual void execute();
 
+  //! Update the k-effective for the boron driver
+  void update_k_effective();
+
+  //! Update the boron concentration for the neutronics solver
+  void update_boron();
+
   //! Update the heat source for the thermal-hydraulics solver
   //!
   //! \param relax Apply relaxation to heat source before updating heat solver
@@ -73,6 +80,10 @@ public:
   //! \return reference to driver
   HeatFluidsDriver& get_heat_driver() const { return *heat_fluids_driver_; }
 
+  //! Get reference to boron search driver
+  //! \return reference to driver
+  BoronDriver& get_boron_driver() const { return *boron_driver_; }
+
   //! Get timestep iteration index
   //! \return timestep iteration index
   int get_timestep_index() const { return i_timestep_; }
@@ -92,6 +103,18 @@ public:
   double power_; //!< Power in [W]
 
   int max_timesteps_; //!< Maximum number of time steps
+
+  double k_eff_; //!< k-effective
+
+  double k_eff_prev_;  //!< Previous k-effective
+
+  double boron_ppm_;  //!< Boron concentration
+
+  double boron_ppm_prev_; //!< Previous Boron concentration
+
+  double H2Odens_; //!< Density of water in Boronated water
+
+  bool boron_search{false};  //!< Flag to set if a Boron search is performed
 
   int max_picard_iter_; //!< Maximum number of Picard iterations
 
@@ -211,6 +234,7 @@ private:
 
   std::unique_ptr<NeutronicsDriver> neutronics_driver_;  //!< The neutronics driver
   std::unique_ptr<HeatFluidsDriver> heat_fluids_driver_; //!< The heat-fluids driver
+  std::unique_ptr<BoronDriver> boron_driver_;            //!< The boron search driver
 
   //! 1 if local cell is in fluid, 0 if in solid. Set only on heat/fluids ranks.
   std::vector<int> cell_fluid_mask_;

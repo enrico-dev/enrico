@@ -29,6 +29,20 @@ public:
   //! \return Heat source in each material as [W/cm3]
   virtual xt::xtensor<double, 1> heat_source(double power) const = 0;
 
+  //! Get the k-effective of a run
+  virtual double get_k_effective() const = 0;
+
+  //! Get the boron concentration
+  virtual double get_boron_ppm() const = 0;
+
+  //! Get the Boronated H2O density
+  virtual double get_H2O_dens() const = 0;
+
+  //! Set the Boron concentration in a cell
+  //! \param ppm Boric acid concentration in [ppm] !TODO: by wgt?
+  //! \param H2Odens water density in [g/cm^3]
+  virtual double set_boron_ppm(double ppm, double H2Odens) const = 0;
+
   //! Find cells corresponding to a vector of positions
   //! \param positions (x,y,z) coordinates to search for
   //! \return Handles to cells
