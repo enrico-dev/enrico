@@ -129,6 +129,14 @@ void CoupledDriver::parse_xml_params(const pugi::xml_node& node)
     }
   }
 
+  // Load the flag for including boron concentration searches
+  auto neut_node = node.child("neutronics");
+  if (neut_node.child("boron")) {
+    boron_search_ = neut_node.child("boron").text().as_bool();
+  } else {
+    boron_search_ = false;
+  }
+
   Expects(power_ > 0);
   Expects(max_timesteps_ >= 0);
   Expects(max_picard_iter_ >= 0);
@@ -175,10 +183,7 @@ void CoupledDriver::init_comms(const pugi::xml_node& node)
 
   // Instantiate the boron driver as needed
   if (neut_node.child("boron")) {
-    boron_search = neut_node.child("boron").text().as_bool();
-    boron_driver_ = std::make_unique<BoronDriver>(comm);
-  } else {
-    boron_search = false;
+    boron_driver_ = std::make_unique<BoronDriver>(neutronics_comm.comm);
   }
 
   // Instantiate heat-fluids driver
@@ -258,15 +263,15 @@ void CoupledDriver::execute()
 
       comm_.Barrier();
 
-      if (boron_search) {
+      if (boron_search_) {
           update_k_effective();
           //Boron criticality search
           if (boron.active()) {
               if (i_picard_ == 0) {
-                  k_eff_prev_ = keff_;
+                  k_eff_prev_ = k_eff_;
                   boron.set_k_effective(k_eff_, k_eff_prev_);
               }
-              boron_ppm_ = boron.solveppm(i_picard_)
+              boron_ppm_ = boron.solveppm(i_picard_);
           }
           update_boron();
           comm_.Barrier();
@@ -376,14 +381,14 @@ void CoupledDriver::update_k_effective()
 
   if (neutronics.active()) {
     k_eff_ = neutronics.get_k_effective();
-    Boron_ppm_ = neutronics.get_boron_ppm();
+    boron_ppm_ = neutronics.get_boron_ppm();
     H2Odens_ = neutronics.get_H2O_dens();
   }
 
   if (boron.active()) {
     boron.set_k_effective(k_eff_, k_eff_prev_);
     boron.set_H2O_density(H2Odens_);
-    boron.set_ppm(Boron_ppm_);
+    boron.set_ppm(boron_ppm_);
   }
 };
 
@@ -394,12 +399,12 @@ void CoupledDriver::update_boron()
   auto& boron = this->get_boron_driver();
 
   if (boron.active()) {
-    Boron_ppm_prev_ = neutronics.get_boron_ppm();
-    boron.set_ppm_prev(Boron_ppm_prev_);
+    boron_ppm_prev_ = neutronics.get_boron_ppm();
+    boron.set_ppm_prev(boron_ppm_prev_);
     boron.print_boron();
   }
   if (neutronics.active()) {
-    neutronics.set_boron_ppm(Boron_ppm_, H2Odens_);
+    neutronics.set_boron_ppm(boron_ppm_, H2Odens_);
   }
 };
 

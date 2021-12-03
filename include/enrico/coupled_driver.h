@@ -114,7 +114,7 @@ public:
 
   double H2Odens_; //!< Density of water in Boronated water
 
-  bool boron_search{false};  //!< Flag to set if a Boron search is performed
+  bool boron_search_{false};  //!< Flag to set if a Boron search is performed
 
   int max_picard_iter_; //!< Maximum number of Picard iterations
 

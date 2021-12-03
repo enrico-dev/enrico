@@ -48,7 +48,7 @@ public:
   //! Set the Boron concentration in a cell
   //! \param ppm Boric acid concentration in [ppm] !TODO: by wgt?
   //! \param H2Odens water density in [g/cm^3]
-  double set_boron_ppm(double ppm, double H2Odens) const override;
+  void set_boron_ppm(double ppm, double H2Odens) const override;
 
   //! Set the density of the material in a cell
   //! \param cell Handle to a cell

@@ -41,7 +41,7 @@ public:
   //! Set the Boron concentration in a cell
   //! \param ppm Boric acid concentration in [ppm] !TODO: by wgt?
   //! \param H2Odens water density in [g/cm^3]
-  virtual double set_boron_ppm(double ppm, double H2Odens) const = 0;
+  virtual void set_boron_ppm(double ppm, double H2Odens) const = 0;
 
   //! Find cells corresponding to a vector of positions
   //! \param positions (x,y,z) coordinates to search for

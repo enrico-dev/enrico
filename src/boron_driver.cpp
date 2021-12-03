@@ -34,6 +34,7 @@ double BoronDriver::solveppm(int step)
   double m;
   m = (ppm_ - ppm_prev_) / (k_eff_ - k_eff_prev);
   if (step == 0) {
+    // Todo where is this from?
     m = -15363.4365923065;
   }
   ppm_ = (1.000 - k_eff_prev) * m + ppm_prev_;
