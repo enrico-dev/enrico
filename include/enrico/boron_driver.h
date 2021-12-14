@@ -4,46 +4,56 @@
 #define BORON_DRIVER_H
 
 #include "enrico/driver.h"
+#include "enrico/heat_fluids_driver.h"
+#include "enrico/cell_handle.h"
+
+#include <pugixml.hpp>
 
 namespace enrico {
 class BoronDriver : public Driver {
 public:
-  explicit BoronDriver(MPI_Comm comm);
+  explicit BoronDriver(MPI_Comm comm, pugi::xml_node node);
 
   ~BoronDriver();
 
-  //! Gets the water density of the borated water
-  //! \return Water density in [g/cm^3]
-  void set_H2O_density(double H2Odens);
+  //! Sets the internal list of cell handles to fluid-bearing cells
+  //! \param fluid_cell_handles The handles to the fluid-bearing cells
+  void set_fluid_cells(std::vector<CellHandle>& fluid_cell_handles);
 
-  //! Sets the current and previous keff in the boron driver class
-  //! \param keff is the current k-effective after the Openmc run
-  //! \param keffprev is the previous k-effective
-  void set_k_effective(double keff, double keffprev);
-
-  //! Sets the current boron concentration in ppm in the boron driver Openmc class
-  //! \param ppm is the current boron concentration in [ppm] after the Openmc run
-  void set_ppm(double ppm);
-
-  //! Sets the previous boron concentration in ppm in the boron driver Openmc class
-  //! \param ppm is the previous boron concentration in [ppm] in the previous Openmc run
-  void set_ppm_prev(double ppmprev);
-
-  //! Prints the current boron concentration in [ppm] and the current water density in
-  //! [g/cm^3]
+  //! Prints the status of boron convergence
   void print_boron();
 
   //! Estimates the boron concentration in ppm to find criticality condition
-  //! \param step is used to determine if an initial slope is needed
+  //! \param first_pass If this is the first iteration or not
+  //! \param k_eff The latest estimate of k-eff
+  //! \param k_eff_prev The previous estimate of k-eff
   //! \return Boron concentration in [ppm]
-  double solveppm(int step);
+  double solve_ppm(bool first_pass, double k_eff, double k_eff_prev);
+
+  //! Check convergence of the boron concentration
+  //! for the current Picard iteration.
+  //! \param k_eff The latest estimate of k-eff
+  //! \param k_eff_prev The previous estimate of k-eff
+  bool is_converged(double k_eff, double k_eff_prev);
+
+  //! The handles to the fluid cells
+  std::vector<CellHandle> fluid_cell_handles_;
+
+  // Isotopic abundance of B10 in Boron
+  // The default is the natural abundance from Meija J, Coplen T B, et al,
+  // "Isotopic compositions of the elements 2013(IUPAC Technical Report) ",
+  // Pure. Appl. Chem. 88 (3), pp.293 - 306(2013).
+  // This value is from the best available measurement column and is consistent
+  // with the data distriubted with OpenMC
+  double B10_iso_abund_ {0.1982};
+
+  // The current and previous values of the boron concentration
+  // This is stored as parts-per-million on a number density basis
+  double ppm_prev_{0.};
+  double ppm_{0.};
 
 private:
-  double k_eff_;
-  double k_eff_prev;
-  double ppm_;
-  double ppm_prev_;
-  double H2O_dens_;
+  double target_k_eff_{1.};
 };
 } // namespace enrico
 

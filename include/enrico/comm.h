@@ -14,7 +14,7 @@
 
 namespace enrico {
 
-//! Info and function wrappers for a specified MPI communictor.
+//! Info and function wrappers for a specified MPI communicator.
 class Comm {
 public:
   //! Default constructor

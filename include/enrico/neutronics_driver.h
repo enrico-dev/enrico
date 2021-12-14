@@ -15,6 +15,19 @@
 
 namespace enrico {
 
+//! Contains the mean and standard deviation of an uncertain double float
+struct UncertainDouble {
+  // Constructors
+  UncertainDouble() {}
+  UncertainDouble(double nom, double sd)
+    : mean{nom}
+    , std_dev{sd}
+  {}
+
+  double mean{}; //!< Mean value
+  double std_dev{}; //!< Standard deviation
+};
+
 //! Base class for driver that controls a neutronics solve
 class NeutronicsDriver : public Driver {
 public:
@@ -30,18 +43,17 @@ public:
   virtual xt::xtensor<double, 1> heat_source(double power) const = 0;
 
   //! Get the k-effective of a run
-  virtual double get_k_effective() const = 0;
+  virtual UncertainDouble get_k_effective() const = 0;
 
-  //! Get the boron concentration
-  virtual double get_boron_ppm() const = 0;
+  //! Get the boron concentration from the model
+  virtual double get_boron_ppm(std::vector<CellHandle>& fluid_cell_handles) const = 0;
 
-  //! Get the Boronated H2O density
-  virtual double get_H2O_dens() const = 0;
-
-  //! Set the Boron concentration in a cell
-  //! \param ppm Boric acid concentration in [ppm] !TODO: by wgt?
-  //! \param H2Odens water density in [g/cm^3]
-  virtual void set_boron_ppm(double ppm, double H2Odens) const = 0;
+  //! Set the Boron concentration in fluid-bearing cells
+  //! \param fluid_cell_handles The CellHandle objects that contain fluids
+  //! \param ppm Boric acid concentration in [ppm]
+  //! \param B10_iso_abund The B-10 enrichment in unitless atom-fractions
+  virtual void set_boron_ppm(std::vector<CellHandle>& fluid_cell_handles,
+                             double ppm, double B10_iso_abund) const = 0;
 
   //! Find cells corresponding to a vector of positions
   //! \param positions (x,y,z) coordinates to search for

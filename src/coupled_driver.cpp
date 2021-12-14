@@ -61,6 +61,7 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   init_temperature();
   init_density();
   init_heat_source();
+  init_boron();
 }
 
 void CoupledDriver::parse_xml_params(const pugi::xml_node& node)
@@ -183,7 +184,8 @@ void CoupledDriver::init_comms(const pugi::xml_node& node)
 
   // Instantiate the boron driver as needed
   if (neut_node.child("boron")) {
-    boron_driver_ = std::make_unique<BoronDriver>(neutronics_comm.comm);
+    boron_driver_ = std::make_unique<BoronDriver>(neutronics_comm.comm,
+                                                  neut_node);
   }
 
   // Instantiate heat-fluids driver
@@ -233,7 +235,6 @@ void CoupledDriver::execute()
 
   auto& neutronics = get_neutronics_driver();
   auto& heat = get_heat_driver();
-  auto& boron = get_boron_driver();
 
   // loop over time steps
   for (i_timestep_ = 0; i_timestep_ < max_timesteps_; ++i_timestep_) {
@@ -263,19 +264,8 @@ void CoupledDriver::execute()
 
       comm_.Barrier();
 
-      if (boron_search_) {
-          update_k_effective();
-          //Boron criticality search
-          if (boron.active()) {
-              if (i_picard_ == 0) {
-                  k_eff_prev_ = k_eff_;
-                  boron.set_k_effective(k_eff_, k_eff_prev_);
-              }
-              boron_ppm_ = boron.solveppm(i_picard_);
-          }
-          update_boron();
-          comm_.Barrier();
-      }
+      // Get the k-eff values from the neutronics solver
+      update_k_effective();
 
       // Update heat source.
       // On the first iteration, there is no previous iterate of heat source,
@@ -306,6 +296,16 @@ void CoupledDriver::execute()
       // so we always apply underrelaxation here.
       update_temperature(true);
       update_density(true);
+
+      // Update the boron search information if the user requested it and
+      // if this is the first time step.
+      // Since time steps are short-term transients, the boron will not be
+      // able to be maintained critical by the operators, and therefore the
+      // reactor will not be maintained critical with boron after the initial
+      // timestep
+      if (boron_search_ && i_timestep_ == 0) {
+        update_boron();
+      }
 
       timer_report();
 
@@ -354,6 +354,8 @@ double CoupledDriver::temperature_norm(Norm norm)
 bool CoupledDriver::is_converged()
 {
   bool converged;
+  bool heat_converged;
+  bool boron_converged;
   double norm;
 
   // The heat root has the global temperature data
@@ -368,43 +370,48 @@ bool CoupledDriver::is_converged()
   std::stringstream msg;
   msg << "temperature norm: " << norm;
   comm_.message(msg.str());
+
+  auto& boron = get_boron_driver();
+  if (boron.active()) {
+    boron_converged = boron.is_converged(k_eff_.mean, k_eff_prev_.mean);
+  } else {
+    boron_converged = true;
+  }
+
+  converged = heat_converged && boron_converged;
+
   return converged;
 }
 
 void CoupledDriver::update_k_effective()
 {
-  comm_.message("Updating k effective");
   auto& neutronics = this->get_neutronics_driver();
-  auto& boron = this->get_boron_driver();
-
   k_eff_prev_ = k_eff_;
-
   if (neutronics.active()) {
     k_eff_ = neutronics.get_k_effective();
-    boron_ppm_ = neutronics.get_boron_ppm();
-    H2Odens_ = neutronics.get_H2O_dens();
-  }
-
-  if (boron.active()) {
-    boron.set_k_effective(k_eff_, k_eff_prev_);
-    boron.set_H2O_density(H2Odens_);
-    boron.set_ppm(boron_ppm_);
   }
 };
 
 void CoupledDriver::update_boron()
 {
-  comm_.message("Updating Boron");
-  auto& neutronics = this->get_neutronics_driver();
-  auto& boron = this->get_boron_driver();
+  comm_.message("Updating Boron concentration");
 
-  if (boron.active()) {
-    boron_ppm_prev_ = neutronics.get_boron_ppm();
-    boron.set_ppm_prev(boron_ppm_prev_);
+  const auto& neutronics = this->get_neutronics_driver();
+  auto& boron = this->get_boron_driver();
+  double next_ppm;
+
+  if (boron.active() && neutronics.active()) {
+
+    // Estimate the new boron concentration
+    next_ppm = boron.solve_ppm(
+      is_first_iteration(), k_eff_.mean, k_eff_prev_.mean);
+
+    // Announce what was done
     boron.print_boron();
-  }
-  if (neutronics.active()) {
-    neutronics.set_boron_ppm(boron_ppm_, H2Odens_);
+
+    // Update the neutronics model accordingly
+    neutronics.set_boron_ppm(boron.fluid_cell_handles_, next_ppm,
+                             boron.B10_iso_abund_);
   }
 };
 
@@ -892,6 +899,35 @@ void CoupledDriver::init_fluid_mask()
       cell_fluid_mask_.push_back(in_fluid);
     }
   }
+
+  // Now build a map of global cell handles that keep track of cell handles
+  // that are filled with fluid materials
+  auto& boron = this->get_boron_driver();
+  if (boron.active()) {
+    // On each heat rank, build the vector of cell handles for fluid cells
+    std::vector<CellHandle> local_fluid_cell_handles;
+    if (heat.active()) {
+      for (gsl::index i = 0; i < cell_to_glob_cell_.size(); ++i) {
+        if (cell_fluid_mask_.at(i) == 1) {
+          auto handle = cell_to_glob_cell_.at(i);
+          local_fluid_cell_handles.push_back(handle);
+        }
+      }
+    }
+
+    // Get the fluid cell handles from each heat rank to each boron rank
+    decltype(local_fluid_cell_handles) fluid_cell_handles;
+    auto boron_root = boron.comm_.is_root() ? comm_.rank : -1;
+    for (const auto& heat_rank : heat_ranks_) {
+      comm_.send_and_recv(
+        fluid_cell_handles, boron_root, local_fluid_cell_handles, heat_rank);
+      boron.comm_.broadcast(fluid_cell_handles);
+    }
+
+    // Initialize the boron driver's knowledge of the fluid cells
+    boron.set_fluid_cells(fluid_cell_handles);
+  }
+
   timer_init_fluid_mask.stop();
 }
 
@@ -906,6 +942,15 @@ void CoupledDriver::init_heat_source()
     cell_heat_source_prev_ = xt::empty<double>(sz);
   }
   timer_init_heat_source.stop();
+}
+
+void CoupledDriver::init_boron() {
+  comm_.message("Initializing boron concentration");
+
+  auto& boron = this->get_boron_driver();
+  const auto& neutronics = this->get_neutronics_driver();
+  boron.ppm_prev_ = neutronics.get_boron_ppm(boron.fluid_cell_handles_);
+  boron.ppm_ = boron.ppm_prev_;
 }
 
 void CoupledDriver::comm_report()

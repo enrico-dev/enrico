@@ -43,7 +43,7 @@ public:
   //! Execute the coupled driver
   virtual void execute();
 
-  //! Update the k-effective for the boron driver
+  //! Update the k-effective from the neutronics solver
   void update_k_effective();
 
   //! Update the boron concentration for the neutronics solver
@@ -104,15 +104,9 @@ public:
 
   int max_timesteps_; //!< Maximum number of time steps
 
-  double k_eff_; //!< k-effective
+  UncertainDouble k_eff_{0., 0.}; //!< k-effective
 
-  double k_eff_prev_;  //!< Previous k-effective
-
-  double boron_ppm_;  //!< Boron concentration
-
-  double boron_ppm_prev_; //!< Previous Boron concentration
-
-  double H2Odens_; //!< Density of water in Boronated water
+  UncertainDouble k_eff_prev_{0., 0.};  //!< Previous k-effective
 
   bool boron_search_{false};  //!< Flag to set if a Boron search is performed
 
@@ -171,6 +165,9 @@ private:
 
   //! Calculate and store local cell volumes in each heat/fluids rank
   void init_volume();
+
+  //! Initialize the input boron concentration from the model
+  void init_boron();
 
   //! Report how closely the neutron driver's volumes and the calculated local cell
   //! volumes (from init_volume()) match.  Raises no errors or warnings.

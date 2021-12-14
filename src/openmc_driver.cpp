@@ -154,46 +154,56 @@ std::vector<CellHandle> OpenmcDriver::find(const std::vector<Position>& position
   return handles;
 }
 
-void OpenmcDriver::set_boron_ppm(double ppm, double H2Odens) const
+void OpenmcDriver::set_boron_ppm(std::vector<CellHandle>& fluid_cell_handles,
+                                 double ppm, double B10_iso_abund) const
 {
-  for (auto& mat : openmc::model::materials) {
+  // Step through all the fluid-filled cells we received from the heat solver
+  // during initialization
+  // For each material, apply the B10 and B11 inventories according to the ppm
+  // NOTE: we assume the following when modifying the boron density:
+  //   1. Changing boron density does not also change H and O density as the
+  //      boron is loaded as H3BO3. This is acceptable as the variations in
+  //      H and O will be <= the order of the initial input typically used
+  //      (this is not true if using all sig figs of IAPWS, admittedly)
+  //      AND that the ppm-level concentrations of these inventories is
+  //      inconsequential to reactivity.
+  //   2. No explicit solubility treatment or limits are included. That is,
+  //      no checking of the maximum ppm is done, and the presence of boron is
+  //      assumed to not change the specific volume of the water (i.e.,
+  //      the presence of boron increases the mass in density = mass / volume
+  //      but not the volume term)
+  for (auto& cell : fluid_cell_handles) {
+    const auto& mat = this->cell_instance(cell).material();
     auto nucs = mat->nuclides();
     auto densities = mat->densities();
-    double ppmtodens = ppm * H2Odens / (1.0E+6 - ppm);
-    double calcdens;
 
-    double N;
-
-    // TODO: Replace 10.8... with a number obtained elsewhere
-    N = ppmtodens * openmc::N_AVOGADRO / 10.8118249681472;
-
-    // Is there boron in this material?
+    // Get the non-boron constituents
     std::vector<std::string> names;
     std::vector<double> new_densities;
+    double N_not_boron = 0.;
     for (int i = 0; i < nucs.size(); i++) {
       int nuc_index = nucs[i];
       auto& nuclide = openmc::data::nuclides[nuc_index];
-      double awr = openmc::data::nuclides[nuc_index]->awr_;
 
-      // Add nuclide name to list of names
-      names.push_back(nuclide->name_);
-
-      if (nuclide->Z_ == 5) {
-
-        // Calculate density of B10 or B11 corresponding to the given ppm
-        // TODO: replace with numbers obtained elsewhere
-        if (nuclide->A_ == 10) {
-          calcdens = N * 0.1982;
-        }
-        if (nuclide->A_ == 11) {
-          calcdens = N * 0.8018;
-        }
-        new_densities.push_back(calcdens);
-      } else {
+      if (nuclide->Z_ != 5) {
+        names.push_back(nuclide->name_);
         new_densities.push_back(densities[i]);
+        N_not_boron += densities[i];
       }
     }
 
+    // Now compute the boron number densities
+    auto N_boron = N_not_boron * ppm / (1.e6 + ppm);
+
+    // And add the boron isotopes to the material
+    if (N_boron > 0.) {
+      names.push_back("B10");
+      new_densities.push_back(N_boron * B10_iso_abund);
+      names.push_back("B11");
+      new_densities.push_back(N_boron * (1. - B10_iso_abund));
+    }
+
+    // Update the material inventory accordingly
     mat->set_densities(names, new_densities);
   }
 }
@@ -256,165 +266,39 @@ const CellInstance& OpenmcDriver::cell_instance(CellHandle cell) const
   return cells_.at(cell_index_.at(cell));
 }
 
-double OpenmcDriver::get_boron_ppm() const
+double OpenmcDriver::get_boron_ppm(std::vector<CellHandle>& fluid_cell_handles) const
 {
-  int j = 0;
-  int m = 0;
-  double ppm = 0;
-  double densB10 = 0;
-  double densB11 = 0;
-  double densB_avg = 0;
-  double densH1 = 0;
-  double densH2 = 0;
-  double densO16 = 0;
-  double densO17 = 0;
-  double densH2O_avg = 0;
-
-  for (auto& mat : openmc::model::materials) {
+  // This method gts the boron concentration from the initial conditions
+  // In doing so, this method simply iterates through all fluid-bearing cells
+  // and identifies the global ratio of boron atoms to non-boron atoms and
+  // converting this to a number-density based ppm.
+  // This method *could* take a single cell and extract the ppm from there, but
+  // this method is slightly more robust against user input errors and the
+  // addiitonal execution is only incurred once.
+  double N_boron {0.};
+  double N_not_boron {0.};
+  for (auto& cell : fluid_cell_handles) {
+    const auto& mat = this->cell_instance(cell).material();
     auto nucs = mat->nuclides();
     auto densities = mat->densities();
-    auto name = mat->name();
-    auto id = mat->id();
+    auto volume = this->cell_instance(cell).volume_;
 
-    // Is there boron in this material?
-    std::vector<std::string> names;
-
-    double B10, B11;
-    double H1, H2, O16, O17;
-
-    double test;
-
+    // Get the volume-weighted non-boron and boron amounts for this material
     for (int i = 0; i < nucs.size(); i++) {
       int nuc_index = nucs[i];
       auto& nuclide = openmc::data::nuclides[nuc_index];
-      double awr = openmc::data::nuclides[nuc_index]->awr_;
 
-      // Add nuclide name to list of names
-      names.push_back(nuclide->name_);
-
-      if (nuclide->Z_ == 5) {
-
-        // Calculate density of B10 or B11 corresponding to the given ppm
-        if (nuclide->A_ == 10) {
-
-          B10 = densities[i] * (awr)*openmc::MASS_NEUTRON / openmc::N_AVOGADRO;
-        }
-        if (nuclide->A_ == 11) {
-          B11 = densities[i] * (awr)*openmc::MASS_NEUTRON / openmc::N_AVOGADRO;
-        }
+      if (nuclide->Z_ != 5) {
+        N_not_boron += volume * densities[i];
+      } else {
+        N_boron += volume * densities[i];
       }
-      if (nuclide->Z_ == 1) {
-        if (nuclide->A_ == 1) {
-          H1 = densities[i] * (awr)*openmc::MASS_NEUTRON / openmc::N_AVOGADRO;
-        }
-        if (nuclide->A_ == 2) {
-          H2 = densities[i] * (awr)*openmc::MASS_NEUTRON / openmc::N_AVOGADRO;
-        }
-      }
-      if (nuclide->Z_ == 8) {
-        if (nuclide->A_ == 16) {
-          O16 = densities[i] * (awr)*openmc::MASS_NEUTRON / openmc::N_AVOGADRO;
-        }
-        if (nuclide->A_ == 17) {
-
-          O17 = densities[i] * (awr)*openmc::MASS_NEUTRON / openmc::N_AVOGADRO;
-        }
-      }
-    }
-    // assume elemental boron
-    if (O16 > 0 || O17 > 0) {
-      double tests = (H1 + H2) / (O16 + O17);
-      tests = abs((2.0 - tests) / 2.0) * 100;
-      if (tests < 5.0) {
-        m = m + 1;
-        if (B10 > 0 || B11 > 0) {
-          j = j + 1;
-        }
-        densH1 = densH1 + H1;
-        densH2 = densH2 + H2;
-        densO16 = densO16 + O16;
-        densO17 = densO17 + O17;
-        densB10 = densB10 + B10;
-        densB11 = densB11 + B11;
-      }
-      H1 = 0.0, H2 = 0, O16 = 0.0, O17 = 0.0;
-      B10 = 0;
-      B11 = 0;
-      tests = 100.0;
     }
   }
 
-  densB_avg = (densB10 + densB11) / j;
-  densH2O_avg = (densH1 + densH2 + densO16 + densO17) / m;
-  ppm = densB_avg / (densB_avg + densH2O_avg) * 1.0E+6;
-  if (j == 0) {
-    ppm = 0;
-  };
+  auto ppm = N_boron / (N_boron + N_not_boron) * 1e6;
 
   return ppm;
-}
-
-double OpenmcDriver::get_H2O_dens() const
-{
-  // TODO Replace iso specific data with data source that isnt hardcoded
-  int m = 0;
-  double densH1 = 0;
-  double densH2 = 0;
-  double densO16 = 0;
-  double densO17 = 0;
-  double densH2O_avg = 0;
-
-  for (auto& mat : openmc::model::materials) {
-    auto nucs = mat->nuclides();
-    auto densities = mat->densities();
-    auto name = mat->name();
-    auto id = mat->id();
-
-    double H1, H2, O16, O17;
-    double test;
-
-    for (int i = 0; i < nucs.size(); i++) {
-      int nuc_index = nucs[i];
-      auto& nuclide = openmc::data::nuclides[nuc_index];
-      double awr = openmc::data::nuclides[nuc_index]->awr_;
-
-      if (nuclide->Z_ == 1) {
-        if (nuclide->A_ == 1) {
-          H1 = densities[i] * (awr)*openmc::MASS_NEUTRON / openmc::N_AVOGADRO;
-        }
-        if (nuclide->A_ == 2) {
-          H2 = densities[i] * (awr)*openmc::MASS_NEUTRON / openmc::N_AVOGADRO;
-        }
-      }
-      if (nuclide->Z_ == 8) {
-        if (nuclide->A_ == 16) {
-          O16 = densities[i] * (awr)*openmc::MASS_NEUTRON / openmc::N_AVOGADRO;
-        }
-        if (nuclide->A_ == 17) {
-
-          O17 = densities[i] * (awr)*openmc::MASS_NEUTRON / openmc::N_AVOGADRO;
-        }
-      }
-    }
-    // assume elemental boron
-    if (O16 > 0 || O17 > 0) {
-      double tests = (H1 + H2) / (O16 + O17);
-      tests = abs((2.0 - tests) / 2.0) * 100;
-      if (tests < 5.0) {
-        m = m + 1;
-        densH1 = densH1 + H1;
-        densH2 = densH2 + H2;
-        densO16 = densO16 + O16;
-        densO17 = densO17 + O17;
-      }
-      H1 = 0.0, H2 = 0, O16 = 0.0, O17 = 0.0;
-      tests = 100.0;
-    }
-  }
-
-  densH2O_avg = (densH1 + densH2 + densO16 + densO17) / m;
-
-  return densH2O_avg;
 }
 
 void OpenmcDriver::init_step()
@@ -432,11 +316,12 @@ void OpenmcDriver::solve_step()
   timer_solve_step.stop();
 }
 
-double OpenmcDriver::get_k_effective() const
+UncertainDouble OpenmcDriver::get_k_effective() const
 {
-  double keff[2];
-  openmc_get_keff(keff);
-  return keff[0];
+  double arr_keff[2];
+  openmc_get_keff(arr_keff);
+  UncertainDouble keff{arr_keff[0], arr_keff[1]};
+  return keff;
 }
 
 void OpenmcDriver::write_step(int timestep, int iteration)
