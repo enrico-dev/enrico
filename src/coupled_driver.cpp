@@ -373,7 +373,7 @@ bool CoupledDriver::is_converged()
 
   auto& boron = get_boron_driver();
   if (boron.active()) {
-    boron_converged = boron.is_converged(k_eff_.mean, k_eff_prev_.mean);
+    boron_converged = boron.is_converged();
   } else {
     boron_converged = true;
   }

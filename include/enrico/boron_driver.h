@@ -32,9 +32,7 @@ public:
 
   //! Check convergence of the boron concentration
   //! for the current Picard iteration.
-  //! \param k_eff The latest estimate of k-eff
-  //! \param k_eff_prev The previous estimate of k-eff
-  bool is_converged(double k_eff, double k_eff_prev);
+  bool is_converged();
 
   //! The handles to the fluid cells
   std::vector<CellHandle> fluid_cell_handles_;
@@ -54,6 +52,8 @@ public:
 
 private:
   double target_k_eff_{1.};
+  //! Picard iteration convergence tolerance, defaults to 1e-3 if not set
+  double epsilon_{1e-3};
 };
 } // namespace enrico
 

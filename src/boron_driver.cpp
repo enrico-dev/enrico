@@ -17,12 +17,19 @@ BoronDriver::BoronDriver(MPI_Comm comm, pugi::xml_node node)
   }
   Expects(target_k_eff_ > 0.);
 
-  // Get the B_10 isotopic abundance to use, if available
+  // Get the B10 isotopic abundance to use, if available
   if (node.child("B10_enrichment")) {
     B10_iso_abund_ = node.child("B10_enrichment").text().as_double();
   }
   Expects(B10_iso_abund_ > 0.);
   Expects(B10_iso_abund_ <= 1.);
+
+  // Get the convergence epsilon to use when checking for convergence
+  if (node.child("boron_epsilon")) {
+    epsilon_ = nodechild("boron_epsilon").text().as_double();
+  }
+  Expects(epsilon_ > 0.);
+  Expects(epsilon_ < 1.);
 }
 
 double BoronDriver::solve_ppm(bool first_pass, double k_eff, double k_eff_prev)
@@ -62,9 +69,14 @@ double BoronDriver::solve_ppm(bool first_pass, double k_eff, double k_eff_prev)
   return ppm_;
 }
 
-bool BoronDriver::is_converged(double k_eff, double k_eff_prev) {
-  // TODO: fix, of course
-  return false;
+bool BoronDriver::is_converged() {
+  bool converged;
+  double norm;
+
+  norm = ppm_ > 0. ? (ppm_ - ppm_prev_) / ppm_: (ppm_ - ppm_prev_);
+  converged = norm < epsilon_;
+
+  return converged
 }
 
 void BoronDriver::set_fluid_cells(std::vector<CellHandle>& fluid_cell_handles) {
