@@ -4,8 +4,8 @@
 Communicator Splitting
 ======================
 
-Constructing Split Comms
-~~~~~~~~~~~~~~~~~~~~~~~~
+Constructing Split Communicators
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 The coupled Nek5000/OpenMC driver must account for the fact that the two single physics codes have
 different parallelization schemes:
@@ -91,5 +91,3 @@ ordering of the Gatherv.
                 Monte Carlo Code Performance*  ANS MC2015 -- Joint International Conference on
                 Mathematics and Computation (M&C), Supercomputing in Nuclear Applications (SNA),
                 and the Monte Carlo (MC) Method
-
-

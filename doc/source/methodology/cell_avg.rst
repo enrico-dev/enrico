@@ -36,7 +36,7 @@ Communication Patterns for Solution Transfer
 Global and Local Cells
 ~~~~~~~~~~~~~~~~~~~~~~
 
-When transferring cell-averaged and element-averaged field data, ENRICO must account for the general situataiton of one
+When transferring cell-averaged and element-averaged field data, ENRICO must account for the general situation of one
 neutronics cell spanning arbitrarily many T/H subdomains.  For illustrative purposes, :numref:`geom_conform_02` depicts
 one neutronics cell spanning two T/H subdomains.
 
@@ -57,7 +57,7 @@ Option 1
     cell-averaged data from the element-averaged data using a mapping of cells to elements.
 
 Option 2
-    First, each T/H rank averages its element-wise data over its local portion of each neutroincs cell. We denote a T/H
+    First, each T/H rank averages its element-wise data over its local portion of each neutronics cell. We denote a T/H
     rank's portion of a cell as a **local cell**, in contrast to a neutronic rank's **global cell**.  Averaging over
     local cells requires no message passing and can be done by each T/H rank independently.  Second, each T/H rank sends
     its local-cell-averaged data to a neutronics rank.  Finally, the neutronics rank computes the global-cell-averaged
@@ -76,7 +76,7 @@ is shown :numref:`geom_conform_03`
     :align: center
     :figclass: align-center
 
-    This depicts how element-wise T/H data is reduced into one global neutronics cell.  First, each T/H sudomain
+    This depicts how element-wise T/H data is reduced into one global neutronics cell.  First, each T/H subdomain
     (the two wedges containing green elements) separately averages its element-wise data into its local cell (the blue
     overlay).  This involves no communication.  Second, each T/H rank sends its local cell-averaged data to the
     neutronics rank (whose domain is represented by the blue circle).  In the real implementation, each T/H rank
@@ -145,7 +145,3 @@ before step 3 is completed for T/H ranks :math:`\le n`.  This increases the amou
     :figclass: align-center
 
     Communication pattern for heat source update
-
-
-
-
