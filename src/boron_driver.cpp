@@ -12,10 +12,14 @@ BoronDriver::BoronDriver(MPI_Comm comm, pugi::xml_node node)
   // Get the target k_eff to search for
   if (node.child("target_keff")) {
     target_k_eff_ = node.child("target_keff").text().as_double();
-  } else {
-    target_k_eff_ = 1.;
   }
   Expects(target_k_eff_ > 0.);
+
+  if (node.child("target_keff_tolerance")) {
+    target_k_eff_tol_ = node.child("target_keff_tolerance").text().as_double();
+  }
+  Expects(target_k_eff_tol_ > 0.);
+  Expects(target_k_eff_tol_ < 1.);
 
   // Get the B10 isotopic abundance to use, if available
   if (node.child("B10_enrichment")) {
@@ -26,10 +30,9 @@ BoronDriver::BoronDriver(MPI_Comm comm, pugi::xml_node node)
 
   // Get the convergence epsilon to use when checking for convergence
   if (node.child("boron_epsilon")) {
-    epsilon_ = nodechild("boron_epsilon").text().as_double();
+    epsilon_ = node.child("boron_epsilon").text().as_double();
   }
   Expects(epsilon_ > 0.);
-  Expects(epsilon_ < 1.);
 }
 
 double BoronDriver::solve_ppm(bool first_pass, double k_eff, double k_eff_prev)
@@ -69,14 +72,39 @@ double BoronDriver::solve_ppm(bool first_pass, double k_eff, double k_eff_prev)
   return ppm_;
 }
 
-bool BoronDriver::is_converged() {
-  bool converged;
-  double norm;
+bool BoronDriver::is_converged(double k_eff) {
+  bool ppm_converged;
+  bool k_eff_converged;
+  std::ios_base::fmtflags old_flags(std::cout.flags());
+  std::stringstream msg;
 
-  norm = ppm_ > 0. ? (ppm_ - ppm_prev_) / ppm_: (ppm_ - ppm_prev_);
-  converged = norm < epsilon_;
+  ppm_converged = B10_iso_abund_ * (ppm_ - ppm_prev_) < epsilon_;
 
-  return converged
+
+  // Check to make sure keff is in the range it is intended to be in.
+  k_eff_converged = abs(k_eff - target_k_eff_) < target_k_eff_tol_;
+
+  // TODO: Make neater and use the comm_.message for each line
+  msg << "  Boron-10 change: " << B10_iso_abund_ * (ppm_ - ppm_prev_);
+  comm_.message(msg.str());
+  msg.clear();
+  msg.str(std::string());
+  msg << "  Boron-10 change target: < " << epsilon_;
+  comm_.message(msg.str());
+  msg.clear();
+  msg.str(std::string());
+  msg << "  Current k-eff deviation: " << (k_eff - target_k_eff_);
+  comm_.message(msg.str());
+  msg.clear();
+  msg.str(std::string());
+  msg << "  Target k-eff range: < " << target_k_eff_tol_;
+  comm_.message(msg.str());
+  msg.clear();
+  msg.str(std::string());
+
+  std::cout.flags(old_flags);
+
+  return (ppm_converged == true) && (k_eff_converged == true);
 }
 
 void BoronDriver::set_fluid_cells(std::vector<CellHandle>& fluid_cell_handles) {

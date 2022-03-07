@@ -357,28 +357,38 @@ bool CoupledDriver::is_converged()
   bool heat_converged;
   bool boron_converged;
   double norm;
+  std::stringstream msg;
+
+  msg << "Convergence check for timestep " << i_timestep_ <<
+         " and picard iteration " << i_picard_ << ":";
+  comm_.message(msg.str());
+  msg.clear();
+  msg.str(std::string());
 
   // The heat root has the global temperature data
   norm = this->temperature_norm(norm_);
   if (comm_.rank == heat_root_) {
-    converged = norm < epsilon_;
+    heat_converged = norm < epsilon_;
   }
 
   comm_.broadcast(converged, heat_root_);
   comm_.broadcast(norm, heat_root_);
 
-  std::stringstream msg;
-  msg << "temperature norm: " << norm;
+  msg << "  Temperature norm: " << norm;
+  comm_.message(msg.str());
+  msg.clear();
+  msg.str(std::string());
+  msg << "  Temperature norm target: < " << epsilon_;
   comm_.message(msg.str());
 
   auto& boron = get_boron_driver();
   if (boron.active()) {
-    boron_converged = boron.is_converged();
+    boron_converged = boron.is_converged(k_eff_.mean);
   } else {
     boron_converged = true;
   }
 
-  converged = heat_converged && boron_converged;
+  converged = (heat_converged == true) && (boron_converged == true);
 
   return converged;
 }
