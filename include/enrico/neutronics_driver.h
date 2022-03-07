@@ -15,19 +15,6 @@
 
 namespace enrico {
 
-//! Contains the mean and standard deviation of an uncertain double float
-struct UncertainDouble {
-  // Constructors
-  UncertainDouble() {}
-  UncertainDouble(double nom, double sd)
-    : mean{nom}
-    , std_dev{sd}
-  {}
-
-  double mean{}; //!< Mean value
-  double std_dev{}; //!< Standard deviation
-};
-
 //! Base class for driver that controls a neutronics solve
 class NeutronicsDriver : public Driver {
 public:

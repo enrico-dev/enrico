@@ -310,7 +310,7 @@ void CoupledDriver::execute()
       timer_report();
 
       if (is_converged()) {
-        std::string msg = "converged at i_picard = " + std::to_string(i_picard_);
+        std::string msg = "Converged at i_picard = " + std::to_string(i_picard_);
         comm_.message(msg);
         break;
       }
@@ -374,16 +374,18 @@ bool CoupledDriver::is_converged()
   comm_.broadcast(converged, heat_root_);
   comm_.broadcast(norm, heat_root_);
 
-  msg << "  Temperature norm: " << norm;
-  comm_.message(msg.str());
-  msg.clear();
-  msg.str(std::string());
-  msg << "  Temperature norm target: < " << epsilon_;
+  msg << "  Temperature norm: " << std::fixed << std::setprecision(2) << norm;
+  if (heat_converged) {
+    msg << " < ";
+  } else {
+    msg << " > ";
+  }
+  msg << epsilon_ << " K";
   comm_.message(msg.str());
 
   auto& boron = get_boron_driver();
   if (boron.active()) {
-    boron_converged = boron.is_converged(k_eff_.mean);
+    boron_converged = boron.is_converged(k_eff_);
   } else {
     boron_converged = true;
   }
@@ -414,7 +416,7 @@ void CoupledDriver::update_boron()
 
     // Estimate the new boron concentration
     next_ppm = boron.solve_ppm(
-      is_first_iteration(), k_eff_.mean, k_eff_prev_.mean);
+      is_first_iteration(), k_eff_, k_eff_prev_);
 
     // Announce what was done
     boron.print_boron();

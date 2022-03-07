@@ -1,4 +1,5 @@
 #include "enrico/boron_driver.h"
+#include "enrico/const.h"
 
 #include <gsl/gsl>  // For Expects
 
@@ -20,6 +21,8 @@ BoronDriver::BoronDriver(MPI_Comm comm, pugi::xml_node node)
   }
   Expects(target_k_eff_tol_ > 0.);
   Expects(target_k_eff_tol_ < 1.);
+  target_k_eff_lo_ = target_k_eff_ - target_k_eff_tol_;
+  target_k_eff_hi_ = target_k_eff_ + target_k_eff_tol_;
 
   // Get the B10 isotopic abundance to use, if available
   if (node.child("B10_enrichment")) {
@@ -35,16 +38,17 @@ BoronDriver::BoronDriver(MPI_Comm comm, pugi::xml_node node)
   Expects(epsilon_ > 0.);
 }
 
-double BoronDriver::solve_ppm(bool first_pass, double k_eff, double k_eff_prev)
+double BoronDriver::solve_ppm(bool first_pass, UncertainDouble& k_eff,
+                              UncertainDouble& k_eff_prev)
 {
   // The estimation is performed using the Newton-Raphson method
   double del_ppm_del_k;
   double new_ppm;
   if (first_pass) {
     // Make a reasonable update so we can get two points to compute a derivative
-    if (k_eff > target_k_eff_) {
+    if (k_eff.mean > target_k_eff_) {
       new_ppm = ppm_prev_ + 1000.;
-    } else if (k_eff < target_k_eff_) {
+    } else if (k_eff.mean < target_k_eff_) {
       new_ppm = ppm_prev_ - 1000.;
     } else {
       // Then our most recent calculation was on target, so we keep it
@@ -55,8 +59,8 @@ double BoronDriver::solve_ppm(bool first_pass, double k_eff, double k_eff_prev)
     }
 
   } else {
-    del_ppm_del_k = (ppm_ - ppm_prev_) / (k_eff - k_eff_prev);
-    new_ppm = (target_k_eff_ - k_eff) * del_ppm_del_k + ppm_;
+    del_ppm_del_k = (ppm_ - ppm_prev_) / (k_eff.mean - k_eff_prev.mean);
+    new_ppm = (target_k_eff_ - k_eff.mean) * del_ppm_del_k + ppm_;
   }
 
   // With noisy results we could have a negative guess for the ppm; this is
@@ -72,35 +76,67 @@ double BoronDriver::solve_ppm(bool first_pass, double k_eff, double k_eff_prev)
   return ppm_;
 }
 
-bool BoronDriver::is_converged(double k_eff) {
+bool BoronDriver::is_converged(UncertainDouble& k_eff) {
   bool ppm_converged;
   bool k_eff_converged;
-  std::ios_base::fmtflags old_flags(std::cout.flags());
+  double k_eff_95lo;
+  double k_eff_95hi;
   std::stringstream msg;
+  std::string gt_lt_sign;
 
+  std::ios_base::fmtflags old_flags(std::cout.flags());
+
+  // Check the boron ppm convergence
   ppm_converged = B10_iso_abund_ * (ppm_ - ppm_prev_) < epsilon_;
 
+  // Check to make sure keff is in the expected range to a 95% CI
+  k_eff_95lo = k_eff.mean - CI_95 * k_eff.std_dev;
+  k_eff_95hi = k_eff.mean + CI_95 * k_eff.std_dev;
+  if ((target_k_eff_lo_ <= k_eff_95lo) && (k_eff_95hi <= target_k_eff_hi_)) {
+    k_eff_converged = true;
+  } else if ((k_eff.mean - target_k_eff_) < target_k_eff_tol_) {
+    // If the neutronics k-eff is has higher uncertainty than does the range
+    // allows, the above may not work. In that case, lets make sure k-eff is
+    // simply in the expected range. If this software were to control the
+    // number of histories then this block would have to estimate the new number
+    // of histories to simulate to achieve acceptable uncertainties.
+    k_eff_converged = true;
+  } else {
+    k_eff_converged = false;
+  }
 
-  // Check to make sure keff is in the range it is intended to be in.
-  k_eff_converged = abs(k_eff - target_k_eff_) < target_k_eff_tol_;
+  msg << "  Boron change: " << std::fixed << std::setprecision(2)
+      << B10_iso_abund_ * (ppm_ - ppm_prev_);
+  if (ppm_converged) {
+    msg << " < ";
+  } else {
+    msg << " > ";
+  }
+  msg << epsilon_ << " B10 ppm";
+  comm_.message(msg.str());
+  msg.clear();
+  msg.str(std::string());
 
-  // TODO: Make neater and use the comm_.message for each line
-  msg << "  Boron-10 change: " << B10_iso_abund_ * (ppm_ - ppm_prev_);
+  msg << "  k-eff deviation: " << std::fixed << std::setprecision(5)
+      << fabs(k_eff.mean - target_k_eff_);
+  if (k_eff_converged) {
+    msg << " < ";
+  } else {
+    msg << " > ";
+  }
+  msg << target_k_eff_tol_;
   comm_.message(msg.str());
   msg.clear();
   msg.str(std::string());
-  msg << "  Boron-10 change target: < " << epsilon_;
-  comm_.message(msg.str());
-  msg.clear();
-  msg.str(std::string());
-  msg << "  Current k-eff deviation: " << (k_eff - target_k_eff_);
-  comm_.message(msg.str());
-  msg.clear();
-  msg.str(std::string());
-  msg << "  Target k-eff range: < " << target_k_eff_tol_;
-  comm_.message(msg.str());
-  msg.clear();
-  msg.str(std::string());
+
+  if (k_eff.std_dev > target_k_eff_tol_) {
+    msg << "  k-eff uncertainty (+/-" << k_eff.std_dev << ") > "
+        << "target tolerance (" << target_k_eff_tol_ << ")";
+    comm_.message(msg.str());
+    msg.clear();
+    msg.str(std::string());
+    comm_.message("  Consider increasing neutronics solver histories");
+  }
 
   std::cout.flags(old_flags);
 

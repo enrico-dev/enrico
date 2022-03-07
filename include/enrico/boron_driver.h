@@ -28,14 +28,13 @@ public:
   //! \param k_eff The latest estimate of k-eff
   //! \param k_eff_prev The previous estimate of k-eff
   //! \return Boron concentration in [ppm]
-  // TODO: Handle UncertainDouble [should move from neutronics to driver.h]
-  double solve_ppm(bool first_pass, double k_eff, double k_eff_prev);
+  double solve_ppm(bool first_pass, UncertainDouble& k_eff,
+                   UncertainDouble& k_eff_prev);
 
   //! Check convergence of the boron concentration
   //! for the current Picard iteration.
   //! \param k_eff The latest estimate of k-eff
-  // TODO: Handle UncertainDouble [should move from neutronics to driver.h]
-  bool is_converged(double k_eff);
+  bool is_converged(UncertainDouble& k_eff);
 
   //! The handles to the fluid cells
   std::vector<CellHandle> fluid_cell_handles_;
@@ -55,9 +54,10 @@ public:
 
 private:
   double target_k_eff_{1.};
-  double target_k_eff_tol_{0.01};
-  //! Picard iteration convergence tolerance on boron-10 ppm
+  double target_k_eff_tol_{0.001};
   double epsilon_{1e-3};
+  double target_k_eff_lo_{1. - 0.001};
+  double target_k_eff_hi_{1. + 0.001};
 };
 } // namespace enrico
 

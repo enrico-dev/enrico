@@ -70,6 +70,19 @@ public:
   int num_threads;
 };
 
+//! Contains the mean and standard deviation of an uncertain double float
+struct UncertainDouble {
+  // Constructors
+  UncertainDouble() {}
+  UncertainDouble(double nom, double sd)
+    : mean{nom}
+    , std_dev{sd}
+  {}
+
+  double mean{}; //!< Mean value
+  double std_dev{}; //!< Standard deviation
+};
+
 } // namespace enrico
 
 #endif // ENRICO_DRIVERS_H
