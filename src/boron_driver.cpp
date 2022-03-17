@@ -10,6 +10,13 @@ BoronDriver::BoronDriver(MPI_Comm comm, pugi::xml_node node)
 {
   MPI_Barrier(MPI_COMM_WORLD);
 
+  if (node.child("boron")) {
+    bool boron_flag = node.child("boron").text().as_bool();
+    if (boron_flag) {
+      is_enabled_ = true;
+    }
+  }
+
   // Get the target k_eff to search for
   if (node.child("target_keff")) {
     target_k_eff_ = node.child("target_keff").text().as_double();

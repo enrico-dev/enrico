@@ -182,11 +182,9 @@ void CoupledDriver::init_comms(const pugi::xml_node& node)
     throw std::runtime_error{"Invalid value for <neutronics><driver>"};
   }
 
-  // Instantiate the boron driver as needed
-  if (neut_node.child("boron")) {
-    boron_driver_ = std::make_unique<BoronDriver>(neutronics_comm.comm,
-                                                  neut_node);
-  }
+  // Instantiate the boron driver.
+  boron_driver_ = std::make_unique<BoronDriver>(neutronics_comm.comm,
+                                                neut_node);
 
   // Instantiate heat-fluids driver
   std::string s = heat_node.child_value("driver");
@@ -384,7 +382,7 @@ bool CoupledDriver::is_converged()
   comm_.message(msg.str());
 
   auto& boron = get_boron_driver();
-  if (boron.active()) {
+  if (boron.active() && boron.is_enabled_) {
     boron_converged = boron.is_converged(k_eff_);
   } else {
     boron_converged = true;
@@ -412,7 +410,7 @@ void CoupledDriver::update_boron()
   auto& boron = this->get_boron_driver();
   double next_ppm;
 
-  if (boron.active() && neutronics.active()) {
+  if (boron.active() && boron.is_enabled_) {
 
     // Estimate the new boron concentration
     next_ppm = boron.solve_ppm(
@@ -915,7 +913,7 @@ void CoupledDriver::init_fluid_mask()
   // Now build a map of global cell handles that keep track of cell handles
   // that are filled with fluid materials
   auto& boron = this->get_boron_driver();
-  if (boron.active()) {
+  if (boron.active() && boron.is_enabled_) {
     // On each heat rank, build the vector of cell handles for fluid cells
     std::vector<CellHandle> local_fluid_cell_handles;
     if (heat.active()) {

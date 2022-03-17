@@ -52,6 +52,9 @@ public:
   double ppm_prev_{0.};
   double ppm_{0.};
 
+  // Denote if this driver is enabled or not
+  bool is_enabled_{false};
+
 private:
   double target_k_eff_{1.};
   double target_k_eff_tol_{0.001};
