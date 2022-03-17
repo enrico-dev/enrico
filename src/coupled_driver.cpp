@@ -61,7 +61,9 @@ CoupledDriver::CoupledDriver(MPI_Comm comm, pugi::xml_node node)
   init_temperature();
   init_density();
   init_heat_source();
-  init_boron();
+  if (boron_search_) {
+    init_boron();
+  }
 }
 
 void CoupledDriver::parse_xml_params(const pugi::xml_node& node)
@@ -132,8 +134,8 @@ void CoupledDriver::parse_xml_params(const pugi::xml_node& node)
 
   // Load the flag for including boron concentration searches
   auto neut_node = node.child("neutronics");
-  if (neut_node.child("boron")) {
-    boron_search_ = neut_node.child("boron").text().as_bool();
+  if (neut_node.child("boron_search")) {
+    boron_search_ = neut_node.child("boron_search").text().as_bool();
   } else {
     boron_search_ = false;
   }
@@ -381,8 +383,8 @@ bool CoupledDriver::is_converged()
   msg << epsilon_ << " K";
   comm_.message(msg.str());
 
-  auto& boron = get_boron_driver();
-  if (boron.active() && boron.is_enabled_) {
+  if (boron_search_) {
+    auto& boron = get_boron_driver();
     boron_converged = boron.is_converged(k_eff_);
   } else {
     boron_converged = true;
@@ -410,7 +412,7 @@ void CoupledDriver::update_boron()
   auto& boron = this->get_boron_driver();
   double next_ppm;
 
-  if (boron.active() && boron.is_enabled_) {
+  if (boron.active()) {
 
     // Estimate the new boron concentration
     next_ppm = boron.solve_ppm(
@@ -913,7 +915,7 @@ void CoupledDriver::init_fluid_mask()
   // Now build a map of global cell handles that keep track of cell handles
   // that are filled with fluid materials
   auto& boron = this->get_boron_driver();
-  if (boron.active() && boron.is_enabled_) {
+  if (boron_search_ && boron.active()) {
     // On each heat rank, build the vector of cell handles for fluid cells
     std::vector<CellHandle> local_fluid_cell_handles;
     if (heat.active()) {
@@ -955,12 +957,22 @@ void CoupledDriver::init_heat_source()
 }
 
 void CoupledDriver::init_boron() {
-  comm_.message("Initializing boron concentration");
-
   auto& boron = this->get_boron_driver();
-  const auto& neutronics = this->get_neutronics_driver();
-  boron.ppm_prev_ = neutronics.get_boron_ppm(boron.fluid_cell_handles_);
-  boron.ppm_ = boron.ppm_prev_;
+
+  if (boron.active()) {
+    comm_.message("Initializing boron concentration");
+    const auto& neutronics = this->get_neutronics_driver();
+    // If the user provided a boron initial guess then we need to set this
+    // guess. Otherwise, we get the guess. An initial guess is denoted with a
+    // value that is not negative.
+    if (boron.ppm_ >= 0.) {
+      neutronics.set_boron_ppm(boron.fluid_cell_handles_, boron.ppm_,
+                               boron.B10_iso_abund_);
+    } else {
+      boron.ppm_prev_ = neutronics.get_boron_ppm(boron.fluid_cell_handles_);
+      boron.ppm_ = boron.ppm_prev_;
+    }
+  }
 }
 
 void CoupledDriver::comm_report()

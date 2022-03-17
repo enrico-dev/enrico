@@ -10,11 +10,11 @@ BoronDriver::BoronDriver(MPI_Comm comm, pugi::xml_node node)
 {
   MPI_Barrier(MPI_COMM_WORLD);
 
-  if (node.child("boron")) {
-    bool boron_flag = node.child("boron").text().as_bool();
-    if (boron_flag) {
-      is_enabled_ = true;
-    }
+  // Get the initial boron concentration as an initial guess
+  if (node.child("initial_boron_ppm")) {
+    ppm_ = node.child("initial_boron_ppm").text().as_double();
+    Expects(ppm_ > 0.);
+    ppm_prev_ = ppm_;
   }
 
   // Get the target k_eff to search for
@@ -56,7 +56,11 @@ double BoronDriver::solve_ppm(bool first_pass, UncertainDouble& k_eff,
     if (k_eff.mean > target_k_eff_) {
       new_ppm = ppm_prev_ + 1000.;
     } else if (k_eff.mean < target_k_eff_) {
-      new_ppm = ppm_prev_ - 1000.;
+      if (ppm_prev_ > 1000.) {
+        new_ppm = ppm_prev_ - 1000.;
+      } else {
+        new_ppm = 0.;
+      }
     } else {
       // Then our most recent calculation was on target, so we keep it
       // This should generally never be achieved by a realistic CE MC case due
@@ -94,14 +98,14 @@ bool BoronDriver::is_converged(UncertainDouble& k_eff) {
   std::ios_base::fmtflags old_flags(std::cout.flags());
 
   // Check the boron ppm convergence
-  ppm_converged = B10_iso_abund_ * (ppm_ - ppm_prev_) < epsilon_;
+  ppm_converged = B10_iso_abund_ * fabs(ppm_ - ppm_prev_) < epsilon_;
 
   // Check to make sure keff is in the expected range to a 95% CI
   k_eff_95lo = k_eff.mean - CI_95 * k_eff.std_dev;
   k_eff_95hi = k_eff.mean + CI_95 * k_eff.std_dev;
   if ((target_k_eff_lo_ <= k_eff_95lo) && (k_eff_95hi <= target_k_eff_hi_)) {
     k_eff_converged = true;
-  } else if ((k_eff.mean - target_k_eff_) < target_k_eff_tol_) {
+  } else if (fabs(k_eff.mean - target_k_eff_) < target_k_eff_tol_) {
     // If the neutronics k-eff is has higher uncertainty than does the range
     // allows, the above may not work. In that case, lets make sure k-eff is
     // simply in the expected range. If this software were to control the
@@ -113,7 +117,7 @@ bool BoronDriver::is_converged(UncertainDouble& k_eff) {
   }
 
   msg << "  Boron change: " << std::fixed << std::setprecision(2)
-      << B10_iso_abund_ * (ppm_ - ppm_prev_);
+      << B10_iso_abund_ * fabs(ppm_ - ppm_prev_);
   if (ppm_converged) {
     msg << " < ";
   } else {

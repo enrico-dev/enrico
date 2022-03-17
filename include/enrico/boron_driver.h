@@ -49,8 +49,8 @@ public:
 
   // The current and previous values of the boron concentration
   // This is stored as parts-per-million on a number density basis
-  double ppm_prev_{0.};
-  double ppm_{0.};
+  double ppm_prev_{-1.};
+  double ppm_{-1.};
 
   // Denote if this driver is enabled or not
   bool is_enabled_{false};
@@ -58,7 +58,7 @@ public:
 private:
   double target_k_eff_{1.};
   double target_k_eff_tol_{0.001};
-  double epsilon_{1e-3};
+  double epsilon_{0.001};
   double target_k_eff_lo_{1. - 0.001};
   double target_k_eff_hi_{1. + 0.001};
 };

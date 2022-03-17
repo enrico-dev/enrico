@@ -1,6 +1,6 @@
 .. _userguide_input:
 
-ENRICO Runtime Settings 
+ENRICO Runtime Settings
 =======================
 
 Parameters and settings for each individual physics code are set normally in
@@ -95,12 +95,49 @@ Base element for neutron transport driver parameters
 The physics driver for solving particle transport. Valid options are "openmc",
 "shift", and "surrogate".
 
+``<boron_search>``
+------------------
+
+A boolean (“true” or “false”, default “false”). If true, then a Boron search to
+the ``target_keff`` value will be performed. If false, no Boron search will be
+performed. This Boron search yields the Boron parts per million (ppm) on a
+number density basis in the fluid-bearing regions of the model.
+
 Shift-specific Parameters
 -------------------------
 
 Under the ``<neutronics>`` element, these Shift-specific sub-elements are available:
 
 * ``<filename>``: Path to the Shift XML input file
+
+Boron search-specific Parameters
+--------------------------------
+
+Under the ``<neutronics>`` element, these Boron search-specific sub-elements are
+available:
+
+* ``<initial_boron_ppm>``: The first guess of the fluid's Boron concentration
+to use when performing the critical search. This parameter is provided in units
+of parts-per-million Boron on a number-density basis. If not provided, this
+defaults to the concentration present in the neutron transport driver's initial
+model.
+* ``<target_keff>``: The k-eigenvalue to search for by varing the boron ppm.
+This defaults to a value of 1.0.
+* ``<target_keff_tolerance>``: The tolerance on the k-eigenvalue, to a 95%
+confidence interval based on the stochastic variation of k-eff, that will be
+used to evaluate convergence of the boron search. This defaults to a value of
+1.0e-3.
+* ``<B10_enrichment>``: The enrichment of B-10 in the Boron in terms of an atom
+fraction. This defaults to a value of 0.1982.
+* ``<boron_epsilon>``: The target Boron search convergence criterion. If
+:math:`ppm_i` and :math:`pppm_{i+1}` are the set of total Boron number density
+concentrations (on a number density basis) at iterations :math:`i` and
+:math:`i+1`, convergence is reached if
+
+.. math::
+    \lvert ppm_{i+1} - ppm_i \rvert < \epsilon
+
+This defaults to a value of 1.0e-3.
 
 ``<coupling>``
 ~~~~~~~~~~~~~~
