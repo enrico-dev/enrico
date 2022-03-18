@@ -107,12 +107,25 @@ if (USE_NEKRS)
 endif ()
 
 # =============================================================================
+# Find and use OpenMC if already instealled
+# =============================================================================
+
+find_package(OpenMC QUIET)
+if (OpenMC_FOUND)
+    message(STATUS "Found OpenMC: ${OpenMC_DIR} (version ${OpenMC_VERSION})")
+else ()
+    message(STATUS "Did not find OpenMC, will use submodule instead")
+endif ()
+if (NOT OpenMC_FOUND)
+  add_subdirectory(vendor/openmc)
+endif ()
+
+# =============================================================================
 # Headers for all targets
 # =============================================================================
 include_directories(
         include/
         vendor/iapws/include
-        vendor/openmc/include
         vendor
         src/
         ${CMAKE_BINARY_DIR}
@@ -121,6 +134,12 @@ include_directories(
 if (SCALE_FOUND)
     include_directories(${SCALE_INCLUDE_DIRS})
     include_directories(${SCALE_TPL_INCLUDE_DIRS})
+endif ()
+
+if (OpenMC_FOUND)
+    include_directories(${OpenMC_INCLUDE_DIR})
+else ()
+    include_directories(vendor/openmc/include)
 endif ()
 
 # =============================================================================
@@ -133,7 +152,6 @@ elseif (USE_NEKRS)
     # TODO: An upstream fix to the NekRS CMakeLists should let us to omit this
     include_directories(vendor/nekRS/src/lib)
 endif ()
-add_subdirectory(vendor/openmc)
 
 # =============================================================================
 # IAPWS Correlations
