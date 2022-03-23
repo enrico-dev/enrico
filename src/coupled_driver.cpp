@@ -184,9 +184,10 @@ void CoupledDriver::init_comms(const pugi::xml_node& node)
     throw std::runtime_error{"Invalid value for <neutronics><driver>"};
   }
 
-  // Instantiate the boron driver.
-  boron_driver_ = std::make_unique<BoronDriver>(neutronics_comm.comm,
-                                                neut_node);
+  // Instantiate the boron driver using the same communicator as the neutronics
+  // communicator
+  auto boron_comm = neutronics_comm;
+  boron_driver_ = std::make_unique<BoronDriver>(boron_comm.comm, neut_node);
 
   // Instantiate heat-fluids driver
   std::string s = heat_node.child_value("driver");
@@ -216,6 +217,7 @@ void CoupledDriver::init_comms(const pugi::xml_node& node)
   // Discover the rank IDs (relative to comm_) that are in each single-physics subcomm
   neutronics_ranks_ = gather_subcomm_ranks(comm_, neutronics_comm);
   heat_ranks_ = gather_subcomm_ranks(comm_, heat_comm);
+  boron_ranks_ = gather_subcomm_ranks(comm_, boron_comm);
 
   // Send rank ID of neutronics subcomm root (relative to comm_) to all procs
   neutronics_root_ = this->get_neutronics_driver().comm_.is_root() ? comm_.rank : -1;
@@ -224,6 +226,10 @@ void CoupledDriver::init_comms(const pugi::xml_node& node)
   // Send rank ID of heat subcomm root (relative to comm_) to all procs
   heat_root_ = this->get_heat_driver().comm_.is_root() ? comm_.rank : -1;
   MPI_Allreduce(MPI_IN_PLACE, &heat_root_, 1, MPI_INT, MPI_MAX, comm_.comm);
+
+  // Send rank ID of boron subcomm root (relative to comm_) to all procs
+  boron_root_ = this->get_boron_driver().comm_.is_root() ? comm_.rank : -1;
+  MPI_Allreduce(MPI_IN_PLACE, &boron_root_, 1, MPI_INT, MPI_MAX, comm_.comm);
 
   timer_init_comms.stop();
 
@@ -298,11 +304,12 @@ void CoupledDriver::execute()
       update_density(true);
 
       // Update the boron search information if the user requested it and
-      // if this is the first time step.
-      // Since time steps are short-term transients, the boron will not be
+      // this is the first time step.
+      // The first time step is the only one with a boron search and update
+      // since time steps are short-term transients, the boron will not be
       // able to be maintained critical by the operators, and therefore the
       // reactor will not be maintained critical with boron after the initial
-      // timestep
+      // timestep.
       if (boron_search_ && i_timestep_ == 0) {
         update_boron();
       }
@@ -371,7 +378,7 @@ bool CoupledDriver::is_converged()
     heat_converged = norm < epsilon_;
   }
 
-  comm_.broadcast(converged, heat_root_);
+  comm_.broadcast(heat_converged, heat_root_);
   comm_.broadcast(norm, heat_root_);
 
   msg << "  Temperature norm: " << std::fixed << std::setprecision(2) << norm;
@@ -389,6 +396,7 @@ bool CoupledDriver::is_converged()
   } else {
     boron_converged = true;
   }
+  comm_.broadcast(boron_converged, heat_root_);
 
   converged = (heat_converged == true) && (boron_converged == true);
 
@@ -413,14 +421,17 @@ void CoupledDriver::update_boron()
   double next_ppm;
 
   if (boron.active()) {
-
     // Estimate the new boron concentration
     next_ppm = boron.solve_ppm(
       is_first_iteration(), k_eff_, k_eff_prev_);
 
     // Announce what was done
     boron.print_boron();
+  }
 
+  // The neutronics and boron comms are the same and therefore this could be
+  // merged with the above block, however, for clarity it is kept separate here
+  if (neutronics.active()) {
     // Update the neutronics model accordingly
     neutronics.set_boron_ppm(boron.fluid_cell_handles_, next_ppm,
                              boron.B10_iso_abund_);
@@ -904,20 +915,25 @@ void CoupledDriver::init_fluid_mask()
       auto in_fluid = elem_fluid_mask.at(elems.at(0));
       for (gsl::index i = 1; i < elems.size(); ++i) {
         if (in_fluid != elem_fluid_mask.at(elems.at(i))) {
-          throw std::runtime_error("ENRICO detected a neutronics cell contains both "
-                                   "fluid and solid T/H elements.");
+          throw std::runtime_error("ENRICO detected a neutronics cell that "
+                                   "contains both fluid and solid T/H elements.");
         }
       }
       cell_fluid_mask_.push_back(in_fluid);
     }
   }
 
-  // Now build a map of global cell handles that keep track of cell handles
-  // that are filled with fluid materials
-  auto& boron = this->get_boron_driver();
-  if (boron_search_ && boron.active()) {
-    // On each heat rank, build the vector of cell handles for fluid cells
+  // The Boron driver needs to know which cells are fluid cells. That info
+  // currently exists in the heat driver and its nodes as the handles to the
+  // cells and the masks for which are the fluid cells. Therefore, first
+  // convert the format on each heat node, send the pieces to the boron root
+  // where we then recompose the vector, and then broadcast to all boron nodes.
+  if (boron_search_) {
+    auto& boron = this->get_boron_driver();
     std::vector<CellHandle> local_fluid_cell_handles;
+
+    // Step 1: Get the fluid cells present on each rank
+    // On each heat rank, build the vector of cell handles for fluid cells
     if (heat.active()) {
       for (gsl::index i = 0; i < cell_to_glob_cell_.size(); ++i) {
         if (cell_fluid_mask_.at(i) == 1) {
@@ -927,17 +943,27 @@ void CoupledDriver::init_fluid_mask()
       }
     }
 
-    // Get the fluid cell handles from each heat rank to each boron rank
+    // Step 2: aggregate the data on the boron root node
     decltype(local_fluid_cell_handles) fluid_cell_handles;
-    auto boron_root = boron.comm_.is_root() ? comm_.rank : -1;
     for (const auto& heat_rank : heat_ranks_) {
-      comm_.send_and_recv(
-        fluid_cell_handles, boron_root, local_fluid_cell_handles, heat_rank);
-      boron.comm_.broadcast(fluid_cell_handles);
+      decltype(fluid_cell_handles) temp_vector;
+      temp_vector.clear();
+      comm_.send_and_recv(temp_vector, boron_root_,
+                          local_fluid_cell_handles, heat_rank);
+      if (boron.comm_.is_root()) {
+        // Now append the temporary vector to fluid_cell_handles
+        fluid_cell_handles.insert(fluid_cell_handles.end(),
+                                  temp_vector.begin(), temp_vector.end());
+      }
     }
 
+    // Step 3: Distribute to all boron nodes
+    boron.comm_.broadcast(fluid_cell_handles);
+
     // Initialize the boron driver's knowledge of the fluid cells
-    boron.set_fluid_cells(fluid_cell_handles);
+    if (boron.active()) {
+      boron.set_fluid_cells(fluid_cell_handles);
+    }
   }
 
   timer_init_fluid_mask.stop();
@@ -958,13 +984,18 @@ void CoupledDriver::init_heat_source()
 
 void CoupledDriver::init_boron() {
   auto& boron = this->get_boron_driver();
+  auto& neutronics = this->get_neutronics_driver();
 
-  if (boron.active()) {
-    comm_.message("Initializing boron concentration");
-    const auto& neutronics = this->get_neutronics_driver();
-    // If the user provided a boron initial guess then we need to set this
-    // guess. Otherwise, we get the guess. An initial guess is denoted with a
-    // value that is not negative.
+  comm_.message("Initializing boron concentration");
+
+  // If the user provided a boron initial guess then we need to set this
+  // guess. Otherwise, we get the guess. An initial guess is denoted with a
+  // value that is not negative.
+  // Note that the boron.ppm is initialized and present on all nodes so
+  // a boron.active check is not necessary.
+  // Further, note that the boron and neutronics comms are the same and
+  // therefore no additional broadcast of an updated boron.ppm* is necessary
+  if (neutronics.active()) {
     if (boron.ppm_ >= 0.) {
       neutronics.set_boron_ppm(boron.fluid_cell_handles_, boron.ppm_,
                                boron.B10_iso_abund_);

@@ -117,27 +117,38 @@ Under the ``<neutronics>`` element, these Boron search-specific sub-elements are
 available:
 
 * ``<initial_boron_ppm>``: The first guess of the fluid's Boron concentration
-to use when performing the critical search. This parameter is provided in units
-of parts-per-million Boron on a number-density basis. If not provided, this
-defaults to the concentration present in the neutron transport driver's initial
-model.
+  in units of ppm to use when performing the critical search. If not provided,
+  this defaults to the average Boron ppm across all fluid-bearing cells of the
+  initial the neutron transport model.
 * ``<target_keff>``: The k-eigenvalue to search for by varing the boron ppm.
-This defaults to a value of 1.0.
+  This defaults to a value of 1.0.
 * ``<target_keff_tolerance>``: The tolerance on the k-eigenvalue, to a 95%
-confidence interval based on the stochastic variation of k-eff, that will be
-used to evaluate convergence of the boron search. This defaults to a value of
-1.0e-3.
+  confidence interval based on the stochastic variation of k-eff, that will be
+  used to evaluate convergence of the boron search. This defaults to a value of
+  1.0e-3.
 * ``<B10_enrichment>``: The enrichment of B-10 in the Boron in terms of an atom
-fraction. This defaults to a value of 0.1982.
+  fraction. This defaults to a value of 0.1982.
 * ``<boron_epsilon>``: The target Boron search convergence criterion. If
-:math:`ppm_i` and :math:`pppm_{i+1}` are the set of total Boron number density
-concentrations (on a number density basis) at iterations :math:`i` and
-:math:`i+1`, convergence is reached if
+  :math:`ppm_i` and :math:`ppm_{i+1}` are the set of total Boron number
+  density concentrations (on a number density basis) at iterations :math:`i`
+  and :math:`i+1`, convergence is reached if both of the following conditions
+  are achieved:
 
 .. math::
-    \lvert ppm_{i+1} - ppm_i \rvert < \epsilon
+    \lvert ppm_{i+1} - ppm_i \rvert < \epsilon_{boron}
 
-This defaults to a value of 1.0e-3.
+.. math::
+    \lvert k_{eff,i+1} - k_{eff,i} \rvert < \epsilon_{keff}
+
+  This defaults to a value of 1.0e-3.
+
+.. note:: In ENRICO, the Boron parts-per-million (ppm) is defined as the ppm
+          Boron on a number-density basis.
+
+.. note:: ENRICO assumes that the reactivity effect of the H and O in boric acid
+          is small and on the order of the H and O number density variations in
+          water. Therefore, the ENRICO's Boron search only modifies the Boron
+          concentrations and not the H and O as the Boron ppm varies.
 
 ``<coupling>``
 ~~~~~~~~~~~~~~

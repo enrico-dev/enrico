@@ -116,7 +116,7 @@ bool BoronDriver::is_converged(UncertainDouble& k_eff) {
     k_eff_converged = false;
   }
 
-  msg << "  Boron change: " << std::fixed << std::setprecision(2)
+  msg << "  Boron change: " << std::fixed << std::setprecision(1)
       << B10_iso_abund_ * fabs(ppm_ - ppm_prev_);
   if (ppm_converged) {
     msg << " < ";
