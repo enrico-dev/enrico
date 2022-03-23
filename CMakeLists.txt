@@ -137,7 +137,7 @@ if (SCALE_FOUND)
 endif ()
 
 if (OpenMC_FOUND)
-    include_directories(${OpenMC_INCLUDE_DIR})
+    include_directories(${OpenMC_DIR}/../../../include)
 else ()
     include_directories(vendor/openmc/include)
 endif ()
