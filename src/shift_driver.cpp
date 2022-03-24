@@ -1,6 +1,6 @@
 #include "enrico/shift_driver.h"
 
-#include <gsl/gsl> // for Expects
+#include <gsl/gsl-lite.hpp> // for Expects
 
 #include "Omnibus/driver/Sequence_Shift.hh" // for Sequence_Shift
 #include "Shift/mc_tallies/Cell_Union_Tally.hh"

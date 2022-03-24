@@ -1,7 +1,7 @@
 #include "enrico/nek5000_driver.h"
 
 #include "enrico/error.h"
-#include "gsl/gsl"
+#include "gsl/gsl-lite.hpp"
 #include "iapws/iapws.h"
 #include "nek5000/core/nek_interface.h"
 #include "xtensor/xadapt.hpp"

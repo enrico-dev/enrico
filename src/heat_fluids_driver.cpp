@@ -1,6 +1,6 @@
 #include "enrico/heat_fluids_driver.h"
 
-#include <gsl/gsl>
+#include <gsl/gsl-lite.hpp>
 #include <pugixml.hpp>
 #include <xtensor/xadapt.hpp>
 

@@ -1,6 +1,6 @@
 #include "iapws/iapws.h"
 
-#include <gsl/gsl>
+#include <gsl/gsl-lite.hpp>
 
 #include <cmath>
 
