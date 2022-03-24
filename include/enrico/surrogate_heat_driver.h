@@ -6,7 +6,7 @@
 #include "enrico/geom.h"
 #include "enrico/heat_fluids_driver.h"
 
-#include <gsl/gsl>
+#include <gsl/gsl-lite.hpp>
 #include <mpi.h>
 #include <pugixml.hpp>
 #include <xtensor/xtensor.hpp>

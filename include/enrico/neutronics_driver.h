@@ -8,7 +8,7 @@
 #include "enrico/geom.h"
 #include "enrico/mpi_types.h"
 
-#include <gsl/gsl>
+#include <gsl/gsl-lite.hpp>
 #include <xtensor/xtensor.hpp>
 
 #include <vector>
