@@ -145,8 +145,8 @@ available:
 .. note:: In ENRICO, the Boron parts-per-million (ppm) is defined as the ppm
           Boron on a number-density basis.
 
-.. note:: ENRICO assumes that the reactivity effect of the H and O in boric acid
-          is small and on the order of the Hydrogen and Oxygen number density
+.. note:: ENRICO assumes that the reactivity effect of the Hydrogen and Oxygen
+          in boric acid is small and on the order of their number density
           variations in water. Therefore, the ENRICO's Boron search only
           modifies the Boron concentrations and not the Hydrogen and Oxygen as
           the Boron ppm varies.
