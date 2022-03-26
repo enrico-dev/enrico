@@ -390,7 +390,7 @@ bool CoupledDriver::is_converged()
   msg << epsilon_ << " K";
   comm_.message(msg.str());
 
-  if (boron_search_) {
+  if (boron_search_ && i_timestep_ == 0) {
     auto& boron = get_boron_driver();
     boron_converged = boron.is_converged(k_eff_);
   } else {
