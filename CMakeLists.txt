@@ -33,7 +33,6 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_INSTALL_RPATH
   "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}:${CMAKE_INSTALL_PREFIX}/lib")
 
-
 # =============================================================================
 # Nek Options
 # =============================================================================
@@ -107,7 +106,7 @@ if (USE_NEKRS)
 endif ()
 
 # =============================================================================
-# Find and use OpenMC if already instealled
+# Find and use OpenMC if already installed
 # =============================================================================
 
 find_package(OpenMC QUIET)
@@ -121,6 +120,12 @@ if (NOT OpenMC_FOUND)
 endif ()
 
 # =============================================================================
+# Find HDF5
+# =============================================================================
+
+find_package(HDF5 REQUIRED COMPONENTS HL C)
+
+# =============================================================================
 # Headers for all targets
 # =============================================================================
 include_directories(
@@ -129,7 +134,8 @@ include_directories(
         vendor
         src/
         ${CMAKE_BINARY_DIR}
-        ${CMAKE_BINARY_DIR}/include)
+        ${CMAKE_BINARY_DIR}/include
+        ${HDF5_INCLUDE_DIRS})
 
 if (SCALE_FOUND)
     include_directories(${SCALE_INCLUDE_DIRS})
