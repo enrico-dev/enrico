@@ -122,7 +122,6 @@ endif ()
 # =============================================================================
 # Find HDF5
 # =============================================================================
-
 find_package(HDF5 REQUIRED COMPONENTS HL C)
 
 # =============================================================================
@@ -205,11 +204,16 @@ add_library(libenrico
 set_target_properties(libenrico PROPERTIES OUTPUT_NAME enrico)
 set(LIBRARIES
     iapws
-    libopenmc
     xtensor
     heat_xfer
     pugixml
     gsl-lite)
+
+if (TARGET OpenMC::libopenmc)
+    list(APPEND LIBRARIES OpenMC::libopenmc)
+else ()
+    list(APPEND LIBRARIES libopenmc)
+endif ()
 
 target_compile_definitions(libenrico PRIVATE GSL_THROW_ON_CONTRACT_VIOLATION)
 
