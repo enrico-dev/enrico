@@ -19,3 +19,4 @@ doc/build/
 *.rej
 *.bk*
 .cache/
+.vscode/
