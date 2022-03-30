@@ -138,8 +138,7 @@ include_directories(
         vendor
         src/
         ${CMAKE_BINARY_DIR}
-        ${CMAKE_BINARY_DIR}/include
-        )
+        ${CMAKE_BINARY_DIR}/include)
 
 if (SCALE_FOUND)
     include_directories(${SCALE_INCLUDE_DIRS})
