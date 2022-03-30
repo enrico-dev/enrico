@@ -120,9 +120,14 @@ if (NOT OpenMC_FOUND)
 endif ()
 
 # =============================================================================
-# Find HDF5
+# set pugixml library as a variable
 # =============================================================================
-find_package(HDF5 REQUIRED COMPONENTS HL C)
+
+if (TARGET pugixml::pugixml)
+    set(LIBPUGIXML pugixml::pugixml)
+else ()
+    set(LIBPUGIXML pugixml)
+endif ()
 
 # =============================================================================
 # Headers for all targets
@@ -134,17 +139,11 @@ include_directories(
         src/
         ${CMAKE_BINARY_DIR}
         ${CMAKE_BINARY_DIR}/include
-        ${HDF5_INCLUDE_DIRS})
+        )
 
 if (SCALE_FOUND)
     include_directories(${SCALE_INCLUDE_DIRS})
     include_directories(${SCALE_TPL_INCLUDE_DIRS})
-endif ()
-
-if (OpenMC_FOUND)
-    include_directories(${OpenMC_DIR}/../../../include)
-else ()
-    include_directories(vendor/openmc/include)
 endif ()
 
 # =============================================================================
@@ -162,7 +161,7 @@ endif ()
 # IAPWS Correlations
 # =============================================================================
 add_library(iapws vendor/iapws/iapws.cpp)
-target_link_libraries(iapws PRIVATE gsl-lite)
+target_link_libraries(iapws PRIVATE gsl::gsl-lite-v1)
 target_compile_definitions(iapws PRIVATE GSL_THROW_ON_CONTRACT_VIOLATION)
 
 # =============================================================================
@@ -206,8 +205,8 @@ set(LIBRARIES
     iapws
     xtensor
     heat_xfer
-    pugixml
-    gsl-lite)
+    ${LIBPUGIXML}
+    gsl::gsl-lite-v1)
 
 if (TARGET OpenMC::libopenmc)
     list(APPEND LIBRARIES OpenMC::libopenmc)
@@ -282,7 +281,7 @@ target_include_directories(Catch INTERFACE vendor/catch/single_include/catch2)
 add_executable(unittests
   tests/unit/catch.cpp
   tests/unit/test_surrogate_th.cpp)
-target_link_libraries(unittests PUBLIC Catch pugixml libenrico)
+target_link_libraries(unittests PUBLIC Catch ${LIBPUGIXML} libenrico)
 set_target_properties(unittests PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
 
 #################################################################################
