@@ -13,7 +13,7 @@
 #include "xtensor/xadapt.hpp"
 #include "xtensor/xarray.hpp"
 #include "xtensor/xview.hpp"
-#include <gsl/gsl>
+#include <gsl/gsl-lite.hpp>
 
 #include <string>
 #include <unordered_map>

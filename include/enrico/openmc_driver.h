@@ -10,7 +10,7 @@
 #include "openmc/cell.h"
 #include "openmc/tallies/filter_cell_instance.h"
 #include "openmc/tallies/tally.h"
-#include <gsl/gsl>
+#include <gsl/gsl-lite.hpp>
 #include <mpi.h>
 
 #include <unordered_map>

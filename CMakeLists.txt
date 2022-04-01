@@ -33,7 +33,6 @@ set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
 set(CMAKE_INSTALL_RPATH
   "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_LIBDIR}:${CMAKE_INSTALL_PREFIX}/lib")
 
-
 # =============================================================================
 # Nek Options
 # =============================================================================
@@ -107,12 +106,35 @@ if (USE_NEKRS)
 endif ()
 
 # =============================================================================
+# Find and use OpenMC if already installed
+# =============================================================================
+
+find_package(OpenMC QUIET)
+if (OpenMC_FOUND)
+    message(STATUS "Found OpenMC: ${OpenMC_DIR} (version ${OpenMC_VERSION})")
+else ()
+    message(STATUS "Did not find OpenMC, will use submodule instead")
+endif ()
+if (NOT OpenMC_FOUND)
+  add_subdirectory(vendor/openmc)
+endif ()
+
+# =============================================================================
+# set pugixml library as a variable
+# =============================================================================
+
+if (TARGET pugixml::pugixml)
+    set(LIBPUGIXML pugixml::pugixml)
+else ()
+    set(LIBPUGIXML pugixml)
+endif ()
+
+# =============================================================================
 # Headers for all targets
 # =============================================================================
 include_directories(
         include/
         vendor/iapws/include
-        vendor/openmc/include
         vendor
         src/
         ${CMAKE_BINARY_DIR}
@@ -133,13 +155,12 @@ elseif (USE_NEKRS)
     # TODO: An upstream fix to the NekRS CMakeLists should let us to omit this
     include_directories(vendor/nekRS/src/lib)
 endif ()
-add_subdirectory(vendor/openmc)
 
 # =============================================================================
 # IAPWS Correlations
 # =============================================================================
 add_library(iapws vendor/iapws/iapws.cpp)
-target_link_libraries(iapws PRIVATE gsl-lite)
+target_link_libraries(iapws PRIVATE gsl::gsl-lite-v1)
 target_compile_definitions(iapws PRIVATE GSL_THROW_ON_CONTRACT_VIOLATION)
 
 # =============================================================================
@@ -181,11 +202,16 @@ add_library(libenrico
 set_target_properties(libenrico PROPERTIES OUTPUT_NAME enrico)
 set(LIBRARIES
     iapws
-    libopenmc
     xtensor
     heat_xfer
-    pugixml
-    gsl-lite)
+    ${LIBPUGIXML}
+    gsl::gsl-lite-v1)
+
+if (TARGET OpenMC::libopenmc)
+    list(APPEND LIBRARIES OpenMC::libopenmc)
+else ()
+    list(APPEND LIBRARIES libopenmc)
+endif ()
 
 target_compile_definitions(libenrico PRIVATE GSL_THROW_ON_CONTRACT_VIOLATION)
 
@@ -254,7 +280,7 @@ target_include_directories(Catch INTERFACE vendor/catch/single_include/catch2)
 add_executable(unittests
   tests/unit/catch.cpp
   tests/unit/test_surrogate_th.cpp)
-target_link_libraries(unittests PUBLIC Catch pugixml libenrico)
+target_link_libraries(unittests PUBLIC Catch ${LIBPUGIXML} libenrico)
 set_target_properties(unittests PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
 
 #################################################################################

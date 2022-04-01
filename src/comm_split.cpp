@@ -1,5 +1,5 @@
 #include "enrico/comm_split.h"
-#include <gsl/gsl>
+#include <gsl/gsl-lite.hpp>
 
 namespace enrico {
 

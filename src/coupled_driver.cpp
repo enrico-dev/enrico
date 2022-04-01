@@ -18,7 +18,7 @@
 #endif
 #include "enrico/surrogate_heat_driver.h"
 
-#include <gsl/gsl>
+#include <gsl/gsl-lite.hpp>
 #include <xtensor/xbuilder.hpp> // for empty
 #include <xtensor/xnorm.hpp>    // for norm_l1, norm_l2, norm_linf
 
