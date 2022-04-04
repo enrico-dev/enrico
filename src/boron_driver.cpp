@@ -1,7 +1,10 @@
 #include "enrico/boron_driver.h"
 #include "enrico/const.h"
 
-#include <gsl/gsl>  // For Expects
+#include <gsl/gsl-lite.hpp>  // For Expects
+
+#include <cmath>
+#include <algorithm>
 
 namespace enrico {
 
@@ -45,22 +48,17 @@ BoronDriver::BoronDriver(MPI_Comm comm, pugi::xml_node node)
   Expects(epsilon_ > 0.);
 }
 
-double BoronDriver::solve_ppm(bool first_pass, UncertainDouble& k_eff,
-                              UncertainDouble& k_eff_prev)
+double BoronDriver::solve_ppm(bool first_pass, UncertainDouble k_eff,
+                              UncertainDouble k_eff_prev)
 {
   // The estimation is performed using the Newton-Raphson method
-  double del_ppm_del_k;
   double new_ppm;
   if (first_pass) {
     // Make a reasonable update so we can get two points to compute a derivative
     if (k_eff.mean > target_k_eff_) {
       new_ppm = ppm_prev_ + 1000.;
     } else if (k_eff.mean < target_k_eff_) {
-      if (ppm_prev_ > 1000.) {
-        new_ppm = ppm_prev_ - 1000.;
-      } else {
-        new_ppm = 0.;
-      }
+      new_ppm = std::max(ppm_prev_ - 1000., 0.0);
     } else {
       // Then our most recent calculation was on target, so we keep it
       // This should generally never be achieved by a realistic CE MC case due
@@ -70,7 +68,7 @@ double BoronDriver::solve_ppm(bool first_pass, UncertainDouble& k_eff,
     }
 
   } else {
-    del_ppm_del_k = (ppm_ - ppm_prev_) / (k_eff.mean - k_eff_prev.mean);
+    double del_ppm_del_k = (ppm_ - ppm_prev_) / (k_eff.mean - k_eff_prev.mean);
     new_ppm = (target_k_eff_ - k_eff.mean) * del_ppm_del_k + ppm_;
   }
 
@@ -87,25 +85,21 @@ double BoronDriver::solve_ppm(bool first_pass, UncertainDouble& k_eff,
   return ppm_;
 }
 
-bool BoronDriver::is_converged(UncertainDouble& k_eff) {
-  bool ppm_converged;
+bool BoronDriver::is_converged(UncertainDouble k_eff) const {
   bool k_eff_converged;
-  double k_eff_95lo;
-  double k_eff_95hi;
   std::stringstream msg;
-  std::string gt_lt_sign;
 
   std::ios_base::fmtflags old_flags(std::cout.flags());
 
   // Check the boron ppm convergence
-  ppm_converged = B10_iso_abund_ * fabs(ppm_ - ppm_prev_) < epsilon_;
+  bool ppm_converged = B10_iso_abund_ * std::abs(ppm_ - ppm_prev_) < epsilon_;
 
   // Check to make sure keff is in the expected range to a 95% CI
-  k_eff_95lo = k_eff.mean - CI_95 * k_eff.std_dev;
-  k_eff_95hi = k_eff.mean + CI_95 * k_eff.std_dev;
+  double k_eff_95lo = k_eff.mean - CI_95 * k_eff.std_dev;
+  double k_eff_95hi = k_eff.mean + CI_95 * k_eff.std_dev;
   if ((target_k_eff_lo_ <= k_eff_95lo) && (k_eff_95hi <= target_k_eff_hi_)) {
     k_eff_converged = true;
-  } else if (fabs(k_eff.mean - target_k_eff_) < target_k_eff_tol_) {
+  } else if (std::abs(k_eff.mean - target_k_eff_) < target_k_eff_tol_) {
     // If the neutronics k-eff is has higher uncertainty than does the range
     // allows, the above may not work. In that case, lets make sure k-eff is
     // simply in the expected range. If this software were to control the
@@ -117,25 +111,15 @@ bool BoronDriver::is_converged(UncertainDouble& k_eff) {
   }
 
   msg << "  Boron change: " << std::fixed << std::setprecision(1)
-      << B10_iso_abund_ * fabs(ppm_ - ppm_prev_);
-  if (ppm_converged) {
-    msg << " < ";
-  } else {
-    msg << " > ";
-  }
-  msg << epsilon_ << " B10 ppm";
+      << B10_iso_abund_ * std::abs(ppm_ - ppm_prev_);
+  msg << (ppm_converged ? " < " : " > ") << epsilon_ << " B10 ppm";
   comm_.message(msg.str());
   msg.clear();
   msg.str(std::string());
 
   msg << "  k-eff deviation: " << std::fixed << std::setprecision(5)
-      << fabs(k_eff.mean - target_k_eff_);
-  if (k_eff_converged) {
-    msg << " < ";
-  } else {
-    msg << " > ";
-  }
-  msg << target_k_eff_tol_;
+      << std::abs(k_eff.mean - target_k_eff_);
+  msg << (k_eff_converged ? " < " : " > ") << target_k_eff_tol_;
   comm_.message(msg.str());
   msg.clear();
   msg.str(std::string());
@@ -151,14 +135,14 @@ bool BoronDriver::is_converged(UncertainDouble& k_eff) {
 
   std::cout.flags(old_flags);
 
-  return (ppm_converged == true) && (k_eff_converged == true);
+  return ppm_converged && k_eff_converged;
 }
 
 void BoronDriver::set_fluid_cells(std::vector<CellHandle>& fluid_cell_handles) {
   fluid_cell_handles_ = fluid_cell_handles;
 }
 
-void BoronDriver::print_boron()
+void BoronDriver::print_boron() const
 {
   std::ios_base::fmtflags old_flags(std::cout.flags());
   std::stringstream msg;
@@ -173,6 +157,7 @@ void BoronDriver::print_boron()
 
   std::cout.flags(old_flags);
 }
+
 BoronDriver::~BoronDriver()
 {
 

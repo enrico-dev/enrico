@@ -136,8 +136,6 @@ void CoupledDriver::parse_xml_params(const pugi::xml_node& node)
   auto neut_node = node.child("neutronics");
   if (neut_node.child("boron_search")) {
     boron_search_ = neut_node.child("boron_search").text().as_bool();
-  } else {
-    boron_search_ = false;
   }
 
   Expects(power_ > 0);
@@ -214,10 +212,8 @@ void CoupledDriver::init_comms(const pugi::xml_node& node)
 
   timer_init_comms.start();
 
-  // Discover the rank IDs (relative to comm_) that are in each single-physics subcomm
-  neutronics_ranks_ = gather_subcomm_ranks(comm_, neutronics_comm);
+  // Discover the rank IDs (relative to comm_) that are in the heat transfer subcomm
   heat_ranks_ = gather_subcomm_ranks(comm_, heat_comm);
-  boron_ranks_ = gather_subcomm_ranks(comm_, boron_comm);
 
   // Send rank ID of neutronics subcomm root (relative to comm_) to all procs
   neutronics_root_ = this->get_neutronics_driver().comm_.is_root() ? comm_.rank : -1;
@@ -271,7 +267,9 @@ void CoupledDriver::execute()
       comm_.Barrier();
 
       // Get the k-eff values from the neutronics solver
-      update_k_effective();
+      if (boron_search_ && i_timestep_ == 0) {
+        update_k_effective();
+      }
 
       // Update heat source.
       // On the first iteration, there is no previous iterate of heat source,
@@ -382,30 +380,24 @@ bool CoupledDriver::is_converged()
   comm_.broadcast(norm, heat_root_);
 
   msg << "  Temperature norm: " << std::fixed << std::setprecision(2) << norm;
-  if (heat_converged) {
-    msg << " < ";
-  } else {
-    msg << " > ";
-  }
-  msg << epsilon_ << " K";
+  msg << (heat_converged ? " < " : " > ") << epsilon_ << " K";
   comm_.message(msg.str());
 
   if (boron_search_ && i_timestep_ == 0) {
-    auto& boron = get_boron_driver();
-    boron_converged = boron.is_converged(k_eff_);
+    boron_converged = get_boron_driver().is_converged(k_eff_);
   } else {
     boron_converged = true;
   }
   comm_.broadcast(boron_converged, heat_root_);
 
-  converged = (heat_converged == true) && (boron_converged == true);
+  converged = heat_converged && boron_converged;
 
   return converged;
 }
 
 void CoupledDriver::update_k_effective()
 {
-  auto& neutronics = this->get_neutronics_driver();
+  const auto& neutronics = this->get_neutronics_driver();
   k_eff_prev_ = k_eff_;
   if (neutronics.active()) {
     k_eff_ = neutronics.get_k_effective();
@@ -945,9 +937,8 @@ void CoupledDriver::init_fluid_mask()
 
     // Step 2: aggregate the data on the boron root node
     decltype(local_fluid_cell_handles) fluid_cell_handles;
-    for (const auto& heat_rank : heat_ranks_) {
+    for (auto heat_rank : heat_ranks_) {
       decltype(fluid_cell_handles) temp_vector;
-      temp_vector.clear();
       comm_.send_and_recv(temp_vector, boron_root_,
                           local_fluid_cell_handles, heat_rank);
       if (boron.comm_.is_root()) {

@@ -5,7 +5,7 @@
     <procs_per_node>1</procs_per_node>
     <boron_search>true</boron_search>
     <target_keff>1.0</target_keff>
-    <target_keff_tolerance> 0.01 </target_keff_tolerance>
+    <target_keff_tolerance>0.01</target_keff_tolerance>
     <boron_epsilon>100</boron_epsilon>
   </neutronics>
   <heat_fluids>
@@ -31,6 +31,6 @@
     <power>820.0</power>
     <max_timesteps>2</max_timesteps>
     <max_picard_iter>10</max_picard_iter>
-    <epsilon> 50. </epsilon>
+    <epsilon>50.</epsilon>
   </coupling>
 </enrico>

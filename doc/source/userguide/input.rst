@@ -98,9 +98,9 @@ The physics driver for solving particle transport. Valid options are "openmc",
 ``<boron_search>``
 ------------------
 
-A boolean (“true” or “false”, default “false”). If true, then a Boron search to
-the ``target_keff`` value will be performed. If false, no Boron search will be
-performed. This Boron search yields the Boron parts per million (ppm) on a
+A boolean (“true” or “false”, default “false”). If true, then a boron search to
+the ``target_keff`` value will be performed. If false, no boron search will be
+performed. This boron search yields the boron parts per million (ppm) on a
 number density basis in the fluid-bearing regions of the model.
 
 Shift-specific Parameters
@@ -113,12 +113,12 @@ Under the ``<neutronics>`` element, these Shift-specific sub-elements are availa
 Boron search-specific Parameters
 --------------------------------
 
-Under the ``<neutronics>`` element, these Boron search-specific sub-elements are
+Under the ``<neutronics>`` element, these boron search-specific sub-elements are
 available:
 
-* ``<initial_boron_ppm>``: The first guess of the fluid's Boron concentration
+* ``<initial_boron_ppm>``: The first guess of the fluid's boron concentration
   in units of ppm to use when performing the critical search. If not provided,
-  this defaults to the average Boron ppm across all fluid-bearing cells of the
+  this defaults to the average boron ppm across all fluid-bearing cells of the
   initial the neutron transport model.
 * ``<target_keff>``: The k-eigenvalue to search for by varing the boron ppm.
   This defaults to a value of 1.0.
@@ -126,30 +126,30 @@ available:
   confidence interval based on the stochastic variation of k-eff, that will be
   used to evaluate convergence of the boron search. This defaults to a value of
   1.0e-3.
-* ``<B10_enrichment>``: The enrichment of B-10 in the Boron in terms of an atom
+* ``<B10_enrichment>``: The enrichment of B-10 in the boron in terms of an atom
   fraction. This defaults to a value of 0.1982.
-* ``<boron_epsilon>``: The target Boron search convergence criterion. If
-  :math:`ppm_i` and :math:`ppm_{i+1}` are the set of total Boron number
+* ``<boron_epsilon>``: The target boron search convergence criterion. If
+  :math:`ppm_i` and :math:`ppm_{i+1}` are the set of total boron number
   density concentrations (on a number density basis) at iterations :math:`i`
   and :math:`i+1`, convergence is reached if both of the following conditions
   are achieved:
 
-.. math::
-    \lvert ppm_{i+1} - ppm_i \rvert < \epsilon_{boron}
+  .. math::
+      \lvert ppm_{i+1} - ppm_i \rvert < \epsilon_{boron}
 
-.. math::
-    \lvert k_{eff,i+1} - k_{eff,i} \rvert < \epsilon_{keff}
+  .. math::
+      \lvert k_{eff,i+1} - k_{eff,i} \rvert < \epsilon_{keff}
 
   This defaults to a value of 1.0e-3.
 
-.. note:: In ENRICO, the Boron parts-per-million (ppm) is defined as the ppm
-          Boron on a number-density basis.
+.. note:: In ENRICO, the boron parts-per-million (ppm) is defined as the ppm
+          boron on a number-density basis.
 
-.. note:: ENRICO assumes that the reactivity effect of the Hydrogen and Oxygen
+.. note:: ENRICO assumes that the reactivity effect of the hydrogen and oxygen
           in boric acid is small and on the order of their number density
-          variations in water. Therefore, the ENRICO's Boron search only
-          modifies the Boron concentrations and not the Hydrogen and Oxygen as
-          the Boron ppm varies.
+          variations in water. Therefore, the ENRICO's boron search only
+          modifies the boron concentrations and not the hydrogen and oxygen as
+          the boron ppm varies.
 
 ``<coupling>``
 ~~~~~~~~~~~~~~

@@ -1,7 +1,7 @@
 //! \file boron_driver.h
 //! Base class for boron criticality search
-#ifndef BORON_DRIVER_H
-#define BORON_DRIVER_H
+#ifndef ENRICO_BORON_DRIVER_H
+#define ENRICO_BORON_DRIVER_H
 
 #include "enrico/driver.h"
 #include "enrico/heat_fluids_driver.h"
@@ -12,7 +12,7 @@
 namespace enrico {
 class BoronDriver : public Driver {
 public:
-  explicit BoronDriver(MPI_Comm comm, pugi::xml_node node);
+  BoronDriver(MPI_Comm comm, pugi::xml_node node);
 
   ~BoronDriver();
 
@@ -21,20 +21,20 @@ public:
   void set_fluid_cells(std::vector<CellHandle>& fluid_cell_handles);
 
   //! Prints the status of boron convergence
-  void print_boron();
+  void print_boron() const;
 
   //! Estimates the boron concentration in ppm to find criticality condition
   //! \param first_pass If this is the first iteration or not
   //! \param k_eff The latest estimate of k-eff
   //! \param k_eff_prev The previous estimate of k-eff
   //! \return Boron concentration in [ppm]
-  double solve_ppm(bool first_pass, UncertainDouble& k_eff,
-                   UncertainDouble& k_eff_prev);
+  double solve_ppm(bool first_pass, UncertainDouble k_eff,
+                   UncertainDouble k_eff_prev);
 
   //! Check convergence of the boron concentration
   //! for the current Picard iteration.
   //! \param k_eff The latest estimate of k-eff
-  bool is_converged(UncertainDouble& k_eff);
+  bool is_converged(UncertainDouble k_eff) const;
 
   //! The handles to the fluid cells
   std::vector<CellHandle> fluid_cell_handles_;
@@ -44,7 +44,7 @@ public:
   // "Isotopic compositions of the elements 2013(IUPAC Technical Report) ",
   // Pure. Appl. Chem. 88 (3), pp.293 - 306(2013).
   // This value is from the best available measurement column and is consistent
-  // with the data distriubted with OpenMC
+  // with the data distributed with OpenMC
   double B10_iso_abund_ {0.1982};
 
   // The current and previous values of the boron concentration
@@ -64,4 +64,4 @@ private:
 };
 } // namespace enrico
 
-#endif // BORON_DRIVER_H
+#endif // ENRICO_BORON_DRIVER_H

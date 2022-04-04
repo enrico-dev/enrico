@@ -211,12 +211,6 @@ private:
   //! List of ranks in this->comm_ that are in the heat/fluids subcomm
   std::vector<int> heat_ranks_;
 
-  //! List of ranks in this->comm_ that are in the neutronics subcomm
-  std::vector<int> neutronics_ranks_;
-
-  //! List of ranks in this->comm_ that are in the boron subcomm
-  std::vector<int> boron_ranks_;
-
   //! Local cell temperature at current Picard iteration. Set only on heat/fluids ranks.
   xt::xtensor<double, 1> cell_temperature_;
 

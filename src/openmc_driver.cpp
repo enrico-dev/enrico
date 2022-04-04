@@ -154,7 +154,7 @@ std::vector<CellHandle> OpenmcDriver::find(const std::vector<Position>& position
   return handles;
 }
 
-void OpenmcDriver::set_boron_ppm(std::vector<CellHandle>& fluid_cell_handles,
+void OpenmcDriver::set_boron_ppm(const std::vector<CellHandle>& fluid_cell_handles,
                                  double ppm, double B10_iso_abund) const
 {
   // Step through all the fluid-filled cells we received from the heat solver
@@ -172,7 +172,7 @@ void OpenmcDriver::set_boron_ppm(std::vector<CellHandle>& fluid_cell_handles,
   //      assumed to not change the specific volume of the water (i.e.,
   //      the presence of boron increases the mass in density = mass / volume
   //      but not the volume term)
-  for (auto& cell : fluid_cell_handles) {
+  for (auto cell : fluid_cell_handles) {
     const auto& mat = this->cell_instance(cell).material();
     auto nucs = mat->nuclides();
     auto densities = mat->densities();
@@ -183,7 +183,7 @@ void OpenmcDriver::set_boron_ppm(std::vector<CellHandle>& fluid_cell_handles,
     double N_not_boron = 0.;
     for (int i = 0; i < nucs.size(); i++) {
       int nuc_index = nucs[i];
-      auto& nuclide = openmc::data::nuclides[nuc_index];
+      const auto& nuclide = openmc::data::nuclides[nuc_index];
 
       if (nuclide->Z_ != 5) {
         names.push_back(nuclide->name_);
@@ -266,18 +266,18 @@ const CellInstance& OpenmcDriver::cell_instance(CellHandle cell) const
   return cells_.at(cell_index_.at(cell));
 }
 
-double OpenmcDriver::get_boron_ppm(std::vector<CellHandle>& fluid_cell_handles) const
+double OpenmcDriver::get_boron_ppm(const std::vector<CellHandle>& fluid_cell_handles) const
 {
-  // This method gts the boron concentration from the initial conditions
+  // This method gets the boron concentration from the initial conditions.
   // In doing so, this method simply iterates through all fluid-bearing cells
   // and identifies the global ratio of boron atoms to non-boron atoms and
-  // converting this to a number-density based ppm.
+  // converts this to a number-density based ppm.
   // This method *could* take a single cell and extract the ppm from there, but
   // this method is slightly more robust against user input errors and the
-  // addiitonal execution is only incurred once.
+  // additional execution is only incurred once.
   double N_boron {0.};
   double N_not_boron {0.};
-  for (auto& cell : fluid_cell_handles) {
+  for (auto cell : fluid_cell_handles) {
     const auto& mat = this->cell_instance(cell).material();
     auto nucs = mat->nuclides();
     auto densities = mat->densities();
@@ -296,9 +296,7 @@ double OpenmcDriver::get_boron_ppm(std::vector<CellHandle>& fluid_cell_handles) 
     }
   }
 
-  auto ppm = N_boron / (N_boron + N_not_boron) * 1e6;
-
-  return ppm;
+  return N_boron / (N_boron + N_not_boron) * 1e6;;
 }
 
 void OpenmcDriver::init_step()
