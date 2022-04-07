@@ -4,6 +4,7 @@
 #ifndef ENRICO_COUPLED_DRIVER_H
 #define ENRICO_COUPLED_DRIVER_H
 
+#include "enrico/boron_driver.h"
 #include "enrico/driver.h"
 #include "enrico/heat_fluids_driver.h"
 #include "enrico/neutronics_driver.h"
@@ -42,6 +43,12 @@ public:
   //! Execute the coupled driver
   virtual void execute();
 
+  //! Update the k-effective from the neutronics solver
+  void update_k_effective();
+
+  //! Update the boron concentration for the neutronics solver
+  void update_boron();
+
   //! Update the heat source for the thermal-hydraulics solver
   //!
   //! \param relax Apply relaxation to heat source before updating heat solver
@@ -73,6 +80,10 @@ public:
   //! \return reference to driver
   HeatFluidsDriver& get_heat_driver() const { return *heat_fluids_driver_; }
 
+  //! Get reference to boron search driver
+  //! \return reference to driver
+  BoronDriver& get_boron_driver() const { return *boron_driver_; }
+
   //! Get timestep iteration index
   //! \return timestep iteration index
   int get_timestep_index() const { return i_timestep_; }
@@ -92,6 +103,12 @@ public:
   double power_; //!< Power in [W]
 
   int max_timesteps_; //!< Maximum number of time steps
+
+  UncertainDouble k_eff_{0., 0.}; //!< k-effective
+
+  UncertainDouble k_eff_prev_{0., 0.};  //!< Previous k-effective
+
+  bool boron_search_{false};  //!< Flag to set if a Boron search is performed
 
   int max_picard_iter_; //!< Maximum number of Picard iterations
 
@@ -149,6 +166,9 @@ private:
   //! Calculate and store local cell volumes in each heat/fluids rank
   void init_volume();
 
+  //! Initialize the input boron concentration from the model
+  void init_boron();
+
   //! Report how closely the neutron driver's volumes and the calculated local cell
   //! volumes (from init_volume()) match.  Raises no errors or warnings.
   void check_volumes();
@@ -185,11 +205,11 @@ private:
   //! The rank in comm_ that corresponds to the root of the heat comm
   int heat_root_ = MPI_PROC_NULL;
 
+  //! The rank in comm_ that corresponds to the root of the boron comm
+  int boron_root_ = MPI_PROC_NULL;
+
   //! List of ranks in this->comm_ that are in the heat/fluids subcomm
   std::vector<int> heat_ranks_;
-
-  //! List of ranks in this->comm_ that are in the neutronics subcomm
-  std::vector<int> neutronics_ranks_;
 
   //! Local cell temperature at current Picard iteration. Set only on heat/fluids ranks.
   xt::xtensor<double, 1> cell_temperature_;
@@ -211,6 +231,7 @@ private:
 
   std::unique_ptr<NeutronicsDriver> neutronics_driver_;  //!< The neutronics driver
   std::unique_ptr<HeatFluidsDriver> heat_fluids_driver_; //!< The heat-fluids driver
+  std::unique_ptr<BoronDriver> boron_driver_;            //!< The boron search driver
 
   //! 1 if local cell is in fluid, 0 if in solid. Set only on heat/fluids ranks.
   std::vector<int> cell_fluid_mask_;

@@ -29,6 +29,19 @@ public:
   //! \return Heat source in each material as [W/cm3]
   virtual xt::xtensor<double, 1> heat_source(double power) const = 0;
 
+  //! Get the k-effective of a run
+  virtual UncertainDouble get_k_effective() const = 0;
+
+  //! Get the boron concentration from the model
+  virtual double get_boron_ppm(const std::vector<CellHandle>& fluid_cell_handles) const = 0;
+
+  //! Set the Boron concentration in fluid-bearing cells
+  //! \param fluid_cell_handles The CellHandle objects that contain fluids
+  //! \param ppm Boric acid concentration in [ppm]
+  //! \param B10_iso_abund The B-10 enrichment in unitless atom-fractions
+  virtual void set_boron_ppm(const std::vector<CellHandle>& fluid_cell_handles,
+                             double ppm, double B10_iso_abund) const = 0;
+
   //! Find cells corresponding to a vector of positions
   //! \param positions (x,y,z) coordinates to search for
   //! \return Handles to cells

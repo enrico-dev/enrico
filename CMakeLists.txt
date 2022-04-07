@@ -175,6 +175,7 @@ target_link_libraries(heat_xfer PUBLIC iapws)
 # =============================================================================
 
 set(SOURCES
+    src/boron_driver.cpp
     src/coupled_driver.cpp
     src/comm_split.cpp
     src/surrogate_heat_driver.cpp
@@ -287,13 +288,13 @@ set_target_properties(unittests PROPERTIES CXX_STANDARD 14 CXX_EXTENSIONS OFF)
 # Install targets
 #################################################################################
 
-set(INSTALL_TARGETS 
-  enrico 
-  libenrico 
-  iapws 
-  heat_xfer 
-  Catch 
-  unittests 
+set(INSTALL_TARGETS
+  enrico
+  libenrico
+  iapws
+  heat_xfer
+  Catch
+  unittests
   comm_split_demo
   test_openmc_singlerod)
 

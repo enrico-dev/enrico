@@ -36,6 +36,19 @@ public:
   //! \return Handles to cells
   std::vector<CellHandle> find(const std::vector<Position>& position) override;
 
+  //! Get the k-effective of a run
+  UncertainDouble get_k_effective() const override;
+
+  //! Get the boron concentration from the model
+  double get_boron_ppm(const std::vector<CellHandle>& fluid_cell_handles) const override;
+
+  //! Set the Boron concentration in fluid-bearing cells
+  //! \param fluid_cell_handles The CellHandle objects that contain fluids
+  //! \param ppm Boric acid concentration in [ppm]
+  //! \param B10_iso_abund The B-10 enrichment in unitless atom-fractions
+  void set_boron_ppm(const std::vector<CellHandle>& fluid_cell_handles,
+                     double ppm, double B10_iso_abund) const override;
+
   //! Set the density of the material in a cell
   //! \param cell Handle to a cell
   //! \param rho Density in [g/cm^3]

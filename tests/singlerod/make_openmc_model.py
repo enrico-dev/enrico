@@ -57,9 +57,9 @@ water.set_density('g/cm3', water_density)
 
 # Create cylinders
 radii = np.linspace(0., fuel_or, args.rings + 1)
-fuel_rings = [openmc.ZCylinder(R=r) for r in radii[1:]]
-clad_inner = openmc.ZCylinder(R=clad_ir)
-clad_outer = openmc.ZCylinder(R=clad_or)
+fuel_rings = [openmc.ZCylinder(r=r) for r in radii[1:]]
+clad_inner = openmc.ZCylinder(r=clad_ir)
+clad_outer = openmc.ZCylinder(r=clad_or)
 
 # Division for wedges
 xplane = openmc.XPlane(x0=0.0)
@@ -108,6 +108,10 @@ xmin = openmc.XPlane(x0=-pitch/2, boundary_type='periodic')
 xmax = openmc.XPlane(x0=pitch/2, boundary_type='periodic')
 ymin = openmc.YPlane(y0=-pitch/2, boundary_type='periodic')
 ymax = openmc.YPlane(y0=pitch/2, boundary_type='periodic')
+xmin.periodic_surface = xmax
+xmax.periodic_surface = xmin
+ymin.periodic_surface = ymax
+ymax.periodic_surface = ymin
 zmin = openmc.ZPlane(z0=0.0, boundary_type=boundary)
 zmax = openmc.ZPlane(z0=fuel_length, boundary_type=boundary)
 box = +xmin & -xmax & +ymin & -ymax & +zmin & -zmax
