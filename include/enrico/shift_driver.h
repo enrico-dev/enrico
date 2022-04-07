@@ -39,15 +39,15 @@ public:
 
   //! Get the boron concentration from the model
   double get_boron_ppm(const std::vector<CellHandle>& fluid_cell_handles) const override {
-    return 0.
-  };
+    return 0.;
+  }
 
   //! Set the Boron concentration in fluid-bearing cells
   //! \param fluid_cell_handles The CellHandle objects that contain fluids
   //! \param ppm Boric acid concentration in [ppm]
   //! \param B10_iso_abund The B-10 enrichment in unitless atom-fractions
   void set_boron_ppm(const std::vector<CellHandle>& fluid_cell_handles,
-                     double ppm, double B10_iso_abund) const override {};
+                     double ppm, double B10_iso_abund) const override {}
 
   //! Find cells corresponding to a vector of positions
   //! \param positions (x,y,z) coordinates to search for

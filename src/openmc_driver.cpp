@@ -296,7 +296,7 @@ double OpenmcDriver::get_boron_ppm(const std::vector<CellHandle>& fluid_cell_han
     }
   }
 
-  return N_boron / (N_boron + N_not_boron) * 1e6;;
+  return N_boron / (N_boron + N_not_boron) * 1e6;
 }
 
 void OpenmcDriver::init_step()

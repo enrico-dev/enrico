@@ -358,7 +358,6 @@ double CoupledDriver::temperature_norm(Norm norm)
 
 bool CoupledDriver::is_converged()
 {
-  bool converged;
   bool heat_converged;
   bool boron_converged;
   double norm;
@@ -390,9 +389,7 @@ bool CoupledDriver::is_converged()
   }
   comm_.broadcast(boron_converged, heat_root_);
 
-  converged = heat_converged && boron_converged;
-
-  return converged;
+  return heat_converged && boron_converged;
 }
 
 void CoupledDriver::update_k_effective()
