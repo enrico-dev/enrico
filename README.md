@@ -73,7 +73,7 @@ for instructions.
 
 ENRICO must be run from the directory containing the case's input files.  This includes the input
 files for the physics applications; and the ENRICO-specific `enrico.xml` input file.  See the
-[documentation](https://enrico-docs.readthedocs.io/en/latest/input.html) for a description of the
+[documentation](https://enrico-docs.readthedocs.io/en/latest/userguide/input.html) for a description of the
 `enrico.xml` file.
 
 For the included short singlerod test case, you can run the simulations as follows. (These assume you
