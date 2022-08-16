@@ -315,217 +315,24 @@ int SurrogateHeatDriver::set_heat_source_at(int32_t local_elem, double heat)
   return 0;
 }
 
-double SurrogateHeatDriver::rod_axial_node_power(const int pin, const int axial) const
-{
-  Expects(axial < n_axial_);
 
-  double power = 0.0;
-  double dz = z_(axial + 1) - z_(axial);
-
-  for (gsl::index i = 0; i < n_rings(); ++i) {
-    for (gsl::index j = 0; j < n_azimuthal_; ++j) {
-      power += source_(pin, axial, i, j) * solid_areas_(i) * dz / n_azimuthal_;
-    }
-  }
-
-  return power;
-}
 
 void SurrogateHeatDriver::solve_step()
 {
   timer_solve_step.start();
   if (has_coupling_data()) {
-    solve_fluid();
-    solve_heat();
+    for (gsl::index row = 0; row < n_assem_y_; ++row) {
+      for (gsl::index col = 0; col < n_assem_x_; ++col) {
+        int assem_index = row * n_pins_x_ + col;
+        assembly_drivers_[assem_index].solve_fluid();
+        //assembly_drivers_[assem_index].solve_heat();
+      }
+    }
   }
   timer_solve_step.stop();
 }
 
-void SurrogateHeatDriver::solve_fluid()
-{
-  // determine the power deposition in each channel; the target applications will
-  // always be steady-state or pseudo-steady-state cases with no axial conduction such
-  // that the power deposition in each channel is independent of a convective heat
-  // transfer coefficient and only depends on the rod power at that axial elevation.
-  // The channel powers are indexed by channel ID, axial ID
-  xt::xtensor<double, 2> channel_powers({n_channels_, n_axial_}, 0.0);
-  for (int i = 0; i < n_channels_; ++i) {
-    for (int j = 0; j < n_axial_; ++j) {
-      for (const auto& rod : channels_[i].rod_ids_)
-        channel_powers(i, j) += 0.25 * rod_axial_node_power(rod, j);
-    }
-  }
 
-  // initial guesses for the fluid solution are uniform temperature (set to the inlet
-  // temperature) and uniform pressure  (set to the outlet pressure). These solution
-  // fields are defined on channel axial faces. The units used throughout this section
-  // are h (kJ/kg), P (MPa), u (m/s), rho (kg/m^3). Unit conversions are performed as
-  // necessary on the converged results before being used in the Monte Carlo solver.
-  // Enthalpy here requires a factor of 1e-3 to convert from J/kg to kJ/kg.
-  xt::xtensor<double, 2> h({n_channels_, n_axial_ + 1},
-                           iapws::h1(pressure_bc_, inlet_temperature_));
-  xt::xtensor<double, 2> p({n_channels_, n_axial_ + 1}, pressure_bc_);
-
-  // for certain verbosity settings, we will need to save the velocity solutions
-  xt::xtensor<double, 2> u = xt::zeros<double>({n_channels_, n_axial_ + 1});
-
-  bool converged = false;
-  for (gsl::index iter = 0; iter < max_subchannel_its_; ++iter) {
-    // save the previous solution
-    xt::xtensor<double, 2> h_old = h;
-    xt::xtensor<double, 2> p_old = p;
-
-    // solve each channel independently
-    for (gsl::index chan = 0; chan < n_channels_; ++chan) {
-      const auto& c = channels_[chan];
-
-      // solve for enthalpy by simple energy balance q = mdot * dh by marching from
-      // inlet; divide term on RHS by 1e3 to convert from J/kg to kJ/kg
-      h(chan, 0) = iapws::h1(p(chan, 0), inlet_temperature_);
-      for (gsl::index axial = 0; axial < n_axial_; ++axial)
-        h(chan, axial + 1) =
-          h(chan, axial) + 1e-3 * channel_powers(chan, axial) / channel_flowrates_(chan);
-
-      // solve for pressure using one-sided finite difference approximation by
-      // marching from outlet and solving the axial momentum equation.
-      p(chan, n_axial_) = pressure_bc_;
-      for (gsl::index axial = n_axial_; axial > 0; axial--) {
-        double rho_high = iapws::rho_from_p_h(p(chan, axial), h(chan, axial));
-        double rho_low = iapws::rho_from_p_h(p(chan, axial - 1), h(chan, axial - 1));
-
-        u(chan, axial) = channel_flowrates_(chan) / (rho_high * c.area_);
-        u(chan, axial - 1) = channel_flowrates_(chan) / (rho_low * c.area_);
-
-        // factor of 1e-6 needed for convert from Pa to MPa
-        p[axial - 1] = p[axial] + 1.0e-6 * (channel_flowrates_(chan) / c.area_ *
-                                              (u(chan, axial) - u(chan, axial - 1)) +
-                                            g_ * (z_(axial) - z_(axial - 1)) * rho_low);
-      }
-    }
-
-    // after solving all channels, check for convergence; although all channels are
-    // independent, to enable crossflow coupling between channels in the future, this
-    // convergence check is performed on all channels together, rather than each
-    // separately, since in a more sophisticated solver the channels would all be
-    // linked
-    auto h_norm = xt::norm_l1(h - h_old)();
-    auto p_norm = xt::norm_l1(p - p_old)();
-
-    converged = (h_norm < subchannel_tol_h_) && (p_norm < subchannel_tol_p_);
-
-    if (converged)
-      break;
-
-    // check if the solve didn't converge
-    if (iter == max_subchannel_its_ - 1) {
-      if (verbosity_ >= verbose::LOW) {
-        std::cout << "Subchannel solver failed to converge! Enthalpy norm: " << h_norm
-                  << " Pressure norm: " << p_norm << std::endl;
-      }
-    }
-  }
-
-  // compute temperature and density from enthalpy and pressure in a cell-centered
-  // basis
-  xt::xtensor<double, 2> T({n_channels_, n_axial_});
-  xt::xtensor<double, 2> rho({n_channels_, n_axial_});
-
-  for (gsl::index chan = 0; chan < n_channels_; ++chan) {
-    for (gsl::index axial = 0; axial < n_axial_; ++axial) {
-      double h_mean = 0.5 * (h(chan, axial) + h(chan, axial + 1));
-      double p_mean = 0.5 * (p(chan, axial) + p(chan, axial + 1));
-
-      T(chan, axial) = iapws::T_from_p_h(p_mean, h_mean);
-      rho(chan, axial) = iapws::rho_from_p_h(p_mean, h_mean);
-    }
-  }
-
-  // After solving the subchannel equations, convert the solution to a rod-centered
-  // basis, since this will most likely be the form desired by neutronics codes. At
-  // this point only do we apply the conversion of kg/m^3 to g/cm^3 assumed by the
-  // neutronics codes.
-  for (gsl::index rod = 0; rod < n_pins_; ++rod) {
-    for (gsl::index axial = 0; axial < n_axial_; ++axial) {
-      fluid_temperature_(rod, axial) = 0.0;
-      fluid_density_(rod, axial) = 0.0;
-
-      for (const auto& c : rods_[rod].channel_ids_) {
-        fluid_temperature_(rod, axial) += 0.25 * T(c, axial);
-
-        // factor of 1e-3 to convert from kg/m^3 to g/cm^3
-        fluid_density_(rod, axial) += 0.25 * rho(c, axial) * 1.0e-3;
-      }
-    }
-  }
-
-  // Perform diagnostic checks if verbosity is sufficiently high
-  if (verbosity_ >= verbose::LOW) {
-    bool mass_conserved = is_mass_conserved(rho, u);
-    bool energy_conserved = is_energy_conserved(rho, u, h, channel_powers);
-
-    Expects(mass_conserved);
-    Expects(energy_conserved);
-  }
-}
-
-bool SurrogateHeatDriver::is_mass_conserved(const xt::xtensor<double, 2>& rho,
-                                            const xt::xtensor<double, 2>& u) const
-{
-  bool mass_conserved = true;
-
-  for (gsl::index axial = 0; axial < n_axial_; ++axial) {
-    double mass_flowrate = 0.0;
-    for (gsl::index chan = 0; chan < n_channels_; ++chan) {
-      double u_cell_centered = 0.5 * (u(chan, axial) + u(chan, axial + 1));
-      mass_flowrate += u_cell_centered * channels_[chan].area_ * rho(chan, axial);
-    }
-
-    double tol = std::abs(mass_flowrate - mass_flowrate_) / mass_flowrate_;
-
-    if (tol > 1e-3) {
-      mass_conserved = false;
-    }
-
-    if (verbosity_ == verbose::HIGH) {
-      std::cout << "Mass on plane " << axial << " conserved to a tolerance of " << tol
-                << std::endl;
-    }
-  }
-
-  return mass_conserved;
-}
-
-bool SurrogateHeatDriver::is_energy_conserved(const xt::xtensor<double, 2>& rho,
-                                              const xt::xtensor<double, 2>& u,
-                                              const xt::xtensor<double, 2>& h,
-                                              const xt::xtensor<double, 2>& q) const
-{
-  bool energy_conserved = true;
-
-  for (gsl::index axial = 0; axial < n_axial_; ++axial) {
-    for (gsl::index chan = 0; chan < n_channels_; ++chan) {
-      double u_cell_centered = 0.5 * (u(chan, axial) + u(chan, axial + 1));
-      double mass_flowrate = rho(chan, axial) * channels_[chan].area_ * u_cell_centered;
-
-      // conversion factor of 1e3 to convert enthalpy from kJ/kg to J/kg
-      double channel_energy_change =
-        mass_flowrate * (h(chan, axial + 1) - h(chan, axial)) * 1.0e3;
-
-      double tol = std::abs(channel_energy_change - q(chan, axial)) / q(chan, axial);
-
-      if (tol > 1e-3) {
-        energy_conserved = false;
-      }
-
-      if (verbosity_ == verbose::HIGH) {
-        std::cout << "Energy deposition in channel " << chan << ", axial node " << axial
-                  << " conserved to a tolerance of " << tol << std::endl;
-      }
-    }
-  }
-
-  return energy_conserved;
-}
 
 void SurrogateHeatDriver::solve_heat()
 {
@@ -608,7 +415,7 @@ void SurrogateHeatDriver::write_step(int timestep, int iteration)
 
 SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
                                                          bool has_coupling,
-                                                         double pressure_bc_)
+                                                         double pressure_bc)
 {
   // Determine thermal-hydraulic parameters for solid phase
   clad_inner_radius_ = node.child("clad_inner_radius").text().as_double();
@@ -767,11 +574,15 @@ SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
   z_ = openmc::get_node_xarray<double>(node, "z");
   n_axial_ = z_.size() - 1;
 
+  pressure_bc_ = pressure_bc;
+  has_coupling_ = has_coupling;
+
   // Initialize heat transfer solver
-  generate_arrays(has_coupling);
+  generate_arrays();
+
 };
 
-void SurrogateHeatDriverAssembly::generate_arrays(bool has_coupling)
+void SurrogateHeatDriverAssembly::generate_arrays()
 {
   // Make a radial grid for the clad with equal spacing.
   r_grid_clad_ =
@@ -793,7 +604,7 @@ void SurrogateHeatDriverAssembly::generate_arrays(bool has_coupling)
     }
   }
 
-  if (has_coupling) {
+  if (has_coupling_) {
     // Create empty arrays for source term and temperature in the solid phase
     source_ = xt::empty<double>({n_pins_, n_axial_, n_rings(), n_azimuthal_});
     solid_temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
@@ -803,5 +614,209 @@ void SurrogateHeatDriverAssembly::generate_arrays(bool has_coupling)
     fluid_density_ = xt::empty<double>({n_pins_, n_axial_});
   }
 }
+
+bool SurrogateHeatDriverAssembly::is_mass_conserved(const xt::xtensor<double, 2>& rho,
+                                            const xt::xtensor<double, 2>& u) const
+{
+  bool mass_conserved = true;
+
+  for (gsl::index axial = 0; axial < n_axial_; ++axial) {
+    double mass_flowrate = 0.0;
+    for (gsl::index chan = 0; chan < n_channels_; ++chan) {
+      double u_cell_centered = 0.5 * (u(chan, axial) + u(chan, axial + 1));
+      mass_flowrate += u_cell_centered * channels_[chan].area_ * rho(chan, axial);
+    }
+
+    double tol = std::abs(mass_flowrate - mass_flowrate_) / mass_flowrate_;
+
+    if (tol > 1e-3) {
+      mass_conserved = false;
+    }
+
+    if (verbosity_ == verbose::HIGH) {
+      std::cout << "Mass on plane " << axial << " conserved to a tolerance of " << tol
+                << std::endl;
+    }
+  }
+
+  return mass_conserved;
+}
+
+bool SurrogateHeatDriverAssembly::is_energy_conserved(const xt::xtensor<double, 2>& rho,
+                                              const xt::xtensor<double, 2>& u,
+                                              const xt::xtensor<double, 2>& h,
+                                              const xt::xtensor<double, 2>& q) const
+{
+  bool energy_conserved = true;
+
+  for (gsl::index axial = 0; axial < n_axial_; ++axial) {
+    for (gsl::index chan = 0; chan < n_channels_; ++chan) {
+      double u_cell_centered = 0.5 * (u(chan, axial) + u(chan, axial + 1));
+      double mass_flowrate = rho(chan, axial) * channels_[chan].area_ * u_cell_centered;
+
+      // conversion factor of 1e3 to convert enthalpy from kJ/kg to J/kg
+      double channel_energy_change =
+        mass_flowrate * (h(chan, axial + 1) - h(chan, axial)) * 1.0e3;
+
+      double tol = std::abs(channel_energy_change - q(chan, axial)) / q(chan, axial);
+
+      if (tol > 1e-3) {
+        energy_conserved = false;
+      }
+
+      if (verbosity_ == verbose::HIGH) {
+        std::cout << "Energy deposition in channel " << chan << ", axial node " << axial
+                  << " conserved to a tolerance of " << tol << std::endl;
+      }
+    }
+  }
+
+  return energy_conserved;
+}
+
+double SurrogateHeatDriverAssembly::rod_axial_node_power(const int pin,
+                                                         const int axial) const
+{
+  Expects(axial < n_axial_);
+
+  double power = 0.0;
+  double dz = z_(axial + 1) - z_(axial);
+
+  for (gsl::index i = 0; i < n_rings(); ++i) {
+    for (gsl::index j = 0; j < n_azimuthal_; ++j) {
+      power += source_(pin, axial, i, j) * solid_areas_(i) * dz / n_azimuthal_;
+    }
+  }
+
+  return power;
+}
+
+void SurrogateHeatDriverAssembly::solve_fluid()
+{
+  // determine the power deposition in each channel; the target applications will
+  // always be steady-state or pseudo-steady-state cases with no axial conduction such
+  // that the power deposition in each channel is independent of a convective heat
+  // transfer coefficient and only depends on the rod power at that axial elevation.
+  // The channel powers are indexed by channel ID, axial ID
+  xt::xtensor<double, 2> channel_powers({n_channels_, n_axial_}, 0.0);
+  for (int i = 0; i < n_channels_; ++i) {
+    for (int j = 0; j < n_axial_; ++j) {
+      for (const auto& rod : channels_[i].rod_ids_)
+        channel_powers(i, j) += 0.25 * rod_axial_node_power(rod, j);
+    }
+  }
+
+  // initial guesses for the fluid solution are uniform temperature (set to the inlet
+  // temperature) and uniform pressure  (set to the outlet pressure). These solution
+  // fields are defined on channel axial faces. The units used throughout this section
+  // are h (kJ/kg), P (MPa), u (m/s), rho (kg/m^3). Unit conversions are performed as
+  // necessary on the converged results before being used in the Monte Carlo solver.
+  // Enthalpy here requires a factor of 1e-3 to convert from J/kg to kJ/kg.
+  xt::xtensor<double, 2> h({n_channels_, n_axial_ + 1},
+                           iapws::h1(pressure_bc_, inlet_temperature_));
+  xt::xtensor<double, 2> p({n_channels_, n_axial_ + 1}, pressure_bc_);
+
+  // for certain verbosity settings, we will need to save the velocity solutions
+  xt::xtensor<double, 2> u = xt::zeros<double>({n_channels_, n_axial_ + 1});
+
+  bool converged = false;
+  for (gsl::index iter = 0; iter < max_subchannel_its_; ++iter) {
+    // save the previous solution
+    xt::xtensor<double, 2> h_old = h;
+    xt::xtensor<double, 2> p_old = p;
+
+    // solve each channel independently
+    for (gsl::index chan = 0; chan < n_channels_; ++chan) {
+      const auto& c = channels_[chan];
+
+      // solve for enthalpy by simple energy balance q = mdot * dh by marching from
+      // inlet; divide term on RHS by 1e3 to convert from J/kg to kJ/kg
+      h(chan, 0) = iapws::h1(p(chan, 0), inlet_temperature_);
+      for (gsl::index axial = 0; axial < n_axial_; ++axial)
+        h(chan, axial + 1) =
+          h(chan, axial) + 1e-3 * channel_powers(chan, axial) / channel_flowrates_(chan);
+
+      // solve for pressure using one-sided finite difference approximation by
+      // marching from outlet and solving the axial momentum equation.
+      p(chan, n_axial_) = pressure_bc_;
+      for (gsl::index axial = n_axial_; axial > 0; axial--) {
+        double rho_high = iapws::rho_from_p_h(p(chan, axial), h(chan, axial));
+        double rho_low = iapws::rho_from_p_h(p(chan, axial - 1), h(chan, axial - 1));
+
+        u(chan, axial) = channel_flowrates_(chan) / (rho_high * c.area_);
+        u(chan, axial - 1) = channel_flowrates_(chan) / (rho_low * c.area_);
+
+        // factor of 1e-6 needed for convert from Pa to MPa
+        p[axial - 1] = p[axial] + 1.0e-6 * (channel_flowrates_(chan) / c.area_ *
+                                              (u(chan, axial) - u(chan, axial - 1)) +
+                                            g_ * (z_(axial) - z_(axial - 1)) * rho_low);
+      }
+    }
+
+    // after solving all channels, check for convergence; although all channels are
+    // independent, to enable crossflow coupling between channels in the future, this
+    // convergence check is performed on all channels together, rather than each
+    // separately, since in a more sophisticated solver the channels would all be
+    // linked
+    auto h_norm = xt::norm_l1(h - h_old)();
+    auto p_norm = xt::norm_l1(p - p_old)();
+
+    converged = (h_norm < subchannel_tol_h_) && (p_norm < subchannel_tol_p_);
+
+    if (converged)
+      break;
+
+    // check if the solve didn't converge
+    if (iter == max_subchannel_its_ - 1) {
+      if (verbosity_ >= verbose::LOW) {
+        std::cout << "Subchannel solver failed to converge! Enthalpy norm: " << h_norm
+                  << " Pressure norm: " << p_norm << std::endl;
+      }
+    }
+  }
+
+  // compute temperature and density from enthalpy and pressure in a cell-centered
+  // basis
+  xt::xtensor<double, 2> T({n_channels_, n_axial_});
+  xt::xtensor<double, 2> rho({n_channels_, n_axial_});
+
+  for (gsl::index chan = 0; chan < n_channels_; ++chan) {
+    for (gsl::index axial = 0; axial < n_axial_; ++axial) {
+      double h_mean = 0.5 * (h(chan, axial) + h(chan, axial + 1));
+      double p_mean = 0.5 * (p(chan, axial) + p(chan, axial + 1));
+
+      T(chan, axial) = iapws::T_from_p_h(p_mean, h_mean);
+      rho(chan, axial) = iapws::rho_from_p_h(p_mean, h_mean);
+    }
+  }
+
+  // After solving the subchannel equations, convert the solution to a rod-centered
+  // basis, since this will most likely be the form desired by neutronics codes. At
+  // this point only do we apply the conversion of kg/m^3 to g/cm^3 assumed by the
+  // neutronics codes.
+  for (gsl::index rod = 0; rod < n_pins_; ++rod) {
+    for (gsl::index axial = 0; axial < n_axial_; ++axial) {
+      fluid_temperature_(rod, axial) = 0.0;
+      fluid_density_(rod, axial) = 0.0;
+
+      for (const auto& c : rods_[rod].channel_ids_) {
+        fluid_temperature_(rod, axial) += 0.25 * T(c, axial);
+
+        // factor of 1e-3 to convert from kg/m^3 to g/cm^3
+        fluid_density_(rod, axial) += 0.25 * rho(c, axial) * 1.0e-3;
+      }
+    }
+  }
+
+  // Perform diagnostic checks if verbosity is sufficiently high
+  if (verbosity_ >= verbose::LOW) {
+    bool mass_conserved = is_mass_conserved(rho, u);
+    bool energy_conserved = is_energy_conserved(rho, u, h, channel_powers);
+
+    Expects(mass_conserved);
+    Expects(energy_conserved);
+  }
+}
+
 
 } // namespace enrico

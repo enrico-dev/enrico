@@ -143,10 +143,13 @@ public:
   //! \param assembly_y  y index of assembly
   SurrogateHeatDriverAssembly(pugi::xml_node node,
                               bool has_coupling,
-                              double pressure_bc_);
+                              double pressure_bc);
 
   //! Verbosity options for printing simulation results
   enum class verbose { NONE, LOW, HIGH };
+
+  bool has_coupling_;
+  double pressure_bc_;
 
   // Assembly information
   std::size_t n_assem_x_; //! Number of assemblies in the x-direction in a Cartesian grid
@@ -198,6 +201,8 @@ public:
 
   //! Cross-sectional areas of rings in fuel and cladding
   xt::xtensor<double, 1> solid_areas_;
+
+  void solve_fluid();
 
 private:
   //!< solid temperature in [K] for each (pin, axial segment, ring)
@@ -253,7 +258,33 @@ private:
   verbose verbosity_ = verbose::NONE;
 
   //! Create internal arrays used for heat equation solver
-  void generate_arrays(bool has_coupling);
+  void generate_arrays();
+
+  //! Rod power at a given node in a given pin, computed by integrating the heat source
+  //! (assumed constant in each ring) over the pin.
+  //! \param pin   pin index
+  //! \param axial axial index
+  double rod_axial_node_power(const int pin, const int axial) const;
+
+  //! Diagnostic function to assess whether the mass is conserved by the subchannel
+  //! solver by comparing the mass flowrate in each axial plane (at cell-centered
+  //! positions) to the specified inlet mass flowrate.
+  //! \param rho density in a cell-centered basis
+  //! \param u   axial velocity in a face-centered basis
+  bool is_mass_conserved(const xt::xtensor<double, 2>& rho,
+                         const xt::xtensor<double, 2>& u) const;
+
+  //! Diagnostic function to assess whether the energy is conserved by the subchannel
+  //! solver by comparing the energy deposition in each channel in each axial plane
+  //! (at cell-centered positions) to the powers of the rods connected to that channel.
+  //! \param rho density in a cell-centered basis
+  //! \param u   axial velocity in a face-centered basis
+  //! \param h   enthalpy in a face-centered basis
+  //! \param q   powers in each channel in a cell-centered basis
+  bool is_energy_conserved(const xt::xtensor<double, 2>& rho,
+                           const xt::xtensor<double, 2>& u,
+                           const xt::xtensor<double, 2>& h,
+                           const xt::xtensor<double, 2>& q) const;
 
 }; // end SurrogateHeatDriverAssembly
 
@@ -317,7 +348,7 @@ public:
 
   void solve_heat();
 
-  void solve_fluid();
+  //void solve_fluid();
 
   //! Returns Number of rings in fuel and clad
   std::size_t n_rings() const { return n_fuel_rings_ + n_clad_rings_; }
@@ -457,27 +488,8 @@ private:
   //! (assumed constant in each ring) over the pin.
   //! \param pin   pin index
   //! \param axial axial index
-  double rod_axial_node_power(const int pin, const int axial) const;
+  // double rod_axial_node_power(const int pin, const int axial) const;
 
-  //! Diagnostic function to assess whether the mass is conserved by the subchannel
-  //! solver by comparing the mass flowrate in each axial plane (at cell-centered
-  //! positions) to the specified inlet mass flowrate.
-  //! \param rho density in a cell-centered basis
-  //! \param u   axial velocity in a face-centered basis
-  bool is_mass_conserved(const xt::xtensor<double, 2>& rho,
-                         const xt::xtensor<double, 2>& u) const;
-
-  //! Diagnostic function to assess whether the energy is conserved by the subchannel
-  //! solver by comparing the energy deposition in each channel in each axial plane
-  //! (at cell-centered positions) to the powers of the rods connected to that channel.
-  //! \param rho density in a cell-centered basis
-  //! \param u   axial velocity in a face-centered basis
-  //! \param h   enthalpy in a face-centered basis
-  //! \param q   powers in each channel in a cell-centered basis
-  bool is_energy_conserved(const xt::xtensor<double, 2>& rho,
-                           const xt::xtensor<double, 2>& u,
-                           const xt::xtensor<double, 2>& h,
-                           const xt::xtensor<double, 2>& q) const;
 
   //!< solid temperature in [K] for each (pin, axial segment, ring)
   xt::xtensor<double, 3> solid_temperature_;
