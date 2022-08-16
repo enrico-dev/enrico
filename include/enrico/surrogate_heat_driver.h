@@ -204,6 +204,8 @@ public:
 
   void solve_fluid();
 
+  void solve_heat();
+
 private:
   //!< solid temperature in [K] for each (pin, axial segment, ring)
   xt::xtensor<double, 3> solid_temperature_;
@@ -346,7 +348,7 @@ public:
   //! Solves the heat-fluids surrogate solver
   void solve_step() final;
 
-  void solve_heat();
+  //void solve_heat();
 
   //void solve_fluid();
 
