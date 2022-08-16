@@ -52,6 +52,22 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   if (node.child("heat_tol"))
     heat_tol_ = node.child("heat_tol").text().as_double();
 
+  // Determine assembly information
+  if (node.child("n_assem_x") || node.child("n_assem_y") ||
+      node.child("assembly_width_x") || node.child("assembly_width_y")) {
+    n_assem_x_ = node.child("n_assem_x").text().as_int();
+    n_assem_y_ = node.child("n_assem_y").text().as_int();
+    assembly_width_x_ = node.child("assembly_width_x").text().as_double();
+    assembly_width_y_ = node.child("assembly_width_y").text().as_double();
+  } else {
+    // assume 1 assembly, with pitch corresponding to the larger pin dimension
+    n_assem_x_ = 1;
+    n_assem_y_ = 1;
+    assembly_width_x_ = n_pins_x_ * pin_pitch_;
+    assembly_width_y_ = n_pins_y_ * pin_pitch_;
+  }
+  n_assem_ = n_assem_x_ * n_assem_y_;
+
   verbosity_ = verbose::NONE;
   if (node.child("verbosity")) {
     std::string setting = node.child("verbosity").text().as_string();
@@ -91,6 +107,16 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   double assembly_width_y = n_pins_y_ * pin_pitch_;
   double top_left_x = -assembly_width_x / 2.0 + pin_pitch_ / 2.0;
   double top_left_y = assembly_width_y / 2.0 - pin_pitch_ / 2.0;
+
+  bool has_coupling = has_coupling_data();
+
+  // init vector of assembly surrogate drivers
+  for (gsl::index row = 0; row < n_assem_y_; ++row) {
+    for (gsl::index col = 0; col < n_assem_x_; ++col) {
+      assembly_drivers_.push_back(
+        SurrogateHeatDriverAssembly(node, col, row, has_coupling, pressure_bc_));
+    }
+  }
 
   pin_centers_.resize({n_pins_, 2});
   for (gsl::index row = 0; row < n_pins_y_; ++row) {
@@ -684,5 +710,98 @@ void SurrogateHeatDriver::write_step(int timestep, int iteration)
   // timer_write_step.stop();
   return;
 }
+
+SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
+                                                         std::size_t assembly_x,
+                                                         std::size_t assembly_y,
+                                                         bool has_coupling,
+                                                         double pressure_bc_)
+{
+  // Determine thermal-hydraulic parameters for solid phase
+  clad_inner_radius_ = node.child("clad_inner_radius").text().as_double();
+  clad_outer_radius_ = node.child("clad_outer_radius").text().as_double();
+  pellet_radius_ = node.child("pellet_radius").text().as_double();
+  n_fuel_rings_ = node.child("fuel_rings").text().as_int();
+  n_clad_rings_ = node.child("clad_rings").text().as_int();
+  n_pins_x_ = node.child("n_pins_x").text().as_int();
+  n_pins_y_ = node.child("n_pins_y").text().as_int();
+  n_pins_ = n_pins_x_ * n_pins_y_;
+  n_solid_ = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
+  n_fluid_ = n_pins_ * n_axial_;
+  pin_pitch_ = node.child("pin_pitch").text().as_double();
+
+  // Determine assembly information
+  if (node.child("n_assem_x") || node.child("n_assem_y") ||
+      node.child("assembly_width_x") || node.child("assembly_width_y")) {
+    n_assem_x_ = node.child("n_assem_x").text().as_int();
+    n_assem_y_ = node.child("n_assem_y").text().as_int();
+    assembly_width_x_ = node.child("assembly_width_x").text().as_double();
+    assembly_width_y_ = node.child("assembly_width_y").text().as_double();
+  } else {
+    // assume 1 assembly, with pitch corresponding to the larger pin dimension
+    n_assem_x_ = 1;
+    n_assem_y_ = 1;
+    assembly_width_x_ = n_pins_x_ * pin_pitch_;
+    assembly_width_y_ = n_pins_y_ * pin_pitch_;
+  }
+  n_assem_ = n_assem_x_ * n_assem_y_;
+
+  // Determine thermal-hydraulic parameters for fluid phase
+  inlet_temperature_ = node.child("inlet_temperature").text().as_double();
+  mass_flowrate_ = node.child("mass_flowrate").text().as_double();
+  n_channels_ = (n_pins_x_ + 1) * (n_pins_y_ + 1);
+
+  // Determine solver parameters
+  if (node.child("max_subchannel_its"))
+    max_subchannel_its_ = node.child("max_subchannel_its").text().as_int();
+  if (node.child("subchannel_tol_h"))
+    subchannel_tol_h_ = node.child("subchannel_tol_h").text().as_double();
+  if (node.child("subchannel_tol_p"))
+    subchannel_tol_p_ = node.child("subchannel_tol_p").text().as_double();
+  if (node.child("heat_tol"))
+    heat_tol_ = node.child("heat_tol").text().as_double();
+
+  verbosity_ = verbose::NONE;
+  if (node.child("verbosity")) {
+    std::string setting = node.child("verbosity").text().as_string();
+    if (setting == "none") {
+      verbosity_ = verbose::NONE;
+    } else if (setting == "low") {
+      verbosity_ = verbose::LOW;
+    } else if (setting == "high") {
+      verbosity_ = verbose::HIGH;
+    } else {
+      // invalid input for verbosity
+      Expects(false);
+    }
+  }
+
+  // check validity of user input
+  Expects(clad_inner_radius_ > 0);
+  Expects(clad_outer_radius_ > clad_inner_radius_);
+  Expects(pellet_radius_ < clad_inner_radius_);
+  Expects(n_fuel_rings_ > 0);
+  Expects(n_clad_rings_ > 0);
+  Expects(n_pins_x_ > 0);
+  Expects(n_pins_y_ > 0);
+  Expects(pin_pitch_ > 2.0 * clad_outer_radius_);
+  Expects(mass_flowrate_ > 0.0);
+  Expects(inlet_temperature_ > 0.0);
+  Expects(max_subchannel_its_ > 0);
+  Expects(subchannel_tol_h_ > 0.0);
+  Expects(subchannel_tol_p_ > 0.0);
+  Expects(heat_tol_ > 0.0);
+  Expects(n_assem_x_ > 0);
+  Expects(n_assem_y_ > 0);
+  Expects(assembly_width_x_ >= pin_pitch_ * n_pins_x_);
+  Expects(assembly_width_y_ >= pin_pitch_ * n_pins_y_);
+
+  double core_width_x = assembly_width_x_ * n_assem_x_;
+  double core_width_y = assembly_width_y_ * n_assem_y_;
+  double core_top_left_x = -core_width_x / 2.0;
+  double core_top_left_y = core_width_y / 2.0;
+
+
+};
 
 } // namespace enrico

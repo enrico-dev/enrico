@@ -135,6 +135,94 @@ private:
   static int index_;
 };
 
+class SurrogateHeatDriverAssembly {
+public:
+  //! Initializes heat-fluids surrogate for an assembly
+  //!
+  //! \param assembly_x  x index of assembly
+  //! \param assembly_y  y index of assembly
+  SurrogateHeatDriverAssembly(pugi::xml_node node,
+                              std::size_t assembly_x,
+                              std::size_t assembly_y,
+                              bool has_coupling,
+                              double pressure_bc_);
+
+  //! Verbosity options for printing simulation results
+  enum class verbose { NONE, LOW, HIGH };
+
+  // Assembly information
+  std::size_t n_assem_x_; //! Number of assemblies in the x-direction in a Cartesian grid
+  std::size_t n_assem_y_; //! Number of assemblies in the y-direction in a Cartesian grid
+  std::size_t n_assem_;   //! total number of assemblies
+  double assembly_width_x_; //! x dimension of assembly
+  double assembly_width_y_; //! x dimension of assembly
+
+  //! Returns Number of rings in fuel and clad
+  std::size_t n_rings() const { return n_fuel_rings_ + n_clad_rings_; }
+
+  //! Returns number of solid elements
+  std::size_t n_solid_;
+
+  //! Returns number of fluid elements
+  std::size_t n_fluid_;
+
+  // Data on fuel pins
+  // xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins
+  // xt::xtensor<double, 1> z_;           //!< Bounding z-values for axial segments
+  std::size_t n_axial_;        //!< number of axial segments
+  std::size_t n_azimuthal_{4}; //!< number of azimuthal segments
+
+  //! Total number of pins
+  std::size_t n_pins_;
+
+  // Dimensions for a single fuel pin axial segment
+  double clad_outer_radius_;     //!< clad outer radius in [cm]
+  double clad_inner_radius_;     //!< clad inner radius in [cm]
+  double pellet_radius_;         //!< fuel pellet radius in [cm]
+  std::size_t n_fuel_rings_{20}; //!< number of fuel rings
+  std::size_t n_clad_rings_{2};  //!< number of clad rings
+
+  //! Number of pins in the x-direction in a Cartesian grid
+  std::size_t n_pins_x_;
+
+  //! Number of pins in the y-direction in a Cartesian grid
+  std::size_t n_pins_y_;
+
+  //! Pin pitch, assumed the same for the x and y directions
+  double pin_pitch_;
+
+  //! Inlet fluid temperature [K]
+  double inlet_temperature_;
+
+  //! Mass flowrate of fluid into the domain [kg/s]
+  double mass_flowrate_;
+
+  //! Number of channels
+  std::size_t n_channels_;
+
+  //! Maximum number of iterations for subchannel solution, set to a default value
+  //! of 100 if not set by the user
+  int max_subchannel_its_ = 100;
+
+  //! Convergence tolerance on enthalpy for the subchannel solution for use in
+  //! convergence based on the L-1 norm, set to a default value of 1e-2
+  double subchannel_tol_h_ = 1e-2;
+
+  //! Convergence tolerance on pressure for the subchannel solution for use in
+  //! convergence based on the L-1 norm, set to a default value of 1e-2
+  double subchannel_tol_p_ = 1e-2;
+
+  //! Convergence tolerance for solid temperature solution, set to a default value
+  //! of 1e-4
+  double heat_tol_ = 1e-4;
+
+  //! Gravitational acceleration
+  const double g_ = 9.81;
+
+  //! Verbosity setting for printing simulation results; defaults to NONE
+  verbose verbosity_ = verbose::NONE;
+}; // end SurrogateHeatDriverAssembly
+
 /**
  * Class providing surrogate thermal-hydraulic solution for a Cartesian
  * bundle of rods with upwards-flowing coolant. A conduction model is used
@@ -161,6 +249,15 @@ public:
 
   //! Verbosity options for printing simulation results
   enum class verbose { NONE, LOW, HIGH };
+
+  // Assembly information
+  std::size_t n_assem_x_;    //! Number of assemblies in the x-direction in a Cartesian grid
+  std::size_t n_assem_y_;    //! Number of assemblies in the y-direction in a Cartesian grid
+  std::size_t n_assem_;      //! total number of assemblies
+  double assembly_width_x_;  //! x dimension of assembly
+  double assembly_width_y_;  //! x dimension of assembly
+
+  std::vector<SurrogateHeatDriverAssembly> assembly_drivers_;
 
   bool has_coupling_data() const final { return comm_.rank == 0; }
 
@@ -401,6 +498,7 @@ private:
   verbose verbosity_ = verbose::NONE;
 
 }; // end SurrogateHeatDriver
+
 
 } // namespace enrico
 
