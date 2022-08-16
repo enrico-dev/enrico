@@ -105,79 +105,9 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   for (gsl::index row = 0; row < n_assem_y_; ++row) {
     for (gsl::index col = 0; col < n_assem_x_; ++col) {
       assembly_drivers_.push_back(
-        SurrogateHeatDriverAssembly(node, col, row, has_coupling, pressure_bc_));
+        SurrogateHeatDriverAssembly(node, has_coupling, pressure_bc_));
     }
   }
-
-  // Set pin locations, where the center of the assembly is assumed to occur at
-  // x = 0, y = 0. It is also assumed that the rod-boundary separation in the
-  // x and y directions is the same and equal to half the pitch.
-  // TODO: generalize to multi-assembly simulations
-  double assembly_width_x = n_pins_x_ * pin_pitch_;
-  double assembly_width_y = n_pins_y_ * pin_pitch_;
-  double top_left_x = -assembly_width_x / 2.0 + pin_pitch_ / 2.0;
-  double top_left_y = assembly_width_y / 2.0 - pin_pitch_ / 2.0;
-
-  pin_centers_.resize({n_pins_, 2});
-  for (gsl::index row = 0; row < n_pins_y_; ++row) {
-    for (gsl::index col = 0; col < n_pins_x_; ++col) {
-      int pin_index = row * n_pins_x_ + col;
-      pin_centers_(pin_index, 0) = top_left_x + col * pin_pitch_;
-      pin_centers_(pin_index, 1) = top_left_y - row * pin_pitch_;
-    }
-  }
-
-  // Initialize the channels
-  ChannelFactory channel_factory(pin_pitch_, clad_outer_radius_);
-
-  for (std::size_t row = 0; row < n_pins_y_ + 1; ++row) {
-    for (std::size_t col = 0; col < n_pins_x_ + 1; ++col) {
-      std::size_t a = col / n_pins_x_;
-      std::size_t b = row / n_pins_y_;
-
-      if ((row == 0 || row == n_pins_y_) && (col == 0 || col == n_pins_x_))
-        channels_.push_back(channel_factory.make_corner(
-          {a * (n_pins_x_ - 1) + b * n_pins_x_ * (n_pins_y_ - 1)}));
-      else if (row == 0)
-        channels_.push_back(channel_factory.make_edge({col - 1, col}));
-      else if (row == n_pins_y_)
-        channels_.push_back(channel_factory.make_edge(
-          {(row - 1) * n_pins_x_ + col - 1, (row - 1) * n_pins_x_ + col}));
-      else if (col == 0)
-        channels_.push_back(
-          channel_factory.make_edge({(row - 1) * n_pins_x_, row * n_pins_x_}));
-      else if (col == n_pins_x_)
-        channels_.push_back(
-          channel_factory.make_edge({row * n_pins_x_ - 1, (row + 1) * n_pins_x_ - 1}));
-      else {
-        std::size_t i = (row - 1) * n_pins_x_ + col - 1;
-        channels_.push_back(
-          channel_factory.make_interior({i, i + 1, i + n_pins_x_, i + n_pins_x_ + 1}));
-      }
-    }
-  }
-
-  // Initialize the rods
-  RodFactory rod_factory(clad_outer_radius_, clad_inner_radius_, pellet_radius_);
-  for (gsl::index rod = 0; rod < n_pins_; ++rod) {
-    std::size_t row = rod / n_pins_x_;
-    std::size_t col = rod % n_pins_x_;
-    std::size_t a = n_pins_x_ + 1;
-    rods_.push_back(rod_factory.make_rod(
-      {row * a + col, row * a + col + 1, (row + 1) * a + col, (row + 1) * a + col + 1}));
-  }
-
-  double total_flow_area = 0.0;
-  for (const auto& c : channels_)
-    total_flow_area += c.area_;
-
-  channel_flowrates_.resize({n_channels_});
-  for (gsl::index i = 0; i < n_channels_; ++i)
-    channel_flowrates_(i) = channels_[i].area_ / total_flow_area * mass_flowrate_;
-
-  // Get z values
-  z_ = openmc::get_node_xarray<double>(node, "z");
-  n_axial_ = z_.size() - 1;
 
   // Check for visualization input
   if (node.child("viz")) {
@@ -202,43 +132,8 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
       viz_regions_ = viz_node.child("regions").text().as_string();
     }
   }
-
-  // Initialize heat transfer solver
-  generate_arrays();
 };
 
-void SurrogateHeatDriver::generate_arrays()
-{
-  // Make a radial grid for the clad with equal spacing.
-  r_grid_clad_ =
-    xt::linspace<double>(clad_inner_radius_, clad_outer_radius_, n_clad_rings_ + 1);
-
-  // Make a radial grid for the fuel with equal spacing.
-  r_grid_fuel_ = xt::linspace<double>(0, pellet_radius_, n_fuel_rings_ + 1);
-
-  // Compute the cross-sectional areas of each region
-  solid_areas_ = xt::empty<double>({n_rings()});
-  for (gsl::index i = 0; i < n_rings(); ++i) {
-    if (i < n_fuel_rings_)
-      solid_areas_(i) = M_PI * (r_grid_fuel_(i + 1) * r_grid_fuel_(i + 1) -
-                                r_grid_fuel_(i) * r_grid_fuel_(i));
-    else {
-      int r = i - n_fuel_rings_;
-      solid_areas_(i) = M_PI * (r_grid_clad_(r + 1) * r_grid_clad_(r + 1) -
-                                r_grid_clad_(r) * r_grid_clad_(r));
-    }
-  }
-
-  if (this->has_coupling_data()) {
-    // Create empty arrays for source term and temperature in the solid phase
-    source_ = xt::empty<double>({n_pins_, n_axial_, n_rings(), n_azimuthal_});
-    solid_temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
-
-    // Create empty arrays for temperature and density in the fluid phase
-    fluid_temperature_ = xt::empty<double>({n_pins_, n_axial_});
-    fluid_density_ = xt::empty<double>({n_pins_, n_axial_});
-  }
-}
 
 int SurrogateHeatDriver::n_local_elem() const
 {
@@ -712,8 +607,6 @@ void SurrogateHeatDriver::write_step(int timestep, int iteration)
 }
 
 SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
-                                                         std::size_t assembly_x,
-                                                         std::size_t assembly_y,
                                                          bool has_coupling,
                                                          double pressure_bc_)
 {
@@ -873,6 +766,42 @@ SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
   // Get z values
   z_ = openmc::get_node_xarray<double>(node, "z");
   n_axial_ = z_.size() - 1;
+
+  // Initialize heat transfer solver
+  generate_arrays(has_coupling);
 };
+
+void SurrogateHeatDriverAssembly::generate_arrays(bool has_coupling)
+{
+  // Make a radial grid for the clad with equal spacing.
+  r_grid_clad_ =
+    xt::linspace<double>(clad_inner_radius_, clad_outer_radius_, n_clad_rings_ + 1);
+
+  // Make a radial grid for the fuel with equal spacing.
+  r_grid_fuel_ = xt::linspace<double>(0, pellet_radius_, n_fuel_rings_ + 1);
+
+  // Compute the cross-sectional areas of each region
+  solid_areas_ = xt::empty<double>({n_rings()});
+  for (gsl::index i = 0; i < n_rings(); ++i) {
+    if (i < n_fuel_rings_)
+      solid_areas_(i) = M_PI * (r_grid_fuel_(i + 1) * r_grid_fuel_(i + 1) -
+                                r_grid_fuel_(i) * r_grid_fuel_(i));
+    else {
+      int r = i - n_fuel_rings_;
+      solid_areas_(i) = M_PI * (r_grid_clad_(r + 1) * r_grid_clad_(r + 1) -
+                                r_grid_clad_(r) * r_grid_clad_(r));
+    }
+  }
+
+  if (has_coupling) {
+    // Create empty arrays for source term and temperature in the solid phase
+    source_ = xt::empty<double>({n_pins_, n_axial_, n_rings(), n_azimuthal_});
+    solid_temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
+
+    // Create empty arrays for temperature and density in the fluid phase
+    fluid_temperature_ = xt::empty<double>({n_pins_, n_axial_});
+    fluid_density_ = xt::empty<double>({n_pins_, n_axial_});
+  }
+}
 
 } // namespace enrico

@@ -142,8 +142,6 @@ public:
   //! \param assembly_x  x index of assembly
   //! \param assembly_y  y index of assembly
   SurrogateHeatDriverAssembly(pugi::xml_node node,
-                              std::size_t assembly_x,
-                              std::size_t assembly_y,
                               bool has_coupling,
                               double pressure_bc_);
 
@@ -182,15 +180,6 @@ public:
   std::size_t n_fuel_rings_{20}; //!< number of fuel rings
   std::size_t n_clad_rings_{2};  //!< number of clad rings
 
-  //! Number of pins in the x-direction in a Cartesian grid
-  std::size_t n_pins_x_;
-
-  //! Number of pins in the y-direction in a Cartesian grid
-  std::size_t n_pins_y_;
-
-  //! Pin pitch, assumed the same for the x and y directions
-  double pin_pitch_;
-
   //!< Channels in the domain
   std::vector<Channel> channels_;
 
@@ -200,6 +189,37 @@ public:
   //! Mass flowrate for coolant-centered channels; this is determine by distributing
   //! a total inlet mass flowrate among the channels based on the fractional flow area.
   xt::xtensor<double, 1> channel_flowrates_;
+
+  // solver variables and settings
+  xt::xtensor<double, 4>
+    source_; //!< heat source for each (pin, axial segment, ring, azimuthal segment)
+  xt::xtensor<double, 1> r_grid_clad_; //!< radii of each clad ring in [cm]
+  xt::xtensor<double, 1> r_grid_fuel_; //!< radii of each fuel ring in [cm]
+
+  //! Cross-sectional areas of rings in fuel and cladding
+  xt::xtensor<double, 1> solid_areas_;
+
+private:
+  //!< solid temperature in [K] for each (pin, axial segment, ring)
+  xt::xtensor<double, 3> solid_temperature_;
+
+  //! Flow areas for coolant-centered channels
+  //xt::xtensor<double, 1> channel_areas_;
+
+  //! Fluid temperature in a rod-centered basis indexed by rod ID and axial ID
+  xt::xtensor<double, 2> fluid_temperature_;
+
+  //! Fluid density in [g/cm^3] in a rod-centered basis indexed by rod ID and axial ID
+  xt::xtensor<double, 2> fluid_density_;
+
+  //! Number of pins in the x-direction in a Cartesian grid
+  std::size_t n_pins_x_;
+
+  //! Number of pins in the y-direction in a Cartesian grid
+  std::size_t n_pins_y_;
+
+  //! Pin pitch, assumed the same for the x and y directions
+  double pin_pitch_;
 
   //! Inlet fluid temperature [K]
   double inlet_temperature_;
@@ -231,6 +251,10 @@ public:
 
   //! Verbosity setting for printing simulation results; defaults to NONE
   verbose verbosity_ = verbose::NONE;
+
+  //! Create internal arrays used for heat equation solver
+  void generate_arrays(bool has_coupling);
+
 }; // end SurrogateHeatDriverAssembly
 
 /**
@@ -424,7 +448,7 @@ private:
   std::vector<double> volume() const override;
 
   //! Create internal arrays used for heat equation solver
-  void generate_arrays();
+  // void generate_arrays();
 
   //! Channel index in terms of row, column index
   int channel_index(int row, int col) const { return row * (n_pins_x_ + 1) + col; }
