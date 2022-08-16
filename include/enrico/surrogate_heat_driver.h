@@ -191,6 +191,16 @@ public:
   //! Pin pitch, assumed the same for the x and y directions
   double pin_pitch_;
 
+  //!< Channels in the domain
+  std::vector<Channel> channels_;
+
+  //!< Rods in the domain
+  std::vector<Rod> rods_;
+
+  //! Mass flowrate for coolant-centered channels; this is determine by distributing
+  //! a total inlet mass flowrate among the channels based on the fractional flow area.
+  xt::xtensor<double, 1> channel_flowrates_;
+
   //! Inlet fluid temperature [K]
   double inlet_temperature_;
 

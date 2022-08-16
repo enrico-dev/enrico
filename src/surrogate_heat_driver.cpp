@@ -822,6 +822,57 @@ SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
     }
   }
 
+  // Initialize the channels
+  ChannelFactory channel_factory(pin_pitch_, clad_outer_radius_);
+
+  for (std::size_t row = 0; row < n_pins_y_ + 1; ++row) {
+    for (std::size_t col = 0; col < n_pins_x_ + 1; ++col) {
+      std::size_t a = col / n_pins_x_;
+      std::size_t b = row / n_pins_y_;
+
+      if ((row == 0 || row == n_pins_y_) && (col == 0 || col == n_pins_x_))
+        channels_.push_back(channel_factory.make_corner(
+          {a * (n_pins_x_ - 1) + b * n_pins_x_ * (n_pins_y_ - 1)}));
+      else if (row == 0)
+        channels_.push_back(channel_factory.make_edge({col - 1, col}));
+      else if (row == n_pins_y_)
+        channels_.push_back(channel_factory.make_edge(
+          {(row - 1) * n_pins_x_ + col - 1, (row - 1) * n_pins_x_ + col}));
+      else if (col == 0)
+        channels_.push_back(
+          channel_factory.make_edge({(row - 1) * n_pins_x_, row * n_pins_x_}));
+      else if (col == n_pins_x_)
+        channels_.push_back(
+          channel_factory.make_edge({row * n_pins_x_ - 1, (row + 1) * n_pins_x_ - 1}));
+      else {
+        std::size_t i = (row - 1) * n_pins_x_ + col - 1;
+        channels_.push_back(
+          channel_factory.make_interior({i, i + 1, i + n_pins_x_, i + n_pins_x_ + 1}));
+      }
+    }
+  }
+
+  // Initialize the rods
+  RodFactory rod_factory(clad_outer_radius_, clad_inner_radius_, pellet_radius_);
+  for (gsl::index rod = 0; rod < n_pins_; ++rod) {
+    std::size_t row = rod / n_pins_x_;
+    std::size_t col = rod % n_pins_x_;
+    std::size_t a = n_pins_x_ + 1;
+    rods_.push_back(rod_factory.make_rod(
+      {row * a + col, row * a + col + 1, (row + 1) * a + col, (row + 1) * a + col + 1}));
+  }
+
+  double total_flow_area = 0.0;
+  for (const auto& c : channels_)
+    total_flow_area += c.area_;
+
+  channel_flowrates_.resize({n_channels_});
+  for (gsl::index i = 0; i < n_channels_; ++i)
+    channel_flowrates_(i) = channels_[i].area_ / total_flow_area * mass_flowrate_;
+
+  // Get z values
+  z_ = openmc::get_node_xarray<double>(node, "z");
+  n_axial_ = z_.size() - 1;
 };
 
 } // namespace enrico
