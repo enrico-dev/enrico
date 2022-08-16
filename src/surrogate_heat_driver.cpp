@@ -99,15 +99,6 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   Expects(subchannel_tol_p_ > 0.0);
   Expects(heat_tol_ > 0.0);
 
-  // Set pin locations, where the center of the assembly is assumed to occur at
-  // x = 0, y = 0. It is also assumed that the rod-boundary separation in the
-  // x and y directions is the same and equal to half the pitch.
-  // TODO: generalize to multi-assembly simulations
-  double assembly_width_x = n_pins_x_ * pin_pitch_;
-  double assembly_width_y = n_pins_y_ * pin_pitch_;
-  double top_left_x = -assembly_width_x / 2.0 + pin_pitch_ / 2.0;
-  double top_left_y = assembly_width_y / 2.0 - pin_pitch_ / 2.0;
-
   bool has_coupling = has_coupling_data();
 
   // init vector of assembly surrogate drivers
@@ -117,6 +108,15 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
         SurrogateHeatDriverAssembly(node, col, row, has_coupling, pressure_bc_));
     }
   }
+
+  // Set pin locations, where the center of the assembly is assumed to occur at
+  // x = 0, y = 0. It is also assumed that the rod-boundary separation in the
+  // x and y directions is the same and equal to half the pitch.
+  // TODO: generalize to multi-assembly simulations
+  double assembly_width_x = n_pins_x_ * pin_pitch_;
+  double assembly_width_y = n_pins_y_ * pin_pitch_;
+  double top_left_x = -assembly_width_x / 2.0 + pin_pitch_ / 2.0;
+  double top_left_y = assembly_width_y / 2.0 - pin_pitch_ / 2.0;
 
   pin_centers_.resize({n_pins_, 2});
   for (gsl::index row = 0; row < n_pins_y_; ++row) {
@@ -796,11 +796,31 @@ SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
   Expects(assembly_width_x_ >= pin_pitch_ * n_pins_x_);
   Expects(assembly_width_y_ >= pin_pitch_ * n_pins_y_);
 
+  // Set pin locations, where the center of the assembly is assumed to occur at
+  // x = 0, y = 0. It is also assumed that the rod-boundary separation in the
+  // x and y directions is the same and equal to half the pitch.
   double core_width_x = assembly_width_x_ * n_assem_x_;
   double core_width_y = assembly_width_y_ * n_assem_y_;
   double core_top_left_x = -core_width_x / 2.0;
   double core_top_left_y = core_width_y / 2.0;
 
+  pin_centers_.resize({n_pins_, 2});
+  for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
+    for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
+      //int assem_index = arow * n_assem_x_ + acol;
+      double assem_top_left_x =
+        core_top_left_x + acol * assembly_width_x_ + pin_pitch_ / 2.0;
+      double assem_top_left_y =
+        core_top_left_y - arow * assembly_width_y_ - pin_pitch_ / 2.0;
+      for (gsl::index row = 0; row < n_pins_y_; ++row) {
+        for (gsl::index col = 0; col < n_pins_x_; ++col) {
+          int pin_index = row * n_pins_x_ + col;
+          pin_centers_(pin_index, 0) = assem_top_left_x + col * pin_pitch_;
+          pin_centers_(pin_index, 1) = assem_top_left_y - row * pin_pitch_;
+        }
+      }
+    }
+  }
 
 };
 
