@@ -206,6 +206,12 @@ public:
 
   void solve_heat();
 
+  xt::xtensor<double, 2> pin_centers() const {return pin_centers_;}
+  xt::xtensor<double, 1> z() const {return z_;}
+  xt::xtensor<double, 1> r_grid_clad() const {return r_grid_clad_;}
+  xt::xtensor<double, 1> r_grid_fuel() const {return r_grid_fuel_;}
+  std::size_t n_axial() const {return n_axial_;}
+
 private:
   //!< solid temperature in [K] for each (pin, axial segment, ring)
   xt::xtensor<double, 3> solid_temperature_;
