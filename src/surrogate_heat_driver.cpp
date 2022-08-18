@@ -281,13 +281,13 @@ std::vector<double> SurrogateHeatDriver::density() const
 }
 
 int SurrogateHeatDriver::in_fluid_at(int32_t local_elem) const
-{
+{  // this is consistent with fluid_mask() but not sure if this and
+   // fluid_mask() are consistent with the rest of the data structures
   return local_elem >= n_solid_ * n_assem_;
 }
 
 std::vector<int> SurrogateHeatDriver::fluid_mask() const
 {
-  // !! CHECK THIS !!
   std::vector<int> fluid_mask;
   if (this->has_coupling_data()) {
     std::fill_n(std::back_inserter(fluid_mask), n_solid_ * n_assem_, 0);
@@ -506,6 +506,8 @@ SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
           int pin_index = row * n_pins_x_ + col;
           pin_centers_(pin_index, 0) = assem_top_left_x + col * pin_pitch_;
           pin_centers_(pin_index, 1) = assem_top_left_y - row * pin_pitch_;
+
+          std::cout << pin_centers_(pin_index, 0) << " " << pin_centers_(pin_index, 1) << std::endl;
         }
       }
     }
