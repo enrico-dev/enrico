@@ -33,8 +33,6 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   n_pins_x_ = node.child("n_pins_x").text().as_int();
   n_pins_y_ = node.child("n_pins_y").text().as_int();
   n_pins_ = n_pins_x_ * n_pins_y_;
-  n_solid_ = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
-  n_fluid_ = n_pins_ * n_axial_;
   pin_pitch_ = node.child("pin_pitch").text().as_double();
 
   // Determine thermal-hydraulic parameters for fluid phase
@@ -109,6 +107,13 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
     }
   }
 
+  // Get z values
+  z_ = openmc::get_node_xarray<double>(node, "z");
+  n_axial_ = z_.size() - 1;
+
+  n_solid_ = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
+  n_fluid_ = n_pins_ * n_axial_;
+
   // Check for visualization input
   if (node.child("viz")) {
     pugi::xml_node viz_node = node.child("viz");
@@ -134,7 +139,6 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   }
 };
 
-
 int SurrogateHeatDriver::n_local_elem() const
 {
   return this->has_coupling_data() ? this->n_global_elem() : 0;
@@ -142,9 +146,7 @@ int SurrogateHeatDriver::n_local_elem() const
 
 std::size_t SurrogateHeatDriver::n_global_elem() const
 {
-  auto n_solid = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
-  auto n_fluid = n_pins_ * n_axial_;
-  return n_solid + n_fluid;
+  return n_assem_ * (n_solid_ + n_fluid_);
 }
 
 std::vector<Position> SurrogateHeatDriver::centroid() const
@@ -164,19 +166,19 @@ std::vector<Position> SurrogateHeatDriver::centroid() const
 
       for (gsl::index i = 0; i < n_pins_; ++i)
       {
-        double x_center = assembly.pin_centers()(i, 0);
-        double y_center = assembly.pin_centers()(i, 1);
+        double x_center = assembly.pin_centers_(i, 0);
+        double y_center = assembly.pin_centers_(i, 1);
 
-        for (gsl::index j = 0; j < assembly.n_axial(); ++j) {
-          double zavg = 0.5 * (assembly.z()(j) + assembly.z()(j + 1));
+        for (gsl::index j = 0; j < n_axial_; ++j) {
+          double zavg = 0.5 * (z_(j) + z_(j + 1));
 
           for (gsl::index k = 0; k < n_rings(); ++k) {
             double ravg;
             if (k < n_fuel_rings_) {
-              ravg = 0.5 * (assembly.r_grid_fuel()(k) + assembly.r_grid_fuel()(k + 1));
+              ravg = 0.5 * (assembly.r_grid_fuel_(k) + assembly.r_grid_fuel_(k + 1));
             } else {
               int m = k - n_fuel_rings_;
-              ravg = 0.5 * (assembly.r_grid_clad()(m) + assembly.r_grid_clad()(m + 1));
+              ravg = 0.5 * (assembly.r_grid_clad_(m) + assembly.r_grid_clad_(m + 1));
             }
 
             for (gsl::index m = 0; m < n_azimuthal_; ++m) {
@@ -202,16 +204,14 @@ std::vector<Position> SurrogateHeatDriver::centroid() const
   for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
     for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
       std::size_t assem_index = arow * n_assem_x_ + acol;
-
       SurrogateHeatDriverAssembly assembly = assembly_drivers_[assem_index];
 
       for (gsl::index i = 0; i < n_pins_; ++i) {
-        double x_center = assembly.pin_centers()(i, 0);
-        double y_center = assembly.pin_centers()(i, 1);
+        double x_center = assembly.pin_centers_(i, 0);
+        double y_center = assembly.pin_centers_(i, 1);
 
         for (gsl::index j = 0; j < assembly.n_axial(); ++j) {
-          double zavg = 0.5 * (assembly.z()(j) +
-                               assembly.z()(j + 1));
+          double zavg = 0.5 * (z_(j) + z_(j + 1));
           double l = pin_pitch() / std::sqrt(2.0);
           double d = (l - clad_outer_radius_) / 2.0;
           double x = x_center + (clad_outer_radius_ + d) * std::sqrt(2.0) / 2.0;
@@ -232,18 +232,25 @@ std::vector<double> SurrogateHeatDriver::temperature() const
   std::vector<double> local_temperatures;
 
   if (this->has_coupling_data()) {
-    for (gsl::index i = 0; i < n_pins_; ++i) {
-      for (gsl::index j = 0; j < n_axial_; ++j) {
-        for (gsl::index k = 0; k < n_rings(); ++k) {
-          for (gsl::index m = 0; m < n_azimuthal_; ++m) {
-            local_temperatures.push_back(solid_temperature_(i, j, k));
+    for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
+      for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
+        std::size_t assem_index = arow * n_assem_x_ + acol;
+        SurrogateHeatDriverAssembly assembly = assembly_drivers_[assem_index];
+
+        for (gsl::index i = 0; i < n_pins_; ++i) {
+          for (gsl::index j = 0; j < n_axial_; ++j) {
+            for (gsl::index k = 0; k < n_rings(); ++k) {
+              for (gsl::index m = 0; m < n_azimuthal_; ++m) {
+                local_temperatures.push_back(assembly.solid_temperature_(i, j, k));
+              }
+            }
           }
         }
-      }
-    }
 
-    for (double T : fluid_temperature_) {
-      local_temperatures.push_back(T);
+        for (double T : assembly.fluid_temperature_) {
+          local_temperatures.push_back(T);
+        }
+      }
     }
   }
 
@@ -255,13 +262,19 @@ std::vector<double> SurrogateHeatDriver::density() const
   std::vector<double> local_densities;
 
   if (this->has_coupling_data()) {
-    // Solid region just gets zeros for densities (not used)
-    auto n = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
-    std::fill_n(std::back_inserter(local_densities), n, 0.0);
+    for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
+      for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
+        std::size_t assem_index = arow * n_assem_x_ + acol;
+        SurrogateHeatDriverAssembly assembly = assembly_drivers_[assem_index];
+        // Solid region just gets zeros for densities (not used)
+        auto n = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
+        std::fill_n(std::back_inserter(local_densities), n, 0.0);
 
-    // Add fluid densities and return
-    for (double rho : fluid_density_) {
-      local_densities.push_back(rho);
+        // Add fluid densities and return
+        for (double rho : assembly.fluid_density_) {
+          local_densities.push_back(rho);
+        }
+      }
     }
   }
   return local_densities;
@@ -269,18 +282,16 @@ std::vector<double> SurrogateHeatDriver::density() const
 
 int SurrogateHeatDriver::in_fluid_at(int32_t local_elem) const
 {
-  return local_elem >= n_solid_;
+  return local_elem >= n_solid_ * n_assem_;
 }
 
 std::vector<int> SurrogateHeatDriver::fluid_mask() const
 {
+  // !! CHECK THIS !!
   std::vector<int> fluid_mask;
-
   if (this->has_coupling_data()) {
-    auto n_solid = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
-    auto n_fluid = n_pins_ * n_axial_;
-    std::fill_n(std::back_inserter(fluid_mask), n_solid, 0);
-    std::fill_n(std::back_inserter(fluid_mask), n_fluid, 1);
+    std::fill_n(std::back_inserter(fluid_mask), n_solid_ * n_assem_, 0);
+    std::fill_n(std::back_inserter(fluid_mask), n_fluid_ * n_assem_, 1);
   }
   return fluid_mask;
 }
@@ -290,25 +301,31 @@ std::vector<double> SurrogateHeatDriver::volume() const
   std::vector<double> volumes;
 
   if (this->has_coupling_data()) {
-    // Volume of solid regions
-    for (gsl::index i = 0; i < n_pins_; ++i) {
-      for (gsl::index j = 0; j < n_axial_; ++j) {
-        double dz = z_(j + 1) - z_(j);
-        for (gsl::index k = 0; k < n_rings(); ++k) {
-          for (gsl::index m = 0; m < n_azimuthal_; ++m) {
-            volumes.push_back(solid_areas_(k) * dz / n_azimuthal_);
+    for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
+      for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
+        std::size_t assem_index = arow * n_assem_x_ + acol;
+        SurrogateHeatDriverAssembly assembly = assembly_drivers_[assem_index];
+        // Volume of solid regions
+        for (gsl::index i = 0; i < n_pins_; ++i) {
+          for (gsl::index j = 0; j < n_axial_; ++j) {
+            double dz = z_(j + 1) - z_(j);
+            for (gsl::index k = 0; k < n_rings(); ++k) {
+              for (gsl::index m = 0; m < n_azimuthal_; ++m) {
+                volumes.push_back(assembly.solid_areas_(k) * dz / n_azimuthal_);
+              }
+            }
           }
         }
-      }
-    }
 
-    // Volume of fluid regions
-    for (gsl::index i = 0; i < n_pins_; ++i) {
-      for (gsl::index j = 0; j < n_axial_; ++j) {
-        double dz = z_(j + 1) - z_(j);
-        double area =
-          pin_pitch_ * pin_pitch_ - M_PI * clad_outer_radius_ * clad_outer_radius_;
-        volumes.push_back(area * dz);
+        // Volume of fluid regions
+        for (gsl::index i = 0; i < n_pins_; ++i) {
+          for (gsl::index j = 0; j < n_axial_; ++j) {
+            double dz = z_(j + 1) - z_(j);
+            double area =
+              pin_pitch_ * pin_pitch_ - M_PI * clad_outer_radius_ * clad_outer_radius_;
+            volumes.push_back(area * dz);
+          }
+        }
       }
     }
   }
@@ -318,17 +335,21 @@ std::vector<double> SurrogateHeatDriver::volume() const
 
 int SurrogateHeatDriver::set_heat_source_at(int32_t local_elem, double heat)
 {
-  if (local_elem >= n_pins_ * n_axial_ * n_rings() * n_azimuthal_)
+  if (local_elem >= n_solid_ * n_assem_)
     return 0;
 
   // Determine indices
+
+  // get assembly index
+  gsl::index assem = (local_elem / (n_axial_ * n_rings() * n_azimuthal_)) % n_assem_;
+
   gsl::index pin = local_elem / (n_axial_ * n_rings() * n_azimuthal_);
   gsl::index axial = (local_elem / (n_rings() * n_azimuthal_)) % n_axial_;
   gsl::index ring = (local_elem / n_azimuthal_) % n_rings();
   gsl::index azimuthal = local_elem % n_azimuthal_;
 
   // Set heat source
-  source_(pin, axial, ring, azimuthal) = heat;
+  assembly_drivers_[assem].source_(pin, axial, ring, azimuthal) = heat;
   return 0;
 }
 
@@ -339,31 +360,14 @@ void SurrogateHeatDriver::solve_step()
     for (gsl::index row = 0; row < n_assem_y_; ++row) {
       for (gsl::index col = 0; col < n_assem_x_; ++col) {
         int assem_index = row * n_pins_x_ + col;
+        comm_.message("Solving fluid equation...");
         assembly_drivers_[assem_index].solve_fluid();
-
         comm_.message("Solving heat equation...");
         assembly_drivers_[assem_index].solve_heat();
       }
     }
   }
   timer_solve_step.stop();
-}
-
-double SurrogateHeatDriver::solid_temperature(std::size_t pin,
-                                              std::size_t axial,
-                                              std::size_t ring) const
-{
-  return solid_temperature_(pin, axial, ring);
-}
-
-double SurrogateHeatDriver::fluid_density(std::size_t pin, std::size_t axial) const
-{
-  return fluid_density_(pin, axial);
-}
-
-double SurrogateHeatDriver::fluid_temperature(std::size_t pin, std::size_t axial) const
-{
-  return fluid_temperature_(pin, axial);
 }
 
 void SurrogateHeatDriver::write_step(int timestep, int iteration)
@@ -386,12 +390,16 @@ void SurrogateHeatDriver::write_step(int timestep, int iteration)
   if (iteration >= 0 && timestep >= 0) {
     filename << "_t" << timestep << "_i" << iteration;
   }
-  filename << ".vtk";
 
-  SurrogateVtkWriter vtk_writer(*this, vtk_radial_res_, viz_regions_, viz_data_);
+  for (gsl::index assem = 0; assem < n_assem_; ++assem) {
+    SurrogateVtkWriter vtk_writer(
+      assembly_drivers_[assem], vtk_radial_res_, viz_regions_, viz_data_);
 
-  comm_.message("Writing VTK file: " + filename.str());
-  vtk_writer.write(filename.str());
+    filename << "_" << assem << ".vtk";
+
+    comm_.message("Writing VTK file: " + filename.str());
+    vtk_writer.write(filename.str());
+  }
   // timer_write_step.stop();
   return;
 }
@@ -409,8 +417,6 @@ SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
   n_pins_x_ = node.child("n_pins_x").text().as_int();
   n_pins_y_ = node.child("n_pins_y").text().as_int();
   n_pins_ = n_pins_x_ * n_pins_y_;
-  n_solid_ = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
-  n_fluid_ = n_pins_ * n_axial_;
   pin_pitch_ = node.child("pin_pitch").text().as_double();
 
   // Determine assembly information
@@ -557,10 +563,8 @@ SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
   z_ = openmc::get_node_xarray<double>(node, "z");
   n_axial_ = z_.size() - 1;
 
-  //std::cout << "new assembly " << n_axial_ << std::endl;
-  //for (const auto& zval : z_){
-  //  std::cout << zval << std::endl;
-  //}
+  n_solid_ = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
+  n_fluid_ = n_pins_ * n_axial_;
 
   pressure_bc_ = pressure_bc;
   has_coupling_ = has_coupling;
@@ -834,6 +838,24 @@ void SurrogateHeatDriverAssembly::solve_heat()
                           &solid_temperature_(i, j, 0));
     }
   }
+}
+
+double SurrogateHeatDriverAssembly::solid_temperature(std::size_t pin,
+                                                      std::size_t axial,
+                                                      std::size_t ring) const
+{
+  return solid_temperature_(pin, axial, ring);
+}
+
+double SurrogateHeatDriverAssembly::fluid_density(std::size_t pin,
+                                                  std::size_t axial) const
+{
+  return fluid_density_(pin, axial);
+}
+
+double SurrogateHeatDriverAssembly::fluid_temperature(std::size_t pin, std::size_t axial) const
+{
+  return fluid_temperature_(pin, axial);
 }
 
 } // namespace enrico

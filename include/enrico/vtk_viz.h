@@ -12,6 +12,7 @@ namespace enrico {
 //! Class providing VTK write capabilities for the surrogate T/H solver.
 class SurrogateVtkWriter {
 
+  friend SurrogateHeatDriverAssembly;
   friend SurrogateHeatDriver;
 
 public:
@@ -35,7 +36,7 @@ private:
   //! \param t_res            Radial resolution of the generated VTK mesh
   //! \param regions_to_write Description of spatial regions to write
   //! \param data_to_write    Description of solution data to write
-  SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ptr,
+  SurrogateVtkWriter(const SurrogateHeatDriverAssembly& surrogate_ptr,
                      size_t t_res,
                      const std::string& regions_to_write,
                      const std::string& data_to_write);
@@ -131,7 +132,7 @@ private:
   //! \return 1-D array of types, one for each element (ordered planar, axially)
   xtensor<int, 1> types();
 
-  const SurrogateHeatDriver& surrogate_; //!< reference to surrogate
+  const SurrogateHeatDriverAssembly& surrogate_; //!< reference to surrogate
   size_t azimuthal_res_;                 //!< azimuthal resolution
   VizDataType data_out_;                 //!< output region
   VizRegionType regions_out_;            //!< output data
