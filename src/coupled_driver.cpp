@@ -477,6 +477,7 @@ void CoupledDriver::update_heat_source(bool relax)
         cell_heat_source_ = alpha_ * cell_heat_source_ + (1.0 - alpha_) * cell_heat_source_prev_;
       }
     }
+    std::cout << cell_to_glob_cell_.size() << " " << glob_cell_to_elem_.size() << std::endl;
     for (gsl::index i = 0; i < cell_to_glob_cell_.size(); ++i) {
       for (const auto& e : glob_cell_to_elem_.at(cell_to_glob_cell_.at(i))) {
         heat.set_heat_source_at(e, cell_heat_source_.at(i));
