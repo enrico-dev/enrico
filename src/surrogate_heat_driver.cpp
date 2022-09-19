@@ -359,10 +359,12 @@ void SurrogateHeatDriver::solve_step()
   if (has_coupling_data()) {
     for (gsl::index row = 0; row < n_assem_y_; ++row) {
       for (gsl::index col = 0; col < n_assem_x_; ++col) {
-        int assem_index = row * n_pins_x_ + col;
-        comm_.message("Solving fluid equation...");
+        int assem_index = row * n_assem_x_ + col;
+        comm_.message("Solving fluid equation for assembly " +
+                      std::to_string(assem_index) + " ...");
         assembly_drivers_[assem_index].solve_fluid();
-        comm_.message("Solving heat equation...");
+        comm_.message("Solving heat equation for assembly " +
+                      std::to_string(assem_index) + " ...");
         assembly_drivers_[assem_index].solve_heat();
       }
     }
