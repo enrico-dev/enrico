@@ -143,13 +143,17 @@ public:
   //! \param assembly_y  y index of assembly
   SurrogateHeatDriverAssembly(pugi::xml_node node,
                               bool has_coupling,
-                              double pressure_bc);
+                              double pressure_bc,
+                              std::size_t index,
+                              bool skip_assembly);
 
   //! Verbosity options for printing simulation results
   enum class verbose { NONE, LOW, HIGH };
 
   bool has_coupling_;
   double pressure_bc_;
+  std::size_t index;    //! assembly index
+  bool skip_assembly_;  //! whether or not to skip assembly
 
   // Assembly information
   std::size_t n_assem_x_; //! Number of assemblies in the x-direction in a Cartesian grid
@@ -351,6 +355,8 @@ public:
   std::size_t n_assem_;      //! total number of assemblies
   double assembly_width_x_;  //! x dimension of assembly
   double assembly_width_y_;  //! x dimension of assembly
+  xt::xtensor<int, 1> skip_assemblies_; //! indices for assemblies not part of core
+  std::size_t n_skip_;       //! number of assemblies skipped
 
   std::vector<SurrogateHeatDriverAssembly> assembly_drivers_;
 
