@@ -904,6 +904,8 @@ void CoupledDriver::init_fluid_mask()
       auto in_fluid = elem_fluid_mask.at(elems.at(0));
       for (gsl::index i = 1; i < elems.size(); ++i) {
         if (in_fluid != elem_fluid_mask.at(elems.at(i))) {
+          auto elem_centroid = heat.centroid()[elems.at(i)];
+          std::cout << elem_centroid.x << " " << elem_centroid.y << " " << elem_centroid.z << std::endl;
           throw std::runtime_error("ENRICO detected a neutronics cell that "
                                    "contains both fluid and solid T/H elements.");
         }
