@@ -286,15 +286,14 @@ std::vector<double> SurrogateHeatDriver::density() const
   std::vector<double> local_densities;
 
   if (this->has_coupling_data()) {
+    // Solid region just gets zeros for densities (not used)
+    auto n = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
+    std::fill_n(std::back_inserter(local_densities), n * n_assem_, 0.0);
     for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
       for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
         std::size_t assem_index = arow * n_assem_x_ + acol;
         SurrogateHeatDriverAssembly assembly = assembly_drivers_[assem_index];
         if (!assembly.skip_assembly_) {
-          // Solid region just gets zeros for densities (not used)
-          auto n = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
-          std::fill_n(std::back_inserter(local_densities), n, 0.0);
-
           // Add fluid densities and return
           for (double rho : assembly.fluid_density_) {
             local_densities.push_back(rho);
@@ -367,6 +366,10 @@ int SurrogateHeatDriver::set_heat_source_at(int32_t local_elem, double heat)
 
   // get assembly index
   gsl::index assem = (local_elem / (n_pins_ * n_axial_ * n_rings() * n_azimuthal_));
+
+  if (assembly_drivers_[assem].skip_assembly_){
+    return 0;
+  }
 
   // Determine indices within assembly
   gsl::index assem_local_elem =
