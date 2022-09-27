@@ -7,10 +7,10 @@
 #include "pugixml.hpp"
 #include "enrico/surrogate_heat_driver.h"
 
-TEST_CASE("Verify construction of surrogate thermal-hydraulics driver", "[construction]") {
-  // load input file - 1 assembly
+TEST_CASE("Verify construction of surrogate thermal-hydraulics driver - single assembly", "[construction]") {
+  // load input file
   pugi::xml_document doc;
-  auto result = doc.load_file("inputs/test_surrogate_th.xml");
+  auto result = doc.load_file("inputs/test_surrogate_th_single.xml");
 
   CHECK(result);
 
