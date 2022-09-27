@@ -451,25 +451,6 @@ public:
   std::size_t n_fuel_rings_{20}; //!< number of fuel rings
   std::size_t n_clad_rings_{2};  //!< number of clad rings
 
-  //!< Channels in the domain
-  std::vector<Channel> channels_;
-
-  //!< Rods in the domain
-  std::vector<Rod> rods_;
-
-  //! Mass flowrate for coolant-centered channels; this is determine by distributing
-  //! a total inlet mass flowrate among the channels based on the fractional flow area.
-  xt::xtensor<double, 1> channel_flowrates_;
-
-  // solver variables and settings
-  //xt::xtensor<double, 4>
-  //  source_; //!< heat source for each (pin, axial segment, ring, azimuthal segment)
-  //xt::xtensor<double, 1> r_grid_clad_; //!< radii of each clad ring in [cm]
-  //xt::xtensor<double, 1> r_grid_fuel_; //!< radii of each fuel ring in [cm]
-
-  //! Cross-sectional areas of rings in fuel and cladding
-  //xt::xtensor<double, 1> solid_areas_;
-
   // visualization
   std::string viz_basename_{
     "heat_surrogate"}; //!< base filename for visualization files (default: magnolia)
@@ -500,9 +481,6 @@ private:
   //! \return Volumes of local mesh elements
   std::vector<double> volume() const override;
 
-  //! Create internal arrays used for heat equation solver
-  // void generate_arrays();
-
   //! Channel index in terms of row, column index
   int channel_index(int row, int col) const { return row * (n_pins_x_ + 1) + col; }
 
@@ -511,19 +489,6 @@ private:
   //! \param pin   pin index
   //! \param axial axial index
   // double rod_axial_node_power(const int pin, const int axial) const;
-
-
-  //!< solid temperature in [K] for each (pin, axial segment, ring)
-  //xt::xtensor<double, 3> solid_temperature_;
-
-  //! Flow areas for coolant-centered channels
-  //xt::xtensor<double, 1> channel_areas_;
-
-  //! Fluid temperature in a rod-centered basis indexed by rod ID and axial ID
-  //xt::xtensor<double, 2> fluid_temperature_;
-
-  //! Fluid density in [g/cm^3] in a rod-centered basis indexed by rod ID and axial ID
-  //xt::xtensor<double, 2> fluid_density_;
 
   //! Number of pins in the x-direction in a Cartesian grid
   std::size_t n_pins_x_;
