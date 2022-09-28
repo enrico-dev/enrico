@@ -40,6 +40,15 @@ TEST_CASE("Verify construction of surrogate thermal-hydraulics driver - single a
     CHECK(driver.heat_tol() == Approx(1.0e-4));
   }
 
+  SECTION("Verify auto calculated assembly information"){
+    CHECK(driver.assembly_width_x_ == 8.82);
+    CHECK(driver.assembly_width_y_ == 5.04);
+    CHECK(driver.n_assem_x_ == 1);
+    CHECK(driver.n_assem_y_ == 1);
+    CHECK(driver.n_skip_ == 0);
+    CHECK(driver.n_assem_ == 1);
+  }
+
   SECTION("Verify calculation of pin center coordinates") {
     const auto& centers = assembly.pin_centers_;
 
@@ -435,6 +444,82 @@ TEST_CASE("Verify construction of surrogate thermal-hydraulics driver - single a
     CHECK(rc(1) == Approx(0.434333333333333));
     CHECK(rc(2) == Approx(0.454666666666666));
     CHECK(rc(3) == Approx(0.475));
+  }
+
+}
+
+TEST_CASE("Verify multi-assembly construction of surrogate model - 3x2"){
+  // load input file
+  pugi::xml_document doc;
+  auto result = doc.load_file("inputs/test_surrogate_th_multi.xml");
+
+  CHECK(result);
+  auto root = doc.document_element();
+  auto node = root.child("heat_fluids");
+
+  enrico::SurrogateHeatDriver driver(MPI_COMM_NULL, node);
+  std::vector<enrico::SurrogateHeatDriverAssembly> assemblies = driver.assembly_drivers_;
+
+  SECTION("Verify reading assembly information from XML inputs"){
+    CHECK(driver.n_assem_x_ == 3);
+    CHECK(driver.n_assem_y_ == 2);
+    CHECK(driver.assembly_width_x_ == 8.82);
+    CHECK(driver.assembly_width_y_ == 5.04);
+  }
+
+  SECTION("Verify calculated assembly information"){
+    CHECK(driver.n_assem_ == 6);
+    CHECK(driver.n_skip_ == 0);
+  }
+
+  SECTION("Verify pin centers in assembly"){
+
+    // x and y values for assembly reference (center of core)
+    std::vector<double> yvals_ref{1.89, 0.63, -0.63, -1.89};
+    std::vector<double> xvals_ref{-3.78, -2.52, -1.26, 0.0, 1.26, 2.52, 3.78};
+
+    // expected offsets for each assembly
+    std::vector<double> xoff{-8.82, 0, 8.82, -8.82, 0, 8.82};
+    std::vector<double> yoff{2.52, 2.52, 2.52, -2.52, -2.52, -2.52};
+
+    // iterate over all assemblies
+    for (int a = 0; a < 6; a++){
+      // off-set pin locations from reference
+      std::vector<double> xvals;
+      for (int i = 0; i < xvals_ref.size(); i++)
+        xvals.push_back(xvals_ref[i] + xoff[a]);
+      std::vector<double> yvals;
+      for (int i = 0; i < yvals_ref.size(); i++)
+        yvals.push_back(yvals_ref[i] + yoff[a]);
+
+      const auto& centers = assemblies[a].pin_centers_;
+
+      // check y-coordinates row by row
+      for (int i = 0; i < 7; ++i)
+        CHECK(centers(i, 1) == Approx(yvals[0]));
+      for (int i = 7; i < 14; ++i)
+        CHECK(centers(i, 1) == Approx(yvals[1]));
+      for (int i = 14; i < 21; ++i)
+        CHECK(centers(i, 1) == Approx(yvals[2]));
+      for (int i = 21; i < 28; ++i)
+        CHECK(centers(i, 1) == Approx(yvals[3]));
+
+      // check x-coordinates column by column
+      for (int i = 0; i < 22; i += 7)
+        CHECK(centers(i, 0) == Approx(xvals[0]));
+      for (int i = 1; i < 23; i += 7)
+        CHECK(centers(i, 0) == Approx(xvals[1]));
+      for (int i = 2; i < 24; i += 7)
+        CHECK(centers(i, 0) == Approx(xvals[2]));
+      for (int i = 3; i < 25; i += 7)
+        CHECK(centers(i, 0) == Approx(xvals[3]));
+      for (int i = 4; i < 26; i += 7)
+        CHECK(centers(i, 0) == Approx(xvals[4]));
+      for (int i = 5; i < 27; i += 7)
+        CHECK(centers(i, 0) == Approx(xvals[5]));
+      for (int i = 6; i < 28; i += 7)
+        CHECK(centers(i, 0) == Approx(xvals[6]));
+    }
   }
 
 }
