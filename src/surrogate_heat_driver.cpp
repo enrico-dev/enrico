@@ -536,8 +536,8 @@ SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
 
   pin_centers_.resize({n_pins_, 2});
 
-  int acol = index % n_assem_y_;
-  int arow = (index - acol) / n_assem_x_;
+  int acol = index % n_assem_x_;
+  int arow = (index - acol) / n_assem_y_;
   double assem_top_left_x =
     core_top_left_x + acol * assembly_width_x_ + pin_pitch_ / 2.0;
   double assem_top_left_y =
