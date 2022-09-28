@@ -118,7 +118,6 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
       bool skip = false;
       for (gsl::index i = 0; i < skip_assemblies_.size(); ++i){
         if (assem_index == skip_assemblies_[i]){
-          std::cout << "Skip assem " << assem_index << std::endl;
           skip = true;
         }
       }
