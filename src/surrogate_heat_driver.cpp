@@ -130,6 +130,7 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   z_ = openmc::get_node_xarray<double>(node, "z");
   n_axial_ = z_.size() - 1;
 
+  // number of solid and fluid elements per assembly
   n_solid_ = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
   n_fluid_ = n_pins_ * n_axial_;
 
@@ -187,7 +188,6 @@ std::vector<Position> SurrogateHeatDriver::centroid() const
         {
           double x_center = assembly.pin_centers_(i, 0);
           double y_center = assembly.pin_centers_(i, 1);
-          //std::cout << assem_index << " " << x_center << " " << y_center << std::endl;
 
           for (gsl::index j = 0; j < n_axial_; ++j) {
             double zavg = 0.5 * (z_(j) + z_(j + 1));
@@ -288,6 +288,7 @@ std::vector<double> SurrogateHeatDriver::density() const
     // Solid region just gets zeros for densities (not used)
     auto n = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
     std::fill_n(std::back_inserter(local_densities), n * n_assem_, 0.0);
+    // iterate over each assembly to get fluid densities
     for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
       for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
         std::size_t assem_index = arow * n_assem_x_ + acol;
@@ -387,6 +388,7 @@ void SurrogateHeatDriver::solve_step()
 {
   timer_solve_step.start();
   if (has_coupling_data()) {
+    // iterate over each assembly for each solve step
     for (gsl::index row = 0; row < n_assem_y_; ++row) {
       for (gsl::index col = 0; col < n_assem_x_; ++col) {
         int assem_index = row * n_assem_x_ + col;
@@ -470,6 +472,7 @@ SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
     assembly_width_y_ = n_pins_y_ * pin_pitch_;
   }
 
+  // check if this assembly should be skipped and do not do any other setup
   skip_assembly_ = skip_assembly;
   if (skip_assembly_) {
     return;

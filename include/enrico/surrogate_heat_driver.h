@@ -139,8 +139,11 @@ class SurrogateHeatDriverAssembly {
 public:
   //! Initializes heat-fluids surrogate for an assembly
   //!
-  //! \param assembly_x  x index of assembly
-  //! \param assembly_y  y index of assembly
+  //! \param node           XML node containing settings for surrogate
+  //! \param has_coupling   boolean for whether or not it has coupling
+  //! \param pressure_bc    pressure from HeatFluidsDriver
+  //! \param index          Assembly index
+  //! \param skip_assembly  bool for whether or not assembly should be skip in calculations
   SurrogateHeatDriverAssembly(pugi::xml_node node,
                               bool has_coupling,
                               double pressure_bc,
@@ -210,10 +213,6 @@ public:
 
   void solve_heat();
 
-  //xt::xtensor<double, 2> pin_centers() const {return pin_centers_;}
-  //xt::xtensor<double, 1> z() const {return z_;}
-  //xt::xtensor<double, 1> r_grid_clad() const {return r_grid_clad_;}
-  //xt::xtensor<double, 1> r_grid_fuel() const {return r_grid_fuel_;}
   std::size_t n_axial() const {return n_axial_;}
 
   //! Returns solid temperature in [K] for given region
@@ -227,9 +226,6 @@ public:
 
   //!< solid temperature in [K] for each (pin, axial segment, ring)
   xt::xtensor<double, 3> solid_temperature_;
-
-  //! Flow areas for coolant-centered channels
-  //xt::xtensor<double, 1> channel_areas_;
 
   //! Fluid temperature in a rod-centered basis indexed by rod ID and axial ID
   xt::xtensor<double, 2> fluid_temperature_;
@@ -531,7 +527,6 @@ private:
   verbose verbosity_ = verbose::NONE;
 
 }; // end SurrogateHeatDriver
-
 
 } // namespace enrico
 

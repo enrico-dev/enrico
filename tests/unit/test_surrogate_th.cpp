@@ -553,7 +553,6 @@ TEST_CASE("Verify multi-assembly construction of surrogate model when assemblies
 
   SECTION("Verify pin centers in assembly")
   {
-
     // x and y values for assembly reference (center of core)
     std::vector<double> yvals_ref{1.89, 0.63, -0.63, -1.89};
     std::vector<double> xvals_ref{-3.78, -2.52, -1.26, 0.0, 1.26, 2.52, 3.78};
