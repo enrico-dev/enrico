@@ -1,0 +1,30 @@
+<?xml version='1.0' encoding='utf-8'?>
+<materials>
+  <material depletable="true" id="1" name="UO2">
+    <density units="g/cm3" value="10.5312" />
+    <nuclide ao="0.0004478101495389575" name="U234" />
+    <nuclide ao="0.05010104013202934" name="U235" />
+    <nuclide ao="0.9492216628902934" name="U238" />
+    <nuclide ao="0.00022948682813827314" name="U236" />
+    <nuclide ao="1.999242" name="O16" />
+    <nuclide ao="0.000758" name="O17" />
+  </material>
+  <material id="2" name="M5">
+    <density units="g/cm3" value="6.494" />
+    <nuclide ao="0.508660425" name="Zr90" />
+    <nuclide ao="0.11092653" name="Zr91" />
+    <nuclide ao="0.169553475" name="Zr92" />
+    <nuclide ao="0.17182737" name="Zr94" />
+    <nuclide ao="0.0276822" name="Zr96" />
+    <nuclide ao="0.01" name="Nb93" />
+    <nuclide ao="0.0013494883500000002" name="O16" />
+    <nuclide ao="5.1165e-07" name="O17" />
+  </material>
+  <material id="3" name="Water">
+    <density units="g/cm3" value="0.7531966089109314" />
+    <nuclide ao="2.0" name="H1" />
+    <nuclide ao="0.999621" name="O16" />
+    <nuclide ao="0.000379" name="O17" />
+    <sab name="c_H_in_H2O" />
+  </material>
+</materials>
