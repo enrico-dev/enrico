@@ -67,6 +67,21 @@ clad_outer = openmc.ZCylinder(r=clad_or)
 pin = openmc.model.pin([fuel_outer, clad_inner, clad_outer],
                        [uo2, void_univ, m5, water])
 
+# set material volumes
+for i, c in pin.cells.items():
+    m = c.fill
+    r = []
+    for j, s in c.region.get_surfaces().items():
+        r.append(s.r)
+    if min(r) == clad_or:
+        # moderator
+        vol = pitch**2 - pi*min(r)**2
+    elif max(r) == fuel_or:
+        vol = pi*max(r)**2
+    else:
+        vol = pi*(max(r)**2 - min(r)**2)
+    m.volume = vol
+
 # make assembly lattice
 assem_pitch_x = pitch * np_x
 assem_pitch_y = pitch * np_y
