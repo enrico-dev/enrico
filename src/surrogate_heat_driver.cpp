@@ -427,7 +427,7 @@ void SurrogateHeatDriver::write_step(int timestep, int iteration)
     filename_base << "_t" << timestep << "_i" << iteration;
   }
 
-  for (gsl::index assem = 0; assem < n_assem_; ++assem) {
+  for (gsl::index assem = 0; assem < n_assem_ + n_skip_ ; ++assem) {
     if (!assembly_drivers_[assem].skip_assembly_){
       SurrogateVtkWriter vtk_writer(
         assembly_drivers_[assem], vtk_radial_res_, viz_regions_, viz_data_);
