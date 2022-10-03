@@ -2,4 +2,4 @@
 set -ex
 
 cd tests/core/full/openmc_heat_surrogate
-mpirun -np 2 ../build/install/bin/enrico
+mpirun -np 2 ../../../singlerod/short/build/install/bin/enrico
