@@ -121,8 +121,10 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
           skip = true;
         }
       }
+      //if (!skip){
       assembly_drivers_.push_back(
         SurrogateHeatDriverAssembly(node, has_coupling, pressure_bc_, assem_index, skip));
+      //}
     }
   }
 
@@ -364,8 +366,17 @@ int SurrogateHeatDriver::set_heat_source_at(int32_t local_elem, double heat)
   if (local_elem >= n_solid_ * n_assem_)
     return 0;
 
-  // get assembly index
+  // get assembly index:
+  // calculated index is relative to active assemblies, so need to account
+  // for any skipped assemblies in the full core. Add 1 for each skipped assembly.
   gsl::index assem = (local_elem / (n_pins_ * n_axial_ * n_rings() * n_azimuthal_));
+  if (n_skip_ > 0) {
+    for (gsl::index i = 0; i < skip_assemblies_.size(); ++i) {
+      if (skip_assemblies_[i] <= assem) {
+        assem = assem + 1;
+      }
+    }
+  }
 
   if (assembly_drivers_[assem].skip_assembly_){
     return 0;
