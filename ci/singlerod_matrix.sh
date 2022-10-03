@@ -11,6 +11,7 @@ if [ "$MODE" = "openmc_nek5000" ]; then
 elif [ "$MODE" = "openmc_nekrs" ]; then
   source ci/test_singlerod_openmc_nekrs.sh
 elif [ "$MODE" = "openmc_heat_surrogate" ]; then
+  curdir="$(pwd)"
   source ci/test_singlerod_openmc_heat_surrogate.sh
   cd "$curdir"
   source ci/test_core_partial_openmc_heat_surrogate.sh
