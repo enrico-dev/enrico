@@ -35,7 +35,7 @@
   </heat_fluids>
   <coupling>
     <communication>overlapping</communication>
-    <power>820.0</power> <!-- 16400.0 = 820.0/pin * 4 pin/assem * 5 assem -->
+    <power>3200</power> <!-- 16400.0 = 820.0/pin * 4 pin/assem * 5 assem -->
     <max_timesteps>1</max_timesteps>
     <max_picard_iter>2</max_picard_iter>
   </coupling>
