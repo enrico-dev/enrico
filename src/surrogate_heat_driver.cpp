@@ -270,7 +270,15 @@ std::vector<double> SurrogateHeatDriver::temperature() const
               }
             }
           }
+        }
+      }
+    }
 
+    for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
+      for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
+        std::size_t assem_index = arow * n_assem_x_ + acol;
+        SurrogateHeatDriverAssembly assembly = assembly_drivers_[assem_index];
+        if (!assembly.skip_assembly_) {
           for (double T : assembly.fluid_temperature_) {
             local_temperatures.push_back(T);
           }
@@ -343,7 +351,15 @@ std::vector<double> SurrogateHeatDriver::volume() const
               }
             }
           }
+        }
+      }
+    }
 
+    for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
+      for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
+        std::size_t assem_index = arow * n_assem_x_ + acol;
+        SurrogateHeatDriverAssembly assembly = assembly_drivers_[assem_index];
+        if (!assembly.skip_assembly_) {
           // Volume of fluid regions
           for (gsl::index i = 0; i < n_pins_; ++i) {
             for (gsl::index j = 0; j < n_axial_; ++j) {
