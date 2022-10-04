@@ -256,6 +256,7 @@ std::vector<double> SurrogateHeatDriver::temperature() const
   std::vector<double> local_temperatures;
 
   if (this->has_coupling_data()) {
+    // first fill all solid temperatures
     for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
       for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
         std::size_t assem_index = arow * n_assem_x_ + acol;
@@ -274,6 +275,7 @@ std::vector<double> SurrogateHeatDriver::temperature() const
       }
     }
 
+    // then fill all fluid temperatures
     for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
       for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
         std::size_t assem_index = arow * n_assem_x_ + acol;
@@ -298,6 +300,7 @@ std::vector<double> SurrogateHeatDriver::density() const
     // Solid region just gets zeros for densities (not used)
     auto n = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
     std::fill_n(std::back_inserter(local_densities), n * n_assem_, 0.0);
+
     // iterate over each assembly to get fluid densities
     for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
       for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
@@ -335,6 +338,7 @@ std::vector<double> SurrogateHeatDriver::volume() const
   std::vector<double> volumes;
 
   if (this->has_coupling_data()) {
+    // get volume of solid regions first
     for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
       for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
         std::size_t assem_index = arow * n_assem_x_ + acol;
@@ -355,6 +359,7 @@ std::vector<double> SurrogateHeatDriver::volume() const
       }
     }
 
+    // volume of fluid regions
     for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
       for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
         std::size_t assem_index = arow * n_assem_x_ + acol;
@@ -454,6 +459,7 @@ void SurrogateHeatDriver::write_step(int timestep, int iteration)
     filename_base << "_t" << timestep << "_i" << iteration;
   }
 
+  // write one file per assembly
   for (gsl::index assem = 0; assem < n_assem_ + n_skip_ ; ++assem) {
     if (!assembly_drivers_[assem].skip_assembly_){
       SurrogateVtkWriter vtk_writer(
@@ -495,7 +501,7 @@ SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
     assembly_width_x_ = node.child("assembly_width_x").text().as_double();
     assembly_width_y_ = node.child("assembly_width_y").text().as_double();
   } else {
-    // assume 1 assembly, with pitch corresponding to the larger pin dimension
+    // assume 1 assembly, with pitch corresponding to the pin dimension
     n_assem_x_ = 1;
     n_assem_y_ = 1;
     assembly_width_x_ = n_pins_x_ * pin_pitch_;
@@ -558,7 +564,7 @@ SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
   Expects(assembly_width_x_ >= pin_pitch_ * n_pins_x_);
   Expects(assembly_width_y_ >= pin_pitch_ * n_pins_y_);
 
-  // Set pin locations, where the center of the assembly is assumed to occur at
+  // Set pin locations, where the center of the core is assumed to occur at
   // x = 0, y = 0. It is also assumed that the rod-boundary separation in the
   // x and y directions is the same and equal to half the pitch.
   double core_width_x = assembly_width_x_ * n_assem_x_;
