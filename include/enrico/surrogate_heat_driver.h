@@ -154,20 +154,50 @@ public:
   //! Verbosity options for printing simulation results
   enum class verbose { NONE, LOW, HIGH };
 
+  void solve_heat();
+
+  void solve_fluid();
+
+  //! Returns Number of rings in fuel and clad
+  std::size_t n_rings() const { return n_fuel_rings_ + n_clad_rings_; }
+
+  //! Returns cladding inner radius
+  double clad_inner_radius() const { return clad_inner_radius_; }
+
+  //! Returns cladding outer radius
+  double clad_outer_radius() const { return clad_outer_radius_; }
+
+  //! Returns number of fuel rings
+  std::size_t n_fuel_rings() const { return n_fuel_rings_; }
+
+  //! Returns number of clad rings
+  std::size_t n_clad_rings() const { return n_clad_rings_; }
+
+  //! Returns pin pitch
+  double pin_pitch() const { return pin_pitch_; }
+
+  //! Returns solid temperature in [K] for given region
+  double solid_temperature(std::size_t pin, std::size_t axial, std::size_t ring) const;
+
+  //! Returns fluid density in [g/cm^3] for given region
+  double fluid_density(std::size_t pin, std::size_t axial) const;
+
+  //! Returns fluid temperature in [K] for given region
+  double fluid_temperature(std::size_t pin, std::size_t axial) const;
+
   bool has_coupling_;  //! whether or not the HeatFluidsDriver has coupling
   double pressure_bc_; //! pressure_bc_ set by HeatFluidsDriver
   std::size_t index;   //! assembly index
   bool skip_assembly_; //! whether or not to skip assembly
 
-  // Assembly information
-  std::size_t n_assem_x_; //! Number of assemblies in the x-direction in a Cartesian grid
-  std::size_t n_assem_y_; //! Number of assemblies in the y-direction in a Cartesian grid
-  std::size_t n_assem_;   //! total number of assemblies
-  double assembly_width_x_; //! x dimension of assembly
-  double assembly_width_y_; //! x dimension of assembly
+  //!< solid temperature in [K] for each (pin, axial segment, ring)
+  xt::xtensor<double, 3> solid_temperature_;
 
-  //! Returns Number of rings in fuel and clad
-  std::size_t n_rings() const { return n_fuel_rings_ + n_clad_rings_; }
+  //! Fluid temperature in a rod-centered basis indexed by rod ID and axial ID
+  xt::xtensor<double, 2> fluid_temperature_;
+
+  //! Fluid density in [g/cm^3] in a rod-centered basis indexed by rod ID and axial ID
+  xt::xtensor<double, 2> fluid_density_;
 
   //! Returns number of solid elements
   std::size_t n_solid_;
@@ -191,6 +221,13 @@ public:
   std::size_t n_fuel_rings_{20}; //!< number of fuel rings
   std::size_t n_clad_rings_{2};  //!< number of clad rings
 
+  // Assembly information
+  std::size_t n_assem_x_; //! Number of assemblies in the x-direction in a Cartesian grid
+  std::size_t n_assem_y_; //! Number of assemblies in the y-direction in a Cartesian grid
+  std::size_t n_assem_;   //! total number of assemblies
+  double assembly_width_x_; //! x dimension of assembly
+  double assembly_width_y_; //! x dimension of assembly
+
   //!< Channels in the domain
   std::vector<Channel> channels_;
 
@@ -210,43 +247,36 @@ public:
   //! Cross-sectional areas of rings in fuel and cladding
   xt::xtensor<double, 1> solid_areas_;
 
-  void solve_fluid();
-
-  void solve_heat();
-
-  std::size_t n_axial() const { return n_axial_; }
-
-  //! Returns solid temperature in [K] for given region
-  double solid_temperature(std::size_t pin, std::size_t axial, std::size_t ring) const;
-
-  //! Returns fluid density in [g/cm^3] for given region
-  double fluid_density(std::size_t pin, std::size_t axial) const;
-
-  //! Returns fluid temperature in [K] for given region
-  double fluid_temperature(std::size_t pin, std::size_t axial) const;
-
-  //!< solid temperature in [K] for each (pin, axial segment, ring)
-  xt::xtensor<double, 3> solid_temperature_;
-
-  //! Fluid temperature in a rod-centered basis indexed by rod ID and axial ID
-  xt::xtensor<double, 2> fluid_temperature_;
-
-  //! Fluid density in [g/cm^3] in a rod-centered basis indexed by rod ID and axial ID
-  xt::xtensor<double, 2> fluid_density_;
-
-  //! Returns number of fuel rings
-  std::size_t n_fuel_rings() const { return n_fuel_rings_; }
-
-  //! Returns number of clad rings
-  std::size_t n_clad_rings() const { return n_clad_rings_; }
-
-  //! Returns cladding outer radius
-  double clad_outer_radius() const { return clad_outer_radius_; }
-
-  //! Returns pin pitch
-  double pin_pitch() const { return pin_pitch_; }
-
 private:
+  //! Create internal arrays used for heat equation solver
+  void generate_arrays();
+
+  //! Rod power at a given node in a given pin, computed by integrating the heat source
+  //! (assumed constant in each ring) over the pin.
+  //! \param pin   pin index
+  //! \param axial axial index
+  double rod_axial_node_power(const int pin, const int axial) const;
+
+  //! Diagnostic function to assess whether the mass is conserved by the subchannel
+  //! solver by comparing the mass flowrate in each axial plane (at cell-centered
+  //! positions) to the specified inlet mass flowrate.
+  //! \param rho density in a cell-centered basis
+  //! \param u   axial velocity in a face-centered basis
+  bool is_mass_conserved(const xt::xtensor<double, 2>& rho,
+                         const xt::xtensor<double, 2>& u) const;
+
+  //! Diagnostic function to assess whether the energy is conserved by the subchannel
+  //! solver by comparing the energy deposition in each channel in each axial plane
+  //! (at cell-centered positions) to the powers of the rods connected to that channel.
+  //! \param rho density in a cell-centered basis
+  //! \param u   axial velocity in a face-centered basis
+  //! \param h   enthalpy in a face-centered basis
+  //! \param q   powers in each channel in a cell-centered basis
+  bool is_energy_conserved(const xt::xtensor<double, 2>& rho,
+                           const xt::xtensor<double, 2>& u,
+                           const xt::xtensor<double, 2>& h,
+                           const xt::xtensor<double, 2>& q) const;
+
   //! Number of pins in the x-direction in a Cartesian grid
   std::size_t n_pins_x_;
 
@@ -287,35 +317,6 @@ private:
   //! Verbosity setting for printing simulation results; defaults to NONE
   verbose verbosity_ = verbose::NONE;
 
-  //! Create internal arrays used for heat equation solver
-  void generate_arrays();
-
-  //! Rod power at a given node in a given pin, computed by integrating the heat source
-  //! (assumed constant in each ring) over the pin.
-  //! \param pin   pin index
-  //! \param axial axial index
-  double rod_axial_node_power(const int pin, const int axial) const;
-
-  //! Diagnostic function to assess whether the mass is conserved by the subchannel
-  //! solver by comparing the mass flowrate in each axial plane (at cell-centered
-  //! positions) to the specified inlet mass flowrate.
-  //! \param rho density in a cell-centered basis
-  //! \param u   axial velocity in a face-centered basis
-  bool is_mass_conserved(const xt::xtensor<double, 2>& rho,
-                         const xt::xtensor<double, 2>& u) const;
-
-  //! Diagnostic function to assess whether the energy is conserved by the subchannel
-  //! solver by comparing the energy deposition in each channel in each axial plane
-  //! (at cell-centered positions) to the powers of the rods connected to that channel.
-  //! \param rho density in a cell-centered basis
-  //! \param u   axial velocity in a face-centered basis
-  //! \param h   enthalpy in a face-centered basis
-  //! \param q   powers in each channel in a cell-centered basis
-  bool is_energy_conserved(const xt::xtensor<double, 2>& rho,
-                           const xt::xtensor<double, 2>& u,
-                           const xt::xtensor<double, 2>& h,
-                           const xt::xtensor<double, 2>& q) const;
-
 }; // end SurrogateHeatDriverAssembly
 
 /**
@@ -344,17 +345,6 @@ public:
 
   //! Verbosity options for printing simulation results
   enum class verbose { NONE, LOW, HIGH };
-
-  // Assembly information
-  std::size_t n_assem_x_; //! Number of assemblies in the x-direction in a Cartesian grid
-  std::size_t n_assem_y_; //! Number of assemblies in the y-direction in a Cartesian grid
-  std::size_t n_assem_;   //! total number of assemblies
-  double assembly_width_x_;             //! x dimension of assembly
-  double assembly_width_y_;             //! x dimension of assembly
-  xt::xtensor<int, 1> skip_assemblies_; //! indices for assemblies not part of core
-  std::size_t n_skip_;                  //! number of assemblies skipped
-
-  std::vector<SurrogateHeatDriverAssembly> assembly_drivers_;
 
   bool has_coupling_data() const final { return comm_.rank == 0; }
 
@@ -402,17 +392,6 @@ public:
   //! Returns number of pins in y-direction
   std::size_t n_pins_y() const { return n_pins_y_; }
 
-  //! Returns number of solid elements per assembly
-  std::size_t n_solid_;
-
-  //! Returns number of fluid elements per assembly
-  std::size_t n_fluid_;
-
-  // Data on fuel pins
-  xt::xtensor<double, 1> z_;   //!< Bounding z-values for axial segments
-  std::size_t n_axial_;        //!< number of axial segments
-  std::size_t n_azimuthal_{4}; //!< number of azimuthal segments
-
   //! Returns pin pitch
   double pin_pitch() const { return pin_pitch_; }
 
@@ -437,15 +416,36 @@ public:
   //! Write data to VTK
   void write_step(int timestep, int iteration) final;
 
+  // Data on fuel pins
+  xt::xtensor<double, 1> z_;   //!< Bounding z-values for axial segments
+  std::size_t n_axial_;        //!< number of axial segments
+  std::size_t n_azimuthal_{4}; //!< number of azimuthal segments
+
   //! Total number of pins per assembly
   std::size_t n_pins_;
 
-  // Dimensions for a single fuel pin axial segment
+   // Dimensions for a single fuel pin axial segment
   double clad_outer_radius_;     //!< clad outer radius in [cm]
   double clad_inner_radius_;     //!< clad inner radius in [cm]
   double pellet_radius_;         //!< fuel pellet radius in [cm]
   std::size_t n_fuel_rings_{20}; //!< number of fuel rings
   std::size_t n_clad_rings_{2};  //!< number of clad rings
+
+  // Assembly information
+  std::size_t n_assem_x_; //! Number of assemblies in the x-direction in a Cartesian grid
+  std::size_t n_assem_y_; //! Number of assemblies in the y-direction in a Cartesian grid
+  std::size_t n_assem_;   //! total number of assemblies
+  double assembly_width_x_;             //! x dimension of assembly
+  double assembly_width_y_;             //! x dimension of assembly
+  xt::xtensor<int, 1> skip_assemblies_; //! indices for assemblies not part of core
+  std::size_t n_skip_;                  //! number of assemblies skipped
+  std::vector<SurrogateHeatDriverAssembly> assembly_drivers_;
+
+  //! Returns number of solid elements per assembly
+  std::size_t n_solid_;
+
+  //! Returns number of fluid elements per assembly
+  std::size_t n_fluid_;
 
   // visualization
   std::string viz_basename_{
@@ -479,12 +479,6 @@ private:
 
   //! Channel index in terms of row, column index
   int channel_index(int row, int col) const { return row * (n_pins_x_ + 1) + col; }
-
-  //! Rod power at a given node in a given pin, computed by integrating the heat source
-  //! (assumed constant in each ring) over the pin.
-  //! \param pin   pin index
-  //! \param axial axial index
-  // double rod_axial_node_power(const int pin, const int axial) const;
 
   //! Number of pins in the x-direction in a Cartesian grid
   std::size_t n_pins_x_;

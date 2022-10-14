@@ -226,7 +226,7 @@ std::vector<Position> SurrogateHeatDriver::centroid() const
           double x_center = assembly.pin_centers_(i, 0);
           double y_center = assembly.pin_centers_(i, 1);
 
-          for (gsl::index j = 0; j < assembly.n_axial(); ++j) {
+          for (gsl::index j = 0; j < assembly.n_axial_; ++j) {
             double zavg = 0.5 * (z_(j) + z_(j + 1));
             double l = pin_pitch() / std::sqrt(2.0);
             double d = (l - clad_outer_radius_) / 2.0;
