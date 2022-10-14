@@ -121,10 +121,9 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
           skip = true;
         }
       }
-      //if (!skip){
       assembly_drivers_.push_back(
-        SurrogateHeatDriverAssembly(node, has_coupling, pressure_bc_, assem_index, skip));
-      //}
+        SurrogateHeatDriverAssembly(node, has_coupling, pressure_bc_,
+                                    assem_index, skip));
     }
   }
 
