@@ -1,5 +1,5 @@
 <?xml version="1.0"?>
-<stream>
+<enrico>
   <neutronics>
     <driver>openmc</driver>
   </neutronics>
@@ -35,4 +35,4 @@
     <max_timesteps>1</max_timesteps>
     <max_picard_iter>4</max_picard_iter>
   </coupling>
-</stream>
+</enrico>
