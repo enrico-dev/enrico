@@ -184,7 +184,7 @@ std::vector<Position> SurrogateHeatDriver::centroid() const
   for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
     for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
       std::size_t assem_index = arow * n_assem_x_ + acol;
-      SurrogateHeatDriverAssembly assembly = assembly_drivers_[assem_index];
+      const auto& assembly = assembly_drivers_[assem_index];
       if (!assembly.skip_assembly_){
         for (gsl::index i = 0; i < n_pins_; ++i)
         {
@@ -227,7 +227,7 @@ std::vector<Position> SurrogateHeatDriver::centroid() const
   for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
     for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
       std::size_t assem_index = arow * n_assem_x_ + acol;
-      SurrogateHeatDriverAssembly assembly = assembly_drivers_[assem_index];
+      const auto& assembly = assembly_drivers_[assem_index];
       if (!assembly.skip_assembly_) {
         for (gsl::index i = 0; i < n_pins_; ++i) {
           double x_center = assembly.pin_centers_(i, 0);
@@ -260,7 +260,7 @@ std::vector<double> SurrogateHeatDriver::temperature() const
     for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
       for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
         std::size_t assem_index = arow * n_assem_x_ + acol;
-        SurrogateHeatDriverAssembly assembly = assembly_drivers_[assem_index];
+        const auto& assembly = assembly_drivers_[assem_index];
         if (!assembly.skip_assembly_) {
           for (gsl::index i = 0; i < n_pins_; ++i) {
             for (gsl::index j = 0; j < n_axial_; ++j) {
@@ -279,7 +279,7 @@ std::vector<double> SurrogateHeatDriver::temperature() const
     for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
       for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
         std::size_t assem_index = arow * n_assem_x_ + acol;
-        SurrogateHeatDriverAssembly assembly = assembly_drivers_[assem_index];
+        const auto& assembly = assembly_drivers_[assem_index];
         if (!assembly.skip_assembly_) {
           for (double T : assembly.fluid_temperature_) {
             local_temperatures.push_back(T);
@@ -305,7 +305,7 @@ std::vector<double> SurrogateHeatDriver::density() const
     for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
       for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
         std::size_t assem_index = arow * n_assem_x_ + acol;
-        SurrogateHeatDriverAssembly assembly = assembly_drivers_[assem_index];
+        const auto& assembly = assembly_drivers_[assem_index];
         if (!assembly.skip_assembly_) {
           // Add fluid densities and return
           for (double rho : assembly.fluid_density_) {
@@ -342,7 +342,7 @@ std::vector<double> SurrogateHeatDriver::volume() const
     for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
       for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
         std::size_t assem_index = arow * n_assem_x_ + acol;
-        SurrogateHeatDriverAssembly assembly = assembly_drivers_[assem_index];
+        const auto& assembly = assembly_drivers_[assem_index];
         if (!assembly.skip_assembly_) {
           // Volume of solid regions
           for (gsl::index i = 0; i < n_pins_; ++i) {
@@ -363,7 +363,7 @@ std::vector<double> SurrogateHeatDriver::volume() const
     for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
       for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
         std::size_t assem_index = arow * n_assem_x_ + acol;
-        SurrogateHeatDriverAssembly assembly = assembly_drivers_[assem_index];
+        const auto& assembly = assembly_drivers_[assem_index];
         if (!assembly.skip_assembly_) {
           // Volume of fluid regions
           for (gsl::index i = 0; i < n_pins_; ++i) {
@@ -394,7 +394,7 @@ int SurrogateHeatDriver::set_heat_source_at(int32_t local_elem, double heat)
   if (n_skip_ > 0) {
     for (gsl::index i = 0; i < skip_assemblies_.size(); ++i) {
       if (skip_assemblies_[i] <= assem) {
-        assem = assem + 1;
+        ++assem;
       }
     }
   }
