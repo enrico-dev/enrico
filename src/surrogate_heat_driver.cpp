@@ -71,9 +71,6 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
     n_skip_ = skip_assemblies_.size();
   }
   else {
-    // do not skip any, set dummy value -1
-    skip_assemblies_.resize({1});
-    skip_assemblies_(0) = -1;
     n_skip_ = 0;
   }
   n_assem_ = n_assem_x_ * n_assem_y_ - n_skip_;
