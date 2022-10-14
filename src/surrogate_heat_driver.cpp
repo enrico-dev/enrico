@@ -69,8 +69,7 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   if (node.child("skip_assemblies")) {
     skip_assemblies_ = openmc::get_node_xarray<double>(node, "skip_assemblies");
     n_skip_ = skip_assemblies_.size();
-  }
-  else {
+  } else {
     n_skip_ = 0;
   }
   n_assem_ = n_assem_x_ * n_assem_y_ - n_skip_;
@@ -113,14 +112,13 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
     for (gsl::index col = 0; col < n_assem_x_; ++col) {
       std::size_t assem_index = row * n_assem_x_ + col;
       bool skip = false;
-      for (gsl::index i = 0; i < skip_assemblies_.size(); ++i){
-        if (assem_index == skip_assemblies_[i]){
+      for (gsl::index i = 0; i < skip_assemblies_.size(); ++i) {
+        if (assem_index == skip_assemblies_[i]) {
           skip = true;
         }
       }
       assembly_drivers_.push_back(
-        SurrogateHeatDriverAssembly(node, has_coupling, pressure_bc_,
-                                    assem_index, skip));
+        SurrogateHeatDriverAssembly(node, has_coupling, pressure_bc_, assem_index, skip));
     }
   }
 
@@ -181,9 +179,8 @@ std::vector<Position> SurrogateHeatDriver::centroid() const
     for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
       std::size_t assem_index = arow * n_assem_x_ + acol;
       const auto& assembly = assembly_drivers_[assem_index];
-      if (!assembly.skip_assembly_){
-        for (gsl::index i = 0; i < n_pins_; ++i)
-        {
+      if (!assembly.skip_assembly_) {
+        for (gsl::index i = 0; i < n_pins_; ++i) {
           double x_center = assembly.pin_centers_(i, 0);
           double y_center = assembly.pin_centers_(i, 1);
 
@@ -395,7 +392,7 @@ int SurrogateHeatDriver::set_heat_source_at(int32_t local_elem, double heat)
     }
   }
 
-  if (assembly_drivers_[assem].skip_assembly_){
+  if (assembly_drivers_[assem].skip_assembly_) {
     return 0;
   }
 
@@ -456,8 +453,8 @@ void SurrogateHeatDriver::write_step(int timestep, int iteration)
   }
 
   // write one file per assembly
-  for (gsl::index assem = 0; assem < n_assem_ + n_skip_ ; ++assem) {
-    if (!assembly_drivers_[assem].skip_assembly_){
+  for (gsl::index assem = 0; assem < n_assem_ + n_skip_; ++assem) {
+    if (!assembly_drivers_[assem].skip_assembly_) {
       SurrogateVtkWriter vtk_writer(
         assembly_drivers_[assem], vtk_radial_res_, viz_regions_, viz_data_);
 
@@ -572,10 +569,8 @@ SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
 
   int acol = index % n_assem_x_;
   int arow = (index - acol) / n_assem_y_;
-  double assem_top_left_x =
-    core_top_left_x + acol * assembly_width_x_ + pin_pitch_ / 2.0;
-  double assem_top_left_y =
-    core_top_left_y - arow * assembly_width_y_ - pin_pitch_ / 2.0;
+  double assem_top_left_x = core_top_left_x + acol * assembly_width_x_ + pin_pitch_ / 2.0;
+  double assem_top_left_y = core_top_left_y - arow * assembly_width_y_ - pin_pitch_ / 2.0;
   for (gsl::index row = 0; row < n_pins_y_; ++row) {
     for (gsl::index col = 0; col < n_pins_x_; ++col) {
       int pin_index = row * n_pins_x_ + col;
@@ -645,7 +640,6 @@ SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
 
   // Initialize heat transfer solver
   generate_arrays();
-
 };
 
 void SurrogateHeatDriverAssembly::generate_arrays()
@@ -682,7 +676,7 @@ void SurrogateHeatDriverAssembly::generate_arrays()
 }
 
 bool SurrogateHeatDriverAssembly::is_mass_conserved(const xt::xtensor<double, 2>& rho,
-                                            const xt::xtensor<double, 2>& u) const
+                                                    const xt::xtensor<double, 2>& u) const
 {
   bool mass_conserved = true;
 
@@ -708,10 +702,11 @@ bool SurrogateHeatDriverAssembly::is_mass_conserved(const xt::xtensor<double, 2>
   return mass_conserved;
 }
 
-bool SurrogateHeatDriverAssembly::is_energy_conserved(const xt::xtensor<double, 2>& rho,
-                                              const xt::xtensor<double, 2>& u,
-                                              const xt::xtensor<double, 2>& h,
-                                              const xt::xtensor<double, 2>& q) const
+bool SurrogateHeatDriverAssembly::is_energy_conserved(
+  const xt::xtensor<double, 2>& rho,
+  const xt::xtensor<double, 2>& u,
+  const xt::xtensor<double, 2>& h,
+  const xt::xtensor<double, 2>& q) const
 {
   bool energy_conserved = true;
 
@@ -927,7 +922,8 @@ double SurrogateHeatDriverAssembly::fluid_density(std::size_t pin,
   return fluid_density_(pin, axial);
 }
 
-double SurrogateHeatDriverAssembly::fluid_temperature(std::size_t pin, std::size_t axial) const
+double SurrogateHeatDriverAssembly::fluid_temperature(std::size_t pin,
+                                                      std::size_t axial) const
 {
   return fluid_temperature_(pin, axial);
 }

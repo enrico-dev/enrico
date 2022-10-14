@@ -143,7 +143,8 @@ public:
   //! \param has_coupling   boolean for whether or not it has coupling
   //! \param pressure_bc    pressure from HeatFluidsDriver
   //! \param index          Assembly index
-  //! \param skip_assembly  bool for whether or not assembly should be skip in calculations
+  //! \param skip_assembly  bool for whether or not assembly should be skip in
+  //! calculations
   SurrogateHeatDriverAssembly(pugi::xml_node node,
                               bool has_coupling,
                               double pressure_bc,
@@ -153,10 +154,10 @@ public:
   //! Verbosity options for printing simulation results
   enum class verbose { NONE, LOW, HIGH };
 
-  bool has_coupling_;
-  double pressure_bc_;
-  std::size_t index;    //! assembly index
-  bool skip_assembly_;  //! whether or not to skip assembly
+  bool has_coupling_;  //! whether or not the HeatFluidsDriver has coupling
+  double pressure_bc_; //! pressure_bc_ set by HeatFluidsDriver
+  std::size_t index;   //! assembly index
+  bool skip_assembly_; //! whether or not to skip assembly
 
   // Assembly information
   std::size_t n_assem_x_; //! Number of assemblies in the x-direction in a Cartesian grid
@@ -177,8 +178,8 @@ public:
   // Data on fuel pins
   xt::xtensor<double, 2> pin_centers_; //!< (x,y) values for center of fuel pins
   xt::xtensor<double, 1> z_;           //!< Bounding z-values for axial segments
-  std::size_t n_axial_;        //!< number of axial segments
-  std::size_t n_azimuthal_{4}; //!< number of azimuthal segments
+  std::size_t n_axial_;                //!< number of axial segments
+  std::size_t n_azimuthal_{4};         //!< number of azimuthal segments
 
   //! Total number of pins
   std::size_t n_pins_;
@@ -213,7 +214,7 @@ public:
 
   void solve_heat();
 
-  std::size_t n_axial() const {return n_axial_;}
+  std::size_t n_axial() const { return n_axial_; }
 
   //! Returns solid temperature in [K] for given region
   double solid_temperature(std::size_t pin, std::size_t axial, std::size_t ring) const;
@@ -246,7 +247,6 @@ public:
   double pin_pitch() const { return pin_pitch_; }
 
 private:
-
   //! Number of pins in the x-direction in a Cartesian grid
   std::size_t n_pins_x_;
 
@@ -346,13 +346,13 @@ public:
   enum class verbose { NONE, LOW, HIGH };
 
   // Assembly information
-  std::size_t n_assem_x_;    //! Number of assemblies in the x-direction in a Cartesian grid
-  std::size_t n_assem_y_;    //! Number of assemblies in the y-direction in a Cartesian grid
-  std::size_t n_assem_;      //! total number of assemblies
-  double assembly_width_x_;  //! x dimension of assembly
-  double assembly_width_y_;  //! x dimension of assembly
+  std::size_t n_assem_x_; //! Number of assemblies in the x-direction in a Cartesian grid
+  std::size_t n_assem_y_; //! Number of assemblies in the y-direction in a Cartesian grid
+  std::size_t n_assem_;   //! total number of assemblies
+  double assembly_width_x_;             //! x dimension of assembly
+  double assembly_width_y_;             //! x dimension of assembly
   xt::xtensor<int, 1> skip_assemblies_; //! indices for assemblies not part of core
-  std::size_t n_skip_;       //! number of assemblies skipped
+  std::size_t n_skip_;                  //! number of assemblies skipped
 
   std::vector<SurrogateHeatDriverAssembly> assembly_drivers_;
 
@@ -409,9 +409,9 @@ public:
   std::size_t n_fluid_;
 
   // Data on fuel pins
-  xt::xtensor<double, 1> z_;           //!< Bounding z-values for axial segments
-  std::size_t n_axial_;                //!< number of axial segments
-  std::size_t n_azimuthal_{4};         //!< number of azimuthal segments
+  xt::xtensor<double, 1> z_;   //!< Bounding z-values for axial segments
+  std::size_t n_axial_;        //!< number of axial segments
+  std::size_t n_azimuthal_{4}; //!< number of azimuthal segments
 
   //! Returns pin pitch
   double pin_pitch() const { return pin_pitch_; }
