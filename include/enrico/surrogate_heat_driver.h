@@ -424,7 +424,7 @@ public:
   //! Total number of pins per assembly
   std::size_t n_pins_;
 
-   // Dimensions for a single fuel pin axial segment
+  // Dimensions for a single fuel pin axial segment
   double clad_outer_radius_;     //!< clad outer radius in [cm]
   double clad_inner_radius_;     //!< clad inner radius in [cm]
   double pellet_radius_;         //!< fuel pellet radius in [cm]
