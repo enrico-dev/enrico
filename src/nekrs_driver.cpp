@@ -1,4 +1,3 @@
-#include <iostream>
 #include "enrico/nekrs_driver.h"
 #include "enrico/error.h"
 #include "iapws/iapws.h"
@@ -13,8 +12,6 @@
 
 #include <algorithm>
 #include <dlfcn.h>
-
-using namespace std;
 
 namespace enrico {
 NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
@@ -33,17 +30,11 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
       output_heat_source_ = node.child("output_heat_source").text().as_bool();
     }
 
-//    MPI_Barrier(MPI_COMM_WORLD);
-//    MPI_Comm commGlobal;
-//    MPI_Comm_dup(MPI_COMM_WORLD, &commGlobal);
-
-//    host_.setup("mode: 'Serial'");
     host_.setup({
       {"mode", "Serial"}
     });
 
-    // See vendor/nekRS/src/core/occaDeviceConfig.cpp for valid keys
-    // commg_in and comm_in should be the same when there is a single nekRS session.
+    // commg_in and comm_in should be the same when there is only a single nekRS session.
     setup_file_ = node.child_value("casename");
     nekrs::setup(comm /* commg_in */,
                  comm /* comm_in */,
@@ -73,7 +64,6 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
 
     poly_deg_ = mesh->N;
     n_gll_ = mesh->Np;
-    //n_gll_ = (poly_deg_ + 1) * (poly_deg_ + 1) * (poly_deg_ + 1);
 
     std::vector<double> xLoc(mesh->Nlocal);
     std::vector<double> yLoc(mesh->Nlocal);
@@ -91,24 +81,13 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
 
     // rho energy is field 1 (0-based) of rho
     rho_cp_ = &nrs_ptr_->cds->prop[nrs_ptr_->cds->fieldOffset[0]];
-
     temperature_ = nrs_ptr_->cds->S;
 
     // Construct lumped mass matrix from vgeo
-    // See cdsSetup in vendor/nekRS/src/core/insSetup.cpp
     mass_matrix_.resize(n_local_elem_ * n_gll_);
-    //auto mass_matrix_ = mesh->LMM;
-    //auto vgeo = mesh->vgeo;
-    //auto n_vgeo = mesh->Nvgeo;
     for(dlong e = 0; e < mesh->Nelements; ++e)
       for(int n = 0; n < mesh->Np; ++n)
         mass_matrix_[e * mesh->Np + n] = mesh->vgeo[e * mesh->Np * mesh->Nvgeo + JWID * mesh->Np + n];
-
-//     for (gsl::index e = 0; e < n_local_elem_; ++e) {
-//       for (gsl::index n = 0; n < n_gll_; ++n) {
-//         mass_matrix_[e * n_gll_ + n] = vgeo[e * n_gll_ * n_vgeo + JWID * n_gll_ + n];
-//       }
-//     }
   }
 
 #ifdef _OPENMP
@@ -200,8 +179,6 @@ Position NekRSDriver::centroid_at(int32_t local_elem) const
 {
   Expects(local_elem < n_local_elem());
   Position c{0., 0., 0.};
-//  int rank;
-//  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
   double mass = 0.;
   for (gsl::index i = 0; i < n_gll_; ++i) {
     auto idx = local_elem * n_gll_ + i;
@@ -209,8 +186,6 @@ Position NekRSDriver::centroid_at(int32_t local_elem) const
     c.y += y_[idx] * mass_matrix_[idx];
     c.z += z_[idx] * mass_matrix_[idx];
     mass += mass_matrix_[idx];
-//    if (local_elem == 4800) 
-//      cout << "GLL point " << i << ": " << x_[idx] << " " << y_[idx] << " " << z_[idx] << " " << mass_matrix_[idx] << " on rank " << rank << std::endl; 
   }
   c.x /= mass;
   c.y /= mass;
@@ -221,15 +196,8 @@ Position NekRSDriver::centroid_at(int32_t local_elem) const
 std::vector<Position> NekRSDriver::centroid() const
 {
   std::vector<Position> c(n_local_elem());
-//  int rank;
-//  MPI_Comm_rank(MPI_COMM_WORLD, &rank);
-  //cout << "No. of local elements:" << n_local_elem() << std::endl;
-  //cout << "JWID = " << JWID << std::endl;
-  //cout << "n_local_elem_, n_gll_ = " << n_local_elem_ << " " << n_gll_ << std::endl;
   for (int32_t i = 0; i < n_local_elem(); ++i) {
     c[i] = this->centroid_at(i);
-//    if (i == 4800)
-//      cout << "Centroid of Elem " << i << ": " << c[i].x << " " << c[i].y << " " << c[i].z << " on rank " << rank << std::endl;
   }
   return c;
 }
@@ -297,7 +265,6 @@ std::vector<double> NekRSDriver::density() const
 
 int NekRSDriver::in_fluid_at(int32_t local_elem) const
 {
-  // In NekRS, element_info_[i] == 1 if i is a *solid* element
   Expects(local_elem < n_local_elem());
   return element_info_[local_elem] == 1 ? 0 : 1;
 }
@@ -305,17 +272,14 @@ int NekRSDriver::in_fluid_at(int32_t local_elem) const
 std::vector<int> NekRSDriver::fluid_mask() const
 {
   std::vector<int> mask(n_local_elem());
-  //cout << "No. of local elements:" << n_local_elem() << std::endl;
   for (int32_t i = 0; i < n_local_elem(); ++i) {
     mask[i] = in_fluid_at(i);
-    //cout << "Print out fluid mask:" << "Element" << i << "has the mask " << mask[i] << std::endl;
   }
   return mask;
 }
 
 int NekRSDriver::set_heat_source_at(int32_t local_elem, double heat)
 {
-  //cout << "localq_ at element: " << local_elem << " is " << heat << std::endl;
   for (int i = 0; i < n_gll_; ++i) {
     localq_->at(local_elem * n_gll_ + i) = heat;
   }
