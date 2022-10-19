@@ -72,7 +72,7 @@ xtensor<int, 2> hex_ring(size_t start_idx, size_t resolution, size_t z_shift)
   return out;
 }
 
-SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
+SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriverAssembly& surrogate_ref,
                                        size_t t_res,
                                        const std::string& regions_to_write,
                                        const std::string& data_to_write)
@@ -151,13 +151,13 @@ void SurrogateVtkWriter::set_number_of_sections()
 
   if (regions_out_ == VizRegionType::solid) {
     n_sections_ = (n_radial_fuel_sections_ + n_radial_clad_sections_) * azimuthal_res_ *
-                  n_axial_sections_ * surrogate_.n_assem_;
+                  n_axial_sections_;
   } else if (regions_out_ == VizRegionType::fluid) {
-    n_sections_ = n_fluid_sections_ * n_axial_sections_ * surrogate_.n_assem_;
+    n_sections_ = n_fluid_sections_ * n_axial_sections_;
   } else if (regions_out_ == VizRegionType::all) {
-    n_sections_ = ((n_radial_fuel_sections_ + n_radial_clad_sections_) * azimuthal_res_ *
+    n_sections_ = (n_radial_fuel_sections_ + n_radial_clad_sections_) * azimuthal_res_ *
                     n_axial_sections_ +
-                    n_fluid_sections_ * n_axial_sections_) * surrogate_.n_assem_;
+                  n_fluid_sections_ * n_axial_sections_;
   }
 }
 
@@ -190,14 +190,14 @@ void SurrogateVtkWriter::set_number_of_entries()
   n_clad_entries_per_plane_ = azimuthal_res_ * (HEX_SIZE_ + 1) * n_radial_clad_sections_;
 
   if (regions_out_ == VizRegionType::solid) {
-    n_entries_ = (n_fuel_entries_per_plane_ + n_clad_entries_per_plane_) *
-                 n_axial_sections_ * surrogate_.n_assem_;
+    n_entries_ =
+      (n_fuel_entries_per_plane_ + n_clad_entries_per_plane_) * n_axial_sections_;
   } else if (regions_out_ == VizRegionType::fluid) {
-    n_entries_ = n_fluid_entries_per_plane_ * n_axial_sections_ * surrogate_.n_assem_;
+    n_entries_ = n_fluid_entries_per_plane_ * n_axial_sections_;
   } else if (regions_out_ == VizRegionType::all) {
     n_entries_ = (n_fuel_entries_per_plane_ + n_clad_entries_per_plane_ +
                   n_fluid_entries_per_plane_) *
-                 n_axial_sections_ * surrogate_.n_assem_;
+                 n_axial_sections_;
   }
 }
 
@@ -234,24 +234,15 @@ void SurrogateVtkWriter::write_header(ofstream& vtk_file)
 
 void SurrogateVtkWriter::write_points(ofstream& vtk_file)
 {
-  vtk_file << "POINTS " << n_points_ * surrogate_.n_assem_ << " float\n";
-  int ai = 0;
-  for (gsl::index arow = 0; arow < surrogate_.n_assem_y_; ++arow) {
-    for (gsl::index acol = 0; acol < surrogate_.n_assem_x_; ++acol) {
-      std::size_t assem_index = arow * surrogate_.n_assem_x_ + acol;
-      const auto& assembly = surrogate_.assembly_drivers_[assem_index];
-      if (!assembly.skip_assembly_) {
-        for (size_t pin = 0; pin < assembly.n_pins_; pin++) {
-          // translate pin template to pin center
-          xtensor<double, 1> pnts =
-            points_for_pin(assembly.pin_centers_(pin, 0), assembly.pin_centers_(pin, 1), ai);
+  vtk_file << "POINTS " << surrogate_.n_pins_ * n_points_ << " float\n";
 
-          for (auto val = pnts.cbegin(); val != pnts.cend(); val += 3) {
-            vtk_file << *val << " " << *(val + 1) << " " << *(val + 2) << "\n";
-          }
-          ++ai;
-        }
-      }
+  for (size_t pin = 0; pin < surrogate_.n_pins_; pin++) {
+    // translate pin template to pin center
+    xtensor<double, 1> pnts =
+      points_for_pin(surrogate_.pin_centers_(pin, 0), surrogate_.pin_centers_(pin, 1));
+
+    for (auto val = pnts.cbegin(); val != pnts.cend(); val += 3) {
+      vtk_file << *val << " " << *(val + 1) << " " << *(val + 2) << "\n";
     }
   }
 }
@@ -262,28 +253,20 @@ void SurrogateVtkWriter::write_element_connectivity(ofstream& vtk_file)
   vtk_file << "\nCELLS " << surrogate_.n_pins_ * n_sections_ << " "
            << surrogate_.n_pins_ * n_entries_ << "\n";
 
-  for (gsl::index arow = 0; arow < surrogate_.n_assem_y_; ++arow) {
-    for (gsl::index acol = 0; acol < surrogate_.n_assem_x_; ++acol) {
-      std::size_t assem_index = arow * surrogate_.n_assem_x_ + acol;
-      const auto& assembly = surrogate_.assembly_drivers_[assem_index];
-      if (!assembly.skip_assembly_) {
-        for (size_t pin = 0; pin < assembly.n_pins_; pin++) {
-        // get the connectivity for a given pin, using an
-        // offset to get the connectivity values correct
-        xtensor<int, 1> conn = conn_for_pin(pin * n_points_);
-        // write the connectivity values to file for this pin
-        for (auto val = conn.cbegin(); val != conn.cend(); val += CONN_STRIDE_) {
-          for (size_t i = 0; i < CONN_STRIDE_; i++) {
-            auto v = *(val + i);
-            // mask out any negative connectivity values
-            if (v != INVALID_CONN_) {
-              vtk_file << v << " ";
-            }
-          }
-          vtk_file << "\n";
-          }
+  for (size_t pin = 0; pin < surrogate_.n_pins_; pin++) {
+    // get the connectivity for a given pin, using an
+    // offset to get the connectivity values correct
+    xtensor<int, 1> conn = conn_for_pin(pin * n_points_);
+    // write the connectivity values to file for this pin
+    for (auto val = conn.cbegin(); val != conn.cend(); val += CONN_STRIDE_) {
+      for (size_t i = 0; i < CONN_STRIDE_; i++) {
+        auto v = *(val + i);
+        // mask out any negative connectivity values
+        if (v != INVALID_CONN_) {
+          vtk_file << v << " ";
         }
       }
+      vtk_file << "\n";
     }
   }
 } // write_element_connectivity
@@ -293,18 +276,10 @@ void SurrogateVtkWriter::write_element_types(ofstream& vtk_file)
   // write number of cell type entries
   vtk_file << "\nCELL_TYPES " << surrogate_.n_pins_ * n_sections_ << "\n";
   // pin loop
-  for (gsl::index arow = 0; arow < surrogate_.n_assem_y_; ++arow) {
-    for (gsl::index acol = 0; acol < surrogate_.n_assem_x_; ++acol) {
-      std::size_t assem_index = arow * surrogate_.n_assem_x_ + acol;
-      const auto& assembly = surrogate_.assembly_drivers_[assem_index];
-      if (!assembly.skip_assembly_) {
-        for (size_t pin = 0; pin < assembly.n_pins_; pin++) {
-        // write the template for each pin
-          for (auto v : types_) {
-            vtk_file << v << "\n";
-          }
-        }
-      }
+  for (size_t pin = 0; pin < surrogate_.n_pins_; pin++) {
+    // write the template for each pin
+    for (auto v : types_) {
+      vtk_file << v << "\n";
     }
   }
   vtk_file << "\n";
@@ -325,46 +300,38 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
     vtk_file << "LOOKUP_TABLE default\n";
 
     // write data for each pin
-    for (gsl::index arow = 0; arow < surrogate_.n_assem_y_; ++arow) {
-      for (gsl::index acol = 0; acol < surrogate_.n_assem_x_; ++acol) {
-        std::size_t assem_index = arow * surrogate_.n_assem_x_ + acol;
-        const auto& assembly = surrogate_.assembly_drivers_[assem_index];
-        if (!assembly.skip_assembly_) {
-          for (size_t pin = 0; pin < assembly.n_pins_; pin++) {
-            if (output_includes_solid_) {
-              // write all fuel data first
-              for (size_t i = 0; i < n_axial_sections_; i++) {
-                for (size_t j = 0; j < n_radial_fuel_sections_; j++) {
-                  for (size_t k = 0; k < azimuthal_res_; k++) {
-                    vtk_file << assembly.solid_temperature(pin, i, j) << "\n";
-                  }
-                }
-              }
-
-              // then write cladding data
-              for (size_t i = 0; i < n_axial_sections_; i++) {
-                for (size_t j = 0; j < n_radial_clad_sections_; j++) {
-                  for (size_t k = 0; k < azimuthal_res_; k++) {
-                    vtk_file << assembly.solid_temperature(
-                                  pin, i, j + n_radial_fuel_sections_)
-                            << "\n";
-                  }
-                }
-              }
-            } // end of solid writing
-
-            // then write fluid data
-            if (output_includes_fluid_) {
-              for (size_t i = 0; i < n_axial_sections_; ++i) {
-                for (size_t j = 0; j < n_fluid_sections_; ++j) {
-                  vtk_file << assembly.fluid_temperature(pin, i) << "\n";
-                }
-              }
+    for (size_t pin = 0; pin < surrogate_.n_pins_; pin++) {
+      if (output_includes_solid_) {
+        // write all fuel data first
+        for (size_t i = 0; i < n_axial_sections_; i++) {
+          for (size_t j = 0; j < n_radial_fuel_sections_; j++) {
+            for (size_t k = 0; k < azimuthal_res_; k++) {
+              vtk_file << surrogate_.solid_temperature(pin, i, j) << "\n";
             }
-          } // end pin loop
+          }
+        }
+
+        // then write cladding data
+        for (size_t i = 0; i < n_axial_sections_; i++) {
+          for (size_t j = 0; j < n_radial_clad_sections_; j++) {
+            for (size_t k = 0; k < azimuthal_res_; k++) {
+              vtk_file << surrogate_.solid_temperature(
+                            pin, i, j + n_radial_fuel_sections_)
+                       << "\n";
+            }
+          }
+        }
+      } // end of solid writing
+
+      // then write fluid data
+      if (output_includes_fluid_) {
+        for (size_t i = 0; i < n_axial_sections_; ++i) {
+          for (size_t j = 0; j < n_fluid_sections_; ++j) {
+            vtk_file << surrogate_.fluid_temperature(pin, i) << "\n";
+          }
         }
       }
-    }
+    } // end pin loop
   }
 
   if (output_includes_density_) {
@@ -372,44 +339,36 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
     vtk_file << "LOOKUP_TABLE default\n";
 
     // write data for each pin
-    for (gsl::index arow = 0; arow < surrogate_.n_assem_y_; ++arow) {
-      for (gsl::index acol = 0; acol < surrogate_.n_assem_x_; ++acol) {
-        std::size_t assem_index = arow * surrogate_.n_assem_x_ + acol;
-        const auto& assembly = surrogate_.assembly_drivers_[assem_index];
-        if (!assembly.skip_assembly_) {
-          for (size_t pin = 0; pin < assembly.n_pins_; pin++) {
-            if (output_includes_solid_) {
-              // write all fuel data first
-              for (size_t i = 0; i < n_axial_sections_; i++) {
-                for (size_t j = 0; j < n_radial_fuel_sections_; j++) {
-                  for (size_t k = 0; k < azimuthal_res_; k++) {
-                    vtk_file << 0.0 << "\n";
-                  }
-                }
-              }
-
-              // then write cladding data
-              for (size_t i = 0; i < n_axial_sections_; i++) {
-                for (size_t j = 0; j < n_radial_clad_sections_; j++) {
-                  for (size_t k = 0; k < azimuthal_res_; k++) {
-                    vtk_file << 0.0 << "\n";
-                  }
-                }
-              }
-            } // end of solid writing
-
-            // then write fluid data
-            if (output_includes_fluid_) {
-              for (size_t i = 0; i < n_axial_sections_; ++i) {
-                for (size_t j = 0; j < n_fluid_sections_; ++j) {
-                  vtk_file << assembly.fluid_density(pin, i) << "\n";
-                }
-              }
+    for (size_t pin = 0; pin < surrogate_.n_pins_; pin++) {
+      if (output_includes_solid_) {
+        // write all fuel data first
+        for (size_t i = 0; i < n_axial_sections_; i++) {
+          for (size_t j = 0; j < n_radial_fuel_sections_; j++) {
+            for (size_t k = 0; k < azimuthal_res_; k++) {
+              vtk_file << 0.0 << "\n";
             }
-          } // end pin loop
+          }
+        }
+
+        // then write cladding data
+        for (size_t i = 0; i < n_axial_sections_; i++) {
+          for (size_t j = 0; j < n_radial_clad_sections_; j++) {
+            for (size_t k = 0; k < azimuthal_res_; k++) {
+              vtk_file << 0.0 << "\n";
+            }
+          }
+        }
+      } // end of solid writing
+
+      // then write fluid data
+      if (output_includes_fluid_) {
+        for (size_t i = 0; i < n_axial_sections_; ++i) {
+          for (size_t j = 0; j < n_fluid_sections_; ++j) {
+            vtk_file << surrogate_.fluid_density(pin, i) << "\n";
+          }
         }
       }
-    }
+    } // end pin loop
   }
 
   if (output_includes_source_) {
@@ -418,53 +377,46 @@ void SurrogateVtkWriter::write_data(ofstream& vtk_file)
 
     // Average over the azimuthal sectors for each radial ring.
     // This is consistent with how the source term is used by the surrogate solver.
+    xt::xtensor<double, 3> q = xt::mean(surrogate_.source_, 3);
 
-    for (gsl::index arow = 0; arow < surrogate_.n_assem_y_; ++arow) {
-      for (gsl::index acol = 0; acol < surrogate_.n_assem_x_; ++acol) {
-        std::size_t assem_index = arow * surrogate_.n_assem_x_ + acol;
-        const auto& assembly = surrogate_.assembly_drivers_[assem_index];
-        if (!assembly.skip_assembly_) {
-          xt::xtensor<double, 3> q = xt::mean(assembly.source_, 3);
-          for (size_t pin = 0; pin < assembly.n_pins_; pin++) {
-            // write all fuel data first
-            if (output_includes_solid_) {
-              for (size_t i = 0; i < n_axial_sections_; i++) {
-                for (size_t j = 0; j < n_radial_fuel_sections_; j++) {
-                  for (size_t k = 0; k < azimuthal_res_; k++) {
-                    vtk_file << q(pin, i, j) << "\n";
-                  }
-                }
-              }
-
-              // then write the cladding data
-              for (size_t i = 0; i < n_axial_sections_; i++) {
-                for (size_t j = 0; j < n_radial_clad_sections_; j++) {
-                  for (size_t k = 0; k < azimuthal_res_; k++) {
-                    vtk_file << q(pin, i, j + n_radial_fuel_sections_) << "\n";
-                  }
-                }
-              }
+    for (size_t pin = 0; pin < surrogate_.n_pins_; pin++) {
+      // write all fuel data first
+      if (output_includes_solid_) {
+        for (size_t i = 0; i < n_axial_sections_; i++) {
+          for (size_t j = 0; j < n_radial_fuel_sections_; j++) {
+            for (size_t k = 0; k < azimuthal_res_; k++) {
+              vtk_file << q(pin, i, j) << "\n";
             }
+          }
+        }
 
-            // then write fluid data
-            if (output_includes_fluid_) {
-              for (size_t i = 0; i < n_axial_sections_; ++i) {
-                for (size_t j = 0; j < n_fluid_sections_; ++j) {
-                  vtk_file << 0.0 << "\n";
-                }
-              }
+        // then write the cladding data
+        for (size_t i = 0; i < n_axial_sections_; i++) {
+          for (size_t j = 0; j < n_radial_clad_sections_; j++) {
+            for (size_t k = 0; k < azimuthal_res_; k++) {
+              vtk_file << q(pin, i, j + n_radial_fuel_sections_) << "\n";
             }
-          } // end pin loop
+          }
         }
       }
-    }
+
+      // then write fluid data
+      if (output_includes_fluid_) {
+        for (size_t i = 0; i < n_axial_sections_; ++i) {
+          for (size_t j = 0; j < n_fluid_sections_; ++j) {
+            vtk_file << 0.0 << "\n";
+          }
+        }
+      }
+    } // end pin loop
   }
+
 } // write_data
 
-xtensor<double, 1> SurrogateVtkWriter::points_for_pin(double x, double y, int index)
+xtensor<double, 1> SurrogateVtkWriter::points_for_pin(double x, double y)
 {
   // start with the origin-centered template
-  xtensor<double, 1> points_out = xt::view(points_, xt::range(index*n_points_, (index+1)*n_points_), xt::all());
+  xtensor<double, 1> points_out = points_;
 
   // translate points to pin center
   xt::view(points_out, xt::range(0, _, 3)) += x;
@@ -477,73 +429,28 @@ xtensor<double, 1> SurrogateVtkWriter::points()
 {
   switch (regions_out_) {
   case VizRegionType::all: {
-    xtensor<double, 1> all_points;
-    for (gsl::index arow = 0; arow < surrogate_.n_assem_y_; ++arow) {
-      for (gsl::index acol = 0; acol < surrogate_.n_assem_x_; ++acol) {
-        std::size_t assem_index = arow * surrogate_.n_assem_x_ + acol;
-        const auto& assembly = surrogate_.assembly_drivers_[assem_index];
-        if (!assembly.skip_assembly_) {
-          xtensor<double, 3> fuel_pnts = fuel_points(assem_index);
-          xtensor<double, 3> clad_pnts = clad_points(assem_index);
-          xtensor<double, 3> fluid_pnts = fluid_points(assem_index);
-          std::cout << fuel_pnts.shape()[0] << " " << clad_pnts.shape()[0]
-                    << " " << fluid_pnts.shape()[0] << std::endl;
-          auto solid_pnts =
-            xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts), xt::flatten(clad_pnts)));
-          auto assem_pnts =
-            xt::concatenate(xt::xtuple(solid_pnts, xt::flatten(fluid_pnts)));
-          all_points = xt::concatenate(xt::xtuple(all_points, xt::flatten(assem_pnts)));
-          std::cout << all_points.shape()[0] << std::endl;
-        }
-      }
-    }
-    std::cout << all_points.shape()[0] << std::endl;
-    std::cout << n_points_ << std::endl;
-    return all_points;
+    xtensor<double, 3> fuel_pnts = fuel_points();
+    xtensor<double, 3> clad_pnts = clad_points();
+    xtensor<double, 3> fluid_pnts = fluid_points();
+    auto solid_pnts =
+      xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts), xt::flatten(clad_pnts)));
+    return xt::concatenate(xt::xtuple(solid_pnts, xt::flatten(fluid_pnts)));
   }
   case VizRegionType::solid: {
-    xtensor<double, 1> all_points;
-    for (gsl::index arow = 0; arow < surrogate_.n_assem_y_; ++arow) {
-      for (gsl::index acol = 0; acol < surrogate_.n_assem_x_; ++acol) {
-        std::size_t assem_index = arow * surrogate_.n_assem_x_ + acol;
-        const auto& assembly = surrogate_.assembly_drivers_[assem_index];
-        if (!assembly.skip_assembly_) {
-          xtensor<double, 3> fuel_pnts = fuel_points(assem_index);
-          xtensor<double, 3> clad_pnts = clad_points(assem_index);
-          auto assem_pnts = xt::concatenate(
-            xt::xtuple(xt::flatten(fuel_pnts), xt::flatten(clad_pnts)));
-          all_points =
-            xt::concatenate(xt::xtuple(all_points, xt::flatten(assem_pnts)));
-        }
-      }
-    }
-    return all_points;
+    xtensor<double, 3> fuel_pnts = fuel_points();
+    xtensor<double, 3> clad_pnts = clad_points();
+    return xt::concatenate(xt::xtuple(xt::flatten(fuel_pnts), xt::flatten(clad_pnts)));
   }
-  case VizRegionType::fluid: {
-  xtensor<double, 1> all_points;
-    for (gsl::index arow = 0; arow < surrogate_.n_assem_y_; ++arow) {
-      for (gsl::index acol = 0; acol < surrogate_.n_assem_x_; ++acol) {
-        std::size_t assem_index = arow * surrogate_.n_assem_x_ + acol;
-        const auto& assembly = surrogate_.assembly_drivers_[assem_index];
-        if (!assembly.skip_assembly_) {
-          auto assem_pnts = fluid_points(assem_index);
-          all_points =
-            xt::concatenate(xt::xtuple(all_points, xt::flatten(assem_pnts)));
-        }
-      }
-    }
-    return all_points;
-  }
+  case VizRegionType::fluid:
+    return xt::flatten(fluid_points());
   }
   UNREACHABLE();
 }
 
-xtensor<double, 3> SurrogateVtkWriter::fuel_points(int assem_index)
+xtensor<double, 3> SurrogateVtkWriter::fuel_points()
 {
   // array to hold all point data
   xt::xarray<double> pnts_out({n_axial_points_, fuel_points_per_plane_, 3}, 0.0);
-
-  const auto& assembly = surrogate_.assembly_drivers_[assem_index];
 
   // x and y for a single axial plane in the rod
   xt::xarray<double> x = xt::zeros<double>({n_radial_fuel_sections_, azimuthal_res_});
@@ -552,7 +459,7 @@ xtensor<double, 3> SurrogateVtkWriter::fuel_points(int assem_index)
   // generate x/y points for each radial section, beginning with the first non-zero
   // radius, since later we will set the center point tp (0, 0, z) automatically
   for (size_t i = 0; i < n_radial_fuel_sections_; i++) {
-    double ring_rad = assembly.r_grid_fuel_(i + 1);
+    double ring_rad = surrogate_.r_grid_fuel_(i + 1);
 
     // create a unit ring scaled by radius
     xtensor<double, 2> ring = create_ring(ring_rad, azimuthal_res_);
@@ -571,18 +478,16 @@ xtensor<double, 3> SurrogateVtkWriter::fuel_points(int assem_index)
   for (size_t i = 0; i < n_axial_points_; i++) {
     xt::view(pnts_out, i, xt::range(1, _), 0) = x;
     xt::view(pnts_out, i, xt::range(1, _), 1) = y;
-    xt::view(pnts_out, i, xt::all(), 2) = assembly.z_(i);
+    xt::view(pnts_out, i, xt::all(), 2) = surrogate_.z_(i);
   }
 
   return pnts_out;
 }
 
-xtensor<double, 3> SurrogateVtkWriter::clad_points(int assem_index)
+xtensor<double, 3> SurrogateVtkWriter::clad_points()
 {
   // array to hold all point data
   xt::xarray<double> pnts_out({n_axial_points_, clad_points_per_plane_, 3}, 0.0);
-
-  const auto& assembly = surrogate_.assembly_drivers_[assem_index];
 
   // x and y for a single axial plane in the rod
   xt::xarray<double> x = xt::zeros<double>({n_radial_clad_sections_ + 1, azimuthal_res_});
@@ -590,7 +495,7 @@ xtensor<double, 3> SurrogateVtkWriter::clad_points(int assem_index)
 
   // generate x/y points for each radial ring
   for (size_t i = 0; i < n_radial_clad_sections_ + 1; i++) {
-    double ring_rad = assembly.r_grid_clad_(i);
+    double ring_rad = surrogate_.r_grid_clad_(i);
 
     // create a unit ring scaled by radius
     xtensor<double, 2> ring = create_ring(ring_rad, azimuthal_res_);
@@ -608,31 +513,29 @@ xtensor<double, 3> SurrogateVtkWriter::clad_points(int assem_index)
     // set all points, no center point for cladding
     xt::view(pnts_out, i, xt::all(), 0) = x;
     xt::view(pnts_out, i, xt::all(), 1) = y;
-    xt::view(pnts_out, i, xt::all(), 2) = assembly.z_[i];
+    xt::view(pnts_out, i, xt::all(), 2) = surrogate_.z_[i];
   }
 
   return pnts_out;
 }
 
-xtensor<double, 3> SurrogateVtkWriter::fluid_points(int assem_index)
+xtensor<double, 3> SurrogateVtkWriter::fluid_points()
 {
   // array to hold all point data
   xt::xarray<double> pnts_out({n_axial_points_, fluid_points_per_plane_, 3}, 0.0);
-
-  const auto& assembly = surrogate_.assembly_drivers_[assem_index];
 
   // x and y for a single axial plane in the fluid
   xt::xarray<double> x = xt::zeros<double>({fluid_points_per_plane_});
   xt::xarray<double> y = xt::zeros<double>({fluid_points_per_plane_});
 
   // create ring on clad surface to set points on clad surface
-  xtensor<double, 2> ring = create_ring(assembly.clad_outer_radius(), azimuthal_res_);
+  xtensor<double, 2> ring = create_ring(surrogate_.clad_outer_radius(), azimuthal_res_);
 
   xt::view(x, xt::range(0, azimuthal_res_)) = xt::view(ring, 0, xt::all());
   xt::view(y, xt::range(0, azimuthal_res_)) = xt::view(ring, 1, xt::all());
 
   // set remaining points on boundary
-  double half_pitch = assembly.pin_pitch() / 2.0;
+  double half_pitch = surrogate_.pin_pitch() / 2.0;
   for (size_t i = 0; i < 8; ++i) {
     size_t index = i + azimuthal_res_;
 
@@ -652,7 +555,7 @@ xtensor<double, 3> SurrogateVtkWriter::fluid_points(int assem_index)
   for (size_t i = 0; i < n_axial_points_; i++) {
     xt::view(pnts_out, i, xt::all(), 0) = x;
     xt::view(pnts_out, i, xt::all(), 1) = y;
-    xt::view(pnts_out, i, xt::all(), 2) = assembly.z_[i];
+    xt::view(pnts_out, i, xt::all(), 2) = surrogate_.z_[i];
   }
 
   return pnts_out;
@@ -702,7 +605,7 @@ xtensor<int, 1> SurrogateVtkWriter::conn()
 xtensor<int, 1> SurrogateVtkWriter::conn_for_pin(size_t offset)
 {
   xt::xarray<int> conn_out = conn_;
-  conn_out.reshape({n_sections_ / surrogate_.n_assem_, CONN_STRIDE_});
+  conn_out.reshape({n_sections_, CONN_STRIDE_});
 
   // get locations of all values less than 0
   xt::xarray<bool> mask = conn_out < 0;

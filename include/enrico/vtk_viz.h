@@ -12,7 +12,7 @@ namespace enrico {
 //! Class providing VTK write capabilities for the surrogate T/H solver.
 class SurrogateVtkWriter {
 
-  friend SurrogateHeatDriver;
+  friend SurrogateHeatDriverAssembly;
   friend SurrogateHeatDriver;
 
 public:
@@ -36,7 +36,7 @@ private:
   //! \param t_res            Radial resolution of the generated VTK mesh
   //! \param regions_to_write Description of spatial regions to write
   //! \param data_to_write    Description of solution data to write
-  SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ptr,
+  SurrogateVtkWriter(const SurrogateHeatDriverAssembly& surrogate_ptr,
                      size_t t_res,
                      const std::string& regions_to_write,
                      const std::string& data_to_write);
@@ -75,18 +75,18 @@ private:
 
   //! Generate fuel mesh points
   //! \return fuel points (axial, radial_rings, xyz)
-  xtensor<double, 3> fuel_points(int assem_index);
+  xtensor<double, 3> fuel_points();
 
   //! Generate cladding mesh points
   //! \return cladding points (axial, radial_rings, xyz)
-  xtensor<double, 3> clad_points(int assem_index);
+  xtensor<double, 3> clad_points();
 
   //! Generate fluid mesh points; the fluid points are ordered in a counterclockwise
   //! manner beginning with the points on the surface of the cladding followed by the
   //! eight points defining the corners of the four subchannels surrounding a pin.
   //! This is the "specified map" used to describe the second indexing in this class.
   //! \return fluid points (axial, specified map, xyz)
-  xtensor<double, 3> fluid_points(int assem_index);
+  xtensor<double, 3> fluid_points();
 
   //! Return 1-D array of points for writing (xyz...) (ordered radially, axially)
   //! \return 1-D array of all points in the model
@@ -94,7 +94,7 @@ private:
 
   //! Return 1-D array of points, translated to a pin center
   //! \return 1-D array of points translated to a center x,y
-  xtensor<double, 1> points_for_pin(double x, double y, int index);
+  xtensor<double, 1> points_for_pin(double x, double y);
 
   //! Return connectivity for a pin with an offset
   xtensor<int, 1> conn_for_pin(size_t offset);
@@ -132,7 +132,7 @@ private:
   //! \return 1-D array of types, one for each element (ordered planar, axially)
   xtensor<int, 1> types();
 
-  const SurrogateHeatDriver& surrogate_; //!< reference to surrogate
+  const SurrogateHeatDriverAssembly& surrogate_; //!< reference to surrogate
   size_t azimuthal_res_;                 //!< azimuthal resolution
   VizDataType data_out_;                 //!< output region
   VizRegionType regions_out_;            //!< output data

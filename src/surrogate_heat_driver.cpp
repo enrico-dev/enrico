@@ -446,17 +446,25 @@ void SurrogateHeatDriver::write_step(int timestep, int iteration)
   }
 
   // otherwise construct an appropriate filename and write the data
-  std::stringstream filename;
-  filename << viz_basename_;
+  std::stringstream filename_base;
+  filename_base << viz_basename_;
   if (iteration >= 0 && timestep >= 0) {
-    filename << "_t" << timestep << "_i" << iteration;
+    filename_base << "_t" << timestep << "_i" << iteration;
   }
-  filename << ".vtk";
 
-  SurrogateVtkWriter vtk_writer(*this, vtk_radial_res_, viz_regions_, viz_data_);
+  // write one file per assembly
+  for (gsl::index assem = 0; assem < n_assem_ + n_skip_; ++assem) {
+    if (!assembly_drivers_[assem].skip_assembly_) {
+      SurrogateVtkWriter vtk_writer(
+        assembly_drivers_[assem], vtk_radial_res_, viz_regions_, viz_data_);
 
-  comm_.message("Writing VTK file: " + filename.str());
-  vtk_writer.write(filename.str());
+      std::stringstream filename;
+      filename << filename_base.str() << "_" << assem << ".vtk";
+
+      comm_.message("Writing VTK file: " + filename.str());
+      vtk_writer.write(filename.str());
+    }
+  }
   // timer_write_step.stop();
   return;
 }
