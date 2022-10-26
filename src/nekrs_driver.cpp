@@ -56,14 +56,13 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
             "ENRICO must be run with a CHT simulation.");
 
     mesh_t *mesh = nrs_ptr_->cds->mesh[0];
-    // Local and global element counts
     n_local_elem_ = mesh->Nelements;
+    poly_deg_ = mesh->N;
+    n_gll_ = mesh->Np;
+
     std::size_t n = n_local_elem_;
     MPI_Allreduce(
       &n, &n_global_elem_, 1, get_mpi_type<std::size_t>(), MPI_SUM, comm_.comm);
-
-    poly_deg_ = mesh->N;
-    n_gll_ = mesh->Np;
 
     std::vector<double> xLoc(mesh->Nlocal);
     std::vector<double> yLoc(mesh->Nlocal);
@@ -84,7 +83,7 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
     temperature_ = nrs_ptr_->cds->S;
 
     // Construct lumped mass matrix from vgeo
-    mass_matrix_.resize(n_local_elem_ * n_gll_);
+    mass_matrix_.resize(mesh->Nelements * mesh->Np);
     for(dlong e = 0; e < mesh->Nelements; ++e)
       for(int n = 0; n < mesh->Np; ++n)
         mass_matrix_[e * mesh->Np + n] = mesh->vgeo[e * mesh->Np * mesh->Nvgeo + JWID * mesh->Np + n];
