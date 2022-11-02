@@ -33,9 +33,479 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   n_pins_x_ = node.child("n_pins_x").text().as_int();
   n_pins_y_ = node.child("n_pins_y").text().as_int();
   n_pins_ = n_pins_x_ * n_pins_y_;
+  pin_pitch_ = node.child("pin_pitch").text().as_double();
+
+  // Determine thermal-hydraulic parameters for fluid phase
+  inlet_temperature_ = node.child("inlet_temperature").text().as_double();
+  mass_flowrate_ = node.child("mass_flowrate").text().as_double();
+  n_channels_ = (n_pins_x_ + 1) * (n_pins_y_ + 1);
+
+  // Determine solver parameters
+  if (node.child("max_subchannel_its"))
+    max_subchannel_its_ = node.child("max_subchannel_its").text().as_int();
+  if (node.child("subchannel_tol_h"))
+    subchannel_tol_h_ = node.child("subchannel_tol_h").text().as_double();
+  if (node.child("subchannel_tol_p"))
+    subchannel_tol_p_ = node.child("subchannel_tol_p").text().as_double();
+  if (node.child("heat_tol"))
+    heat_tol_ = node.child("heat_tol").text().as_double();
+
+  // Determine assembly information
+  if (node.child("n_assem_x") || node.child("n_assem_y") ||
+      node.child("assembly_width_x") || node.child("assembly_width_y")) {
+    n_assem_x_ = node.child("n_assem_x").text().as_int();
+    n_assem_y_ = node.child("n_assem_y").text().as_int();
+    assembly_width_x_ = node.child("assembly_width_x").text().as_double();
+    assembly_width_y_ = node.child("assembly_width_y").text().as_double();
+  } else {
+    // assume 1 assembly, with pitch corresponding to the larger pin dimension
+    n_assem_x_ = 1;
+    n_assem_y_ = 1;
+    assembly_width_x_ = n_pins_x_ * pin_pitch_;
+    assembly_width_y_ = n_pins_y_ * pin_pitch_;
+  }
+
+  // check for assemblies to not consider part of core
+  if (node.child("skip_assemblies")) {
+    skip_assemblies_ = openmc::get_node_xarray<double>(node, "skip_assemblies");
+    n_skip_ = skip_assemblies_.size();
+  } else {
+    n_skip_ = 0;
+  }
+  n_assem_ = n_assem_x_ * n_assem_y_ - n_skip_;
+
+  verbosity_ = verbose::NONE;
+  if (node.child("verbosity")) {
+    std::string setting = node.child("verbosity").text().as_string();
+    if (setting == "none") {
+      verbosity_ = verbose::NONE;
+    } else if (setting == "low") {
+      verbosity_ = verbose::LOW;
+    } else if (setting == "high") {
+      verbosity_ = verbose::HIGH;
+    } else {
+      // invalid input for verbosity
+      Expects(false);
+    }
+  }
+
+  // check validity of user input
+  Expects(clad_inner_radius_ > 0);
+  Expects(clad_outer_radius_ > clad_inner_radius_);
+  Expects(pellet_radius_ < clad_inner_radius_);
+  Expects(n_fuel_rings_ > 0);
+  Expects(n_clad_rings_ > 0);
+  Expects(n_pins_x_ > 0);
+  Expects(n_pins_y_ > 0);
+  Expects(pin_pitch_ > 2.0 * clad_outer_radius_);
+  Expects(mass_flowrate_ > 0.0);
+  Expects(inlet_temperature_ > 0.0);
+  Expects(max_subchannel_its_ > 0);
+  Expects(subchannel_tol_h_ > 0.0);
+  Expects(subchannel_tol_p_ > 0.0);
+  Expects(heat_tol_ > 0.0);
+
+  bool has_coupling = has_coupling_data();
+
+  // init vector of assembly surrogate drivers
+  for (gsl::index row = 0; row < n_assem_y_; ++row) {
+    for (gsl::index col = 0; col < n_assem_x_; ++col) {
+      std::size_t assem_index = row * n_assem_x_ + col;
+      bool skip = false;
+      for (gsl::index i = 0; i < skip_assemblies_.size(); ++i) {
+        if (assem_index == skip_assemblies_[i]) {
+          skip = true;
+        }
+      }
+      assembly_drivers_.push_back(
+        SurrogateHeatDriverAssembly(node, has_coupling, pressure_bc_, assem_index, skip));
+    }
+  }
+
+  // Get z values
+  z_ = openmc::get_node_xarray<double>(node, "z");
+  n_axial_ = z_.size() - 1;
+
+  // number of solid and fluid elements per assembly
   n_solid_ = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
   n_fluid_ = n_pins_ * n_axial_;
+
+  // Check for visualization input
+  if (node.child("viz")) {
+    pugi::xml_node viz_node = node.child("viz");
+    if (viz_node.attribute("filename")) {
+      viz_basename_ = viz_node.attribute("filename").value();
+    }
+
+    // if a viz node is found, write final iteration by default
+    viz_iterations_ = "final";
+    if (viz_node.child("iterations")) {
+      viz_iterations_ = viz_node.child("iterations").text().as_string();
+    }
+    // set other viz values
+    if (viz_node.child("resolution")) {
+      vtk_radial_res_ = viz_node.child("resolution").text().as_int();
+    }
+    if (viz_node.child("data")) {
+      viz_data_ = viz_node.child("data").text().as_string();
+    }
+    if (viz_node.child("regions")) {
+      viz_regions_ = viz_node.child("regions").text().as_string();
+    }
+  }
+};
+
+int SurrogateHeatDriver::n_local_elem() const
+{
+  return this->has_coupling_data() ? this->n_global_elem() : 0;
+}
+
+std::size_t SurrogateHeatDriver::n_global_elem() const
+{
+  return n_assem_ * (n_solid_ + n_fluid_);
+}
+
+std::vector<Position> SurrogateHeatDriver::centroid() const
+{
+  if (!this->has_coupling_data())
+    return {};
+
+  std::vector<Position> centroids;
+
+  // Establish mappings between solid regions and OpenMC cells. The center
+  // coordinate for each region in the T/H model is obtained and used to
+  // determine the OpenMC cell at that position.
+  for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
+    for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
+      std::size_t assem_index = arow * n_assem_x_ + acol;
+      const auto& assembly = assembly_drivers_[assem_index];
+      if (!assembly.skip_assembly_) {
+        for (gsl::index i = 0; i < n_pins_; ++i) {
+          double x_center = assembly.pin_centers_(i, 0);
+          double y_center = assembly.pin_centers_(i, 1);
+
+          for (gsl::index j = 0; j < n_axial_; ++j) {
+            double zavg = 0.5 * (z_(j) + z_(j + 1));
+
+            for (gsl::index k = 0; k < n_rings(); ++k) {
+              double ravg;
+              if (k < n_fuel_rings_) {
+                ravg = 0.5 * (assembly.r_grid_fuel_(k) + assembly.r_grid_fuel_(k + 1));
+              } else {
+                int m = k - n_fuel_rings_;
+                ravg = 0.5 * (assembly.r_grid_clad_(m) + assembly.r_grid_clad_(m + 1));
+              }
+
+              for (gsl::index m = 0; m < n_azimuthal_; ++m) {
+                double m_avg = m + 0.5;
+                double theta = 2.0 * m_avg * M_PI / n_azimuthal_;
+                double x = x_center + ravg * std::cos(theta);
+                double y = y_center + ravg * std::sin(theta);
+
+                // Determine cell instance corresponding to given pin location
+                centroids.emplace_back(x, y, zavg);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  // Establish mappings between fluid regions and OpenMC cells; it is assumed that there
+  // are no azimuthal divisions in the fluid phase in the OpenMC model so that we
+  // can take a point on a 45 degree ray from the pin center. TODO: add a check to make
+  // sure that the T/H model is finer than the OpenMC model.
+
+  for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
+    for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
+      std::size_t assem_index = arow * n_assem_x_ + acol;
+      const auto& assembly = assembly_drivers_[assem_index];
+      if (!assembly.skip_assembly_) {
+        for (gsl::index i = 0; i < n_pins_; ++i) {
+          double x_center = assembly.pin_centers_(i, 0);
+          double y_center = assembly.pin_centers_(i, 1);
+
+          for (gsl::index j = 0; j < assembly.n_axial_; ++j) {
+            double zavg = 0.5 * (z_(j) + z_(j + 1));
+            double l = pin_pitch() / std::sqrt(2.0);
+            double d = (l - clad_outer_radius_) / 2.0;
+            double x = x_center + (clad_outer_radius_ + d) * std::sqrt(2.0) / 2.0;
+            double y = y_center + (clad_outer_radius_ + d) * std::sqrt(2.0) / 2.0;
+
+            // Determine cell instance corresponding to given fluid location
+            centroids.emplace_back(x, y, zavg);
+          }
+        }
+      }
+    }
+  }
+
+  return centroids;
+}
+
+std::vector<double> SurrogateHeatDriver::temperature() const
+{
+  std::vector<double> local_temperatures;
+
+  if (this->has_coupling_data()) {
+    // first fill all solid temperatures
+    for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
+      for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
+        std::size_t assem_index = arow * n_assem_x_ + acol;
+        const auto& assembly = assembly_drivers_[assem_index];
+        if (!assembly.skip_assembly_) {
+          for (gsl::index i = 0; i < n_pins_; ++i) {
+            for (gsl::index j = 0; j < n_axial_; ++j) {
+              for (gsl::index k = 0; k < n_rings(); ++k) {
+                for (gsl::index m = 0; m < n_azimuthal_; ++m) {
+                  local_temperatures.push_back(assembly.solid_temperature_(i, j, k));
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // then fill all fluid temperatures
+    for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
+      for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
+        std::size_t assem_index = arow * n_assem_x_ + acol;
+        const auto& assembly = assembly_drivers_[assem_index];
+        if (!assembly.skip_assembly_) {
+          for (double T : assembly.fluid_temperature_) {
+            local_temperatures.push_back(T);
+          }
+        }
+      }
+    }
+  }
+
+  return local_temperatures;
+}
+
+std::vector<double> SurrogateHeatDriver::density() const
+{
+  std::vector<double> local_densities;
+
+  if (this->has_coupling_data()) {
+    // Solid region just gets zeros for densities (not used)
+    auto n = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
+    std::fill_n(std::back_inserter(local_densities), n * n_assem_, 0.0);
+
+    // iterate over each assembly to get fluid densities
+    for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
+      for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
+        std::size_t assem_index = arow * n_assem_x_ + acol;
+        const auto& assembly = assembly_drivers_[assem_index];
+        if (!assembly.skip_assembly_) {
+          // Add fluid densities and return
+          for (double rho : assembly.fluid_density_) {
+            local_densities.push_back(rho);
+          }
+        }
+      }
+    }
+  }
+  return local_densities;
+}
+
+int SurrogateHeatDriver::in_fluid_at(int32_t local_elem) const
+{
+  return local_elem >= n_solid_ * n_assem_;
+}
+
+std::vector<int> SurrogateHeatDriver::fluid_mask() const
+{
+  std::vector<int> fluid_mask;
+  if (this->has_coupling_data()) {
+    std::fill_n(std::back_inserter(fluid_mask), n_solid_ * n_assem_, 0);
+    std::fill_n(std::back_inserter(fluid_mask), n_fluid_ * n_assem_, 1);
+  }
+  return fluid_mask;
+}
+
+std::vector<double> SurrogateHeatDriver::volume() const
+{
+  std::vector<double> volumes;
+
+  if (this->has_coupling_data()) {
+    // get volume of solid regions first
+    for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
+      for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
+        std::size_t assem_index = arow * n_assem_x_ + acol;
+        const auto& assembly = assembly_drivers_[assem_index];
+        if (!assembly.skip_assembly_) {
+          // Volume of solid regions
+          for (gsl::index i = 0; i < n_pins_; ++i) {
+            for (gsl::index j = 0; j < n_axial_; ++j) {
+              double dz = z_(j + 1) - z_(j);
+              for (gsl::index k = 0; k < n_rings(); ++k) {
+                for (gsl::index m = 0; m < n_azimuthal_; ++m) {
+                  volumes.push_back(assembly.solid_areas_(k) * dz / n_azimuthal_);
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    // volume of fluid regions
+    for (gsl::index arow = 0; arow < n_assem_y_; ++arow) {
+      for (gsl::index acol = 0; acol < n_assem_x_; ++acol) {
+        std::size_t assem_index = arow * n_assem_x_ + acol;
+        const auto& assembly = assembly_drivers_[assem_index];
+        if (!assembly.skip_assembly_) {
+          // Volume of fluid regions
+          for (gsl::index i = 0; i < n_pins_; ++i) {
+            for (gsl::index j = 0; j < n_axial_; ++j) {
+              double dz = z_(j + 1) - z_(j);
+              double area =
+                pin_pitch_ * pin_pitch_ - M_PI * clad_outer_radius_ * clad_outer_radius_;
+              volumes.push_back(area * dz);
+            }
+          }
+        }
+      }
+    }
+  }
+
+  return volumes;
+}
+
+int SurrogateHeatDriver::set_heat_source_at(int32_t local_elem, double heat)
+{
+  if (local_elem >= n_solid_ * n_assem_)
+    return 0;
+
+  // get assembly index:
+  // calculated index is relative to active assemblies, so need to account
+  // for any skipped assemblies in the full core. Add 1 for each skipped assembly.
+  gsl::index assem = (local_elem / (n_pins_ * n_axial_ * n_rings() * n_azimuthal_));
+  if (n_skip_ > 0) {
+    for (gsl::index i = 0; i < skip_assemblies_.size(); ++i) {
+      if (skip_assemblies_[i] <= assem) {
+        ++assem;
+      }
+    }
+  }
+
+  if (assembly_drivers_[assem].skip_assembly_) {
+    return 0;
+  }
+
+  // Determine indices within assembly
+  gsl::index assem_local_elem =
+    local_elem % (n_pins_ * n_axial_ * n_rings() * n_azimuthal_);
+  gsl::index pin = assem_local_elem / (n_axial_ * n_rings() * n_azimuthal_);
+  gsl::index axial = (assem_local_elem / (n_rings() * n_azimuthal_)) % n_axial_;
+  gsl::index ring = (assem_local_elem / n_azimuthal_) % n_rings();
+  gsl::index azimuthal = assem_local_elem % n_azimuthal_;
+
+  // Set heat source
+  assembly_drivers_[assem].source_(pin, axial, ring, azimuthal) = heat;
+  return 0;
+}
+
+void SurrogateHeatDriver::solve_step()
+{
+  timer_solve_step.start();
+  if (has_coupling_data()) {
+    // iterate over each assembly for each solve step
+    for (gsl::index row = 0; row < n_assem_y_; ++row) {
+      for (gsl::index col = 0; col < n_assem_x_; ++col) {
+        int assem_index = row * n_assem_x_ + col;
+        if (!assembly_drivers_[assem_index].skip_assembly_) {
+          comm_.message("Solving fluid equation for assembly " +
+                        std::to_string(assem_index) + " ...");
+          assembly_drivers_[assem_index].solve_fluid();
+          comm_.message("Solving heat equation for assembly " +
+                        std::to_string(assem_index) + " ...");
+          assembly_drivers_[assem_index].solve_heat();
+        }
+      }
+    }
+  }
+  timer_solve_step.stop();
+}
+
+void SurrogateHeatDriver::write_step(int timestep, int iteration)
+{
+  // TODO: Timers deadlock here...
+  // timer_write_step.start();
+  if (!has_coupling_data())
+    return;
+
+  // if called, but viz isn't requested for the situation,
+  // exit early - no output
+  if ((iteration < 0 && "final" != viz_iterations_) ||
+      (iteration >= 0 && "all" != viz_iterations_)) {
+    return;
+  }
+
+  // otherwise construct an appropriate filename and write the data
+  std::stringstream filename_base;
+  filename_base << viz_basename_;
+  if (iteration >= 0 && timestep >= 0) {
+    filename_base << "_t" << timestep << "_i" << iteration;
+  }
+
+  // write one file per assembly
+  for (gsl::index assem = 0; assem < n_assem_ + n_skip_; ++assem) {
+    if (!assembly_drivers_[assem].skip_assembly_) {
+      SurrogateVtkWriter vtk_writer(
+        assembly_drivers_[assem], vtk_radial_res_, viz_regions_, viz_data_);
+
+      std::stringstream filename;
+      filename << filename_base.str() << "_" << assem << ".vtk";
+
+      comm_.message("Writing VTK file: " + filename.str());
+      vtk_writer.write(filename.str());
+    }
+  }
+  // timer_write_step.stop();
+  return;
+}
+
+SurrogateHeatDriverAssembly::SurrogateHeatDriverAssembly(pugi::xml_node node,
+                                                         bool has_coupling,
+                                                         double pressure_bc,
+                                                         std::size_t index,
+                                                         bool skip_assembly)
+{
+  // Determine thermal-hydraulic parameters for solid phase
+  clad_inner_radius_ = node.child("clad_inner_radius").text().as_double();
+  clad_outer_radius_ = node.child("clad_outer_radius").text().as_double();
+  pellet_radius_ = node.child("pellet_radius").text().as_double();
+  n_fuel_rings_ = node.child("fuel_rings").text().as_int();
+  n_clad_rings_ = node.child("clad_rings").text().as_int();
+  n_pins_x_ = node.child("n_pins_x").text().as_int();
+  n_pins_y_ = node.child("n_pins_y").text().as_int();
+  n_pins_ = n_pins_x_ * n_pins_y_;
   pin_pitch_ = node.child("pin_pitch").text().as_double();
+
+  // Determine assembly information
+  if (node.child("n_assem_x") || node.child("n_assem_y") ||
+      node.child("assembly_width_x") || node.child("assembly_width_y")) {
+    n_assem_x_ = node.child("n_assem_x").text().as_int();
+    n_assem_y_ = node.child("n_assem_y").text().as_int();
+    assembly_width_x_ = node.child("assembly_width_x").text().as_double();
+    assembly_width_y_ = node.child("assembly_width_y").text().as_double();
+  } else {
+    // assume 1 assembly, with pitch corresponding to the pin dimension
+    n_assem_x_ = 1;
+    n_assem_y_ = 1;
+    assembly_width_x_ = n_pins_x_ * pin_pitch_;
+    assembly_width_y_ = n_pins_y_ * pin_pitch_;
+  }
+
+  // check if this assembly should be skipped and do not do any other setup
+  skip_assembly_ = skip_assembly;
+  if (skip_assembly_) {
+    return;
+  }
 
   // Determine thermal-hydraulic parameters for fluid phase
   inlet_temperature_ = node.child("inlet_temperature").text().as_double();
@@ -82,22 +552,30 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   Expects(subchannel_tol_h_ > 0.0);
   Expects(subchannel_tol_p_ > 0.0);
   Expects(heat_tol_ > 0.0);
+  Expects(n_assem_x_ > 0);
+  Expects(n_assem_y_ > 0);
+  Expects(assembly_width_x_ >= pin_pitch_ * n_pins_x_);
+  Expects(assembly_width_y_ >= pin_pitch_ * n_pins_y_);
 
-  // Set pin locations, where the center of the assembly is assumed to occur at
+  // Set pin locations, where the center of the core is assumed to occur at
   // x = 0, y = 0. It is also assumed that the rod-boundary separation in the
   // x and y directions is the same and equal to half the pitch.
-  // TODO: generalize to multi-assembly simulations
-  double assembly_width_x = n_pins_x_ * pin_pitch_;
-  double assembly_width_y = n_pins_y_ * pin_pitch_;
-  double top_left_x = -assembly_width_x / 2.0 + pin_pitch_ / 2.0;
-  double top_left_y = assembly_width_y / 2.0 - pin_pitch_ / 2.0;
+  double core_width_x = assembly_width_x_ * n_assem_x_;
+  double core_width_y = assembly_width_y_ * n_assem_y_;
+  double core_top_left_x = -core_width_x / 2.0;
+  double core_top_left_y = core_width_y / 2.0;
 
   pin_centers_.resize({n_pins_, 2});
+
+  int acol = index % n_assem_x_;
+  int arow = (index - acol) / n_assem_y_;
+  double assem_top_left_x = core_top_left_x + acol * assembly_width_x_ + pin_pitch_ / 2.0;
+  double assem_top_left_y = core_top_left_y - arow * assembly_width_y_ - pin_pitch_ / 2.0;
   for (gsl::index row = 0; row < n_pins_y_; ++row) {
     for (gsl::index col = 0; col < n_pins_x_; ++col) {
       int pin_index = row * n_pins_x_ + col;
-      pin_centers_(pin_index, 0) = top_left_x + col * pin_pitch_;
-      pin_centers_(pin_index, 1) = top_left_y - row * pin_pitch_;
+      pin_centers_(pin_index, 0) = assem_top_left_x + col * pin_pitch_;
+      pin_centers_(pin_index, 1) = assem_top_left_y - row * pin_pitch_;
     }
   }
 
@@ -153,35 +631,18 @@ SurrogateHeatDriver::SurrogateHeatDriver(MPI_Comm comm, pugi::xml_node node)
   z_ = openmc::get_node_xarray<double>(node, "z");
   n_axial_ = z_.size() - 1;
 
-  // Check for visualization input
-  if (node.child("viz")) {
-    pugi::xml_node viz_node = node.child("viz");
-    if (viz_node.attribute("filename")) {
-      viz_basename_ = viz_node.attribute("filename").value();
-    }
+  // num solid and fluid elements per assembly
+  n_solid_ = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
+  n_fluid_ = n_pins_ * n_axial_;
 
-    // if a viz node is found, write final iteration by default
-    viz_iterations_ = "final";
-    if (viz_node.child("iterations")) {
-      viz_iterations_ = viz_node.child("iterations").text().as_string();
-    }
-    // set other viz values
-    if (viz_node.child("resolution")) {
-      vtk_radial_res_ = viz_node.child("resolution").text().as_int();
-    }
-    if (viz_node.child("data")) {
-      viz_data_ = viz_node.child("data").text().as_string();
-    }
-    if (viz_node.child("regions")) {
-      viz_regions_ = viz_node.child("regions").text().as_string();
-    }
-  }
+  pressure_bc_ = pressure_bc;
+  has_coupling_ = has_coupling;
 
   // Initialize heat transfer solver
   generate_arrays();
 };
 
-void SurrogateHeatDriver::generate_arrays()
+void SurrogateHeatDriverAssembly::generate_arrays()
 {
   // Make a radial grid for the clad with equal spacing.
   r_grid_clad_ =
@@ -203,7 +664,7 @@ void SurrogateHeatDriver::generate_arrays()
     }
   }
 
-  if (this->has_coupling_data()) {
+  if (has_coupling_) {
     // Create empty arrays for source term and temperature in the solid phase
     source_ = xt::empty<double>({n_pins_, n_axial_, n_rings(), n_azimuthal_});
     solid_temperature_ = xt::empty<double>({n_pins_, n_axial_, n_rings()});
@@ -214,187 +675,68 @@ void SurrogateHeatDriver::generate_arrays()
   }
 }
 
-int SurrogateHeatDriver::n_local_elem() const
+bool SurrogateHeatDriverAssembly::is_mass_conserved(const xt::xtensor<double, 2>& rho,
+                                                    const xt::xtensor<double, 2>& u) const
 {
-  return this->has_coupling_data() ? this->n_global_elem() : 0;
+  bool mass_conserved = true;
+
+  for (gsl::index axial = 0; axial < n_axial_; ++axial) {
+    double mass_flowrate = 0.0;
+    for (gsl::index chan = 0; chan < n_channels_; ++chan) {
+      double u_cell_centered = 0.5 * (u(chan, axial) + u(chan, axial + 1));
+      mass_flowrate += u_cell_centered * channels_[chan].area_ * rho(chan, axial);
+    }
+
+    double tol = std::abs(mass_flowrate - mass_flowrate_) / mass_flowrate_;
+
+    if (tol > 1e-3) {
+      mass_conserved = false;
+    }
+
+    if (verbosity_ == verbose::HIGH) {
+      std::cout << "Mass on plane " << axial << " conserved to a tolerance of " << tol
+                << std::endl;
+    }
+  }
+
+  return mass_conserved;
 }
 
-std::size_t SurrogateHeatDriver::n_global_elem() const
+bool SurrogateHeatDriverAssembly::is_energy_conserved(
+  const xt::xtensor<double, 2>& rho,
+  const xt::xtensor<double, 2>& u,
+  const xt::xtensor<double, 2>& h,
+  const xt::xtensor<double, 2>& q) const
 {
-  auto n_solid = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
-  auto n_fluid = n_pins_ * n_axial_;
-  return n_solid + n_fluid;
-}
+  bool energy_conserved = true;
 
-std::vector<Position> SurrogateHeatDriver::centroid() const
-{
-  if (!this->has_coupling_data())
-    return {};
+  for (gsl::index axial = 0; axial < n_axial_; ++axial) {
+    for (gsl::index chan = 0; chan < n_channels_; ++chan) {
+      double u_cell_centered = 0.5 * (u(chan, axial) + u(chan, axial + 1));
+      double mass_flowrate = rho(chan, axial) * channels_[chan].area_ * u_cell_centered;
 
-  std::vector<Position> centroids;
+      // conversion factor of 1e3 to convert enthalpy from kJ/kg to J/kg
+      double channel_energy_change =
+        mass_flowrate * (h(chan, axial + 1) - h(chan, axial)) * 1.0e3;
 
-  // Establish mappings between solid regions and OpenMC cells. The center
-  // coordinate for each region in the T/H model is obtained and used to
-  // determine the OpenMC cell at that position.
-  for (gsl::index i = 0; i < n_pins_; ++i) {
-    double x_center = pin_centers_(i, 0);
-    double y_center = pin_centers_(i, 1);
+      double tol = std::abs(channel_energy_change - q(chan, axial)) / q(chan, axial);
 
-    for (gsl::index j = 0; j < n_axial_; ++j) {
-      double zavg = 0.5 * (z_(j) + z_(j + 1));
+      if (tol > 1e-3) {
+        energy_conserved = false;
+      }
 
-      for (gsl::index k = 0; k < n_rings(); ++k) {
-        double ravg;
-        if (k < n_fuel_rings_) {
-          ravg = 0.5 * (r_grid_fuel_(k) + r_grid_fuel_(k + 1));
-        } else {
-          int m = k - n_fuel_rings_;
-          ravg = 0.5 * (r_grid_clad_(m) + r_grid_clad_(m + 1));
-        }
-
-        for (gsl::index m = 0; m < n_azimuthal_; ++m) {
-          double m_avg = m + 0.5;
-          double theta = 2.0 * m_avg * M_PI / n_azimuthal_;
-          double x = x_center + ravg * std::cos(theta);
-          double y = y_center + ravg * std::sin(theta);
-
-          // Determine cell instance corresponding to given pin location
-          centroids.emplace_back(x, y, zavg);
-        }
+      if (verbosity_ == verbose::HIGH) {
+        std::cout << "Energy deposition in channel " << chan << ", axial node " << axial
+                  << " conserved to a tolerance of " << tol << std::endl;
       }
     }
   }
 
-  // Establish mappings between fluid regions and OpenMC cells; it is assumed that there
-  // are no azimuthal divisions in the fluid phase in the OpenMC model so that we
-  // can take a point on a 45 degree ray from the pin center. TODO: add a check to make
-  // sure that the T/H model is finer than the OpenMC model.
-
-  for (gsl::index i = 0; i < n_pins_; ++i) {
-    double x_center = pin_centers_(i, 0);
-    double y_center = pin_centers_(i, 1);
-
-    for (gsl::index j = 0; j < n_axial_; ++j) {
-      double zavg = 0.5 * (z_(j) + z_(j + 1));
-      double l = pin_pitch() / std::sqrt(2.0);
-      double d = (l - clad_outer_radius_) / 2.0;
-      double x = x_center + (clad_outer_radius_ + d) * std::sqrt(2.0) / 2.0;
-      double y = y_center + (clad_outer_radius_ + d) * std::sqrt(2.0) / 2.0;
-
-      // Determine cell instance corresponding to given fluid location
-      centroids.emplace_back(x, y, zavg);
-    }
-  }
-
-  return centroids;
+  return energy_conserved;
 }
 
-std::vector<double> SurrogateHeatDriver::temperature() const
-{
-  std::vector<double> local_temperatures;
-
-  if (this->has_coupling_data()) {
-    for (gsl::index i = 0; i < n_pins_; ++i) {
-      for (gsl::index j = 0; j < n_axial_; ++j) {
-        for (gsl::index k = 0; k < n_rings(); ++k) {
-          for (gsl::index m = 0; m < n_azimuthal_; ++m) {
-            local_temperatures.push_back(solid_temperature_(i, j, k));
-          }
-        }
-      }
-    }
-
-    for (double T : fluid_temperature_) {
-      local_temperatures.push_back(T);
-    }
-  }
-
-  return local_temperatures;
-}
-
-std::vector<double> SurrogateHeatDriver::density() const
-{
-  std::vector<double> local_densities;
-
-  if (this->has_coupling_data()) {
-    // Solid region just gets zeros for densities (not used)
-    auto n = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
-    std::fill_n(std::back_inserter(local_densities), n, 0.0);
-
-    // Add fluid densities and return
-    for (double rho : fluid_density_) {
-      local_densities.push_back(rho);
-    }
-  }
-  return local_densities;
-}
-
-int SurrogateHeatDriver::in_fluid_at(int32_t local_elem) const
-{
-  return local_elem >= n_solid_;
-}
-
-std::vector<int> SurrogateHeatDriver::fluid_mask() const
-{
-  std::vector<int> fluid_mask;
-
-  if (this->has_coupling_data()) {
-    auto n_solid = n_pins_ * n_axial_ * n_rings() * n_azimuthal_;
-    auto n_fluid = n_pins_ * n_axial_;
-    std::fill_n(std::back_inserter(fluid_mask), n_solid, 0);
-    std::fill_n(std::back_inserter(fluid_mask), n_fluid, 1);
-  }
-  return fluid_mask;
-}
-
-std::vector<double> SurrogateHeatDriver::volume() const
-{
-  std::vector<double> volumes;
-
-  if (this->has_coupling_data()) {
-    // Volume of solid regions
-    for (gsl::index i = 0; i < n_pins_; ++i) {
-      for (gsl::index j = 0; j < n_axial_; ++j) {
-        double dz = z_(j + 1) - z_(j);
-        for (gsl::index k = 0; k < n_rings(); ++k) {
-          for (gsl::index m = 0; m < n_azimuthal_; ++m) {
-            volumes.push_back(solid_areas_(k) * dz / n_azimuthal_);
-          }
-        }
-      }
-    }
-
-    // Volume of fluid regions
-    for (gsl::index i = 0; i < n_pins_; ++i) {
-      for (gsl::index j = 0; j < n_axial_; ++j) {
-        double dz = z_(j + 1) - z_(j);
-        double area =
-          pin_pitch_ * pin_pitch_ - M_PI * clad_outer_radius_ * clad_outer_radius_;
-        volumes.push_back(area * dz);
-      }
-    }
-  }
-
-  return volumes;
-}
-
-int SurrogateHeatDriver::set_heat_source_at(int32_t local_elem, double heat)
-{
-  if (local_elem >= n_pins_ * n_axial_ * n_rings() * n_azimuthal_)
-    return 0;
-
-  // Determine indices
-  gsl::index pin = local_elem / (n_axial_ * n_rings() * n_azimuthal_);
-  gsl::index axial = (local_elem / (n_rings() * n_azimuthal_)) % n_axial_;
-  gsl::index ring = (local_elem / n_azimuthal_) % n_rings();
-  gsl::index azimuthal = local_elem % n_azimuthal_;
-
-  // Set heat source
-  source_(pin, axial, ring, azimuthal) = heat;
-  return 0;
-}
-
-double SurrogateHeatDriver::rod_axial_node_power(const int pin, const int axial) const
+double SurrogateHeatDriverAssembly::rod_axial_node_power(const int pin,
+                                                         const int axial) const
 {
   Expects(axial < n_axial_);
 
@@ -410,17 +752,7 @@ double SurrogateHeatDriver::rod_axial_node_power(const int pin, const int axial)
   return power;
 }
 
-void SurrogateHeatDriver::solve_step()
-{
-  timer_solve_step.start();
-  if (has_coupling_data()) {
-    solve_fluid();
-    solve_heat();
-  }
-  timer_solve_step.stop();
-}
-
-void SurrogateHeatDriver::solve_fluid()
+void SurrogateHeatDriverAssembly::solve_fluid()
 {
   // determine the power deposition in each channel; the target applications will
   // always be steady-state or pseudo-steady-state cases with no axial conduction such
@@ -547,69 +879,8 @@ void SurrogateHeatDriver::solve_fluid()
   }
 }
 
-bool SurrogateHeatDriver::is_mass_conserved(const xt::xtensor<double, 2>& rho,
-                                            const xt::xtensor<double, 2>& u) const
+void SurrogateHeatDriverAssembly::solve_heat()
 {
-  bool mass_conserved = true;
-
-  for (gsl::index axial = 0; axial < n_axial_; ++axial) {
-    double mass_flowrate = 0.0;
-    for (gsl::index chan = 0; chan < n_channels_; ++chan) {
-      double u_cell_centered = 0.5 * (u(chan, axial) + u(chan, axial + 1));
-      mass_flowrate += u_cell_centered * channels_[chan].area_ * rho(chan, axial);
-    }
-
-    double tol = std::abs(mass_flowrate - mass_flowrate_) / mass_flowrate_;
-
-    if (tol > 1e-3) {
-      mass_conserved = false;
-    }
-
-    if (verbosity_ == verbose::HIGH) {
-      std::cout << "Mass on plane " << axial << " conserved to a tolerance of " << tol
-                << std::endl;
-    }
-  }
-
-  return mass_conserved;
-}
-
-bool SurrogateHeatDriver::is_energy_conserved(const xt::xtensor<double, 2>& rho,
-                                              const xt::xtensor<double, 2>& u,
-                                              const xt::xtensor<double, 2>& h,
-                                              const xt::xtensor<double, 2>& q) const
-{
-  bool energy_conserved = true;
-
-  for (gsl::index axial = 0; axial < n_axial_; ++axial) {
-    for (gsl::index chan = 0; chan < n_channels_; ++chan) {
-      double u_cell_centered = 0.5 * (u(chan, axial) + u(chan, axial + 1));
-      double mass_flowrate = rho(chan, axial) * channels_[chan].area_ * u_cell_centered;
-
-      // conversion factor of 1e3 to convert enthalpy from kJ/kg to J/kg
-      double channel_energy_change =
-        mass_flowrate * (h(chan, axial + 1) - h(chan, axial)) * 1.0e3;
-
-      double tol = std::abs(channel_energy_change - q(chan, axial)) / q(chan, axial);
-
-      if (tol > 1e-3) {
-        energy_conserved = false;
-      }
-
-      if (verbosity_ == verbose::HIGH) {
-        std::cout << "Energy deposition in channel " << chan << ", axial node " << axial
-                  << " conserved to a tolerance of " << tol << std::endl;
-      }
-    }
-  }
-
-  return energy_conserved;
-}
-
-void SurrogateHeatDriver::solve_heat()
-{
-  comm_.message("Solving heat equation...");
-
   // Convert source to [W/m^3] as expected by Magnolia
   xt::xtensor<double, 3> q = 1e6 * xt::mean(source_, 3);
 
@@ -638,51 +909,23 @@ void SurrogateHeatDriver::solve_heat()
   }
 }
 
-double SurrogateHeatDriver::solid_temperature(std::size_t pin,
-                                              std::size_t axial,
-                                              std::size_t ring) const
+double SurrogateHeatDriverAssembly::solid_temperature(std::size_t pin,
+                                                      std::size_t axial,
+                                                      std::size_t ring) const
 {
   return solid_temperature_(pin, axial, ring);
 }
 
-double SurrogateHeatDriver::fluid_density(std::size_t pin, std::size_t axial) const
+double SurrogateHeatDriverAssembly::fluid_density(std::size_t pin,
+                                                  std::size_t axial) const
 {
   return fluid_density_(pin, axial);
 }
 
-double SurrogateHeatDriver::fluid_temperature(std::size_t pin, std::size_t axial) const
+double SurrogateHeatDriverAssembly::fluid_temperature(std::size_t pin,
+                                                      std::size_t axial) const
 {
   return fluid_temperature_(pin, axial);
-}
-
-void SurrogateHeatDriver::write_step(int timestep, int iteration)
-{
-  // TODO: Timers deadlock here...
-  // timer_write_step.start();
-  if (!has_coupling_data())
-    return;
-
-  // if called, but viz isn't requested for the situation,
-  // exit early - no output
-  if ((iteration < 0 && "final" != viz_iterations_) ||
-      (iteration >= 0 && "all" != viz_iterations_)) {
-    return;
-  }
-
-  // otherwise construct an appropriate filename and write the data
-  std::stringstream filename;
-  filename << viz_basename_;
-  if (iteration >= 0 && timestep >= 0) {
-    filename << "_t" << timestep << "_i" << iteration;
-  }
-  filename << ".vtk";
-
-  SurrogateVtkWriter vtk_writer(*this, vtk_radial_res_, viz_regions_, viz_data_);
-
-  comm_.message("Writing VTK file: " + filename.str());
-  vtk_writer.write(filename.str());
-  // timer_write_step.stop();
-  return;
 }
 
 } // namespace enrico
