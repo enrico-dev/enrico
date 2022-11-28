@@ -1,0 +1,42 @@
+<?xml version="1.0"?>
+<enrico>
+  <neutronics>
+    <driver>openmc</driver>
+    <procs_per_node>1</procs_per_node>
+  </neutronics>
+  <heat_fluids>
+    <driver>surrogate</driver>
+    <pressure_bc>12.7553</pressure_bc>
+    <pellet_radius>0.406</pellet_radius>
+    <clad_inner_radius>0.414</clad_inner_radius>
+    <clad_outer_radius>0.475</clad_outer_radius>
+    <fuel_rings>6</fuel_rings>
+    <clad_rings>5</clad_rings>
+    <pin_pitch>1.26</pin_pitch>
+    <n_pins_x>2</n_pins_x>
+    <n_pins_y>2</n_pins_y>
+    <n_assem_x>3</n_assem_x>
+    <n_assem_y>3</n_assem_y>
+    <assembly_width_x>2.52</assembly_width_x>
+    <assembly_width_y>2.52</assembly_width_y>
+    <skip_assemblies>0 2 6 8</skip_assemblies>
+    <mass_flowrate>0.0525</mass_flowrate>
+    <inlet_temperature>500.0</inlet_temperature>
+    <z>0.0 0.5 1.0 1.5 2.0 2.5 3.0 3.5 4.0 4.5 5.0 5.5 6.0 6.5 7.0 7.5 8.0 8.5
+      9.0 9.5 10.0
+    </z>
+    <verbosity>high</verbosity>
+    <viz filename="openmc_heat_surrogate_core_partial">
+      <iterations>final</iterations>
+      <resolution>48</resolution>
+      <data>all</data>
+      <regions>all</regions>
+    </viz>
+  </heat_fluids>
+  <coupling>
+    <communication>overlapping</communication>
+    <power>3200</power> <!-- 16400.0 = 820.0/pin * 4 pin/assem * 5 assem -->
+    <max_timesteps>1</max_timesteps>
+    <max_picard_iter>2</max_picard_iter>
+  </coupling>
+</enrico>

@@ -56,6 +56,17 @@ Under the ``<heat_fluids>`` element, these surrogate-specific sub-elements are a
   which would correspond to touching pins. This pitch is used to determine the
   pin-pin spacing and the pin- to assembly-edge spacing, which is taken to be
   half a pitch.
+* ``n_assem_x``: Number of assemblies in the x direction, each column of
+  assemblies is assumed to be centered at y=0.
+* ``n_assem_y``: Number of assemblies in the y direction, each row of
+  assemblies is assumed to be centered at x=0.
+* ``assembly_width_x``: Width of assembly in x direction in units of [cm].
+* ``assembly_width_y``: Width of assembly in y direction in units of [cm].
+* ``skip_assemblies``: Indices of assemblies in the rectangular grid that
+  should be skipped (if any) when solving the heat/fluids equatioons (ie, if an
+  assembly is not a fuel/core region with a pin lattice, it should be skipped).
+  Indices start at 0 in upper left corner of the core and work left to right,
+  then top to bottom.
 * ``<z>``: Values along the z-axis that subdivide the fuel region in units of [cm].
 * ``<inlet_temperature>``: Fluid inlet temperature in [K].
 * ``<mass_flowrate>``: Fluid mass flowrate in [kg/s].

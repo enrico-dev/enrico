@@ -72,7 +72,7 @@ xtensor<int, 2> hex_ring(size_t start_idx, size_t resolution, size_t z_shift)
   return out;
 }
 
-SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriver& surrogate_ref,
+SurrogateVtkWriter::SurrogateVtkWriter(const SurrogateHeatDriverAssembly& surrogate_ref,
                                        size_t t_res,
                                        const std::string& regions_to_write,
                                        const std::string& data_to_write)
