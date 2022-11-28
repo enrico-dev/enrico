@@ -64,18 +64,10 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
     MPI_Allreduce(
       &n, &n_global_elem_, 1, get_mpi_type<std::size_t>(), MPI_SUM, comm_.comm);
 
-    std::vector<double> xLoc(mesh->Nlocal);
-    std::vector<double> yLoc(mesh->Nlocal);
-    std::vector<double> zLoc(mesh->Nlocal);
-  
-    mesh->o_x.copyTo(xLoc.data(), mesh->Nlocal * sizeof(dfloat));
-    mesh->o_y.copyTo(yLoc.data(), mesh->Nlocal * sizeof(dfloat));
-    mesh->o_z.copyTo(zLoc.data(), mesh->Nlocal * sizeof(dfloat));
-  
-    x_ = xLoc.data();
-    y_ = yLoc.data();
-    z_ = zLoc.data();
-
+    x_ = mesh->x;
+    y_ = mesh->y;
+    z_ = mesh->z;
+ 
     element_info_ = mesh->elementInfo;
 
     // rho energy is field 1 (0-based) of rho
