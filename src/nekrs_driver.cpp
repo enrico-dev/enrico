@@ -145,7 +145,7 @@ void NekRSDriver::solve_step()
     nekrs::updateTimer("elapsedStepSum", elapsedStepSum);
     nekrs::updateTimer("elapsed", elapsedStepSum);
 
-    nekrs::printInfo(time_, tstep_);
+    nekrs::printInfo(time_, tstep_, true, false);
 
     if (tstep_ % runtime_stat_freq == 0 || last_step)
       nekrs::printRuntimeStatistics(tstep_);
