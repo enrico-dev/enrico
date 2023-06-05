@@ -36,7 +36,7 @@ jobs:
 
       - name: Environment Variables
         run: |
-          echo "OPENMC_CROSS_SECTIONS=$HOME/endfb71_hdf5/cross_sections.xml" >> $GITHUB_ENV
+          echo "OPENMC_CROSS_SECTIONS=$HOME/endfb-vii.1-hdf5/cross_sections.xml" >> $GITHUB_ENV
 
       - name: Apt dependencies
         shell: bash
