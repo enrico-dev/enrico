@@ -44,10 +44,11 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
                  setup_file_ /* _setupFile */,
                  "" /* backend_ */,
                  "" /* _deviceId */,
+		 1 /* nSessions */,
+		 0 /* sessionID */,
                  0 /* debug */);
 
     nrs_ptr_ = reinterpret_cast<nrs_t*>(nekrs::nrsPtr());
-
     open_lib_udf();
 
     // Check that we're running a CHT simulation.
@@ -71,14 +72,23 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
     element_info_ = mesh->elementInfo;
 
     // rho energy is field 1 (0-based) of rho
-    rho_cp_ = &nrs_ptr_->cds->prop[nrs_ptr_->cds->fieldOffset[0]];
+//    rho_cp_ = &nrs_ptr_->cds->prop[nrs_ptr_->cds->fieldOffset[0]];
+    auto cds = nrs_ptr_->cds;
+    dfloat *rho_cp_;
+//   rho_cp_ = (dfloat *) calloc((&nrs_ptr_)->cds->mesh[0]->fieldOffset, sizeof(dfloat));
+    rho_cp_ = (dfloat *) calloc(mesh->fieldOffset, sizeof(dfloat));
+    occa::memory o_rho = cds->o_prop + 1*cds->fieldOffsetSum;
+    o_rho.copyTo(rho_cp_, mesh->Nlocal * sizeof(dfloat));
+
     temperature_ = nrs_ptr_->cds->S;
 
     // Construct lumped mass matrix from vgeo
     mass_matrix_.resize(mesh->Nelements * mesh->Np);
-    for(dlong e = 0; e < mesh->Nelements; ++e)
-      for(int n = 0; n < mesh->Np; ++n)
-        mass_matrix_[e * mesh->Np + n] = mesh->vgeo[e * mesh->Np * mesh->Nvgeo + JWID * mesh->Np + n];
+//    for(dlong e = 0; e < mesh->Nelements; ++e)
+//      for(int n = 0; n < mesh->Np; ++n)
+//        mass_matrix_[e * mesh->Np + n] = mesh->vgeo[e * mesh->Np * mesh->Nvgeo + JWID * mesh->Np + n];
+    occa::memory o_LMM = mesh->o_LMM;
+    o_LMM.copyTo(mass_matrix_.data(), mesh->Nlocal * sizeof(dfloat));
   }
 
 #ifdef _OPENMP
@@ -135,17 +145,38 @@ void NekRSDriver::solve_step()
     else
       dt = nekrs::dt(tstep_);
 
-    nekrs::runStep(time_, dt, tstep_);
-    time_ += dt;
+    int outputStep = nekrs::outputStep(time_ + dt, tstep_);
+    if (nekrs::writeInterval() == 0) outputStep = 0;
+    if (last_step) outputStep = 1;
+    if (nekrs::writeInterval() < 0) outputStep = 0;
+    nekrs::outputStep(outputStep);    
+
+    nekrs::initStep(time_, dt, tstep_);
+
+    int corrector = 1;
+    bool converged = false;
+    do {
+      converged = nekrs::runStep(corrector++);
+    } while (!converged);
+
+    time_ = nekrs::finishStep();
+
+//    nekrs::runStep(time_, dt, tstep_);
+//    time_ += dt;
 
     comm_.Barrier();
     const double elapsedStep = MPI_Wtime() - timeStartStep;
     elapsedStepSum += elapsedStep;
     nekrs::updateTimer("elapsedStep", elapsedStep);
     nekrs::updateTimer("elapsedStepSum", elapsedStepSum);
-    nekrs::updateTimer("elapsed", elapsedStepSum);
+    nekrs::updateTimer("elapsed", elapsedStepSum); 
 
-    nekrs::printInfo(time_, tstep_, true, false);
+    if (nekrs::printInfoFreq()) {
+      if (tstep_ % nekrs::printInfoFreq() == 0)
+        nekrs::printInfo(time_, tstep_, true, false);
+    }
+    
+//    nekrs::printInfo(time_, tstep_);
 
     if (tstep_ % runtime_stat_freq == 0 || last_step)
       nekrs::printRuntimeStatistics(tstep_);
@@ -156,12 +187,13 @@ void NekRSDriver::solve_step()
 void NekRSDriver::write_step(int timestep, int iteration)
 {
   timer_write_step.start();
-  nekrs::outfld(time_,timestep);
+  nekrs::outfld(time_, timestep);
+  int FP64 = 1; 
   if (output_heat_source_) {
     comm_.message("Writing heat source to .fld file");
     occa::memory o_localq =
       host_.wrapMemory<double>(localq_->data(), localq_->size());
-    writeFld("qsc", time_, timestep, 1, 0, &nrs_ptr_->o_U, &nrs_ptr_->o_P, &o_localq, 1);
+    writeFld("qsc", time_, 1, 0, FP64, &nrs_ptr_->o_U, &nrs_ptr_->o_P, &o_localq, 1);
   }
   timer_write_step.stop();
 }
