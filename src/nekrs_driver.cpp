@@ -71,22 +71,17 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
  
     element_info_ = mesh->elementInfo;
 
-    // rho energy is field 1 (0-based) of rho
-//    rho_cp_ = &nrs_ptr_->cds->prop[nrs_ptr_->cds->fieldOffset[0]];
     auto cds = nrs_ptr_->cds;
-    dfloat *rho_cp_;
-//   rho_cp_ = (dfloat *) calloc((&nrs_ptr_)->cds->mesh[0]->fieldOffset, sizeof(dfloat));
-    rho_cp_ = (dfloat *) calloc(mesh->fieldOffset, sizeof(dfloat));
-    occa::memory o_rho = cds->o_prop + 1*cds->fieldOffsetSum;
-    o_rho.copyTo(rho_cp_, mesh->Nlocal * sizeof(dfloat));
 
-    temperature_ = nrs_ptr_->cds->S;
+    // Copy rho_cp_ from the device to host
+    rho_cp_.resize(mesh->Nelements * mesh->Np);
+    occa::memory o_rho = cds->o_rho;
+    o_rho.copyTo(rho_cp_.data(), mesh->Nlocal * sizeof(dfloat)); 
 
-    // Construct lumped mass matrix from vgeo
+    temperature_ = cds->S;
+
+    // Copy lumped mass matrix from device to host
     mass_matrix_.resize(mesh->Nelements * mesh->Np);
-//    for(dlong e = 0; e < mesh->Nelements; ++e)
-//      for(int n = 0; n < mesh->Np; ++n)
-//        mass_matrix_[e * mesh->Np + n] = mesh->vgeo[e * mesh->Np * mesh->Nvgeo + JWID * mesh->Np + n];
     occa::memory o_LMM = mesh->o_LMM;
     o_LMM.copyTo(mass_matrix_.data(), mesh->Nlocal * sizeof(dfloat));
   }
@@ -161,9 +156,6 @@ void NekRSDriver::solve_step()
 
     time_ = nekrs::finishStep();
 
-//    nekrs::runStep(time_, dt, tstep_);
-//    time_ += dt;
-
     comm_.Barrier();
     const double elapsedStep = MPI_Wtime() - timeStartStep;
     elapsedStepSum += elapsedStep;
@@ -176,8 +168,6 @@ void NekRSDriver::solve_step()
         nekrs::printInfo(time_, tstep_, true, false);
     }
     
-//    nekrs::printInfo(time_, tstep_);
-
     if (tstep_ % runtime_stat_freq == 0 || last_step)
       nekrs::printRuntimeStatistics(tstep_);
   }
@@ -246,6 +236,7 @@ std::vector<double> NekRSDriver::volume() const
 
 double NekRSDriver::temperature_at(int32_t local_elem) const
 {
+//  comm_.message("at the beginning of function temperature_at()");
   Expects(local_elem < n_local_elem());
 
   double sum0 = 0.;
@@ -264,7 +255,7 @@ std::vector<double> NekRSDriver::temperature() const
   for (int32_t i = 0; i < n_local_elem(); ++i) {
     t[i] = this->temperature_at(i);
   }
-
+  
   return t;
 }
 
