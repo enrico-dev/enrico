@@ -8,10 +8,9 @@ numSteps = 20000
 dt = 1.5e-04
 startFrom = rod_l.run03
 timeStepper = tombo2
+subCyclingSteps = 2
+writeControl = steps
 writeInterval = 20000
-
-[PROBLEMTYPE]
-variableProperties = yes
 
 [PRESSURE]
 residualTol = 1e-05

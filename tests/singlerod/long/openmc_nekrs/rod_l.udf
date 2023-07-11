@@ -9,20 +9,25 @@ static occa::kernel cCopyKernel;
 static int updateProperties = 1;
 std::vector<dfloat> localq;
 
-void userq(nrs_t* nrs, dfloat time, occa::memory o_S, occa::memory o_FS)
+void userq(nrs_t *nrs, dfloat time, occa::memory o_S, occa::memory o_FS)
 {
-  auto mesh = nrs->cds->mesh;
+  cds_t *cds   = nrs->cds;
+  mesh_t *mesh = cds->mesh[0];
+
   o_FS.copyFrom(localq.data(), mesh->Nelements * mesh->Np * sizeof(dfloat), 0);
+
+  double *qarray1 = (double *) nek::scPtr(4); //copy heat density to usr to calculate inlet velocity
+  o_FS.copyTo(qarray1, mesh->Nelements * mesh->Np * sizeof(dfloat), 0);
 }
 
-void uservp(nrs_t* nrs,
+void uservp(nrs_t *nrs,
             dfloat time,
             occa::memory o_U,
             occa::memory o_S,
             occa::memory o_UProp,
             occa::memory o_SProp)
 {
-  cds_t* cds = nrs->cds;
+  cds_t *cds   = nrs->cds;
 
   if (updateProperties) {
     const dfloat rho = 1.0;
@@ -35,45 +40,47 @@ void uservp(nrs_t* nrs,
     // velocity
     const occa::memory o_mue = o_UProp.slice(0 * nrs->fieldOffset * sizeof(dfloat));
     const occa::memory o_rho = o_UProp.slice(1 * nrs->fieldOffset * sizeof(dfloat));
-    cFillKernel(nrs->mesh->Nelements, mue, 0, nrs->mesh->o_elementInfo, o_mue);
-    cFillKernel(nrs->mesh->Nelements, rho, 0, nrs->mesh->o_elementInfo, o_rho);
+    cFillKernel(nrs->meshV->Nelements, mue, 0, nrs->meshV->o_elementInfo, o_mue);
+    cFillKernel(nrs->meshV->Nelements, rho, 0, nrs->meshV->o_elementInfo, o_rho);
     // temperature
-    const occa::memory o_con = o_SProp.slice(0 * cds->fieldOffset * sizeof(dfloat));
-    const occa::memory o_rhoCp = o_SProp.slice(1 * cds->fieldOffset * sizeof(dfloat));
+    const occa::memory o_con   = o_SProp.slice(0*cds->fieldOffset[0]*sizeof(dfloat));
+    const occa::memory o_rhoCp = o_SProp.slice(1*cds->fieldOffset[0]*sizeof(dfloat));
 
-
-    double* nekScratch = nekData.cbscnrs;
-    o_SProp.copyFrom(nekScratch, cds->Nlocal * sizeof(dfloat), 0);
-
-    // cFillKernel(cds->mesh->Nelements, conFluid, conSolid, nrs->mesh->o_elementInfo, o_con);
-    cFillKernel(cds->mesh->Nelements, rhoCpFluid, rhoCpSolid, nrs->mesh->o_elementInfo, o_rhoCp);
+    double *con_array= (double *) nek::scPtr(1);
+    o_SProp.copyFrom(con_array, cds->mesh[0]->Nelements * cds->mesh[0]->Np * sizeof(dfloat), 0);
+    cFillKernel(cds->mesh[0]->Nelements, rhoCpFluid, rhoCpSolid, cds->mesh[0]->o_elementInfo, o_rhoCp);
     updateProperties = 0;
   }
 }
 
 /* UDF Functions */
 
-void UDF_LoadKernels(nrs_t* nrs)
+void UDF_LoadKernels(occa::properties& kernelInfo)
 {
-  cFillKernel = udfBuildKernel(nrs, "cFill");
-  cCopyKernel = udfBuildKernel(nrs, "cCopy");
+  cFillKernel = oudfBuildKernel(kernelInfo, "cFill");
+  cCopyKernel = oudfBuildKernel(kernelInfo, "cCopy");
 }
 
-void UDF_Setup(nrs_t* nrs)
+void UDF_Setup(nrs_t *nrs)
 {
+  cds_t *cds   = nrs->cds;
+  mesh_t *mesh = cds->mesh[0];
+
   updateProperties = 1;
 
   udf.sEqnSource = &userq;
   udf.properties = &uservp;
 
   // ATTENTION: Need to explicitly resize localq
-  localq.resize(nrs->cds->mesh->Nelements * nrs->cds->mesh->Np);
+  localq.resize(mesh->Nelements * mesh->Np);
 }
 
-void UDF_ExecuteStep(nrs_t* nrs, dfloat time, int tstep)
+void UDF_ExecuteStep(nrs_t *nrs, dfloat time, int tstep)
 {
     nrs->flow = 0;
-    nek_ocopyFrom(time, tstep);
-    nek_userchk();
+    if ((tstep%100)==0){
+    nek::ocopyToNek(time, tstep);
+    nek::userchk();
     updateProperties = 1;
+    }
 }
