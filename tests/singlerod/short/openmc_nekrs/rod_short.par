@@ -1,1 +1,23 @@
-../nekrs/rod_short.par
+[OCCA]
+backend = SERIAL
+deviceNumber = LOCAL-RANK
+
+[GENERAL] 
+polynomialOrder = 7
+numSteps = 20000 
+dt = 1.0e-04
+timeStepper = tombo2
+subCyclingSteps = 2
+writeControl = steps
+writeInterval = 20000
+
+[PRESSURE]
+residualTol = 1e-05
+
+[VELOCITY]
+boundaryTypeMap = v, O, W, symx, symy
+residualTol = 1e-06
+
+[TEMPERATURE]
+boundaryTypeMap = t, I, I, I, I
+residualTol = 1e-04

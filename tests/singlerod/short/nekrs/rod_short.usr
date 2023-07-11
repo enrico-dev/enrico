@@ -22,7 +22,7 @@ c-----------------------------------------------------------------------
       integer e,f,ix,iy,iz
       real t_,rdiff
 
-      rdiff  = 0.01
+      rdiff  = 0.39*2.0
 
       xx = xm1(ix,iy,iz,e)
       yy = ym1(ix,iy,iz,e)
@@ -33,6 +33,7 @@ c-----------------------------------------------------------------------
 
       if (rr.lt.0.406) then
           ! fuel conductivity in W/cm-K
+c         rdiff = 0.04
           rdiff = 1.0/(4.52 + 2.46e-2*t_) + 3.5e7/(t_*t_) *
      $            exp(-16361.0/t_)
       else if (rr.lt.0.414) then
@@ -60,21 +61,56 @@ c-----------------------------------------------------------------------
       include 'TOTAL'
 
       common /scrach_o2/
-     & con_array(lx1,ly1,lz1,lelv)
-      COMMON /SCNRS/ SC_NRS(LX1*LY1*LZ1*LELT*7)
-      real           SC_NRS,con_array,rdiff
-      integer e,i,j,k,n
+     & con_array(lx1,ly1,lz1,lelt),
+     & qarray(lx1,ly1,lz1,lelt) 
+      COMMON /NRSSCPTR/ nrs_scptr(1)
+      integer*8         nrs_scptr
+      real    con_array,rdiff
+      integer e,f,i,j,k,n
+      real mpow, mdot
+      real tbulk(lx1,ly1,lz1,lelv)
+
 
       n=lx1*ly1*lz1*nelt
-
+      nv=lx1*ly1*lz1*nelv
+ 
       tmin=glmin(t,n)
       tmax=glmax(t,n)
- 
-      if (nid.eq.0) then
-       write(6,*)" > Temperature: ",tmin," - ",tmax
-      endif
+      tmin1=glmin(t,nv)
+      tmax1=glmax(t,nv)
 
-      do e=1,nelt 
+      vmin=glmin(vz,n)
+      vmax=glmax(vz,n)
+      pmin=glmin(pr,n)
+      pmax=glmax(pr,n) 
+
+      vol1   = glsum(bm1,nv)
+      area1  = vol1/200.0
+      vz_avg = glsc2(vz,bm1,nv)/vol1
+      mdot   = vz_avg*area1
+
+      do i=1,nv
+       tbulk(i,1,1,1)=t(i,1,1,1,1)*vz(i,1,1,1)
+      enddo
+
+      sarea=0.0
+      sint=0.0
+      sum_area=0.0
+      sum_int=0.0
+      do e=1,nelv
+         do f=1,6
+            if (cbc(f,e,1).eq.'O  ') then
+             call surface_int(sint,sarea,tbulk,e,f)
+             sum_area=sum_area+sarea
+             sum_int=sum_int+sint
+            endif
+          enddo
+      enddo
+      sum_int=glsum(sum_int,1)
+      sum_area=glsum(sum_area,1)
+      T_out=sum_int/(sum_area*vz_avg)
+
+      do e=1,nelt
       do k=1,lz1
       do j=1,ly1
       do i=1,lx1
@@ -82,12 +118,58 @@ c-----------------------------------------------------------------------
         con_array(i,j,k,e)=rdiff 
       enddo
       enddo
-      enddo 
-      enddo 
+      enddo
+      enddo
+
+      ! Creates a buffer between inlet/outlet and power region.
+      zlen=0.0
 
       do i=1,n
-        sc_nrs(i)=con_array(i,1,1,1)
-      enddo  
+        xx=xm1(i,1,1,1)
+        yy=ym1(i,1,1,1)
+        zz=zm1(i,1,1,1)
+        rr=sqrt(xx**2+ yy**2)
+        qvol=0.0
+        if (rr.lt.0.406) then
+        if ((zz.gt.zlen).and.(zz.lt.(200.0-zlen))) then
+          qvol=161.0*(3.13/2.0)*cos(3.13*(zz-100.0)/200.0)
+        endif
+        endif
+        qarray(i,1,1,1)=qvol
+      enddo
+
+      nrs_scptr(1) = loc(con_array)
+      nrs_scptr(2) = loc(qarray)
+
+      Pow1 = glsc2(qarray,bm1,n)
+      T_out1 = 523.15 + Pow1/(mdot*3.9) 
+       
+      if (nid.eq.0) then
+       write(6,*)" > Temperature (t): ",tmin," - ",tmax
+       write(6,*)" > Temperature (v): ",tmin1," - ",tmax1
+       write(6,*)" > Velocity:    ",vmin," - ",vmax
+       write(6,*)" > Pressure:    ",pmin," - ",pmax
+       write(6,*)" > Balance:    ",Pow1," ", T_out1," ",T_out
+      endif
+
+      return
+      end
+c-----------------------------------------------------------------------
+      subroutine userbc (ix,iy,iz,iside,ieg)
+      include 'SIZE'
+      include 'TOTAL'
+      include 'NEKUSE'
+
+      integer e,ieg
+      real ucx, ucy, ucz, ucy_e, yy
+
+      e=gllel(ieg)
+
+      ux = 0.0
+      uy = 0.0
+      uz = 50.0
+      temp = 523.15
+      flux = 0.25 !flux_recon(ix,iy,iz,e) !flux_moose
 
       return
       end
