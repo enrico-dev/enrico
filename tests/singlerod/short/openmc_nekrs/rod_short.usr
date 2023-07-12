@@ -126,7 +126,7 @@ c-----------------------------------------------------------------------
       nrs_scptr(4) = loc(qarray1)
 
       Pow1 = glsc2(qarray1,bm1,n)
-      T_out1 = 531.15 + Pow1/(mdot*3.9)
+      T_out1 = 523.15 + Pow1/(mdot*3.9)
  
       if (nid.eq.0) then
        write(6,*)" > Balance:   ",Pow1," ", T_out1

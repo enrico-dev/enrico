@@ -125,17 +125,7 @@ c-----------------------------------------------------------------------
       zlen=0.0
 
       do i=1,n
-        xx=xm1(i,1,1,1)
-        yy=ym1(i,1,1,1)
-        zz=zm1(i,1,1,1)
-        rr=sqrt(xx**2+ yy**2)
-        qvol=0.0
-        if (rr.lt.0.406) then
-        if ((zz.gt.zlen).and.(zz.lt.(200.0-zlen))) then
-          qvol=161.0*(3.13/2.0)*cos(3.13*(zz-100.0)/200.0)
-        endif
-        endif
-        qarray(i,1,1,1)=qvol
+        qarray(i,1,1,1)=158.0
       enddo
 
       nrs_scptr(1) = loc(con_array)
