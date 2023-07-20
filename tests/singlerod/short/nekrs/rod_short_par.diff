@@ -1,0 +1,13 @@
+diff --git tests/singlerod/short/nekrs/rod_short.par tests/singlerod/short/nekrs/rod_short.par
+index 04d2d04..d3936d4 100644
+--- tests/singlerod/short/nekrs/rod_short.par
++++ tests/singlerod/short/nekrs/rod_short.par
+@@ -5,7 +5,7 @@ deviceNumber = LOCAL-RANK
+ [GENERAL] 
+ #startFrom = rod_short.run1
+ polynomialOrder = 7
+-numSteps = 20000 
++numSteps = 10
+ dt = 1e-04
+ timeStepper = tombo2
+ writeInterval = 100
