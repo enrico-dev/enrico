@@ -12,5 +12,5 @@
 	branch = master
 [submodule "vendor/nekRS"]
 	path = vendor/nekRS
-	url = git@github.com:Nek5000/nekRS.git
+	url = https://github.com/Nek5000/nekRS.git
 	branch = master
