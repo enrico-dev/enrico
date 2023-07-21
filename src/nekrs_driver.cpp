@@ -1,9 +1,9 @@
 #include "enrico/nekrs_driver.h"
 #include "enrico/error.h"
-#include "iapws/iapws.h"
 #include "fldFile.hpp"
-#include "nekrs.hpp"
+#include "iapws/iapws.h"
 #include "nekInterfaceAdapter.hpp"
+#include "nekrs.hpp"
 
 #include <gsl-lite/gsl-lite.hpp>
 
@@ -30,9 +30,7 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
       output_heat_source_ = node.child("output_heat_source").text().as_bool();
     }
 
-    host_.setup({
-      {"mode", "Serial"}
-    });
+    host_.setup({{"mode", "Serial"}});
 
     // commg_in and comm_in should be the same when there is only a single nekRS session.
     setup_file_ = node.child_value("casename");
@@ -44,8 +42,8 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
                  setup_file_ /* _setupFile */,
                  "" /* backend_ */,
                  "" /* _deviceId */,
-		 1 /* nSessions */,
-		 0 /* sessionID */,
+                 1 /* nSessions */,
+                 0 /* sessionID */,
                  0 /* debug */);
 
     nrs_ptr_ = reinterpret_cast<nrs_t*>(nekrs::nrsPtr());
@@ -56,7 +54,7 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
             "NekRS simulation is not setup for conjugate-heat transfer (CHT).  "
             "ENRICO must be run with a CHT simulation.");
 
-    mesh_t *mesh = nrs_ptr_->cds->mesh[0];
+    mesh_t* mesh = nrs_ptr_->cds->mesh[0];
     n_local_elem_ = mesh->Nelements;
     poly_deg_ = mesh->N;
     n_gll_ = mesh->Np;
@@ -68,7 +66,7 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
     x_ = mesh->x;
     y_ = mesh->y;
     z_ = mesh->z;
- 
+
     element_info_ = mesh->elementInfo;
 
     auto cds = nrs_ptr_->cds;
@@ -76,7 +74,7 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
     // Copy rho_cp_ from the device to host
     rho_cp_.resize(mesh->Nelements * mesh->Np);
     occa::memory o_rho = cds->o_rho;
-    o_rho.copyTo(rho_cp_.data(), mesh->Nlocal * sizeof(dfloat)); 
+    o_rho.copyTo(rho_cp_.data(), mesh->Nlocal * sizeof(dfloat));
 
     temperature_ = cds->S;
 
@@ -141,10 +139,13 @@ void NekRSDriver::solve_step()
       dt = nekrs::dt(tstep_);
 
     int outputStep = nekrs::outputStep(time_ + dt, tstep_);
-    if (nekrs::writeInterval() == 0) outputStep = 0;
-    if (last_step) outputStep = 1;
-    if (nekrs::writeInterval() < 0) outputStep = 0;
-    nekrs::outputStep(outputStep);    
+    if (nekrs::writeInterval() == 0)
+      outputStep = 0;
+    if (last_step)
+      outputStep = 1;
+    if (nekrs::writeInterval() < 0)
+      outputStep = 0;
+    nekrs::outputStep(outputStep);
 
     nekrs::initStep(time_, dt, tstep_);
 
@@ -161,13 +162,13 @@ void NekRSDriver::solve_step()
     elapsedStepSum += elapsedStep;
     nekrs::updateTimer("elapsedStep", elapsedStep);
     nekrs::updateTimer("elapsedStepSum", elapsedStepSum);
-    nekrs::updateTimer("elapsed", elapsedStepSum); 
+    nekrs::updateTimer("elapsed", elapsedStepSum);
 
     if (nekrs::printInfoFreq()) {
       if (tstep_ % nekrs::printInfoFreq() == 0)
         nekrs::printInfo(time_, tstep_, true, false);
     }
-    
+
     if (tstep_ % runtime_stat_freq == 0 || last_step)
       nekrs::printRuntimeStatistics(tstep_);
   }
@@ -178,11 +179,10 @@ void NekRSDriver::write_step(int timestep, int iteration)
 {
   timer_write_step.start();
   nekrs::outfld(time_, timestep);
-  int FP64 = 1; 
+  int FP64 = 1;
   if (output_heat_source_) {
     comm_.message("Writing heat source to .fld file");
-    occa::memory o_localq =
-      host_.wrapMemory<double>(localq_->data(), localq_->size());
+    occa::memory o_localq = host_.wrapMemory<double>(localq_->data(), localq_->size());
     writeFld("qsc", time_, 1, 0, FP64, &nrs_ptr_->o_U, &nrs_ptr_->o_P, &o_localq, 1);
   }
   timer_write_step.stop();
@@ -236,7 +236,6 @@ std::vector<double> NekRSDriver::volume() const
 
 double NekRSDriver::temperature_at(int32_t local_elem) const
 {
-//  comm_.message("at the beginning of function temperature_at()");
   Expects(local_elem < n_local_elem());
 
   double sum0 = 0.;
@@ -255,7 +254,7 @@ std::vector<double> NekRSDriver::temperature() const
   for (int32_t i = 0; i < n_local_elem(); ++i) {
     t[i] = this->temperature_at(i);
   }
-  
+
   return t;
 }
 
