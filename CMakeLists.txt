@@ -11,6 +11,10 @@ include(GNUInstallDirs)
 # For ENRICO, we'll install in the build directory by default
 if (CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT)
     set(CMAKE_INSTALL_PREFIX ${CMAKE_BINARY_DIR}/install CACHE PATH "" FORCE)
+
+    # NekRS also does this same trick to set the prefix to .local/nekrs; prevent
+    # that from happening
+    set(CMAKE_INSTALL_PREFIX_INITIALIZED_TO_DEFAULT FALSE)
 endif ()
 
 # This block of code ensures that dynamic libraries can be found via the RPATH

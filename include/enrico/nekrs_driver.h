@@ -55,8 +55,8 @@ private:
   const double* y_;
   const double* z_;
   const double* temperature_;
-  const double* rho_cp_;
   const int* element_info_;
+  std::vector<double> rho_cp_; 
   std::vector<double> mass_matrix_;
 
   //! Output heat source to separate .fld file

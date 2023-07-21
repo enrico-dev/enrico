@@ -13,4 +13,4 @@
 [submodule "vendor/nekRS"]
 	path = vendor/nekRS
 	url = https://github.com/Nek5000/nekRS.git
-	branch = mesh_interface
+	branch = master

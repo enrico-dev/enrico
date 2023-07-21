@@ -4,13 +4,12 @@ deviceNumber = LOCAL-RANK
 
 [GENERAL] 
 polynomialOrder = 7
-numSteps = 20000 
-dt = 1e-04
+numSteps = 10 
+dt = 1.0e-04
 timeStepper = tombo2
+subCyclingSteps = 2
+writeControl = steps
 writeInterval = 100
-
-[PROBLEMTYPE]
-variableProperties = yes
 
 [PRESSURE]
 residualTol = 1e-05

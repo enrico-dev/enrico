@@ -6,7 +6,7 @@ index 04d2d04..d3936d4 100644
  [GENERAL] 
  #startFrom = rod_short.run1
  polynomialOrder = 7
--numSteps = 20000 
+-numSteps = 10 
 +numSteps = 10
  dt = 1e-04
  timeStepper = tombo2

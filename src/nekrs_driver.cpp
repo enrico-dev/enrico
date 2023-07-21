@@ -1,7 +1,8 @@
 #include "enrico/nekrs_driver.h"
 #include "enrico/error.h"
+#include "fldFile.hpp"
 #include "iapws/iapws.h"
-#include "io.hpp"
+#include "nekInterfaceAdapter.hpp"
 #include "nekrs.hpp"
 
 #include <gsl-lite/gsl-lite.hpp>
@@ -29,21 +30,23 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
       output_heat_source_ = node.child("output_heat_source").text().as_bool();
     }
 
-    host_.setup("mode: 'Serial'");
+    host_.setup({{"mode", "Serial"}});
 
-    // See vendor/nekRS/src/core/occaDeviceConfig.cpp for valid keys
+    // commg_in and comm_in should be the same when there is only a single nekRS session.
     setup_file_ = node.child_value("casename");
-    nekrs::setup(comm /* comm_in */,
+    nekrs::setup(comm /* commg_in */,
+                 comm /* comm_in */,
                  0 /* buildOnly */,
                  0 /* sizeTarget */,
                  0 /* ciMode */,
-                 "" /* cacheDir */,
                  setup_file_ /* _setupFile */,
                  "" /* backend_ */,
-                 "" /* _deviceId */);
+                 "" /* _deviceId */,
+                 1 /* nSessions */,
+                 0 /* sessionID */,
+                 0 /* debug */);
 
     nrs_ptr_ = reinterpret_cast<nrs_t*>(nekrs::nrsPtr());
-
     open_lib_udf();
 
     // Check that we're running a CHT simulation.
@@ -51,35 +54,34 @@ NekRSDriver::NekRSDriver(MPI_Comm comm, pugi::xml_node node)
             "NekRS simulation is not setup for conjugate-heat transfer (CHT).  "
             "ENRICO must be run with a CHT simulation.");
 
-    // Local and global element counts
-    n_local_elem_ = nrs_ptr_->cds->mesh->Nelements;
+    mesh_t* mesh = nrs_ptr_->cds->mesh[0];
+    n_local_elem_ = mesh->Nelements;
+    poly_deg_ = mesh->N;
+    n_gll_ = mesh->Np;
+
     std::size_t n = n_local_elem_;
     MPI_Allreduce(
       &n, &n_global_elem_, 1, get_mpi_type<std::size_t>(), MPI_SUM, comm_.comm);
 
-    poly_deg_ = nrs_ptr_->cds->mesh->N;
-    n_gll_ = (poly_deg_ + 1) * (poly_deg_ + 1) * (poly_deg_ + 1);
+    x_ = mesh->x;
+    y_ = mesh->y;
+    z_ = mesh->z;
 
-    x_ = nrs_ptr_->cds->mesh->x;
-    y_ = nrs_ptr_->cds->mesh->y;
-    z_ = nrs_ptr_->cds->mesh->z;
-    element_info_ = nrs_ptr_->cds->mesh->elementInfo;
+    element_info_ = mesh->elementInfo;
 
-    // rho energy is field 1 (0-based) of rho
-    rho_cp_ = &nrs_ptr_->cds->prop[nrs_ptr_->cds->fieldOffset];
+    auto cds = nrs_ptr_->cds;
 
-    temperature_ = nrs_ptr_->cds->S;
+    // Copy rho_cp_ from the device to host
+    rho_cp_.resize(mesh->Nelements * mesh->Np);
+    occa::memory o_rho = cds->o_rho;
+    o_rho.copyTo(rho_cp_.data(), mesh->Nlocal * sizeof(dfloat));
 
-    // Construct lumped mass matrix from vgeo
-    // See cdsSetup in vendor/nekRS/src/core/insSetup.cpp
-    mass_matrix_.resize(n_local_elem_ * n_gll_);
-    auto vgeo = nrs_ptr_->cds->mesh->vgeo;
-    auto n_vgeo = nrs_ptr_->cds->mesh->Nvgeo;
-    for (gsl::index e = 0; e < n_local_elem_; ++e) {
-      for (gsl::index n = 0; n < n_gll_; ++n) {
-        mass_matrix_[e * n_gll_ + n] = vgeo[e * n_gll_ * n_vgeo + JWID * n_gll_ + n];
-      }
-    }
+    temperature_ = cds->S;
+
+    // Copy lumped mass matrix from device to host
+    mass_matrix_.resize(mesh->Nelements * mesh->Np);
+    occa::memory o_LMM = mesh->o_LMM;
+    o_LMM.copyTo(mass_matrix_.data(), mesh->Nlocal * sizeof(dfloat));
   }
 
 #ifdef _OPENMP
@@ -106,7 +108,11 @@ void NekRSDriver::solve_step()
   auto elapsed_time = MPI_Wtime();
   tstep_ = 0;
   time_ = nekrs::startTime();
+
+  nekrs::udfExecuteStep(time_, tstep_, 0);
+
   auto last_step = nekrs::lastStep(time_, tstep_, elapsed_time);
+  double elapsedStepSum = 0;
 
   if (!last_step) {
     std::stringstream msg;
@@ -121,6 +127,7 @@ void NekRSDriver::solve_step()
   while (!last_step) {
     if (comm_.active())
       comm_.Barrier();
+    const double timeStartStep = MPI_Wtime();
     elapsed_time += (MPI_Wtime() - elapsed_time);
     ++tstep_;
     last_step = nekrs::lastStep(time_, tstep_, elapsed_time);
@@ -129,31 +136,54 @@ void NekRSDriver::solve_step()
     if (last_step && nekrs::endTime() > 0)
       dt = nekrs::endTime() - time_;
     else
-      dt = nekrs::dt();
+      dt = nekrs::dt(tstep_);
 
-    nekrs::runStep(time_, dt, tstep_);
-    time_ += dt;
+    int outputStep = nekrs::outputStep(time_ + dt, tstep_);
+    if (nekrs::writeInterval() == 0)
+      outputStep = 0;
+    if (last_step)
+      outputStep = 1;
+    if (nekrs::writeInterval() < 0)
+      outputStep = 0;
+    nekrs::outputStep(outputStep);
 
-    nekrs::udfExecuteStep(time_, tstep_, 0);
+    nekrs::initStep(time_, dt, tstep_);
+
+    int corrector = 1;
+    bool converged = false;
+    do {
+      converged = nekrs::runStep(corrector++);
+    } while (!converged);
+
+    time_ = nekrs::finishStep();
+
+    comm_.Barrier();
+    const double elapsedStep = MPI_Wtime() - timeStartStep;
+    elapsedStepSum += elapsedStep;
+    nekrs::updateTimer("elapsedStep", elapsedStep);
+    nekrs::updateTimer("elapsedStepSum", elapsedStepSum);
+    nekrs::updateTimer("elapsed", elapsedStepSum);
+
+    if (nekrs::printInfoFreq()) {
+      if (tstep_ % nekrs::printInfoFreq() == 0)
+        nekrs::printInfo(time_, tstep_, true, false);
+    }
 
     if (tstep_ % runtime_stat_freq == 0 || last_step)
-      nekrs::printRuntimeStatistics();
+      nekrs::printRuntimeStatistics(tstep_);
   }
-
-  // TODO:  Do we need this in v20.0 of nekRS?
-  nekrs::copyToNek(time_, tstep_);
   timer_solve_step.stop();
 }
 
 void NekRSDriver::write_step(int timestep, int iteration)
 {
   timer_write_step.start();
-  nekrs::outfld(time_);
+  nekrs::outfld(time_, timestep);
+  int FP64 = 1;
   if (output_heat_source_) {
     comm_.message("Writing heat source to .fld file");
-    occa::memory o_localq =
-      occa::cpu::wrapMemory(host_, localq_->data(), localq_->size() * sizeof(double));
-    writeFld("qsc", time_, 1, 0, &nrs_ptr_->o_U, &nrs_ptr_->o_P, &o_localq, 1);
+    occa::memory o_localq = host_.wrapMemory<double>(localq_->data(), localq_->size());
+    writeFld("qsc", time_, 1, 0, FP64, &nrs_ptr_->o_U, &nrs_ptr_->o_P, &o_localq, 1);
   }
   timer_write_step.stop();
 }
@@ -230,7 +260,7 @@ std::vector<double> NekRSDriver::temperature() const
 
 std::vector<double> NekRSDriver::density() const
 {
-  nekrs::copyToNek(time_, tstep_);
+  nek::copyToNek(time_, tstep_);
   std::vector<double> local_densities(n_local_elem());
 
   for (int32_t i = 0; i < n_local_elem(); ++i) {
@@ -248,7 +278,6 @@ std::vector<double> NekRSDriver::density() const
 
 int NekRSDriver::in_fluid_at(int32_t local_elem) const
 {
-  // In NekRS, element_info_[i] == 1 if i is a *solid* element
   Expects(local_elem < n_local_elem());
   return element_info_[local_elem] == 1 ? 0 : 1;
 }

@@ -63,10 +63,12 @@ c-----------------------------------------------------------------------
       common /scrach_o2/
      & con_array(lx1,ly1,lz1,lelt),
      & qarray(lx1,ly1,lz1,lelt) 
-      COMMON /SCNRS/ SC_NRS(LX1*LY1*LZ1*LELT*7)
+      common /scrach_o8/
+     & qarray1(lx1,ly1,lz1,lelv)
+
       COMMON /NRSSCPTR/ nrs_scptr(1)
       integer*8         nrs_scptr
-      real           SC_NRS,con_array,rdiff
+      real    con_array,rdiff
       integer e,f,i,j,k,n
       real mpow, mdot
       real tbulk(lx1,ly1,lz1,lelv)
@@ -82,8 +84,6 @@ c-----------------------------------------------------------------------
 
       vmin=glmin(vz,n)
       vmax=glmax(vz,n)
-      pmin=glmin(pr,n)
-      pmax=glmax(pr,n) 
 
       vol1   = glsum(bm1,nv)
       area1  = vol1/200.0
@@ -122,20 +122,20 @@ c-----------------------------------------------------------------------
       enddo
       enddo
 
-      do i=1,n
-        sc_nrs(i)=con_array(i,1,1,1)
-      enddo  
+      nrs_scptr(1) = loc(con_array)
+      nrs_scptr(4) = loc(qarray1)
 
-      Pow1 = glsc2(qarray,bm1,n)
-      T_out1 = 523.15 + Pow1/(mdot*3.9) 
-       
+      Pow1 = glsc2(qarray1,bm1,n)
+      T_out1 = 531.15 + Pow1/(mdot*3.9)
+ 
       if (nid.eq.0) then
+       write(6,*)" > Balance:   ",Pow1," ", T_out1
        write(6,*)" > Temperature (t): ",tmin," - ",tmax
        write(6,*)" > Temperature (v): ",tmin1," - ",tmax1
-       write(6,*)" > Velocity:    ",vmin," - ",vmax
-       write(6,*)" > Pressure:    ",pmin," - ",pmax
-       write(6,*)" > Balance:    ",Pow1," ", T_out1," ",T_out
+       write(6,*)" > Velocity:        ",vmin," - ",vmax
+       write(6,*)" > Outlet temp.:    ",T_out
       endif
+
 
       return
       end
